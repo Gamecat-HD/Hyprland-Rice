@@ -117,6 +117,7 @@ Singleton {
     readonly property color surfaceContainer: pick("surfaceContainer", t.surfaceContainer)
     readonly property color surfaceBright: pick("surfaceBright", t.surfaceBright)
     readonly property color outline: pick("outline", t.outline)
+    readonly property color outlineVariant: pick("outlineVariant", t.outline)   // dezente Border-Neutralfarbe (M3)
 
     readonly property color fgBackground: pick("onBackground", t.fgBackground)
     readonly property color fgSurface: pick("onSurface", t.fgBackground)
@@ -138,5 +139,11 @@ Singleton {
     // Farbe mit Alpha, z.B. Colors.alpha(Colors.surface, 0.8)
     function alpha(c: color, a: real): color {
         return Qt.rgba(c.r, c.g, c.b, a);
+    }
+
+    // Farbe aufhellen (f > 0) bzw. abdunkeln (f < 0), z.B. Colors.shade(Colors.background, 0.06)
+    function shade(c: color, f: real): color {
+        return Qt.hsla(c.hslHue, c.hslSaturation,
+                       Math.max(0, Math.min(1, c.hslLightness + f)), 1);
     }
 }

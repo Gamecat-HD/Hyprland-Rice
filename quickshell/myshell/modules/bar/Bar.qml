@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
-import "components"
+import "components/notch"
+import "components/settings"
 
 import "root:/"
 
@@ -18,6 +19,11 @@ Variants {
 
         required property ShellScreen modelData
 
+        readonly property real borderWidth: 0.5
+        readonly property color borderColor: Colors.outlineVariant   // M3-Neutralfarbe, passt zu jedem Scheme
+        
+        readonly property real verticalMargin: 10
+
         screen: bar.modelData
         WlrLayershell.namespace: "myshell-bar"
         anchors {
@@ -30,33 +36,31 @@ Variants {
 
         Notch {
             id: notch
-            width: clock.implicitWidth + 15   // nur hier ist `clock` sichtbar
+            verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
+            borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
+            borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
 
-            Text {
-                id: clock
-                anchors.centerIn: parent
-
-                color: notch.containsMouse ? Colors.secondary : Colors.primary
-                text: Qt.formatDateTime(clockSource.date, "ddd dd. MMM HH:mm")
+            width: clock.implicitWidth + 50   // `clock` = die Clock-Instanz unten
+        }
+        
+        Settings {
+            id: settings
+            anchors {
+                left: notch.right
+                leftMargin: 15
             }
-
-            // Eingebaute Uhr statt externem `date`-Prozess pro Sekunde
-            SystemClock {
-                id: clockSource
-                precision: SystemClock.Minutes
-            }
+            verticalMargin: bar.verticalMargin
+            borderWidth: bar.borderWidth
         }
 
-        /*Text {
-            anchors.centerIn: parent
-            color: Colors.fgSurface
-            font.pixelSize: 14
-            text: Qt.formatDateTime(clock.date, "ddd dd.MM.  HH:mm")
+        Settings {
+            id: test
+            anchors {
+                right: notch.left
+                rightMargin: 15
+            }
+            verticalMargin: bar.verticalMargin
+            borderWidth: bar.borderWidth
         }
-
-        SystemClock {
-            id: clock
-            precision: SystemClock.Minutes
-        }*/
     }
 }
