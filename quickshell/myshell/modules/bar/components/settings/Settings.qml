@@ -2,25 +2,27 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
-import Quickshell.Io
+import Quickshell.Services.Pipewire
 
 import "root:/"
 
-// Settings-Knopf rechts neben der Notch mit Lautstärke-Ring außenrum.
-// Der Ring ist NUR Anzeige (kein Input) – Lautstärke wird über wpctl gelesen.
-Item {
+// Settings-Knopf rechts neben der Notch. Lautstärke-Ring INNERHALB des Kreises,
+// live aus PipeWire (kein Polling – Updates kommen sofort bei Volume-Änderung).
+Rectangle {
     id: settings
 
     // Schnittstelle (Bar.qml setzt verticalMargin)
     required property real verticalMargin
-    property real borderWidth: 1
+    property real borderWidth: 1   // (Außenrand aktuell aus – siehe border.width unten)
 
-    // Lautstärke 0..1 (aus wpctl), plus Mute-Flag
-    property real volume: 0
-    property bool muted: false
+    // Lautstärke live aus PipeWire (0..1) + Mute-Flag
+    readonly property PwNode sink: Pipewire.defaultAudioSink
+    readonly property real volume: sink?.audio?.volume ?? 0
+    readonly property bool muted: sink?.audio?.muted ?? false
 
-    readonly property real ringWidth: 3
-    readonly property real ringRadius: (Math.min(width, height) - ringWidth) / 2
+    readonly property real arcWidth: borderWidth                 // gleiche Dicke wie Notch-Border
+    readonly property real arcGap: 3                             // kleiner Abstand Arc -> Border
+    readonly property real ringRadius: (Math.min(width, height) - arcWidth) / 2 - arcGap
 
     readonly property bool containsMouse: ma.containsMouse
 
@@ -29,83 +31,50 @@ Item {
     }
     width: height
     height: parent.height - verticalMargin
+    radius: width / 2                    // gleiche Rundung wie die Notch
+    color: Colors.background
+    border.width: borderWidth            // exakt wie die Notch (kommt aus Bar.qml)
+    border.color: Colors.outlineVariant
 
-    // Innenkreis: der eigentliche Knopf, klein genug, dass der Ring Platz hat
-    Rectangle {
-        id: circle
-        anchors.centerIn: parent
-        width: parent.height - settings.ringWidth * 2 - 6
-        height: width
-        radius: width / 2
-        color: settings.containsMouse ? Colors.surfaceBright : Colors.background
-        border.width: settings.borderWidth
-        border.color: Colors.outlineVariant
-
-        Text {
-            anchors.centerIn: parent
-            text: "\uf013"                       // nf-fa-gear (Gear exists)
-            font.family: "JetBrainsMono Nerd Font"
-            font.pixelSize: parent.height / 2
-            color: Colors.fgSurfaceVariant
-        }
-    }
-
-    // Ring außenrum: Track (voll) + Wert-Arc (Lautstärke)
+    // Track + Wert-Arc. Unten bleibt immer eine Lücke (±10° um 90° – Qt-Shapes
+    // drehen im Uhrzeigersinn, 90° = unten!). Start bei 80° (rechte Lücken-Kante),
+    // negativer Sweep = gegen den Uhrzeigersinn -> rechts füllt zuerst.
     Shape {
         anchors.fill: parent
-        layer.enabled: true
-        layer.samples: 4                  // Antialiasing für weiche Kanten
+        preferredRendererType: Shape.CurveRenderer   // echte Kurven, nicht "eckig"
 
         ShapePath {
-            strokeWidth: settings.ringWidth
-            strokeColor: Colors.surfaceBright
+            strokeWidth: settings.arcWidth
+            strokeColor: Colors.alpha(Colors.fgBackground, 0.55)   // Track
             fillColor: "transparent"
             PathAngleArc {
                 centerX: settings.width / 2
                 centerY: settings.height / 2
                 radiusX: settings.ringRadius
                 radiusY: settings.ringRadius
-                startAngle: 90
-                sweepAngle: 360
+                startAngle: 0
+                sweepAngle: -340
             }
         }
 
         ShapePath {
-            strokeWidth: settings.ringWidth
-            strokeColor: settings.muted ? Colors.error : Colors.primary
+            strokeWidth: settings.arcWidth
+            strokeColor: settings.muted ? Colors.error : Colors.fgBackground
             fillColor: "transparent"
             PathAngleArc {
                 centerX: settings.width / 2
                 centerY: settings.height / 2
                 radiusX: settings.ringRadius
                 radiusY: settings.ringRadius
-                startAngle: 90
-                sweepAngle: -360 * settings.volume   // negativ = im Uhrzeigersinn ab 12 Uhr
+                startAngle: 120
+                sweepAngle: 295 * settings.volume
             }
         }
     }
 
-    // Lautstärke lesen: `wpctl get-volume @DEFAULT_AUDIO_SINK@` -> "Volume: 0.65"
-    Process {
-        id: volProc
-        command: ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]
-        running: true
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const t = this.text.trim();
-                settings.volume = parseFloat(t.split(":")[1]) || 0;
-                settings.muted = t.includes("MUTED");
-            }
-        }
-    }
-
-    // 1x pro Sekunde neu lesen (reine Anzeige braucht kein Event-Piping)
-    Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        onTriggered: volProc.running = true
+    // Macht die PipeWire-Objekt-Properties live beobachtbar
+    PwObjectTracker {
+        objects: [settings.sink].filter(n => n)
     }
 
     MouseArea {

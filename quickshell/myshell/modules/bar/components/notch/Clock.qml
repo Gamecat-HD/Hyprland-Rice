@@ -20,5 +20,6 @@ Text {
     SystemClock {
         id: clockSource
         precision: SystemClock.Minutes
+        
     }
 }
