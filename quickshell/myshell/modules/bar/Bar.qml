@@ -31,7 +31,7 @@ Variants {
             left: true
             right: true
         }
-        implicitHeight: 50
+        implicitHeight: 45
         color: "transparent"
 
         Notch {
