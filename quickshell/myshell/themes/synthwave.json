@@ -1,0 +1,26 @@
+{
+  "name": "Synthwave",
+  "palette": ["#0d0a12", "#ff5fbf", "#b58cff", "#4de0e0", "#40e0d0"],
+
+  "background": "#0d0a12",
+  "surface": "#15111c",
+  "surfaceContainer": "#1e1828",
+  "surfaceBright": "#2a2435",
+  "outline": "#5a4f6b",
+
+  "fgBackground": "#ece6f4",
+  "fgSurfaceVariant": "#b8adc8",
+
+  "primary": "#ff5fbf",
+  "fgPrimary": "#0d0a12",
+  "primaryDim": "#a13d78",
+
+  "secondary": "#b58cff",
+  "fgSecondary": "#0d0a12",
+
+  "tertiary": "#4de0e0",
+  "fgTertiary": "#0d0a12",
+
+  "error": "#ff5f6d",
+  "fgError": "#0d0a12"
+}

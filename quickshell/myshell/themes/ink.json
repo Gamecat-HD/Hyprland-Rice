@@ -1,0 +1,26 @@
+{
+  "name": "Ink",
+  "palette": ["#000A0F", "#FB1418", "#0ED2FC", "#0372DC", "#DE8673"],
+
+  "background": "#000A0F",
+  "surface": "#04141C",
+  "surfaceContainer": "#0B1F29",
+  "surfaceBright": "#153039",
+  "outline": "#3A5561",
+
+  "fgBackground": "#E0F4FA",
+  "fgSurfaceVariant": "#A9C2CC",
+
+  "primary": "#0ED2FC",
+  "fgPrimary": "#000A0F",
+  "primaryDim": "#036B85",
+
+  "secondary": "#0372DC",
+  "fgSecondary": "#EAF3FF",
+
+  "tertiary": "#DE8673",
+  "fgTertiary": "#000A0F",
+
+  "error": "#FB1418",
+  "fgError": "#FFF1F1"
+}
