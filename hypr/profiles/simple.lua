@@ -346,7 +346,9 @@ hl.bind("SUPER + W", hl.dsp.exec_cmd(cfg.browser))
 hl.bind("SUPER + P", hl.dsp.exec_cmd(cfg.editor))
 hl.bind("SUPER + E", hl.dsp.exec_cmd(cfg.fileExplorer))
 hl.bind("CTRL + ALT + V", hl.dsp.exec_cmd(cfg.audioSettings))
-hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd(cfg.launcher), { release = true })
+-- Super allein oeffnet das App-Menue von myshell (per Quickshell-IPC).
+-- Laeuft die Shell gerade nicht, faellt es auf cfg.launcher (fuzzel) zurueck.
+hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd("qs -c myshell ipc call launcher toggle || " .. cfg.launcher), { release = true })
 hl.bind("SUPER + Space", hl.dsp.exec_cmd(cfg.launcher))
 hl.bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd))
 hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), { locked = true })

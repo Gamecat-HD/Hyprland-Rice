@@ -1,12 +1,14 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Io
 
 import "components/notch"
 import "components/settings"
 import "components/statusBar"
+import "root:/modules/launcher"
 
 import "root:/"
 
@@ -29,6 +31,9 @@ Variants {
 
         screen: bar.modelData
         WlrLayershell.namespace: "myshell-bar"
+        // Nur wenn der Launcher offen ist, braucht die Leiste Tastatur –
+        // der Focus-Grab darunter holt sie sich und meldet Klicks daneben.
+        WlrLayershell.keyboardFocus: notch.launcherOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         anchors {
             top: true
             left: true
@@ -56,6 +61,12 @@ Variants {
 
         // Die eigentliche Leiste: feste Höhe, damit die Widgets beim Aufklappen
         // der Notch nicht mitwandern. Die Notch darf hier unten rausragen.
+        HyprlandFocusGrab {
+            active: notch.launcherOpen
+            windows: [bar]
+            onCleared: LauncherState.close()
+        }
+
         Item {
             id: row
 

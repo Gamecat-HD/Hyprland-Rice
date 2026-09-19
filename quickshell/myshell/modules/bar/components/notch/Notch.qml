@@ -5,12 +5,13 @@ import Quickshell.Wayland
 import Quickshell.Io
 
 import "root:/"
+import "root:/modules/launcher"
 
-// Notch mit Uhr. Nach kurzem Verweilen klappt sie nach unten auf und zeigt
-// Monat, Wochentage und das Datum (heute hervorgehoben). Durch die Tage kommt
-// man per Mausrad oder Ziehen. Die Karte bleibt dabei ein einziges Rechteck –
-// kein zweites Fenster, deshalb keine Naht. Damit das geht, ist das Bar-Fenster
-// höher als die Leiste (siehe Bar.qml).
+// Notch mit Uhr: Karte, Hover-Logik und Auf-/Zuklapp-Animation. Den Inhalt des
+// ausgeklappten Teils bringt DatePanel komplett selbst mit (Datum, Gesten,
+// eigene Einrückung) – hier steht nur, wie groß die Karte dafür wird.
+// Es bleibt ein einziges Rechteck, deshalb gibt es keine Naht. Damit die Karte
+// unter die Leiste ragen kann, ist das Bar-Fenster höher (siehe Bar.qml).
 Item {
     id: notch
 
@@ -22,40 +23,53 @@ Item {
     readonly property alias clock: clock
     readonly property alias ma: ma
 
-    // Maße: eingeklappt exakt wie vorher, ausgeklappt wächst nur nach unten
-    // (und etwas in die Breite, mittig um die Bildschirmmitte).
-    readonly property real cardRadius: 18
-    // Das Panel sitzt ein Stück innerhalb der Karte, sonst malt es (samt
-    // Vignette) über Rand und Eckenrundung.
-    readonly property real panelInset: 2
-    // Die Uhr rutscht beim Aufklappen etwas nach unten
-    readonly property real clockDrop: expanded ? 7 : 0
+    // Datums-Ansicht (per Hover) und Launcher (per Zug nach unten) teilen sich
+    // dieselbe Karte – der Launcher hat Vorrang.
+    property bool expanded: false
+    readonly property var hostScreen: notch.QsWindow.window?.screen ?? null
+    readonly property bool launcherOpen: LauncherState.open && LauncherState.screen === hostScreen
+    readonly property bool open: expanded || launcherOpen
 
+    readonly property real cardRadius: 18
+    // Die Uhr rutscht beim Aufklappen etwas nach unten
+    readonly property real clockDropMax: 7
+    readonly property real clockDrop: open ? clockDropMax : 0
+    // Im Launcher-Modus ist die Uhr ausgeblendet, das Panel beginnt oben
+    readonly property real launcherTop: 10
+
+    // Maße: eingeklappt exakt wie vorher, ausgeklappt wächst die Karte nach
+    // unten und mittig etwas in die Breite.
     readonly property real collapsedHeight: parent.height - verticalMargin
     readonly property real collapsedWidth: clock.implicitWidth + 50
-    readonly property real expandedWidth: Math.max(collapsedWidth, panel.implicitWidth + panelInset * 2)
-    readonly property real expandedHeight: collapsedHeight + 7 + panel.implicitHeight + panelInset
-    // Reserve, die sich das Bar-Fenster nach unten nehmen muss
-    readonly property real maxDrop: panel.implicitHeight + verticalMargin + 9
-
-    property bool expanded: false
+    readonly property real expandedWidth: launcherOpen ? Math.max(collapsedWidth, launcher.outerWidth)
+                                                       : Math.max(collapsedWidth, panel.outerWidth)
+    readonly property real expandedHeight: launcherOpen ? launcherTop + launcher.outerHeight
+                                                        : collapsedHeight + clockDropMax + panel.outerHeight
+    // Reserve, die sich das Bar-Fenster nach unten nehmen muss (größter Fall)
+    readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight,
+                                             launcherTop + launcher.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
     y: verticalMargin / 2
-    width: expanded ? expandedWidth : collapsedWidth
-    height: expanded ? expandedHeight : collapsedHeight
+    width: open ? expandedWidth : collapsedWidth
+    height: open ? expandedHeight : collapsedHeight
 
     // Aufklappen erst nach kurzem Verweilen, Zuklappen mit Nachlauf
     onContainsMouseChanged: {
         if (containsMouse) {
             closeTimer.stop();
-            if (!expanded)
+            if (!expanded && !launcherOpen)
                 openTimer.restart();
         } else {
             openTimer.stop();
             closeTimer.restart();
         }
     }
+
+    // Beim Zuklappen wieder auf heute zurückspringen
+    onExpandedChanged: if (!expanded) panel.dayOffset = 0
+    // Der Launcher übernimmt die Karte: Datums-Ansicht dabei einklappen
+    onLauncherOpenChanged: if (launcherOpen) expanded = false
 
     Timer {
         id: openTimer
@@ -67,15 +81,12 @@ Item {
         id: closeTimer
         interval: 250
         onTriggered: {
-            if (dragHandler.active)   // beim Ziehen darf die Maus rausrutschen
+            if (panel.dragging)   // beim Ziehen darf die Maus rausrutschen
                 closeTimer.restart();
             else
                 notch.expanded = false;
         }
     }
-
-    // Beim Zuklappen wieder auf heute zurückspringen
-    onExpandedChanged: if (!expanded) panel.dayOffset = 0
 
     Behavior on width {
         NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
@@ -96,51 +107,26 @@ Item {
         color: Colors.background
         clip: true
 
-        // Rad und Ziehen liegen auf der ganzen Karte, nicht nur auf dem
-        // Datumsstreifen – sonst passiert nichts, solange der Zeiger noch
-        // über der Uhr steht.
-        WheelHandler {
-            id: wheel
-
-            enabled: notch.expanded
-            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-
-            // Hi-Res-Räder (z.B. G502 im Free-Spin) liefern Bruchteile einer
-            // Rastung pro Event. Einzeln gerundet wäre das immer 0 -> es würde
-            // gar nichts passieren. Deshalb aufsummieren und erst bei einer
-            // vollen Rastung einen Tag weiterschalten.
-            property real accum: 0
-
-            onWheel: event => {
-                const angle = event.angleDelta.y + event.angleDelta.x;
-                const pixels = event.pixelDelta.y + event.pixelDelta.x;
-                wheel.accum += angle !== 0 ? angle / 120 : pixels / 40;
-
-                const steps = wheel.accum > 0 ? Math.floor(wheel.accum) : Math.ceil(wheel.accum);
-                if (steps !== 0) {
-                    wheel.accum -= steps;
-                    panel.shiftDays(-steps);
-                }
-                event.accepted = true;
-            }
-        }
-
+        // Nach unten ziehen öffnet den Launcher. Solange diese Geste läuft,
+        // ist das Ziehen im Datumsstreifen stillgelegt.
         DragHandler {
-            id: dragHandler
+            id: launcherDrag
 
-            enabled: notch.expanded
-            target: null                  // nur Geste, nichts wird verschoben
-            yAxis.enabled: false
-            cursorShape: Qt.ClosedHandCursor
+            target: null
+            xAxis.enabled: false
+            enabled: !LauncherState.open
 
-            property int startOffset: 0
+            readonly property real threshold: 55
+            property bool triggered: false
 
-            onActiveChanged: if (active) startOffset = panel.dayOffset
+            onActiveChanged: if (active) triggered = false
             onTranslationChanged: {
-                if (!dragHandler.active)
+                if (!launcherDrag.active || launcherDrag.triggered)
                     return;
-                const step = panel.columnWidth + panel.columnSpacing;
-                panel.dayOffset = dragHandler.startOffset - Math.round(dragHandler.activeTranslation.x / step);
+                if (launcherDrag.activeTranslation.y > launcherDrag.threshold) {
+                    launcherDrag.triggered = true;
+                    LauncherState.show(notch.QsWindow.window.screen);
+                }
             }
         }
 
@@ -148,27 +134,42 @@ Item {
             id: clock
 
             anchors.horizontalCenter: parent.horizontalCenter
-            // im eingeklappten Band zentriert, beim Aufklappen etwas tiefer
+            // im eingeklappten Band zentriert, beim Aufklappen etwas tiefer;
+            // im Launcher-Modus macht sie ganz Platz
             y: (notch.collapsedHeight - height) / 2 + notch.clockDrop
+            opacity: notch.launcherOpen ? 0 : 1
+            visible: opacity > 0
 
             Behavior on y {
                 NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
             }
         }
 
         DatePanel {
             id: panel
 
-            anchors {
-                top: parent.top
-                topMargin: notch.collapsedHeight + notch.clockDrop
-                left: parent.left
-                right: parent.right
-                leftMargin: notch.panelInset
-                rightMargin: notch.panelInset
+            topOffset: notch.collapsedHeight + notch.clockDrop
+            cardRadius: notch.cardRadius
+            gestureArea: pill                 // Mausrad gilt auf der ganzen Karte
+            dragEnabled: !launcherDrag.active
+            opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
             }
-            cornerRadius: notch.cardRadius - notch.panelInset
-            opacity: notch.expanded ? 1 : 0
+        }
+
+        LauncherPanel {
+            id: launcher
+
+            topOffset: notch.launcherTop
+            cardRadius: notch.cardRadius
+            active: notch.launcherOpen
+            opacity: notch.launcherOpen ? 1 : 0
             visible: opacity > 0
 
             Behavior on opacity {
@@ -178,7 +179,7 @@ Item {
     }
 
     // Reiner Hover-Sensor: nimmt bewusst keine Klicks an, sonst würde er dem
-    // DragHandler darunter den Druck wegschnappen.
+    // DragHandler in der Karte den Druck wegschnappen.
     MouseArea {
         id: ma
         anchors.fill: parent

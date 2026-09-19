@@ -17,7 +17,7 @@ Item {
     Text {
         id: signalStrength
         anchors.centerIn: parent
-        anchors.horizontalCenterOffset: -0.5   // optisches Feintuning (Glyph-Margins)
+        //anchors.horizontalCenterOffset: -0.5   // optisches Feintuning (Glyph-Margins)
         //anchors.verticalCenterOffset: -0.25
 
         color: wrapper.wifiEnabled ? Colors.secondary : Colors.error
