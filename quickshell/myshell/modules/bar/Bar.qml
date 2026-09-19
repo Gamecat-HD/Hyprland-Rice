@@ -3,8 +3,10 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
+
 import "components/notch"
 import "components/settings"
+import "components/statusBar"
 
 import "root:/"
 
@@ -53,9 +55,10 @@ Variants {
             borderWidth: bar.borderWidth
         }
 
-        Settings {
-            id: settings2
+        StatusBar {
+            id: statusBar
             anchors {
+                verticalCenter: parent.verticalCenter
                 right: notch.left
                 rightMargin: 15
             }
