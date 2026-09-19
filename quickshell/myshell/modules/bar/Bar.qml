@@ -31,7 +31,7 @@ Variants {
             left: true
             right: true
         }
-        implicitHeight: 45
+        implicitHeight: 40
         color: "transparent"
 
         Notch {
@@ -54,7 +54,7 @@ Variants {
         }
 
         Settings {
-            id: test
+            id: settings2
             anchors {
                 right: notch.left
                 rightMargin: 15

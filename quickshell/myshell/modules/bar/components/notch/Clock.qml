@@ -15,7 +15,7 @@ Text {
     anchors.centerIn: parent
     color: containsMouse ? Colors.primary : Colors.secondary
     text: Qt.formatDateTime(clockSource.date, "HH:mm")
-    font.pointSize: 15
+    font.pointSize: 13
 
     // Eingebaute Uhr statt externem `date`-Prozess pro Sekunde
     SystemClock {

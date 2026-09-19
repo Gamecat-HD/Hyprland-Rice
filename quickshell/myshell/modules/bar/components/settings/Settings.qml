@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
+import qs.modules.services.vpn
 
 import "root:/"
 
@@ -33,18 +34,21 @@ Rectangle {
         sweepAngle: 280
     }
 
+    Wifi {}
+
     MouseArea {
         id: ma
         anchors.fill: parent
         hoverEnabled: true
+        onClicked: Vpn.toggle()
         onWheel: event => {
-            if (!slider.sink.ready || !slider.sink.audio) 
+            if (!slider.sink.ready || !slider.sink.audio)
                 return;
             const step = event.angleDelta.y > 0 ? 0.01 : -0.01;
-            //slider.sink.audio.muted = false;
             slider.sink.audio.volume = Math.max(0, Math.min(1, slider.volume + step));
-            console.log("audio:", slider.sink.audio.volume)
         }
-        
     }
+
+    // ZULETZT deklariert = liegt oben und bekommt seine Klicks
+    VpnIcon {}
 }
