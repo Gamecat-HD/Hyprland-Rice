@@ -6,10 +6,11 @@ import Quickshell.Widgets
 
 import "root:/"
 
-// Systemtray im Settings-Stil: Pille mit Border, kollabiert auf einen Kreis
-// (nur die zuletzt gestartete Tray-App sichtbar), Hover klappt nach links auf.
-// Menue: natives Popup via QsMenuAnchor (Wayland-Grab -> kein Hover-Scrollen
-// im Menue selbst, schliessen durch Klick daneben).
+// Systemtray im Settings-Stil: Pille mit Border, kollabiert auf einen Kreis,
+// Hover klappt nach links auf. Ab `maxVisible` Icons wird die Reihe scrollbar
+// statt breiter.
+// Menüs: eigenes PopupWindow + TrayMenu (kein Wayland-Grab) -> Hover-Öffnen
+// mit Delay UND Schließen-beim-Verlassen funktionieren beide.
 Rectangle {
     id: root
 
@@ -18,18 +19,42 @@ Rectangle {
     property real borderWidth: 1
 
     readonly property real iconSize: 16
-    readonly property real padding: 7     // 7 + 16 + 7 = 30 = Höhe -> kollabiert exakt Kreis
-    // Zählung offener Menüs: Während der Wayland-Grab des Menüs uns den Hover
-    // klaut, hält dieser Zähler die Pill bewusst ausgeklappt.
-    property int openMenus: 0
-    readonly property bool expanded: hover.hovered || openMenus > 0
-    readonly property var trayItems: SystemTray.items.values
+    readonly property real padding: 7      // 7 + 16 + 7 = 30 = Höhe -> kollabiert exakt Kreis
+    readonly property real iconSpacing: 12 // Luft zwischen den Tray-Icons
+    readonly property int maxVisible: 6    // mehr Icons -> scrollen statt wachsen
+
+    // Rangfolge für den eingeklappten Kreis: das erste vorhandene Item dieser
+    // Liste bekommt den Platz. Gematcht wird gegen id/title/tooltip (klein).
+    readonly property var priority: ["discord", "nordvpn", "spotify", "steam"]
+
+    // Sortiert: wichtigstes Item ganz rechts – dort bleibt beim Einklappen der
+    // Kreis stehen. Nach links folgen NordVPN, Spotify, Steam, dann der Rest.
+    readonly property var trayItems: {
+        const rank = item => {
+            const hay = ((item.id ?? "") + " " + (item.title ?? "") + " " + (item.tooltipTitle ?? "")).toLowerCase();
+            const i = root.priority.findIndex(p => hay.includes(p));
+            return i < 0 ? root.priority.length : i;
+        };
+        return [...SystemTray.items.values].sort((a, b) => rank(b) - rank(a));
+    }
     readonly property var current: trayItems.length ? trayItems[trayItems.length - 1] : null
+
+    // Breite der sichtbaren Icon-Reihe (gedeckelt auf maxVisible Icons)
+    readonly property real rowViewWidth: Math.min(trayRow.implicitWidth,
+                                                  maxVisible * iconSize + (maxVisible - 1) * iconSpacing)
+    // Verschiebung der Reihe nach rechts -> zeigt die weiter links liegenden Icons
+    property real trayScroll: 0
+    readonly property real maxScroll: Math.max(0, trayRow.implicitWidth - rowViewWidth)
+
+    // Pille bleibt während der Schonfrist offen, damit sie beim Verlassen des
+    // Menüs nicht vorzeitig zuschnappt.
+    readonly property bool expanded: hover.hovered || menuHover.hovered || closeGrace.running
+    property var currentMenu: null         // QsMenuHandle des offenen Menüs
 
     anchors {
         verticalCenter: parent.verticalCenter
     }
-    implicitWidth: expanded ? trayRow.implicitWidth + padding * 2 : height
+    implicitWidth: expanded ? rowViewWidth + padding * 2 : height
     height: parent.height - verticalMargin
     radius: height / 2                       // Kreis (kollabiert) -> Pille (ausgeklappt)
     color: Colors.background
@@ -37,20 +62,67 @@ Rectangle {
     border.color: Colors.outlineVariant
     clip: true
 
+    onExpandedChanged: if (!expanded) trayScroll = 0
+
     Behavior on implicitWidth {
         NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
     }
+    Behavior on trayScroll {
+        NumberAnimation { duration: 130; easing.type: Easing.OutCubic }
+    }
 
-    HoverHandler { id: hover }
+    HoverHandler {
+        id: hover
+        onHoveredChanged: root.syncMenuHover()
+    }
+
+    // Mausrad scrollt die Icon-Reihe, wenn mehr als maxVisible Icons da sind
+    WheelHandler {
+        enabled: root.maxScroll > 0
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: event => {
+            const step = root.iconSize + root.iconSpacing;
+            const delta = (event.angleDelta.y + event.angleDelta.x) / 120;
+            root.trayScroll = Math.max(0, Math.min(root.maxScroll, root.trayScroll - delta * step));
+        }
+    }
+
+    // Öffnen (Icon als Anker) / Schließen; closeGrace = Schonfrist, damit das
+    // Menü nicht sofort zuklappt, wenn man es kurz verlässt.
+    function openMenuFor(handle: var, entry: var): void {
+        if (!handle)
+            return;
+        menuPopup.anchor.item = entry;
+        currentMenu = handle;
+        trayMenu.open(handle);
+        closeGrace.stop();
+    }
+
+    function closeMenu(): void {
+        currentMenu = null;   // visible-Binding schliesst das Popup damit selbst
+    }
+
+    function syncMenuHover(): void {
+        if (hover.hovered || menuHover.hovered)
+            closeGrace.stop();
+        else if (root.currentMenu !== null)
+            closeGrace.restart();
+    }
+
+    Timer {
+        id: closeGrace
+        interval: 400
+        onTriggered: root.closeMenu()
+    }
 
     Row {
         id: trayRow
         anchors {
-            right: parent.right              // fix rechts -> Wachstum nach links
-            rightMargin: root.padding
+            right: parent.right                        // fix rechts -> Wachstum nach links
+            rightMargin: root.padding - root.trayScroll
             verticalCenter: parent.verticalCenter
         }
-        spacing: 8
+        spacing: root.iconSpacing
 
         Repeater {
             model: root.trayItems
@@ -59,55 +131,108 @@ Rectangle {
                 id: trayEntry
 
                 required property SystemTrayItem modelData
+                // Icon, dessen Menü gerade offen ist -> wird leicht hervorgehoben
+                readonly property bool active: root.currentMenu !== null && root.currentMenu === trayEntry.modelData.menu
+
                 implicitWidth: root.iconSize
                 implicitHeight: root.iconSize
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 hoverEnabled: true
 
-                // kollabiert: nur das neueste Item bleibt sichtbar
+                // kollabiert: nur das wichtigste Item bleibt sichtbar
                 opacity: root.expanded || trayEntry.modelData === root.current ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation { duration: 120 }
                 }
 
-                // Hover mit Verzögerung -> Menü; onExited stoppt nur den Timer
-                // (KEIN close – der Grab des offenen Menüs feuert ohnehin ein
-                // exit; schließen tut das Menü selbst durch Klick woanders).
-                onEntered: if (trayEntry.modelData.hasMenu) hoverTimer.restart()
+                // Hover mit Verzögerung -> Menü öffnen; hier lebt der Sensor,
+                // weil das eigene Popup keinen Grab hat. Ist schon ein Menü
+                // offen, wechselt der Hover zügiger (Menüleisten-Verhalten).
+                onEntered: if (trayEntry.modelData.hasMenu && !trayEntry.active) hoverTimer.restart()
                 onExited: hoverTimer.stop()
 
                 Timer {
                     id: hoverTimer
-                    interval: 300
-                    onTriggered: if (trayEntry.containsMouse && !menuAnchor.visible) menuAnchor.open() else if (!menuAnchor.visible) menuAnchor.close() else hoverTimer.restart()
+                    interval: root.currentMenu !== null ? 140 : 300
+                    onTriggered: {
+                        if (trayEntry.containsMouse && !trayEntry.active)
+                            root.openMenuFor(trayEntry.modelData.menu, trayEntry);
+                    }
                 }
 
                 onClicked: event => {
-                    if (event.button === Qt.LeftButton)
+                    if (event.button === Qt.LeftButton) {
                         trayEntry.modelData.activate();
-                    else if (trayEntry.modelData.hasMenu)
-                        menuAnchor.open();
-                    else
+                        root.closeMenu();
+                    } else if (!trayEntry.modelData.hasMenu) {
                         trayEntry.modelData.secondaryActivate();
+                    } else if (trayEntry.active) {
+                        root.closeMenu();
+                    } else {
+                        root.openMenuFor(trayEntry.modelData.menu, trayEntry);
+                    }
                 }
 
                 IconImage {
                     anchors.fill: parent
                     source: trayEntry.modelData.icon
-                }
+                    scale: trayEntry.active || trayEntry.containsMouse ? 1.15 : 1
 
-                // Natives Menü der App unterhalb des Icons;
-                // anchor.item lässt Quickshell die Position selbst ausrechnen.
-                QsMenuAnchor {
-                    id: menuAnchor
-                    menu: trayEntry.modelData.hasMenu ? trayEntry.modelData.menu : null
-                    anchor.item: trayEntry
-                    anchor.edges: Edges.Bottom
-                    anchor.gravity: Edges.Bottom
-                    anchor.margins.top: 6
-                    onVisibleChanged: root.openMenus += visible ? 1 : -1
+                    Behavior on scale {
+                        NumberAnimation { duration: 140; easing.type: Easing.OutBack }
+                    }
                 }
             }
+        }
+    }
+
+    // Weiche Kante links, solange noch Icons ausserhalb liegen
+    Rectangle {
+        anchors {
+            left: parent.left
+            leftMargin: root.borderWidth
+            top: parent.top
+            bottom: parent.bottom
+        }
+        width: 16
+        visible: root.expanded && root.trayScroll < root.maxScroll - 0.5
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: Colors.background }
+            GradientStop { position: 1; color: Colors.alpha(Colors.background, 0) }
+        }
+    }
+
+    // ---- Eigenes Menü-Popup (kein Grab -> Hover bleibt lebendig) ----
+    // margins.top bleibt 0: den optischen Abstand liefert die transparente
+    // "bridge" im TrayMenu – so ist der Weg vom Icon zur Karte lückenlos
+    // vom Popup abgedeckt und der Hover reißt unterwegs nicht ab.
+    PopupWindow {
+        id: menuPopup
+
+        anchor.window: root.QsWindow.window
+        anchor.edges: Edges.Bottom
+        anchor.gravity: Edges.Bottom
+        anchor.margins.top: 0
+        grabFocus: false
+        // erst zeigen, wenn die D-Bus-Einträge der ersten Seite da sind
+        visible: root.currentMenu !== null && trayMenu.ready
+        color: "transparent"
+
+        implicitWidth: trayMenu.implicitWidth
+        implicitHeight: trayMenu.implicitHeight
+
+        // Einblend-Animation erst starten, wenn das Fenster wirklich da ist
+        onVisibleChanged: trayMenu.shown = menuPopup.visible
+
+        HoverHandler {
+            id: menuHover
+            onHoveredChanged: root.syncMenuHover()
+        }
+
+        TrayMenu {
+            id: trayMenu
+            onCloseRequested: root.closeMenu()
         }
     }
 }

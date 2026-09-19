@@ -23,8 +23,9 @@ Variants {
 
         readonly property real borderWidth: 0.5
         readonly property color borderColor: Colors.outlineVariant   // M3-Neutralfarbe, passt zu jedem Scheme
-        
+
         readonly property real verticalMargin: 10
+        readonly property real barHeight: 40
 
         screen: bar.modelData
         WlrLayershell.namespace: "myshell-bar"
@@ -33,37 +34,67 @@ Variants {
             left: true
             right: true
         }
-        implicitHeight: 40
+
+        // Das Fenster ist höher als die sichtbare Leiste, damit die Notch nach
+        // unten aufklappen kann (Layer-Surfaces können nicht überzeichnen).
+        // Platz reserviert wird trotzdem nur die Leiste, und Eingaben nimmt nur
+        // an, was die `mask` abdeckt – der Rest ist klick-durchlässig.
+        implicitHeight: bar.barHeight + notch.maxDrop
+        exclusionMode: ExclusionMode.Normal
+        exclusiveZone: bar.barHeight
         color: "transparent"
 
-        Notch {
-            id: notch
-            verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
-            borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
-            borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
-
-            width: clock.implicitWidth + 50   // `clock` = die Clock-Instanz unten
-        }
-        
-        Settings {
-            id: settings
-            anchors {
-                left: notch.right
-                leftMargin: 15
+        mask: Region {
+            Region {
+                width: bar.width
+                height: bar.barHeight
             }
-            verticalMargin: bar.verticalMargin
-            borderWidth: bar.borderWidth
+            Region {
+                item: notch
+            }
         }
 
-        StatusBar {
-            id: statusBar
+        // Die eigentliche Leiste: feste Höhe, damit die Widgets beim Aufklappen
+        // der Notch nicht mitwandern. Die Notch darf hier unten rausragen.
+        Item {
+            id: row
+
             anchors {
-                verticalCenter: parent.verticalCenter
-                right: notch.left
-                rightMargin: 15
+                top: parent.top
+                left: parent.left
+                right: parent.right
             }
-            verticalMargin: bar.verticalMargin
-            borderWidth: bar.borderWidth
+            height: bar.barHeight
+
+            Notch {
+                id: notch
+                verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
+                borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
+                borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
+            }
+
+            // Beide Nachbarn hängen an der Bildschirmmitte plus der halben
+            // *aktuellen* Notch-Breite: klappt die Notch auf, weichen sie
+            // animiert zur Seite, statt unter der Karte zu verschwinden.
+            Settings {
+                id: settings
+                anchors {
+                    left: parent.horizontalCenter
+                    leftMargin: notch.width / 2 + 15
+                }
+                verticalMargin: bar.verticalMargin
+                borderWidth: bar.borderWidth
+            }
+
+            StatusBar {
+                id: statusBar
+                anchors {
+                    right: parent.horizontalCenter
+                    rightMargin: notch.width / 2 + 15
+                }
+                verticalMargin: bar.verticalMargin
+                borderWidth: bar.borderWidth
+            }
         }
     }
 }

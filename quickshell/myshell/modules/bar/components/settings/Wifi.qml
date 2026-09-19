@@ -20,7 +20,7 @@ Item {
         anchors.horizontalCenterOffset: -0.5   // optisches Feintuning (Glyph-Margins)
         //anchors.verticalCenterOffset: -0.25
 
-        color: !wrapper.wifiEnabled ? Colors.error : Colors.secondary
+        color: wrapper.wifiEnabled ? Colors.secondary : Colors.error
         text: !wrapper.wifiEnabled ? "wifi_off"
             : !wrapper.connected ? "wifi_off"
             : wrapper.quality >= 80 ? "network_wifi"

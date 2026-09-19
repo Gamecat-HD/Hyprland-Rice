@@ -27,10 +27,11 @@ Shape {
     readonly property bool muted: sink?.audio?.muted ?? false
 
     readonly property real ringRadius: (Math.min(width, height) - arcWidth) / 2 - arcGap
+    readonly property color barColor: slider.muted ? Colors.error : Colors.fgBackground
 
     ShapePath {
         strokeWidth: slider.arcWidth
-        strokeColor: Colors.alpha(Colors.fgBackground, 0.55)   // Track
+        strokeColor: Colors.alpha(barColor, 0.55)   // Track
         fillColor: "transparent"
         PathAngleArc {
             centerX: parent.width / 2
@@ -44,7 +45,7 @@ Shape {
 
     ShapePath {
         strokeWidth: slider.arcWidth
-        strokeColor: slider.muted ? Colors.error : Colors.fgBackground
+        strokeColor: barColor
         fillColor: "transparent"
         PathAngleArc {
             centerX: parent.width / 2

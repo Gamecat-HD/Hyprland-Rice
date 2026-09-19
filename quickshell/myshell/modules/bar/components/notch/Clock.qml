@@ -5,17 +5,15 @@ import Quickshell.Io
 
 import "root:/"
 
-// Uhr-Label. Der Hover-Status kommt von außen (der Notch) als Property rein –
-// Ids sind pro Datei unsichtbar, deshalb nicht `notch.containsMouse` hier.
+// Uhr-Label. Positioniert wird von der Notch (bleibt beim Aufklappen im
+// oberen Band stehen).
 Text {
     id: clock
 
-    required property bool containsMouse
-
-    anchors.centerIn: parent
-    color: containsMouse ? Colors.primary : Colors.secondary
+    color: Colors.secondary
     text: Qt.formatDateTime(clockSource.date, "HH:mm")
     font.pointSize: 13
+    font.weight: Font.Bold
 
     // Eingebaute Uhr statt externem `date`-Prozess pro Sekunde
     SystemClock {
