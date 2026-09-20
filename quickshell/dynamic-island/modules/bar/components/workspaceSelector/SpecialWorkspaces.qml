@@ -25,9 +25,10 @@ RowLayout {
 
     // Nur Specials DIESES Monitors – die des anderen Bildschirms gehoeren
     // nicht in diese Leiste (gleiche Beschraenkung wie caelestia im
-    // per-Monitor-Modus).
+    // per-Monitor-Modus). Bewusst ueber den Namen statt Objekt-Identitaet:
+    // robuster, falls Quickshell die Monitor-Wrapper neu baut.
     readonly property var specials: Hyprland.workspaces.values.filter(
-        w => w.name.startsWith("special:") && w.monitor === root.hyprMonitor)
+        w => w.name.startsWith("special:") && w.monitor?.name === root.hyprMonitor?.name)
 
     // Gleicher Rhythmus wie die Punkte: 2px Luft, der Rest kommt aus den
     // Chip-Raendern (dort hitPadding-Prinzip wie in Workspace.qml)

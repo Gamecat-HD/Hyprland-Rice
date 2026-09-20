@@ -101,8 +101,17 @@ Item {
 
     TapHandler {
         onTapped: {
-            if (root.isActive)
-                Hyprland.dispatch(`hl.dsp.exec_cmd("dynamic-island toggle specialws")`);
+            // Aktiver Punkt = Eintritt in den generischen Special (die Sterne-
+            // Chips, siehe SpecialWorkspaces.qml). FRUEHER stand hier ein
+            // "dynamic-island toggle specialws" CLI-Aufruf - den gibt es
+            // nicht, der Klick tat deshalb sichtbar nichts.
+            if (root.isActive) {
+                Hyprland.dispatch(Hyprland.usingLua
+                    ? 'hl.dsp.workspace.toggle_special("special")'
+                    : "togglespecialworkspace special");
+                return;
+            }
+
             // Lua-Config versteht nur Lua – dieselbe Weiche wie in
             // caelestia/services/Hypr.qml
             Hyprland.dispatch(Hyprland.usingLua
