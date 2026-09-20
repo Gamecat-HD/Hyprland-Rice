@@ -3,42 +3,47 @@ import QtQuick
 
 import "root:/"
 
-Item {
+Rectangle {
     id: root
 
     required property string title
     required property string icon
     property real value: 0
     property color accent: Colors.primary
+    property color foreground: Colors.fgPrimary
 
     signal adjusted(real value)
 
-    implicitHeight: 42
+    implicitHeight: 58
+    radius: 14
+    color: cardHover.hovered ? Colors.shade(Colors.background, 0.075)
+                             : Colors.shade(Colors.background, 0.05)
+    border.width: 1
+    border.color: cardHover.hovered ? Colors.alpha(root.accent, 0.45)
+                                    : Colors.alpha(Colors.outlineVariant, 0.55)
+
+    Behavior on color {
+        ColorAnimation { duration: 120 }
+    }
+
+    Behavior on border.color {
+        ColorAnimation { duration: 120 }
+    }
 
     function adjustAt(x: real): void {
         root.adjusted(Math.max(0, Math.min(1, x / sliderArea.width)));
     }
 
-    Text {
-        id: sliderIcon
-
-        anchors {
-            left: parent.left
-            verticalCenter: parent.verticalCenter
-        }
-        width: 28
-        text: root.icon
-        horizontalAlignment: Text.AlignHCenter
-        font.family: "Material Symbols Outlined"
-        font.pixelSize: 20
-        color: root.accent
+    HoverHandler {
+        id: cardHover
     }
 
     Text {
         anchors {
             top: parent.top
-            left: sliderIcon.right
-            leftMargin: 10
+            topMargin: 7
+            left: parent.left
+            leftMargin: 12
         }
         text: root.title
         font.pixelSize: 12
@@ -49,7 +54,9 @@ Item {
     Text {
         anchors {
             top: parent.top
+            topMargin: 7
             right: parent.right
+            rightMargin: 12
         }
         text: `${Math.round(root.value * 100)}%`
         font.pixelSize: 11
@@ -60,12 +67,14 @@ Item {
         id: sliderArea
 
         anchors {
-            left: sliderIcon.right
+            left: parent.left
             leftMargin: 10
             right: parent.right
+            rightMargin: 10
             bottom: parent.bottom
+            bottomMargin: 7
         }
-        height: 20
+        height: 18
 
         Rectangle {
             id: track
@@ -75,7 +84,7 @@ Item {
                 right: parent.right
                 verticalCenter: parent.verticalCenter
             }
-            height: 6
+            height: 16
             radius: height / 2
             color: Colors.alpha(Colors.fgSurface, 0.16)
 
@@ -85,19 +94,23 @@ Item {
                 radius: parent.radius
                 color: root.accent
             }
-        }
 
-        Rectangle {
-            width: 14
-            height: 14
-            radius: 7
-            x: Math.max(0, Math.min(parent.width - width,
-                                    root.value * parent.width - width / 2))
-            anchors.verticalCenter: parent.verticalCenter
-            color: root.accent
+            Text {
+                anchors {
+                    left: parent.left
+                    leftMargin: 7
+                    verticalCenter: parent.verticalCenter
+                }
+                text: root.icon
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 12
+                color: root.value >= 0.08 ? root.foreground : Colors.fgSurfaceVariant
+            }
         }
 
         MouseArea {
+            id: inputArea
+
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor

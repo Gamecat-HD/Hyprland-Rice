@@ -113,7 +113,9 @@ Rectangle {
         sweepAngle: 280
         value: Brightness.value
         muted: false
-        activeColor: Colors.tertiary
+        activeColor: Brightness.value > 0.5
+                     ? Colors.fgSurfaceVariant
+                     : Colors.alpha(Colors.fgSurfaceVariant, 0.45)
 
         opacity: !settings.expanded && settings.showBrightness ? 1 : 0
         visible: opacity > 0
@@ -135,7 +137,26 @@ Rectangle {
 
     // VPN-Status unten im Kreis, dito
     VpnIcon {
-        opacity: settings.expanded ? 0 : 1
+        opacity: settings.expanded || settings.showBrightness ? 0 : 1
+        visible: opacity > 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+    }
+
+    Text {
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            bottom: parent.bottom
+        }
+        text: "brightness_6"
+        color: Brightness.value > 0.5
+               ? Colors.fgSurfaceVariant
+               : Colors.alpha(Colors.fgSurfaceVariant, 0.45)
+        font.pixelSize: 8
+        font.family: "Material Symbols Outlined"
+        opacity: !settings.expanded && settings.showBrightness ? 1 : 0
         visible: opacity > 0
 
         Behavior on opacity {
@@ -188,7 +209,7 @@ Rectangle {
     Timer {
         id: closeTimer
 
-        interval: 250
+        interval: 700
         // Waehrend eines Passworts darf die Maus rausrutschen
         onTriggered: if (!settings.typingPassword)
             settings.expanded = false
