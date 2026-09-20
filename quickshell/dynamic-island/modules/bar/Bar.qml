@@ -36,11 +36,24 @@ Variants {
         readonly property real verticalMargin: 10
         readonly property real barHeight: 40
 
+        // Solange der Launcher offen ist, zieht sich das Fenster ueber den
+        // ganzen Bildschirm und faengt Klicks daneben ab – damit geht er zu,
+        // wie man es erwartet. Frueher machte das ein HyprlandFocusGrab; der
+        // nahm der Leiste aber JEDE Zeigereingabe (in der Trefferliste und in
+        // den Karussells liess sich nichts anklicken). Ein eigenes
+        // Backdrop-Fenster wiederum wurde von Hyprland zwar gemappt, aber
+        // weder gezeichnet noch mit Eingaben beliefert – deshalb hier, im
+        // Fenster, das beides nachweislich bekommt.
+        readonly property bool catching: notch.launcherOpen
+
         screen: bar.modelData
         WlrLayershell.namespace: "dynamic-island-bar"
-        // Nur wenn der Launcher offen ist, braucht die Leiste Tastatur –
-        // der Focus-Grab darunter holt sie sich und meldet Klicks daneben.
-        WlrLayershell.keyboardFocus: notch.launcherOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        // Tastatur holt sich die Leiste nur, wenn wirklich getippt wird:
+        // Launcher-Suchfeld oder WLAN-Passwort. Exclusive statt OnDemand, weil
+        // der Launcher per Tastenkuerzel aufgeht – da ist kein Klick, der ihm
+        // den Fokus geben koennte.
+        WlrLayershell.keyboardFocus: notch.launcherOpen || settings.typingPassword
+                                     ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         anchors {
             top: true
             left: true
@@ -53,7 +66,8 @@ Variants {
         // an, was die `mask` abdeckt – der Rest ist klick-durchlässig.
         // Hoch genug fuer den groesseren der beiden Ausklapp-Teile (Notch oder
         // Medien-Karte) – Platz reserviert wird trotzdem nur die Leiste.
-        implicitHeight: bar.barHeight + Math.max(notch.maxDrop, media.maxDrop)
+        implicitHeight: bar.catching ? bar.modelData.height
+                                     : bar.barHeight + Math.max(notch.maxDrop, media.maxDrop, settings.maxDrop)
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: bar.barHeight
         color: "transparent"
@@ -61,7 +75,8 @@ Variants {
         mask: Region {
             Region {
                 width: bar.width
-                height: bar.barHeight
+                // Beim Fangen gilt das ganze Fenster als Eingabeflaeche
+                height: bar.catching ? bar.height : bar.barHeight
             }
             Region {
                 item: notch
@@ -74,14 +89,18 @@ Variants {
             Region {
                 item: settings   // aufgeklappte Settings-Karte klickbar halten
             }
+            Region {
+                item: settings.sleepMenu   // No-Sleep-Dropdown, solange offen
+            }
         }
 
-        // Die eigentliche Leiste: feste Höhe, damit die Widgets beim Aufklappen
-        // der Notch nicht mitwandern. Die Notch darf hier unten rausragen.
-        HyprlandFocusGrab {
-            active: notch.launcherOpen
-            windows: [bar]
-            onCleared: LauncherState.close()
+        // Die Fangflaeche. Zuerst deklariert, damit sie unter allem liegt:
+        // Klicks auf Notch, Karten und Leiste gehoeren denen.
+        MouseArea {
+            anchors.fill: parent
+            enabled: bar.catching
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+            onPressed: LauncherState.close()
         }
 
         Item {

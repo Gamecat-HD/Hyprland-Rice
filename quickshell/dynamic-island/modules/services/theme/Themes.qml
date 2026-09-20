@@ -43,7 +43,7 @@ Singleton {
     // Die Material-Varianten der CLI (nur fuer das dynamische Schema von
     // Belang – sie steuern, wie aus dem Wallpaper eine Palette wird).
     // Die Icons sind Material-Symbols-Ligaturen; alle in der installierten
-    // Schriftversion vorhanden ("wallpaper" z.B. waere es nicht).
+    // Schriftversion vorhanden (geprueft ueber die post-Tabelle der Datei).
     readonly property var variants: [
         { name: "tonalspot", icon: "tonality" },
         { name: "vibrant", icon: "flare" },

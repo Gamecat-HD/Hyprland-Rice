@@ -241,8 +241,9 @@ Item {
             Text {
                 anchors.centerIn: parent
 
-                // "wallpaper" gibt es in dieser Schriftversion nicht – der
-                // Text stuende dann ausgeschrieben da (caelestia nimmt denselben)
+                // Dasselbe Symbol, das caelestia im Launcher nimmt. "wallpaper"
+                // gaebe es auch (mit pango-view geprueft) – ein einzelner
+                // Bilderrahmen statt zweier.
                 text: "wallpaper_slideshow"   // Material-Symbols-Ligatur, genau so
                 color: wallpaperHover.hovered ? Colors.primary : Colors.fgSurfaceVariant
                 font.family: "Material Symbols Outlined"
