@@ -42,14 +42,13 @@ Item {
     component Action: Rectangle {
         id: actionRow
 
-        property string icon
-        property string label
-        property bool danger: false
+        required property var modelData
+
         signal triggered()
 
         implicitHeight: 30
         radius: 12
-        color: actionArea.containsMouse ? Colors.alpha(actionRow.danger ? Colors.error : Colors.fgSurface, 0.16)
+        color: actionArea.containsMouse ? Colors.alpha(actionRow.modelData.danger ? Colors.error : Colors.fgSurface, 0.16)
                                         : "transparent"
 
         Behavior on color {
@@ -66,17 +65,17 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: actionRow.icon
+                text: actionRow.modelData.icon
                 font.family: "Material Symbols Outlined"
                 font.pixelSize: 15
-                color: actionRow.danger ? Colors.error : Colors.fgSurfaceVariant
+                color: actionRow.modelData.danger ? Colors.error : Colors.fgSurfaceVariant
             }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: actionRow.label
+                text: actionRow.modelData.label
                 font.pixelSize: 12
-                color: actionRow.danger ? Colors.error : Colors.fgBackground
+                color: actionRow.modelData.danger ? Colors.error : Colors.fgBackground
             }
         }
 
@@ -111,7 +110,7 @@ Item {
         // Das Menue haengt an seiner Zeile – steht die unten am Rand, scrollt
         // die Liste nach, damit es nicht abgeschnitten im Clip endet
         if (opening)
-            Qt.callLater(() => list.positionViewAtIndex(index, ListView.Contain));
+            Qt.callLater(() => list.positionViewAtIndex(index, ListView.Beginning));
     }
 
     // ---- Kopfzeile ----
@@ -311,8 +310,46 @@ Item {
                 readonly property bool menuOpen: panel.menuSsid === row.modelData.ssid
                 readonly property bool passwordOpen: panel.passwordSsid === row.modelData.ssid
 
+                // Verfuegbare Aktionen dieses Netzes – bewusst hier auf der
+                // Zeile berechnet, nicht ueber visible-Bindungen an den
+                // Menue-Eintraegen: die evaluierten bei Inline-Komponenten in
+                // der eingeklappten (unsichtbaren) Karte einmal falsch und
+                // wurden nie wieder aktualisiert, das Menue blieb dauerhaft zu
+                readonly property var actions: {
+                    const net = row.modelData;
+                    const items = [];
+                    if (net.saved && net.secured)
+                        items.push({ action: "password", icon: "key", label: "Passwort ändern" });
+                    if (net.duplicate && net.stale.length > 0)
+                        items.push({ action: "dropStale", icon: "cleaning_services",
+                                     label: `${net.stale.length} doppeltes Profil entfernen` });
+                    if (net.saved)
+                        items.push({ action: "forget", icon: "delete", label: "Vergessen", danger: true });
+                    return items;
+                }
+
+                function runAction(action: string): void {
+                    const net = row.modelData;
+                    if (action === "password")
+                        panel.passwordSsid = net.ssid;
+                    else if (action === "dropStale")
+                        Network.dropStale(net);
+                    else if (action === "forget")
+                        Network.forget(net);
+                    panel.menuSsid = "";
+                }
+
+                function runConnectionAction(): void {
+                    if (row.modelData.active)
+                        Network.disconnect(row.modelData);
+                    else
+                        Network.connect(row.modelData, "");
+                    panel.menuSsid = "";
+                }
+
                 width: ListView.view.width
                 spacing: 4
+                z: row.menuOpen ? 100 : 0
 
                 // Zeile selbst
                 Rectangle {
@@ -354,7 +391,9 @@ Item {
                         anchors {
                             left: signalIcon.right
                             leftMargin: 12
-                            right: menuButton.left
+                            right: lockIcon.visible ? lockIcon.left
+                                                   : connectionButton.visible ? connectionButton.left
+                                                   : menuButton.visible ? menuButton.left : parent.right
                             rightMargin: 8
                             verticalCenter: parent.verticalCenter
                         }
@@ -393,9 +432,12 @@ Item {
                     }
 
                     Text {
+                        id: lockIcon
+
                         anchors {
-                            right: menuButton.left
-                            rightMargin: 2
+                            right: connectionButton.visible ? connectionButton.left
+                                                            : menuButton.visible ? menuButton.left : parent.right
+                            rightMargin: 6
                             verticalCenter: parent.verticalCenter
                         }
                         text: row.modelData.secured ? "lock" : "lock_open"
@@ -403,6 +445,39 @@ Item {
                         font.family: "Material Symbols Outlined"
                         font.pixelSize: 14
                         color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
+                    }
+
+                    Rectangle {
+                        id: connectionButton
+
+                        anchors {
+                            right: menuButton.visible ? menuButton.left : parent.right
+                            rightMargin: menuButton.visible ? 4 : 8
+                            verticalCenter: parent.verticalCenter
+                        }
+                        width: 28
+                        height: 28
+                        visible: row.modelData.active || (row.modelData.saved && row.modelData.inRange)
+                        radius: height / 2
+                        color: connectionArea.containsMouse
+                               ? Colors.alpha(Colors.fgSurface, 0.1) : "transparent"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: row.modelData.active ? "link_off" : "wifi"
+                            font.family: "Material Symbols Outlined"
+                            font.pixelSize: 16
+                            color: row.modelData.active ? Colors.error : Colors.fgSurfaceVariant
+                        }
+
+                        MouseArea {
+                            id: connectionArea
+
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: row.runConnectionAction()
+                        }
                     }
 
                     Rectangle {
@@ -415,6 +490,7 @@ Item {
                         }
                         width: 28
                         height: 28
+                        visible: row.actions.length > 0
                         radius: height / 2
                         color: row.menuOpen ? Colors.alpha(Colors.fgSurface, 0.14)
                              : menuArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.1)
@@ -435,6 +511,50 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: panel.toggleMenu(row.modelData.ssid, row.index)
+                        }
+                    }
+
+                    // Das Menue liegt ueber den folgenden WLAN-Zeilen. Es ist
+                    // kein Kind des Column-Layouts und vergroessert die Zeile
+                    // deshalb nicht.
+                    Rectangle {
+                        id: actionMenu
+
+                        anchors {
+                            top: parent.bottom
+                            topMargin: 4
+                            right: parent.right
+                        }
+                        width: Math.min(parent.width, 240)
+                        height: row.menuOpen && row.actions.length > 0
+                                ? row.actions.length * 30 + (row.actions.length - 1) * 2 + 12 : 0
+                        visible: height > 0
+                        z: 200
+                        radius: 14
+                        color: Colors.surfaceContainer
+                        border.width: 1
+                        border.color: Colors.outlineVariant
+                        clip: true
+
+                        Column {
+                            id: actionColumn
+
+                            anchors {
+                                top: parent.top
+                                left: parent.left
+                                right: parent.right
+                                margins: 6
+                            }
+                            spacing: 2
+
+                            Repeater {
+                                model: row.actions
+
+                                Action {
+                                    width: actionColumn.width
+                                    onTriggered: row.runAction(modelData.action)
+                                }
+                            }
                         }
                     }
                 }
@@ -536,95 +656,6 @@ Item {
                     }
                 }
 
-                // Aktions-Menue: klappt wie ein Dropdown unter der Zeile auf,
-                // eine Aktion pro Zeile. Ohne passende Aktion (offenes Netz
-                // ohne Profil) bleibt es zu.
-                Rectangle {
-                    id: actionMenu
-
-                    readonly property int visibleActions: {
-                        let count = 0;
-                        for (let i = 0; i < actionColumn.children.length; i++)
-                            if (actionColumn.children[i].visible)
-                                count++;
-                        return count;
-                    }
-
-                    width: parent.width
-                    height: row.menuOpen && visibleActions > 0 ? actionColumn.implicitHeight + 12 : 0
-                    visible: height > 0
-                    radius: 14
-                    color: Colors.shade(Colors.background, 0.08)
-                    border.width: 1
-                    border.color: Colors.outlineVariant
-                    clip: true
-
-                    Column {
-                        id: actionColumn
-
-                        anchors {
-                            top: parent.top
-                            left: parent.left
-                            right: parent.right
-                            margins: 6
-                        }
-                        spacing: 2
-
-                        Action {
-                            visible: row.modelData.active
-                            icon: "link_off"
-                            label: "Trennen"
-                            onTriggered: {
-                                Network.disconnect(row.modelData);
-                                panel.menuSsid = "";
-                            }
-                        }
-
-                        Action {
-                            visible: !row.modelData.active && row.modelData.saved && row.modelData.inRange
-                            icon: "wifi"
-                            label: "Verbinden"
-                            onTriggered: {
-                                Network.connect(row.modelData, "");
-                                panel.menuSsid = "";
-                            }
-                        }
-
-                        Action {
-                            visible: row.modelData.saved && row.modelData.secured
-                            icon: "key"
-                            label: "Passwort ändern"
-                            onTriggered: {
-                                panel.menuSsid = "";
-                                panel.passwordSsid = row.modelData.ssid;
-                            }
-                        }
-
-                        // Der eigentliche Grund fuer diese Ansicht: mehrere Profile
-                        // auf denselben SSID. Weg mit denen, die nie funktioniert
-                        // haben – das benutzte bleibt.
-                        Action {
-                            visible: row.modelData.duplicate && row.modelData.stale.length > 0
-                            icon: "cleaning_services"
-                            label: `${row.modelData.stale.length} doppeltes Profil entfernen`
-                            onTriggered: {
-                                Network.dropStale(row.modelData);
-                                panel.menuSsid = "";
-                            }
-                        }
-
-                        Action {
-                            visible: row.modelData.saved
-                            icon: "delete"
-                            label: "Vergessen"
-                            danger: true
-                            onTriggered: {
-                                Network.forget(row.modelData);
-                                panel.menuSsid = "";
-                            }
-                        }
-                    }
-                }
             }
         }
 

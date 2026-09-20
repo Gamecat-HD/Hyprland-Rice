@@ -21,16 +21,15 @@ Shape {
     required property real startAngle
     required property real sweepAngle
 
-    // Lautstärke/Mute kommen aus dem Audio-Service (PipeWire steckt dort)
-    readonly property real volume: Audio.volume
-    readonly property bool muted: Audio.muted
+    property real value: Audio.volume
+    property bool muted: Audio.muted
+    property color activeColor: muted ? Colors.error : Colors.fgBackground
 
     readonly property real ringRadius: (Math.min(width, height) - arcWidth) / 2 - arcGap
-    readonly property color barColor: slider.muted ? Colors.error : Colors.fgBackground
 
     ShapePath {
         strokeWidth: slider.arcWidth
-        strokeColor: Colors.alpha(barColor, 0.55)   // Track
+        strokeColor: Colors.alpha(slider.activeColor, 0.55)   // Track
         fillColor: "transparent"
         PathAngleArc {
             centerX: parent.width / 2
@@ -44,7 +43,7 @@ Shape {
 
     ShapePath {
         strokeWidth: slider.arcWidth
-        strokeColor: barColor
+        strokeColor: slider.activeColor
         fillColor: "transparent"
         PathAngleArc {
             centerX: parent.width / 2
@@ -52,7 +51,7 @@ Shape {
             radiusX: slider.ringRadius
             radiusY: slider.ringRadius
             startAngle: slider.startAngle
-            sweepAngle: slider.sweepAngle * slider.volume
+            sweepAngle: slider.sweepAngle * Math.max(0, Math.min(1, slider.value))
         }
     }
 }

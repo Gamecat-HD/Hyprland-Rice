@@ -4,6 +4,8 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 
+import qs.modules.services.audio
+import qs.modules.services.brightness
 import qs.modules.services.vpn
 
 import "root:/"
@@ -331,6 +333,32 @@ ColumnLayout {
         }
     }
 
+    ColumnLayout {
+        Layout.fillWidth: true
+        spacing: 6
+
+        LevelSlider {
+            Layout.fillWidth: true
+            title: "Lautstärke"
+            icon: Audio.muted ? "volume_off"
+                               : Audio.volume >= 0.5 ? "volume_up" : "volume_down"
+            value: Audio.volume
+            accent: Audio.muted ? Colors.error : Colors.primary
+            onAdjusted: value => Audio.setVolume(value)
+        }
+
+        LevelSlider {
+            Layout.fillWidth: true
+            title: "Helligkeit"
+            icon: "brightness_6"
+            value: Brightness.value
+            accent: Colors.tertiary
+            enabled: Brightness.ready
+            opacity: enabled ? 1 : 0.5
+            onAdjusted: value => Brightness.setValue(value)
+        }
+    }
+
     RowLayout {
         Layout.fillWidth: true
         spacing: 10
@@ -537,9 +565,17 @@ ColumnLayout {
                             implicitHeight: 30
                             radius: 15
                             color: root.sleepDurationSec === option.modelData.sec ? Colors.primary : "transparent"
+                            border.width: 1
+                            border.color: optionHover.hovered
+                                          ? Colors.alpha(Colors.fgSurfaceVariant, 0.55)
+                                          : "transparent"
 
                             Behavior on color {
                                 ColorAnimation { duration: 140 }
+                            }
+
+                            Behavior on border.color {
+                                ColorAnimation { duration: 100 }
                             }
 
                             RowLayout {
@@ -566,6 +602,10 @@ ColumnLayout {
 
                             TapHandler {
                                 onTapped: root.pickDuration(option.modelData.sec)
+                            }
+
+                            HoverHandler {
+                                id: optionHover
                             }
                         }
                     }

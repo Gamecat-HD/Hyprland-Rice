@@ -1,6 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
+import qs.modules.services.audio
+import qs.modules.services.brightness
+
 import "root:/"
 
 // Settings-Knopf rechts neben der Notch. Bei Hover waechst er wie die Notch
@@ -15,13 +18,11 @@ Rectangle {
     required property real cardRadius
     property real borderWidth: 1
 
-    // Auf-/Zuklappen: kurzes Verweilen zum Oeffnen, Nachlauf beim Schliessen
-    // (dasselbe Timing wie die Notch, damit Vorbeifahren nicht flackert).
-    // Das No-Sleep-Dropdown haengt UNTERHALB der Karte – sein Hover zaehlt
-    // mit, sonst klappt die Karte unter der Maus zu, sobald man hinunter in
-    // die Eintraege faehrt.
+    // Ein Klick oeffnet die Karte. Hover haelt eine geoeffnete Karte nur noch
+    // offen; beim Verlassen greift weiterhin der kurze Schliess-Nachlauf.
     readonly property bool containsMouse: hoverSensor.hovered || tiles.sleepMenuHovered
     property bool expanded: false
+    property bool showBrightness: false
 
     // Zweite Ansicht der Karte: die WLAN-Liste. Zu macht sie der Zurueck-Pfeil
     // oder – wie bei den Kacheln – die Maus, die weggeht. Nur waehrend ein
@@ -35,13 +36,10 @@ Rectangle {
     }
 
     onContainsMouseChanged: {
-        if (containsMouse) {
+        if (containsMouse)
             closeTimer.stop();
-            openTimer.restart();
-        } else {
-            openTimer.stop();
+        else if (expanded)
             closeTimer.restart();
-        }
     }
 
     // Masse: eingeklappt der gewohnte Kreis, ausgeklappt die Karte. Hoehe =
@@ -70,6 +68,9 @@ Rectangle {
     onExpandedChanged: if (!expanded) {
         settings.wifiOpen = false;
         tiles.sleepMenuOpen = false;
+    } else {
+        settings.showBrightness = false;
+        brightnessDisplayTimer.stop();
     }
 
     // Eingeklappt greift die halbe Breite (Kreis), aufgeklappt cardRadius
@@ -96,7 +97,25 @@ Rectangle {
         startAngle: 130
         sweepAngle: 280
 
-        opacity: settings.expanded ? 0 : 1
+        opacity: settings.expanded || settings.showBrightness ? 0 : 1
+        visible: opacity > 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+    }
+
+    Audioslider {
+        anchors.fill: parent
+        arcWidth: 2
+        arcGap: 3
+        startAngle: 130
+        sweepAngle: 280
+        value: Brightness.value
+        muted: false
+        activeColor: Colors.tertiary
+
+        opacity: !settings.expanded && settings.showBrightness ? 1 : 0
         visible: opacity > 0
 
         Behavior on opacity {
@@ -167,19 +186,51 @@ Rectangle {
     }
 
     Timer {
-        id: openTimer
-
-        interval: 180
-        onTriggered: settings.expanded = true
-    }
-
-    Timer {
         id: closeTimer
 
         interval: 250
         // Waehrend eines Passworts darf die Maus rausrutschen
         onTriggered: if (!settings.typingPassword)
             settings.expanded = false
+    }
+
+    Timer {
+        id: brightnessDisplayTimer
+
+        interval: 3000
+        onTriggered: settings.showBrightness = false
+    }
+
+    Connections {
+        target: Brightness
+
+        function onValueChanged(): void {
+            if (Brightness.ready && !settings.expanded && !settings.wifiOpen) {
+                settings.showBrightness = true;
+                brightnessDisplayTimer.restart();
+            }
+        }
+    }
+
+    TapHandler {
+        enabled: !settings.expanded && !settings.wifiOpen
+        onTapped: settings.expanded = true
+    }
+
+    WheelHandler {
+        enabled: !settings.expanded && !settings.wifiOpen
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+        property real acc: 0
+
+        onWheel: event => {
+            acc += event.angleDelta.y;
+            if (Math.abs(acc) >= 120) {
+                Audio.setVolume(Audio.volume + (acc > 0 ? 0.05 : -0.05));
+                acc = 0;
+            }
+            event.accepted = true;
+        }
     }
 
     // Reiner Hover-Sensor, zuletztdeklariert (Muster siehe Notch.qml)
