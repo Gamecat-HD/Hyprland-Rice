@@ -15,6 +15,11 @@ import "root:/"
 // Play/Pause, weiter, Aufklapp-Pfeil – alles auf einer Zeile und vertikal
 // mittig.
 //
+// Der Pfeil klappt die Karte nach unten auf: kein zweites Fenster, sondern
+// dieselbe Flaeche, die hoeher wird (genau wie die Notch mit ihrem DatePanel).
+// Damit gibt es keine Naht zwischen Pille und Menue. Das Bar-Fenster muss den
+// Platz dafuer reservieren – siehe `maxDrop`, das Bar.qml abfragt.
+//
 // Alles Inhaltliche kommt aus dem Media-Service (modules/services/media),
 // die Pegel aus Cava (modules/services/audio). Diese Datei ist reine Ansicht.
 Item {
@@ -31,8 +36,8 @@ Item {
 
     property real padding: 14
 
-    // Ist das Aufklapp-Menue offen?
-    property bool popoutOpen: false
+    // Ist die Karte aufgeklappt?
+    property bool expanded: false
 
     // Groessen der Einzelteile – hier einmal, damit die Breite unten daraus
     // ausgerechnet werden kann statt doppelt gepflegt zu werden.
@@ -41,10 +46,43 @@ Item {
     readonly property real barWidth: 2
     readonly property real barSpacing: 2
 
-    height: parent.height - verticalMargin
+    // Untergrenze der Breite: der ausgeklappte Teil mit Cover, Ring und Titel
+    // waere schmaler zu gedraengt. Die Reihe oben darf breiter werden.
+    readonly property real minWidth: 250
+
+    // Hoehen: eingeklappt wie die anderen Karten. Ausgeklappt weicht die
+    // Leisten-Zeile zur Seite und die Karte gehoert allein dem Panel – sie ist
+    // dann genau so hoch wie dessen Inhalt plus dem Rand oben.
+    readonly property real collapsedHeight: parent.height - verticalMargin
+    readonly property real panelTop: 10
+    readonly property real expandedHeight: root.panelTop + panel.outerHeight
+    // Platz, den sich das Bar-Fenster nach unten nehmen muss (Bar.qml liest das)
+    readonly property real maxDrop: root.expandedHeight + root.verticalMargin
+
     y: verticalMargin / 2
-    // Breite folgt dem Inhalt: so wandert nichts, wenn sich die Reihe aendert
-    width: content.implicitWidth + root.padding * 2
+    width: Math.max(content.implicitWidth + root.padding * 2, root.minWidth)
+    height: root.expanded ? root.expandedHeight : root.collapsedHeight
+
+    Behavior on height {
+        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+    }
+
+    // Aufklappen nach kurzem Verweilen – ohne die Verzoegerung springt die
+    // Karte schon auf, wenn man nur auf dem Weg zum Systray drueberfaehrt.
+    Timer {
+        id: openTimer
+
+        interval: 220
+        onTriggered: root.expanded = true
+    }
+
+    // Zuklappen mit Nachlauf, sobald der Zeiger die Karte verlaesst
+    Timer {
+        id: closeTimer
+
+        interval: 600
+        onTriggered: root.expanded = false
+    }
 
     // Der Visualiser ist ein eigener Prozess – er laeuft nur, solange wirklich
     // etwas spielt. `Binding` statt Zuweisung, damit er beim Zerstoeren dieser
@@ -76,9 +114,22 @@ Item {
         color: Colors.background
         clip: true
 
-        // Solange der Zeiger auf der Pille steht, bleibt das Popout offen
+        // Solange der Zeiger auf der Karte steht, bleibt sie offen. Weil die
+        // Karte beim Aufklappen unter dem Zeiger waechst, bleibt der Hover
+        // auch nach einer Ziehgeste bestehen – eine Schonfrist wie beim
+        // frueheren Popup-Fenster braucht es hier nicht.
         HoverHandler {
             id: pillHover
+
+            onHoveredChanged: {
+                if (pillHover.hovered) {
+                    closeTimer.stop();
+                    openTimer.restart();
+                } else {
+                    openTimer.stop();
+                    closeTimer.restart();
+                }
+            }
         }
 
         // Nach unten ziehen klappt das Menue auf – dieselbe Geste, mit der die
@@ -102,7 +153,7 @@ Item {
                     return;
                 if (openDrag.activeTranslation.y > openDrag.threshold) {
                     openDrag.triggered = true;
-                    root.popoutOpen = true;
+                    root.expanded = true;
                 }
             }
         }
@@ -127,14 +178,35 @@ Item {
             id: content
 
             anchors {
-                fill: parent
+                left: parent.left
+                right: parent.right
+                top: parent.top
                 leftMargin: root.padding
                 rightMargin: root.padding
             }
+            height: root.collapsedHeight
 
             implicitWidth: row.implicitWidth
 
-            // Fuellt die ganze Pille; jedes Element darin zentriert sich
+            // Aufgeklappt gehoert die Karte dem Panel: die Leisten-Zeile
+            // schiebt sich nach links raus und blendet aus, statt ueber dem
+            // Menue stehen zu bleiben.
+            opacity: root.expanded ? 0 : 1
+            visible: opacity > 0
+
+            transform: Translate {
+                x: root.expanded ? -24 : 0
+
+                Behavior on x {
+                    NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                }
+            }
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+
+            // Fuellt das obere Band; jedes Element darin zentriert sich
             // ueber `Layout.alignment` selbst.
             RowLayout {
                 id: row
@@ -178,6 +250,17 @@ Item {
                     }
                 }
 
+                // ---- Zeit ----
+                Text {
+                    Layout.alignment: Qt.AlignVCenter
+                    visible: Media.timeLabel !== ""
+
+                    text: Media.timeLabel
+                    color: Colors.fgSurfaceVariant
+                    font.pixelSize: 9
+                    font.weight: Font.DemiBold
+                }
+
                 // ---- Visualiser ----
                 Row {
                     // Die Pille zeigt immer vier Balken, egal wie fein cava laeuft
@@ -218,65 +301,111 @@ Item {
                     }
                 }
 
-                // ---- Zeit ----
-                Text {
-                    Layout.alignment: Qt.AlignVCenter
-                    visible: Media.timeLabel !== ""
+                // ---- Titel als Laufschrift ----
+                // Feste Breite und `clip`: der Titel wird abgeschnitten statt
+                // die Pille zu sprengen. Passt er nicht, wandert er endlos
+                // durch – die zweite Kopie hinter der Luecke macht den
+                // Uebergang nahtlos, sonst gaebe es einen sichtbaren Sprung.
+                Item {
+                    id: marquee
 
-                    text: Media.timeLabel
-                    color: Colors.fgSurfaceVariant
-                    font.pixelSize: 9
-                    font.weight: Font.Medium
+                    readonly property string label: Media.title
+                    readonly property real gap: 26
+                    readonly property bool scrolling: title.implicitWidth > marquee.width
+
+                    Layout.preferredWidth: 92
+                    Layout.preferredHeight: root.artSize
+                    Layout.alignment: Qt.AlignVCenter
+
+                    clip: true
+
+                    Row {
+                        id: strip
+
+                        y: (marquee.height - height) / 2
+                        spacing: marquee.gap
+
+                        Text {
+                            id: title
+
+                            text: marquee.label
+                            color: Colors.fgBackground
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                        }
+
+                        Text {
+                            // Nur noetig, solange gelaufen wird
+                            text: marquee.scrolling ? marquee.label : ""
+                            color: title.color
+                            font: title.font
+                        }
+                    }
+
+                    // Steht der Titel still, faengt er wieder links an
+                    onScrollingChanged: if (!marquee.scrolling) strip.x = 0;
+
+                    SequentialAnimation {
+                        running: marquee.scrolling && marquee.visible
+                        loops: Animation.Infinite
+
+                        // Erst lesen lassen, dann losfahren
+                        PauseAnimation {
+                            duration: 1500
+                        }
+
+                        NumberAnimation {
+                            target: strip
+                            property: "x"
+                            from: 0
+                            to: -(title.implicitWidth + marquee.gap)
+                            // konstantes Tempo statt fester Dauer, sonst rasen
+                            // kurze Titel und lange schleichen
+                            duration: (title.implicitWidth + marquee.gap) * 22
+                            easing.type: Easing.Linear
+                        }
+                    }
                 }
 
                 // ---- Transport ----
-                MediaButton {
-                    icon: "skip_previous"
-                    size: root.iconSize
-                    active: Media.canPrevious
-                    onTriggered: Media.previous()
-                }
-
+                // Nur Play/Pause. Vor- und Zurueckspringen steht im
+                // ausgeklappten Teil – in der Leiste waren es drei Knoepfe
+                // zu viel fuer den Platz.
                 MediaButton {
                     icon: Media.playing ? "pause" : "play_arrow"
                     size: root.iconSize + 3
                     active: Media.canToggle
                     onTriggered: Media.playPause()
                 }
-
-                MediaButton {
-                    icon: "skip_next"
-                    size: root.iconSize
-                    active: Media.canNext
-                    onTriggered: Media.next()
-                }
-
-                // ---- Aufklapp-Pfeil ----
-                MediaButton {
-                    // Zu = nach unten (dahin klappt es auf), offen = nach oben
-                    icon: root.popoutOpen ? "keyboard_arrow_up" : "keyboard_arrow_down"
-                    size: root.iconSize
-                    active: true
-                    onTriggered: root.popoutOpen = !root.popoutOpen
-                }
             }
 
         }
-    }
 
-    // Das Popout existiert nur, solange es offen ist – zu gibt es weder
-    // Fenster noch Bindings darin.
-    Loader {
-        id: popoutLoader
+        // Der ausgeklappte Teil – sitzt in derselben Karte, direkt unter der
+        // Reihe. `clip: true` der Pille schneidet ihn weg, solange sie flach
+        // ist, deshalb braucht es kein eigenes Ein-/Ausblenden der Groesse.
+        MediaPanel {
+            id: panel
 
-        active: root.popoutOpen
+            topOffset: root.panelTop
+            padding: root.padding
+            opacity: root.expanded ? 1 : 0
+            visible: opacity > 0
 
-        sourceComponent: MediaPopout {
-            anchorItem: root
-            anchorHovered: pillHover.hovered
-            visible: true
+            // Der Inhalt faehrt beim Aufklappen von oben herein, statt einfach
+            // aufzutauchen – zusammen mit der wachsenden Karte liest sich das
+            // als eine Bewegung nach unten.
+            transform: Translate {
+                y: root.expanded ? 0 : -16
 
-            onCloseRequested: root.popoutOpen = false
+                Behavior on y {
+                    NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                }
+            }
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
         }
     }
 }

@@ -19,17 +19,16 @@ import "root:/"
 RowLayout {
     id: root
 
-    required property HyprlandMonitor hyprMonitor
+    // Welcher Special ist auf DIESEM Monitor offen – bestimmt die Pille. Nur
+    // wenn hier einer steht, zeigt die Leiste das Overlay ueberhaupt an.
+    required property string activeSpecial
 
-    // Offener Special auf DIESEM Monitor, z.B. "special:music" – sonst ""
-    readonly property string activeSpecial: root.hyprMonitor?.lastIpcObject.specialWorkspace?.name ?? ""
-
-    // Nur Specials DIESES Monitors – die des anderen Bildschirms gehoeren
-    // nicht in diese Leiste (gleiche Beschraenkung wie caelestia im
-    // per-Monitor-Modus). Bewusst ueber den Namen statt Objekt-Identitaet:
-    // robuster, falls Quickshell die Monitor-Wrapper neu baut.
+    // Alle existierenden Specials ueber alle Monitore – das Overlay eines
+    // Bildschirms listet also auch die Scratchpads, die gerade auf dem
+    // anderen liegen (Klick togglpt auf dem fokussierten Monitor und holt
+    // sie damit notfalls rueber).
     readonly property var specials: Hyprland.workspaces.values.filter(
-        w => w.name.startsWith("special:") && w.monitor?.name === root.hyprMonitor?.name)
+        w => w.name.startsWith("special:"))
 
     // 0, weil der Abstand wie bei den Punkten aus dem hitPadding kommt –
     // so bleiben die Klickzonen auch hier lückenlos aneinander.

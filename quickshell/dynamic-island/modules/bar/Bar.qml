@@ -51,7 +51,9 @@ Variants {
         // unten aufklappen kann (Layer-Surfaces können nicht überzeichnen).
         // Platz reserviert wird trotzdem nur die Leiste, und Eingaben nimmt nur
         // an, was die `mask` abdeckt – der Rest ist klick-durchlässig.
-        implicitHeight: bar.barHeight + notch.maxDrop
+        // Hoch genug fuer den groesseren der beiden Ausklapp-Teile (Notch oder
+        // Medien-Karte) – Platz reserviert wird trotzdem nur die Leiste.
+        implicitHeight: bar.barHeight + Math.max(notch.maxDrop, media.maxDrop)
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: bar.barHeight
         color: "transparent"
@@ -63,6 +65,14 @@ Variants {
             }
             Region {
                 item: notch
+            }
+            // Ohne die eigene Region kaemen Klicks in der ausgeklappten
+            // Medien-Karte nicht an – die Maske ist die Eingabeflaeche.
+            Region {
+                item: media
+            }
+            Region {
+                item: settings   // aufgeklappte Settings-Karte klickbar halten
             }
         }
 
@@ -124,6 +134,7 @@ Variants {
                 }
                 verticalMargin: bar.verticalMargin
                 borderWidth: bar.borderWidth
+                cardRadius: bar.cardRadius
             }
 
             MediaPlayer {

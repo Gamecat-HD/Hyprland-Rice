@@ -1,53 +1,115 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Shapes
-import Quickshell
-import qs.modules.services.vpn
-import qs.modules.services.audio
 
 import "root:/"
 
-// Settings-Knopf rechts neben der Notch. Lautstärke-Ring INNERHALB des Kreises,
-// live aus dem Audio-Service (kein Polling – Updates kommen sofort bei Volume-Änderung).
+// Settings-Knopf rechts neben der Notch. Bei Hover waechst er wie die Notch
+// zu einer (noch leeren) Karte – nach RECHTS und UNTEN: oben links fix
+// (x kommt aus Bar.qml linksseitig, y haengt oben am Leistenrand).
+// Eingeklappt zeigen Wifi- und VPN-Icon, aufgeklappt ist die Karte leer.
 Rectangle {
     id: settings
 
-    // Schnittstelle (Bar.qml setzt verticalMargin)
+    // Schnittstelle (Bar.qml setzt verticalMargin/cardRadius)
     required property real verticalMargin
-    property real borderWidth: 1   // (Außenrand aktuell aus – siehe border.width unten)
+    required property real cardRadius
+    property real borderWidth: 1
 
+    // Auf-/Zuklappen: kurzes Verweilen zum Oeffnen, Nachlauf beim Schliessen
+    // (dasselbe Timing wie die Notch, damit Vorbeifahren nicht flackert)
+    readonly property bool containsMouse: hoverSensor.hovered
+    property bool expanded: false
+
+    onContainsMouseChanged: {
+        if (containsMouse) {
+            closeTimer.stop();
+            openTimer.restart();
+        } else {
+            openTimer.stop();
+            closeTimer.restart();
+        }
+    }
+
+    // Masse: eingeklappt der gewohnte Kreis, ausgeklappt die grosse Karte
+    readonly property real collapsedSize: parent.height - verticalMargin
+    readonly property real expandedWidth: 280
+    readonly property real expandedHeight: 200
 
     anchors {
-        verticalCenter: parent.verticalCenter
+        top: parent.top
+        topMargin: verticalMargin / 2   // oben fix -> alles Wachstum geht nach unten
     }
-    width: height
-    height: parent.height - verticalMargin
-    radius: width / 2                    // gleiche Rundung wie die Notch
-    color: Colors.background
-    border.width: borderWidth            // exakt wie die Notch (kommt aus Bar.qml)
-    border.color: Colors.outlineVariant
+    width: expanded ? expandedWidth : collapsedSize
+    height: expanded ? expandedHeight : collapsedSize
 
+    // Eingeklappt greift die halbe Breite (Kreis), aufgeklappt cardRadius
+    radius: Math.min(height / 2, cardRadius)
+    color: Colors.background
+    border.width: borderWidth
+    border.color: Colors.outlineVariant
+    clip: true   // beim Schrumpfen duerfen die Icons kurz aus der Karte ragen
+
+    Behavior on width {
+        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+    }
+    Behavior on height {
+        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+    }
+
+    // Lautstaerke-Ring um den Kreis – reine ANZEIGE (Scrollen/Klicken ist
+    // raus, das Volumen regelt man woanders). Blendet beim Aufklappen mit
+    // den Icons aus, damit die Karte leer wirkt.
     Audioslider {
-        id: slider
+        anchors.fill: parent
         arcWidth: 2
         arcGap: 3
         startAngle: 130
         sweepAngle: 280
-    }
 
-    Wifi {}
+        opacity: settings.expanded ? 0 : 1
+        visible: opacity > 0
 
-    MouseArea {
-        id: ma
-        anchors.fill: parent
-        hoverEnabled: true
-        onClicked: Vpn.toggle()
-        onWheel: event => {
-            const step = event.angleDelta.y > 0 ? 0.01 : -0.01;
-            Audio.setVolume(Audio.volume + step);   // setzt selbst auf 0..1
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
         }
     }
 
-    // ZULETZT deklariert = liegt oben und bekommt seine Klicks
-    VpnIcon {}
+    // Wifi-Status mittig im Kreis, blendet beim Aufklappen aus
+    Wifi {
+        opacity: settings.expanded ? 0 : 1
+        visible: opacity > 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+    }
+
+    // VPN-Status unten im Kreis, dito
+    VpnIcon {
+        opacity: settings.expanded ? 0 : 1
+        visible: opacity > 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+    }
+
+    Timer {
+        id: openTimer
+
+        interval: 180
+        onTriggered: settings.expanded = true
+    }
+
+    Timer {
+        id: closeTimer
+
+        interval: 250
+        onTriggered: settings.expanded = false
+    }
+
+    // Reiner Hover-Sensor, zuletztdeklariert (Muster siehe Notch.qml)
+    HoverHandler {
+        id: hoverSensor
+    }
 }
