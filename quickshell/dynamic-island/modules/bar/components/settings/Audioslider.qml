@@ -49,8 +49,18 @@ Shape {
     readonly property real fromLength: slider.gapLength / 2
     readonly property real toLength: slider.totalLength - slider.gapLength / 2
 
-    // Punkt auf dem Umriss, gemessen ab der Mitte unten gegen den Uhrzeigersinn
+    // Punkt auf dem Umriss, gemessen ab der Mitte unten.
+    //
+    // Gerechnet wird nach rechts, ausgegeben gespiegelt: dadurch beginnt der
+    // Fuellstand links unten bei 0 % und endet rechts unten bei 100 %. Die
+    // Form ist symmetrisch, deshalb genuegt es, x zu spiegeln – die Boegen
+    // drehen sich damit um, was in buildPath das Richtungsflag erklaert.
     function pointAt(s: real): var {
+        const p = slider.rawPointAt(s);
+        return { x: slider.width - p.x, y: p.y };
+    }
+
+    function rawPointAt(s: real): var {
         const r = slider.ringRadius;
         const cy = slider.height / 2;
         const lx = slider.height / 2;
@@ -110,7 +120,8 @@ Shape {
             else {
                 // Grosser Bogen erst ab einem Halbkreis; Richtung immer gleich
                 const large = (segTo - segFrom) > Math.PI * r ? 1 : 0;
-                d += ` A ${r} ${r} 0 ${large} 0 ${p.x} ${p.y}`;
+                // Richtung 1, weil die Punkte gespiegelt herauskommen
+                d += ` A ${r} ${r} 0 ${large} 1 ${p.x} ${p.y}`;
             }
         }
         return d;
