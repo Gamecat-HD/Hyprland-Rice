@@ -454,10 +454,15 @@ hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl s " .. cfg.brightn
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl s " .. cfg.brightnessStep .. "%-"), { locked = true })
 
 -- Medien
-hl.bind("CTRL + SUPER + Space", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
-hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
+-- Medientasten gehen an die Shell statt an playerctl: nur die kennt die im
+-- Medien-Selektor gewaehlte Quelle. playerctl wuerde sich selbst einen Player
+-- aussuchen und damit womoeglich einen anderen als die Leiste anzeigt.
+-- Die Gegenstelle sind die GlobalShortcuts in
+-- ~/.config/quickshell/dynamic-island/modules/services/media/Media.qml
+hl.bind("CTRL + SUPER + Space", hl.dsp.global("dynamic-island:mediaToggle"), { locked = true })
+hl.bind("XF86AudioPlay", hl.dsp.global("dynamic-island:mediaToggle"), { locked = true })
+hl.bind("XF86AudioNext", hl.dsp.global("dynamic-island:mediaNext"), { locked = true })
+hl.bind("XF86AudioPrev", hl.dsp.global("dynamic-island:mediaPrev"), { locked = true })
 
 -- Screenshots / Farbpicker  (dynamic-island uebernimmt Zwischenablage,
 -- Benachrichtigung mit Open/Save und den Cache unter ~/.cache/dynamic-island)

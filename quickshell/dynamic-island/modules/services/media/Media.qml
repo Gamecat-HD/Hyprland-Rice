@@ -4,6 +4,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 
 // Medien-Service: eine einzige Quelle fuer alles, was die Leiste ueber die
@@ -79,6 +80,10 @@ Singleton {
     readonly property string artDir: Quickshell.env("HOME") + "/.cache/dynamic-island/art/"
     property string artCached: ""
 
+    // Dominante Farbe des Covers, damit sich die Karte danach faerben kann.
+    // `transparent` heisst "keine bekannt" – dann bleibt es beim Theme-Grund.
+    property color artColor: "transparent"
+
     onArtUrlChanged: root.fetchArt()
 
     function fetchArt(): void {
@@ -99,6 +104,40 @@ Singleton {
             ART_FILE: file
         });
         artFetch.running = true;
+    }
+
+    // Die Farbe kommt von ImageMagick: Bild auf einen einzigen Pixel
+    // eindampfen, das ist der Mittelwert. Ein Aufruf pro Cover, kein Polling.
+    onArtChanged: root.probeArtColor()
+
+    function probeArtColor(): void {
+        const url = root.art;
+        if (!url.startsWith("file://")) {
+            root.artColor = "transparent";
+            return;
+        }
+
+        artColour.running = false;
+        artColour.environment = ({
+            ART_FILE: decodeURIComponent(url.substring(7))
+        });
+        artColour.running = true;
+    }
+
+    Process {
+        id: artColour
+
+        command: ["sh", "-c", 'magick "$ART_FILE" -resize 1x1! -depth 8 -format "%[hex:p{0,0}]" info:']
+
+        stdout: StdioCollector {
+            id: colourOut
+
+            onStreamFinished: {
+                const hex = colourOut.text.trim().slice(0, 6);
+                if (/^[0-9A-Fa-f]{6}$/.test(hex))
+                    root.artColor = "#" + hex;
+            }
+        }
     }
 
     Process {
@@ -219,6 +258,48 @@ Singleton {
         const p = root.active;
         if (p?.canSeek && p.length > 0)
             p.position = Math.max(0, Math.min(1, fraction)) * p.length;
+    }
+
+    // ---- Medientasten -----------------------------------------------------
+    //
+    // Die Tasten steuern denselben Player, den auch die Leiste zeigt – also
+    // die im Selektor gewaehlte Quelle. `playerctl` koennte das nicht: das
+    // sucht sich selbst einen Player und weiss nichts von der Auswahl hier.
+    //
+    // Hyprland loest die Shortcuts per `global`-Dispatcher aus, siehe
+    // ~/.config/hypr/profiles/simple.lua:
+    //   hl.bind("XF86AudioPlay", hl.dsp.global("dynamic-island:mediaToggle"))
+
+    GlobalShortcut {
+        appid: "dynamic-island"
+        name: "mediaToggle"
+        description: "Play/Pause der gewaehlten Quelle"
+
+        onPressed: root.playPause()
+    }
+
+    GlobalShortcut {
+        appid: "dynamic-island"
+        name: "mediaNext"
+        description: "Naechster Titel der gewaehlten Quelle"
+
+        onPressed: root.next()
+    }
+
+    GlobalShortcut {
+        appid: "dynamic-island"
+        name: "mediaPrev"
+        description: "Vorheriger Titel der gewaehlten Quelle"
+
+        onPressed: root.previous()
+    }
+
+    GlobalShortcut {
+        appid: "dynamic-island"
+        name: "mediaStop"
+        description: "Wiedergabe der gewaehlten Quelle stoppen"
+
+        onPressed: root.stop()
     }
 
     // ---- Selektor ---------------------------------------------------------

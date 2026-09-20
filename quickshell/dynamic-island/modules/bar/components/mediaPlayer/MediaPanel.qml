@@ -20,6 +20,10 @@ Item {
 
     // Oberkante innerhalb der Karte (= Unterkante der Icon-Reihe)
     property real topOffset: 0
+    // Grundfarbe der Karte – die Flaechen hier drin setzen sich davon ab,
+    // statt feste Theme-Toene zu nehmen. Sonst beisst sich das Blau des
+    // Themes mit einer vom Cover eingefaerbten Karte.
+    property color tint: Colors.background
     property real padding: 14
 
     // Cover samt Ring fuellen die Karte bis auf den Rand. Die Rechnung laeuft
@@ -27,7 +31,8 @@ Item {
     // Rand), davon gehen Balkenlaenge und Luft ab, der Rest ist das Bild.
     readonly property real ringMax: 16      // maximale Balkenlaenge
     readonly property real ringGap: 8       // Luft zwischen Bild und Balken
-    readonly property real ringBox: panel.width - panel.padding * 2
+    readonly property real ringInset: 10    // Luft zwischen Ring und Kartenrand
+    readonly property real ringBox: panel.width - panel.padding * 2 - panel.ringInset * 2
     readonly property real coverSize: Math.max(48, panel.ringBox - (panel.ringGap + panel.ringMax) * 2)
     // Innenkante des Rings – die Balken wachsen von hier nach aussen
     readonly property real ringRadius: panel.coverSize / 2 + panel.ringGap
@@ -63,7 +68,7 @@ Item {
             Layout.preferredHeight: sources.implicitHeight + 8
 
             radius: 10
-            color: Colors.surface
+            color: Colors.shade(panel.tint, 0.05)
             border.width: 1
             border.color: Colors.alpha(Colors.outline, 0.4)
 
@@ -86,7 +91,7 @@ Item {
                     Layout.preferredHeight: 24
 
                     radius: 8
-                    color: sourceHover.hovered ? Colors.surfaceContainer : "transparent"
+                    color: sourceHover.hovered ? Colors.shade(panel.tint, 0.11) : "transparent"
 
                     Behavior on color {
                         ColorAnimation { duration: 140 }
@@ -146,7 +151,7 @@ Item {
                         Layout.preferredHeight: 22
 
                         radius: 8
-                        color: entryHover.hovered ? Colors.surfaceContainer : "transparent"
+                        color: entryHover.hovered ? Colors.shade(panel.tint, 0.11) : "transparent"
 
                         Text {
                             anchors {
@@ -244,7 +249,7 @@ Item {
                 width: panel.coverSize
                 height: panel.coverSize
                 radius: width / 2
-                color: Colors.surfaceContainer
+                color: Colors.shade(panel.tint, 0.08)
 
                 Image {
                     id: cover
@@ -401,6 +406,7 @@ Item {
 
             MediaButton {
                 icon: "skip_previous"
+                outlined: true
                 size: 20
                 active: Media.canPrevious
                 onTriggered: Media.previous()
@@ -408,6 +414,7 @@ Item {
 
             MediaButton {
                 icon: Media.playing ? "pause" : "play_arrow"
+                outlined: true
                 size: 26
                 active: Media.canToggle
                 onTriggered: Media.playPause()
@@ -415,6 +422,7 @@ Item {
 
             MediaButton {
                 icon: "skip_next"
+                outlined: true
                 size: 20
                 active: Media.canNext
                 onTriggered: Media.next()

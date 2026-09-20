@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
@@ -50,6 +51,16 @@ Item {
     // waere schmaler zu gedraengt. Die Reihe oben darf breiter werden.
     readonly property real minWidth: 250
 
+    // Grundfarbe der Karte: der Mittelton des Covers, kraeftig abgedunkelt und
+    // entsaettigt – sonst leuchtet die Leiste. Kennt der Service keine Farbe
+    // (kein Cover), bleibt es beim Theme-Grund.
+    readonly property color cardColor: Media.artColor.a > 0
+        ? Qt.hsla(Media.artColor.hslHue,
+                  Math.min(Media.artColor.hslSaturation, 0.30),
+                  0.14,
+                  1)
+        : Colors.background
+
     // Hoehen: eingeklappt wie die anderen Karten. Ausgeklappt weicht die
     // Leisten-Zeile zur Seite und die Karte gehoert allein dem Panel – sie ist
     // dann genau so hoch wie dessen Inhalt plus dem Rand oben.
@@ -69,10 +80,15 @@ Item {
 
     // Aufklappen nach kurzem Verweilen – ohne die Verzoegerung springt die
     // Karte schon auf, wenn man nur auf dem Weg zum Systray drueberfaehrt.
+    // Laeuft nur, solange der Zeiger auf der Karte steht und NICHT auf dem
+    // Play-Knopf: wer nur kurz Pause druecken will, soll sich nicht das ganze
+    // Menue aufziehen. Als Bedingung statt restart()-Aufrufen, damit der Timer
+    // beim Wechsel auf den Knopf von selbst stehen bleibt.
     Timer {
         id: openTimer
 
         interval: 220
+        running: pillHover.hovered && !playButton.hovered && !root.expanded
         onTriggered: root.expanded = true
     }
 
@@ -111,8 +127,85 @@ Item {
         radius: Math.min(height / 2, root.cardRadius)
         border.width: root.borderWidth
         border.color: root.borderColor
-        color: Colors.background
+        // Eingeklappt der normale Theme-Grund, ausgeklappt der Ton des Covers
+        // (und darueber dessen unscharfes Bild, siehe unten).
+        color: root.expanded ? root.cardColor : Colors.background
         clip: true
+
+        Behavior on color {
+            ColorAnimation { duration: 400 }
+        }
+
+        // ---- Unscharfes Cover als Kartengrund ----
+        // Nur im ausgeklappten Zustand. Das `clip` der Karte schneidet
+        // rechteckig, deshalb bekommt der Effekt dieselbe Rundung als Maske –
+        // sonst stuende das Bild in den Ecken ueber.
+        Image {
+            id: bgArt
+
+            anchors.fill: parent
+            source: Media.art
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            // Klein laden reicht: es wird ohnehin zerblurrt, und so kostet der
+            // Effekt einen Bruchteil.
+            sourceSize.width: 128
+            sourceSize.height: 128
+            visible: false
+        }
+
+        Item {
+            id: bgMask
+
+            anchors.fill: parent
+            layer.enabled: true
+            visible: false
+
+            Rectangle {
+                anchors.fill: parent
+                radius: pill.radius
+                color: "black"
+            }
+        }
+
+        MultiEffect {
+            anchors.fill: parent
+
+            source: bgArt
+            // `autoPadding` wuerde den Effekt ueber die Karte hinauswachsen
+            // lassen, damit der Blur ausfransen kann – hier unerwuenscht.
+            autoPaddingEnabled: false
+            blurEnabled: true
+            blur: 1
+            blurMax: 72
+            // abdunkeln und entsaettigen, sonst ist kein Text mehr lesbar
+            brightness: -0.55
+            saturation: -0.35
+            maskEnabled: true
+            maskSource: bgMask
+
+            opacity: root.expanded && bgArt.status === Image.Ready ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+            }
+        }
+
+        // Schleier in der Cover-Farbe darueber: erst das macht aus dem noch
+        // erkennbaren Bild einen ruhigen Grund, auf dem Text steht.
+        Rectangle {
+            anchors.fill: parent
+
+            radius: pill.radius
+            color: Colors.alpha(root.cardColor, 0.55)
+            opacity: root.expanded ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+            }
+        }
 
         // Solange der Zeiger auf der Karte steht, bleibt sie offen. Weil die
         // Karte beim Aufklappen unter dem Zeiger waechst, bleibt der Hover
@@ -121,15 +214,7 @@ Item {
         HoverHandler {
             id: pillHover
 
-            onHoveredChanged: {
-                if (pillHover.hovered) {
-                    closeTimer.stop();
-                    openTimer.restart();
-                } else {
-                    openTimer.stop();
-                    closeTimer.restart();
-                }
-            }
+            onHoveredChanged: hovered ? closeTimer.stop() : closeTimer.restart()
         }
 
         // Nach unten ziehen klappt das Menue auf – dieselbe Geste, mit der die
@@ -313,9 +398,12 @@ Item {
                     readonly property real gap: 26
                     readonly property bool scrolling: title.implicitWidth > marquee.width
 
-                    Layout.preferredWidth: 92
+                    Layout.preferredWidth: 116
                     Layout.preferredHeight: root.artSize
                     Layout.alignment: Qt.AlignVCenter
+                    // Der Play-Knopf bringt selbst schon Rand mit – hier
+                    // nochmal die vollen 6px Reihenabstand waere zu viel Luft.
+                    Layout.rightMargin: -4
 
                     clip: true
 
@@ -372,6 +460,8 @@ Item {
                 // ausgeklappten Teil – in der Leiste waren es drei Knoepfe
                 // zu viel fuer den Platz.
                 MediaButton {
+                    id: playButton
+
                     icon: Media.playing ? "pause" : "play_arrow"
                     size: root.iconSize + 3
                     active: Media.canToggle
@@ -389,6 +479,7 @@ Item {
 
             topOffset: root.panelTop
             padding: root.padding
+            tint: root.cardColor
             opacity: root.expanded ? 1 : 0
             visible: opacity > 0
 
