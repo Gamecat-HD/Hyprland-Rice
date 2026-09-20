@@ -7,6 +7,7 @@ import Quickshell.Io
 
 import "components/notch"
 import "components/notifications"
+import "components/stats"
 import "components/settings"
 import "components/statusBar"
 import "components/workspaceSelector"
@@ -69,7 +70,7 @@ Variants {
         // Medien-Karte) – Platz reserviert wird trotzdem nur die Leiste.
         implicitHeight: bar.catching ? bar.modelData.height
                                      : bar.barHeight + Math.max(notch.maxDrop, media.maxDrop, settings.maxDrop,
-                                                        notifications.maxDrop)
+                                                        notifications.maxDrop, stats.maxDrop)
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: bar.barHeight
         color: "transparent"
@@ -97,6 +98,9 @@ Variants {
             Region {
                 item: notifications        // aufgeklappte Benachrichtigungs-Karte
             }
+            Region {
+                item: stats                // aufgeklappte System-Karte
+            }
         }
 
         // Die Fangflaeche. Zuerst deklariert, damit sie unter allem liegt:
@@ -121,6 +125,23 @@ Variants {
 
             /* Workspace Selektor */
             WorkspaceSelector {
+                id: workspaces
+                verticalMargin: bar.verticalMargin
+                borderWidth: bar.borderWidth
+                borderColor: bar.borderColor
+                cardRadius: bar.cardRadius
+            }
+
+
+            /* System-Pille – haengt rechts am Selektor und wandert mit, wenn
+               der breiter wird (Special-Workspaces). Anker deshalb hier und
+               nicht in der Komponente. */
+            StatsPill {
+                id: stats
+                anchors {
+                    left: workspaces.right
+                    leftMargin: 10
+                }
                 verticalMargin: bar.verticalMargin
                 borderWidth: bar.borderWidth
                 borderColor: bar.borderColor
