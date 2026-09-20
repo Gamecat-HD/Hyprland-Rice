@@ -30,16 +30,22 @@ Item {
     readonly property real collapsedSize: parent.height - verticalMargin
     readonly property real peekWidth: 340
     readonly property real openWidth: 380
-    // Hoehe einer Zeile samt Abstand – daraus faellt die Listenhoehe, ohne
-    // `list.contentHeight` zu lesen: daran haengt die Karte, und die Karte
-    // gibt der Liste ihre Hoehe – das waere eine Bindungsschleife.
-    readonly property real rowUnit: 54
-    readonly property real maxListHeight: 260
+    readonly property real maxListHeight: 300
+    // Hoehe der Liste im eingeklappten Zustand der Gruppen: je Gruppe eine
+    // Zeile, bei mehreren Nachrichten zusaetzlich der Kopf. Bewusst aus dem
+    // Modell gerechnet statt aus `list.contentHeight` – daran haengt die
+    // Karte, und die Karte gibt der Liste ihre Hoehe, das waere eine
+    // Bindungsschleife. Aufgeklappte Gruppen scrollen stattdessen.
+    readonly property real listBody: {
+        let h = 0;
+        for (const g of Notifications.groups)
+            h += (g.entries.length > 1 ? 26 : 0) + 54;
+        return h;
+    }
     // Nach unten gedeckelt, damit die Karte bei leerer Liste nicht in sich
     // zusammenfaellt: wer die Maus dorthin bewegt, wo gleich Inhalt
     // erscheint, waere sonst schon draussen (Falle aus dem WLAN-Panel).
-    readonly property real listHeight: Math.max(90, Math.min(root.maxListHeight,
-                                                             Notifications.count * root.rowUnit))
+    readonly property real listHeight: Math.max(90, Math.min(root.maxListHeight, root.listBody))
     readonly property real openHeight: root.collapsedSize + root.listHeight + 8
 
     // Liste offen bzw. Pille zeigt gerade die neueste Nachricht
@@ -221,6 +227,7 @@ Item {
             height: root.collapsedSize
 
             compact: true
+            swipeable: true      // seitlich wegziehen geht auch hier
             entry: Notifications.latest
             opacity: root.wide && !root.open && Notifications.count > 0 ? 1 : 0
             visible: opacity > 0
@@ -334,7 +341,7 @@ Item {
             clip: true
             spacing: 2
             model: ScriptModel {
-                values: Notifications.list
+                values: Notifications.groups
             }
             boundsBehavior: Flickable.StopAtBounds
             opacity: root.open ? 1 : 0
@@ -358,11 +365,8 @@ Item {
                 }
             }
 
-            delegate: NotificationRow {
-                required property var modelData
-
+            delegate: NotificationGroup {
                 width: ListView.view.width
-                entry: modelData
             }
 
             Text {

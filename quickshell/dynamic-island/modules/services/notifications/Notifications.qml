@@ -27,6 +27,20 @@ Singleton {
     readonly property int count: root.list.length
     readonly property var latest: root.list[0] ?? null
 
+    // Nach App gebuendelt: [{ app, entries }]. `list` ist schon neueste-zuerst,
+    // und eine Map behaelt die Einfuegereihenfolge – dadurch steht die App mit
+    // der juengsten Nachricht oben und innerhalb einer Gruppe ebenso.
+    readonly property var groups: {
+        const map = new Map();
+        for (const e of root.list) {
+            const app = e.notif?.appName || "System";
+            if (!map.has(app))
+                map.set(app, []);
+            map.get(app).push(e);
+        }
+        return Array.from(map, ([app, entries]) => ({ app, entries }));
+    }
+
     // Nicht stoeren: unterdrueckt nur das Aufklappen der Pille, gesammelt wird
     // weiter (dasselbe Verhalten wie bei caelestia).
     property bool dnd: false
@@ -56,6 +70,14 @@ Singleton {
     function dismiss(entry: var): void {
         root.list = root.list.filter(e => e !== entry);
         entry?.notif?.dismiss();
+    }
+
+    // Eine ganze App wegraeumen (Kreuz am Gruppenkopf)
+    function dismissGroup(group: var): void {
+        const entries = group?.entries ?? [];
+        root.list = root.list.filter(e => !entries.includes(e));
+        for (const e of entries)
+            e?.notif?.dismiss();
     }
 
     function clear(): void {

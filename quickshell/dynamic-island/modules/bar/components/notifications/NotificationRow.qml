@@ -17,12 +17,79 @@ Item {
     // { notif, time } aus dem Dienst; darf null sein (leere Liste)
     property var entry: null
     property bool compact: false
+    // In einer Gruppe traegt der Kopf das App-Icon, die Zeilen brauchen keins
+    property bool showIcon: true
+    // Zeilen unter einem Gruppenkopf ruecken ein, damit sie dazugehoerig wirken
+    property real leftInset: 0
+    // Zur Seite ziehen entfernt die Nachricht (nur in der Liste sinnvoll)
+    property bool swipeable: false
+
+    // Versatz beim Wegziehen; das Wegblenden haengt daran
+    property real slide: 0
 
     readonly property var notif: row.entry?.notif ?? null
     readonly property bool critical: row.notif?.urgency === NotificationUrgency.Critical
     readonly property real iconSize: row.compact ? 20 : 26
 
     implicitHeight: row.compact ? 30 : 52
+
+    transform: Translate {
+        x: row.slide
+    }
+    // Je weiter weg, desto blasser – damit man sieht, dass es gleich weg ist
+    opacity: row.slide === 0 ? 1
+           : 1 - Math.min(0.85, Math.abs(row.slide) / Math.max(1, row.width * 0.7))
+
+    // Zur Seite ziehen: ueber ein Drittel der Breite fliegt die Nachricht raus,
+    // darunter federt sie zurueck. Nur die Waagerechte gehoert dem Handler,
+    // damit die Liste weiter senkrecht scrollen kann.
+    DragHandler {
+        id: swipe
+
+        target: null
+        yAxis.enabled: false
+        enabled: row.swipeable && row.entry !== null
+
+        readonly property real threshold: row.width * 0.3
+
+        onTranslationChanged: if (swipe.active)
+            row.slide = swipe.activeTranslation.x
+        onActiveChanged: {
+            if (swipe.active) {
+                slideBack.stop();
+                slideOut.stop();
+                return;
+            }
+            if (Math.abs(row.slide) > swipe.threshold) {
+                slideOut.to = row.slide > 0 ? row.width : -row.width;
+                slideOut.start();
+            } else {
+                slideBack.start();
+            }
+        }
+    }
+
+    NumberAnimation {
+        id: slideBack
+
+        target: row
+        property: "slide"
+        to: 0
+        duration: 180
+        easing.type: Easing.OutCubic
+    }
+
+    // Erst rausfliegen lassen, dann entfernen – sonst ist der Delegat weg,
+    // bevor man die Bewegung sieht
+    NumberAnimation {
+        id: slideOut
+
+        target: row
+        property: "slide"
+        duration: 140
+        easing.type: Easing.OutCubic
+        onFinished: Notifications.dismiss(row.entry)
+    }
 
     // Dezente Flaeche unter der Zeile, damit man sieht, worauf man zeigt
     Rectangle {
@@ -58,10 +125,12 @@ Item {
 
         anchors {
             left: parent.left
+            leftMargin: row.leftInset
             verticalCenter: parent.verticalCenter
         }
-        width: row.iconSize
+        width: row.showIcon ? row.iconSize : 0
         height: row.iconSize
+        visible: row.showIcon
 
         Image {
             id: icon
@@ -99,7 +168,7 @@ Item {
     Column {
         anchors {
             left: iconBox.right
-            leftMargin: 10
+            leftMargin: row.showIcon ? 10 : 0
             right: meta.left
             rightMargin: 8
             verticalCenter: parent.verticalCenter
