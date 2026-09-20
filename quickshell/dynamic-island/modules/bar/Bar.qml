@@ -9,6 +9,7 @@ import "components/notch"
 import "components/settings"
 import "components/statusBar"
 import "components/workspaceSelector"
+import "components/mediaPlayer"
 import "root:/modules/launcher"
 
 import "root:/"
@@ -123,6 +124,14 @@ Variants {
                 }
                 verticalMargin: bar.verticalMargin
                 borderWidth: bar.borderWidth
+            }
+
+            MediaPlayer {
+                id: media
+                verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
+                borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
+                borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
+                cardRadius: bar.cardRadius     // dito - teilt sich den Wert mit Notch und Selektor
             }
         }
     }
