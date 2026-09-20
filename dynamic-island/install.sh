@@ -107,6 +107,8 @@ ki_warnung() {
       und in ~/.config/fish/completions
     - legt Verzeichnisse an (~/.local/state/$SHELL_NAME, ~/.cache/$SHELL_NAME,
       ~/Pictures/{Wallpapers,Screenshots})
+    - kopiert die Wallpaper aus dem Repo nach ~/Pictures/Wallpapers
+      (vorhandene Dateien bleiben)
     - kopiert vorhandenen Caelestia-Status (Caelestia bleibt unberuehrt)
     - erzeugt ein Farbschema, falls keines da ist — das schreibt auch
       Farben nach Hyprland, GTK, Qt, btop, cava und Discord
@@ -417,6 +419,38 @@ migrate_state() {
     fi
 }
 
+# ---------------------------------------------------- 4b. Wallpaper ---
+# Die Bilder aus dem Repo nach ~/Pictures/Wallpapers legen. Kopiert statt
+# verlinkt: der Ordner ist eine Sammlung, in die man weitere Bilder wirft –
+# ein Symlink auf ein Git-Verzeichnis waere da im Weg. Vorhandenes bleibt
+# unangetastet, das Skript ueberschreibt nichts.
+seed_wallpapers() {
+    step "Wallpaper"
+
+    local src="$REPO_DIR/wallpapers"
+    if [ ! -d "$src" ]; then
+        skip "keine Bilder im Repo"
+        return 0
+    fi
+
+    local target="$HOME/Pictures/Wallpapers"
+    local copied=0 kept=0 rel
+    while IFS= read -r rel; do
+        if [ -e "$target/$rel" ]; then
+            kept=$((kept + 1))
+            continue
+        fi
+        run mkdir -p "$target/$(dirname "$rel")"
+        run cp "$src/$rel" "$target/$rel"
+        copied=$((copied + 1))
+    done < <(cd "$src" && find . -type f -printf '%P\n' | sort)
+
+    [ "$copied" -gt 0 ] && ok "$copied Bilder nach ~/Pictures/Wallpapers kopiert"
+    [ "$kept" -gt 0 ] && skip "$kept schon vorhanden"
+    [ "$copied" = 0 ] && [ "$kept" = 0 ] && skip "nichts zu kopieren"
+    return 0
+}
+
 # ------------------------------------------------- 5. Farbschema setzen ---
 seed_scheme() {
     step "Farbschema"
@@ -427,8 +461,11 @@ seed_scheme() {
     [ "$DRY_RUN" = 1 ] && { warn "wuerde ein Schema erzeugen"; return 0; }
 
     local wp
-    wp="$(find "$HOME/Pictures/Wallpapers" -maxdepth 1 -type f \
-         \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) 2>/dev/null | head -1)"
+    # Auch in Unterordnern suchen: die mitgelieferten Bilder liegen in
+    # Miku/ und Rimuru/, frueher fand das hier deshalb nichts.
+    wp="$(find "$HOME/Pictures/Wallpapers" -type f \
+         \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
+         2>/dev/null | sort | head -1)"
     if [ -n "$wp" ]; then
         "$BIN_DIR/dynamic-island" wallpaper -f "$wp" && ok "Schema aus $(basename "$wp") erzeugt"
     else
@@ -523,6 +560,7 @@ check_notifications
 if [ "$CHECK_ONLY" = 1 ]; then check_deploy; else deploy; fi
 if [ "$CHECK_ONLY" = 1 ]; then check_links; else link_files; fi
 make_dirs
+seed_wallpapers
 migrate_state
 seed_scheme
 hypr_profile

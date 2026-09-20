@@ -18,6 +18,11 @@ Das Skript verteilt `hypr/`, `quickshell/dynamic-island/` und
 `git pull` im Klon sofort gilt. Was dort schon liegt, wandert vorher nach
 `~/backups/`, nichts wird geloescht.
 
+Dabei landen auch die mitgelieferten Wallpaper in `~/Pictures/Wallpapers`
+(vorhandene Dateien bleiben unangetastet). Es sind nur die eigenen — die grosse
+Sammlung, aus der der Rest des Ordners stammt, liegt unter
+`github.com/krishna4a6av/Wallpapers` und laesst sich bei Bedarf daneben klonen.
+
 Danach:
 
 ```sh

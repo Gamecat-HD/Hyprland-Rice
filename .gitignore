@@ -4,6 +4,8 @@
 !/quickshell/
 !/dynamic-island/
 !/README.md
+# Die eigenen Wallpaper (die Sammlung aus dem fremden Repo bleibt draussen)
+!/wallpapers/
 
 # innerhalb von quickshell nur die eigene Shell
 /quickshell/*
