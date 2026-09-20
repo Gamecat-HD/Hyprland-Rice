@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Io
+import qs.modules.services.wallpaper
 
 import "root:/"
 
@@ -11,6 +11,9 @@ import "root:/"
 // automatisch mit dem jeweiligen Screen befüllt (Caelestia-Stil).
 // Bewusst nicht "Window.qml" genannt – der Name würde den QML-Typ `Window`
 // aus QtQuick überdecken.
+//
+// Welches Bild gilt, sagt der Wallpapers-Dienst: entweder das gesetzte oder –
+// waehrend man im Launcher durch die Auswahl blaettert – das vorgeschaute.
 Variants {
     model: Quickshell.screens
 
@@ -31,17 +34,60 @@ Variants {
         }
         color: Colors.background
 
-        // Aktuelles Wallpaper (gesetzt von `dynamic-island wallpaper`)
-        FileView {
-            id: wallpaperFile
-            path: Quickshell.env("HOME") + "/.local/state/dynamic-island/wallpaper/path.txt"
-        }
+        // Zwei Bilder im Wechsel: das neue laedt unsichtbar und wird erst
+        // eingeblendet, wenn es fertig ist. Mit nur einem Image waere beim
+        // Wechsel (und bei jedem Vorschau-Schritt) kurz der blanke Hintergrund
+        // zu sehen.
+        Item {
+            id: stage
 
-        Image {
             anchors.fill: parent
-            source: wallpaperFile.text().trim() !== "" ? "file://" + wallpaperFile.text().trim() : ""
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
+
+            readonly property string path: Wallpapers.current
+            property bool showA: true
+
+            onPathChanged: {
+                const next = stage.showA ? imgB : imgA;
+                next.source = stage.path !== "" ? `file://${stage.path}` : "";
+            }
+
+            Image {
+                id: imgA
+
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                cache: false
+                opacity: stage.showA ? 1 : 0
+
+                onStatusChanged: {
+                    if (status === Image.Ready && !stage.showA)
+                        stage.showA = true;
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                }
+            }
+
+            Image {
+                id: imgB
+
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                cache: false
+                opacity: stage.showA ? 0 : 1
+
+                onStatusChanged: {
+                    if (status === Image.Ready && stage.showA)
+                        stage.showA = false;
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                }
+            }
         }
     }
 }

@@ -205,6 +205,53 @@ Item {
             }
         }
 
+        // Wallpaper-Knopf: das Gegenstueck zum Power-Knopf, linke Seite
+        // derselben Zeile. Oeffnet den Launcher direkt in der Wallpaper-
+        // Auswahl – derselbe Weg wie `>wallpaper` im Suchfeld.
+        Item {
+            id: wallpaperButton
+
+            anchors {
+                left: parent.left
+                leftMargin: 8
+                verticalCenter: clock.verticalCenter
+            }
+            implicitWidth: 28
+            implicitHeight: 28
+            opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+
+            Text {
+                anchors.centerIn: parent
+
+                // "wallpaper" gibt es in dieser Schriftversion nicht – der
+                // Text stuende dann ausgeschrieben da (caelestia nimmt denselben)
+                text: "wallpaper_slideshow"   // Material-Symbols-Ligatur, genau so
+                color: wallpaperHover.hovered ? Colors.primary : Colors.fgSurfaceVariant
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 15
+                font.variableAxes: ({ wght: 700 })
+
+                Behavior on color {
+                    ColorAnimation { duration: 140 }
+                }
+            }
+
+            HoverHandler {
+                id: wallpaperHover
+
+                cursorShape: Qt.PointingHandCursor
+            }
+
+            TapHandler {
+                onTapped: LauncherState.showWallpapers(notch.QsWindow.window.screen)
+            }
+        }
+
         DatePanel {
             id: panel
 

@@ -13,10 +13,30 @@ Singleton {
 
     property bool open: false
     property ShellScreen screen: null   // auf welchem Monitor er aufgeht
+    // Womit das Suchfeld beim Oeffnen gefuellt wird. Leer = normale App-Suche;
+    // ein Modus-Praefix wie ">wallpaper " springt direkt in dessen Ansicht.
+    property string initialText: ""
 
     function show(target: ShellScreen): void {
+        root.showWith(target, "");
+    }
+
+    function showWith(target: ShellScreen, text: string): void {
+        root.initialText = text;
         root.screen = target;
         root.open = true;
+    }
+
+    // Direkt in die Wallpaper-Auswahl (Icon in der Notch, IPC, Tastenkuerzel)
+    function showWallpapers(target: ShellScreen): void {
+        root.showWith(target, ">wallpaper ");
+    }
+
+    function toggleWallpapers(target: ShellScreen): void {
+        if (root.open)
+            root.close();
+        else
+            root.showWallpapers(target);
     }
 
     function close(): void {
@@ -54,6 +74,10 @@ Singleton {
 
         function close(): void {
             root.close();
+        }
+
+        function wallpaper(): void {
+            root.showWallpapers(root.focusedScreen());
         }
     }
 }

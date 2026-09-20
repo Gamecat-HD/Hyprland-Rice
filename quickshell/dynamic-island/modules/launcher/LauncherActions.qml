@@ -2,6 +2,7 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import qs.modules.services.wallpaper
 
 // Aktionen des Launchers – das Gegenstück zu Caelestias `Actions`-Service.
 // Erreichbar über das Präfix `>`.
@@ -13,9 +14,10 @@ import Quickshell
 // und genau eine der beiden Bauarten:
 //   run:  () => { ... }   führt direkt aus und schließt den Launcher
 //   mode: "wallpaper"     schaltet die Liste in einen eigenen Modus um; der
-//                         Suchtext wird auf ">wallpaper " gesetzt und alles
-//                         Weitere kommt aus der Quelle, die unter diesem Namen
-//                         in LauncherPanel.modes registriert ist.
+//                         Suchtext wird auf ">wallpaper " gesetzt. Was dann
+//                         angezeigt wird, kommt entweder aus der gleichnamigen
+//                         Quelle in LauncherPanel.modes – oder, wie beim
+//                         Wallpaper, aus einer eigenen Ansicht im Panel.
 //                         (Genau so hängt bei Caelestia der Wallpaper-Wechsler
 //                         am `autocomplete`-Kommando.)
 Singleton {
@@ -27,14 +29,19 @@ Singleton {
             desc: "Quickshell-Konfiguration neu einlesen",
             icon: "refresh",
             run: () => Quickshell.reload(false)
+        },
+        {
+            name: "Wallpaper",
+            desc: "Hintergrund wechseln",
+            icon: "wallpaper_slideshow",
+            mode: "wallpaper"
+        },
+        {
+            name: "Zufaelliges Wallpaper",
+            desc: "Irgendeines aus dem Wallpaper-Ordner",
+            icon: "shuffle",
+            run: () => Wallpapers.random()
         }
-        // Hier ist Platz für eigene Aktionen, z.B. ein Wallpaper-Wechsler:
-        // {
-        //     name: "Wallpaper",
-        //     desc: "Hintergrund wechseln",
-        //     icon: "wallpaper",
-        //     mode: "wallpaper"
-        // }
     ]
 
     function search(needle: string): var {

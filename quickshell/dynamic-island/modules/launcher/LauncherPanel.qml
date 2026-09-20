@@ -12,6 +12,8 @@ import "root:/"
 //   ohne Präfix   Desktop-Einträge (Favoriten zuerst)
 //   `>`           Aktionen aus LauncherActions, sonst als Shell-Befehl
 //   `>name ...`   eigener Listen-Modus, falls unter `modes` registriert
+//   `>wallpaper`  Sonderfall: keine Liste, sondern das Karussell aus
+//                 WallpaperList.qml (siehe `wallpaperView`)
 Item {
     id: panel
 
@@ -41,10 +43,17 @@ Item {
     readonly property var modeSource: panel.modes[modeName] ?? null
     readonly property string modeQuery: actionQuery.slice(modeName.length + 1)
 
+    // Der Wallpaper-Modus hat statt der Trefferliste eine eigene Ansicht (das
+    // Karussell in WallpaperList.qml) – deshalb faellt er aus dem `modes`-
+    // Mechanismus heraus und wird hier gesondert abgefragt.
+    readonly property bool wallpaperView: panel.actionMode && panel.modeName === "wallpaper"
+
     property bool favoritesOnly: false
 
     // Treffer als schlichte Objekte: { kind, name, desc, icon, ... }
     readonly property var results: {
+        if (panel.wallpaperView)
+            return [];              // eigene Ansicht, keine Trefferliste
         if (panel.modeSource)
             return panel.modeResults();
         if (panel.actionMode)
@@ -64,9 +73,13 @@ Item {
 
     onActiveChanged: {
         if (active) {
-            search.text = "";
+            search.text = LauncherState.initialText;
             panel.favoritesOnly = false;
             search.forceActiveFocus();
+        } else {
+            // Sonst stuende beim naechsten Oeffnen noch der alte Modus da –
+            // und das Wallpaper-Karussell bliebe samt Vorschau am Leben.
+            search.text = "";
         }
     }
 
@@ -152,6 +165,11 @@ Item {
 
     // ---- Auslösen ----
     function activate(index: int): void {
+        if (panel.wallpaperView) {
+            walls.item?.apply();
+            return;
+        }
+
         const hit = panel.results[index];
         if (!hit)
             return;
@@ -175,6 +193,11 @@ Item {
     }
 
     function move(delta: int): void {
+        if (panel.wallpaperView) {
+            walls.item?.moveBy(delta);
+            return;
+        }
+
         const count = panel.results.length;
         if (count === 0)
             return;
@@ -207,7 +230,9 @@ Item {
                 leftMargin: 16
                 verticalCenter: parent.verticalCenter
             }
-            text: panel.modeSource ? "list" : panel.actionMode ? "terminal" : "search"
+            text: panel.wallpaperView ? "wallpaper_slideshow"
+                : panel.modeSource ? "list"
+                : panel.actionMode ? "terminal" : "search"
             font.family: "Material Symbols Outlined"
             font.pixelSize: 19
             color: panel.actionMode ? Colors.primary : Colors.fgSurfaceVariant
@@ -233,6 +258,19 @@ Item {
             Keys.onUpPressed: panel.move(-1)
             Keys.onDownPressed: panel.move(1)
             Keys.onTabPressed: panel.move(1)
+            // Nur im Karussell – sonst gehoeren die Pfeile dem Textcursor
+            Keys.onLeftPressed: event => {
+                if (panel.wallpaperView)
+                    panel.move(-1);
+                else
+                    event.accepted = false;
+            }
+            Keys.onRightPressed: event => {
+                if (panel.wallpaperView)
+                    panel.move(1);
+                else
+                    event.accepted = false;
+            }
             Keys.onReturnPressed: panel.activate(list.currentIndex)
             Keys.onEnterPressed: panel.activate(list.currentIndex)
 
@@ -311,7 +349,24 @@ Item {
             left: parent.left
             right: parent.right
         }
-        implicitHeight: Math.min(panel.maxListHeight, list.contentHeight + 12)
+        implicitHeight: panel.wallpaperView ? walls.implicitHeight + 12
+                                            : Math.min(panel.maxListHeight, list.contentHeight + 12)
+
+        // Wallpaper-Karussell. Als Loader, damit es nur existiert, solange der
+        // Modus offen ist: beim Zerstoeren nimmt es seine Hintergrund-Vorschau
+        // wieder zurueck und gibt die Vorschaubilder frei.
+        Loader {
+            id: walls
+
+            anchors.fill: parent
+            anchors.margins: 6
+            active: panel.wallpaperView && panel.active
+
+            sourceComponent: WallpaperList {
+                query: panel.modeQuery
+                onApplied: LauncherState.close()
+            }
+        }
 
         ListView {
             id: list
@@ -319,6 +374,7 @@ Item {
             anchors.fill: parent
             anchors.margins: 6
             clip: true
+            visible: !panel.wallpaperView
             spacing: 2
             model: panel.results
             boundsBehavior: Flickable.StopAtBounds
@@ -375,7 +431,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            opacity: panel.results.length === 0 ? 1 : 0
+            opacity: panel.results.length === 0 && !panel.wallpaperView ? 1 : 0
             visible: opacity > 0
 
             Behavior on opacity {
