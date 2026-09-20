@@ -5,15 +5,13 @@ import Quickshell.Hyprland
 
 import "root:/"
 
-// Ein Punkt im Workspace-Selektor.
+// Ein Workspace im Selektor: leer ein Punkt, aktiv die Pille, belegt die
+// App-Icons seiner Fenster (caelestia haengt sie unter dem Label, hier
+//inline – die Leiste ist ja horizontal).
 //
 // Den Zustand bekommt die Komponente komplett durchgereicht (activeWsId,
-// occupied, groupOffset) statt Hyprland selbst zu fragen – sonst würde jeder
-// der zehn Punkte dieselbe Abfrage nochmal machen. Genauso macht es
-// caelestia/modules/bar/components/workspaces/Workspace.qml.
-//
-// Bewusst OHNE die Fenster-Icons, die caelestia darunter hängt: ein Punkt
-// pro Workspace, mehr nicht.
+// occupied, groupOffset, windowClasses) statt Hyprland selbst zu fragen –
+// sonst wuerde jeder der fuenf Punkte dieselbe Abfrage nochmal machen.
 Item {
     id: root
 
@@ -21,28 +19,30 @@ Item {
     required property int activeWsId
     required property var occupied
     required property int groupOffset
+    required property var windowClasses
 
     readonly property int ws: root.groupOffset + root.index + 1
     readonly property bool isActive: root.activeWsId === root.ws
     readonly property bool isOccupied: root.occupied[root.ws] ?? false
 
+    // Fensterklassen dieses Workspaces, gekappt – mehr als drei Icons passen
+    // in der horizontalen Leiste nicht sinnvoll unter
+    readonly property var classes: (root.windowClasses[root.ws] ?? []).slice(0, 3)
+    readonly property bool hasIcons: !root.isActive && root.classes.length > 0
+
     readonly property real dotSize: 5
     readonly property real activeWidth: 18
+    readonly property real iconSize: 13
 
-    // Die drei Zustaende eines Punktes. Belegt = derselbe Primaerton wie aktiv,
-    // nur abgeschwaecht: so sieht man auf einen Blick, wo Fenster liegen, ohne
-    // dass es mit dem aktiven Punkt (der ausserdem zur Pille wird) konkurriert.
-    // Leer bleibt neutral-grau. Hier sind die Stellschrauben fuer die Optik.
+    // Primaerton wie gehabt fuer die Pille, die Icons im abgeschwaechten
+    // Sekundaerton (dieselbe Stufung wie vorher die belegten Punkte), leer
+    // bleibt neutral-grau.
     readonly property color colourActive: Colors.primary
-    readonly property color colourOccupied: Colors.alpha(Colors.secondary, 0.75)
+    readonly property color colourIcon: Colors.alpha(Colors.secondary, 0.75)
     readonly property color colourEmpty: Colors.outlineVariant
 
-    // Belegte Punkte duerfen minimal groesser sein - der Farbunterschied allein
-    // geht bei 5px schnell unter.
-    readonly property real occupiedSize: 6
-
-    // Sichtbarer Punkt und Trefferfläche sind absichtlich entkoppelt: das Item
-    // ist deutlich größer als der Punkt, damit man nicht zielen muss. Das
+    // Sichtbarer Inhalt und Trefferfläche sind absichtlich entkoppelt: das Item
+    // ist deutlich größer als der Inhalt, damit man nicht zielen muss. Das
     // RowLayout hat dafür spacing 0 – der Abstand zwischen den Punkten kommt
     // komplett aus diesem Rand, sonst lägen tote Zonen dazwischen.
     readonly property real hitPadding: 6
@@ -51,44 +51,106 @@ Item {
     // Ohne Alignment würde das RowLayout den Punkt auf volle Kartenhöhe ziehen
     Layout.alignment: Qt.AlignVCenter
 
-    // Der aktive Punkt zieht sich zur Pille. Weil die Breite aus dem Zustand
-    // kommt, wächst das Layout – und damit die Karte – automatisch mit.
-    implicitWidth: (root.isActive ? root.activeWidth : root.dotSize) + root.hitPadding * 2
+    // Breite: aktiv die Pille, belegt die Icon-Reihe (n * iconSize plus Luft
+    // dazwischen), leer der Punkt. Weil die Breite aus dem Zustand kommt,
+    // waechst das Layout – und damit die Karte – automatisch mit.
+    implicitWidth: (root.isActive ? root.activeWidth
+                   : root.hasIcons ? root.classes.length * root.iconSize + (root.classes.length - 1) * 2
+                   : root.dotSize) + root.hitPadding * 2
     implicitHeight: root.hitHeight + root.hitPadding * 2
 
     Behavior on implicitWidth {
         NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
     }
 
+    // Aktiv: die Pille als Anker zum Orientieren
     Rectangle {
+        visible: root.isActive
         anchors.centerIn: parent
 
-        width: root.isActive ? root.activeWidth
-             : root.isOccupied ? root.occupiedSize
-             : root.dotSize
-        height: root.isActive || !root.isOccupied ? root.dotSize : root.occupiedSize
+        width: root.activeWidth
+        height: root.dotSize
         radius: height / 2
-
-        color: root.isActive ? root.colourActive
-             : root.isOccupied ? root.colourOccupied
-             : root.colourEmpty
-
-        // Der aktive Punkt reagiert nicht auf Hover – er ist schon hervorgehoben
-        scale: hover.hovered && !root.isActive ? 1.4 : 1
+        color: root.colourActive
 
         Behavior on color {
             ColorAnimation { duration: 140 }
         }
-        // Damit der Punkt beim Belegen/Leeren nicht springt
-        Behavior on width {
-            NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+    }
+
+    // Belegt: die App-Icons der Fenster auf diesem Workspace
+    Row {
+        visible: root.hasIcons
+        anchors.centerIn: parent
+        spacing: 2
+
+        Repeater {
+            model: root.classes
+
+            Text {
+                required property string modelData
+
+                width: root.iconSize
+                text: root.iconFor(modelData)
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: root.iconSize - 1
+                horizontalAlignment: Text.AlignHCenter
+                color: root.colourIcon
+
+                Behavior on color {
+                    ColorAnimation { duration: 140 }
+                }
+            }
         }
-        Behavior on height {
-            NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
-        }
+    }
+
+    // Leer: der Punkt
+    Rectangle {
+        visible: !root.isActive && !root.hasIcons
+        anchors.centerIn: parent
+
+        width: root.dotSize
+        height: root.dotSize
+        radius: height / 2
+        color: root.colourEmpty
+
+        // Leer reagiert auf Hover – die Icons und die Pille sind schon
+        // unterscheidbar genug
+        scale: hover.hovered ? 1.4 : 1
+
         Behavior on scale {
             NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
         }
+    }
+
+    // Fensterklasse -> Material-Symbol. Grob nach Kategorien ueber
+    // Substring-Match, dieselbe Idee wie caelestias
+    // Icons.getAppCategoryIcon, nur ohne Desktop-Eintraegelei direkt auf
+    // dem Klassennamen.
+    function iconFor(cls: string): string {
+        const c = cls.toLowerCase();
+        const map = [
+            ["firefox", "language"], ["zen", "language"], ["librewolf", "language"],
+            ["chrom", "language"], ["brave", "language"],
+            ["kitty", "terminal"], ["alacritty", "terminal"], ["foot", "terminal"],
+            ["konsole", "terminal"], ["wezterm", "terminal"],
+            ["dolphin", "folder"], ["thunar", "folder"], ["nautilus", "folder"],
+            ["code", "code"], ["vscod", "code"], ["zed", "code"],
+            ["discord", "chat"], ["vesktop", "chat"], ["equicord", "chat"],
+            ["telegram", "chat"], ["whatsapp", "chat"],
+            ["spotify", "music_note"],
+            ["steam", "sports_esports"], ["lutris", "sports_esports"],
+            ["heroic", "sports_esports"], ["minecraft", "sports_esports"],
+            ["mpv", "movie"], ["vlc", "movie"],
+            ["thunderbird", "mail"], ["geary", "mail"],
+            ["obs", "videocam"], ["zoom", "videocam"], ["teams", "videocam"],
+            ["gimp", "brush"], ["inkscape", "brush"], ["krita", "brush"],
+            ["idea", "code"], ["pycharm", "code"], ["java", "code"]
+        ];
+        for (const [needle, icon] of map)
+            if (c.includes(needle))
+                return icon;
+        return "terminal";   // derselbe Fallback wie in caelestia
     }
 
     // Handler statt MouseArea: die beiden verhandeln den Grab untereinander
@@ -101,7 +163,7 @@ Item {
 
     TapHandler {
         onTapped: {
-            // Aktiver Punkt = Eintritt in den generischen Special (die Sterne-
+            // Aktiver Punkt = Eintritt in den generischen Special (die
             // Chips, siehe SpecialWorkspaces.qml). FRUEHER stand hier ein
             // "dynamic-island toggle specialws" CLI-Aufruf - den gibt es
             // nicht, der Klick tat deshalb sichtbar nichts.

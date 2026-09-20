@@ -53,6 +53,23 @@ Item {
         return occ;
     }
 
+    // { wsId: [Fensterklassen] } – Grundlage fuer die App-Icons in den
+    // Workspaces (statt nur eines belegten Punkts). Auch einmal gebaut und
+    // durchgereicht, damit nicht jeder Punkt selbst ueber die Toplevels
+    // iteriert.
+    readonly property var windowClasses: {
+        const map = {};
+        for (const win of Hyprland.toplevels.values) {
+            const wsId = win.workspace?.id;
+            if (wsId === undefined || wsId < 1)
+                continue;
+            if (!map[wsId])
+                map[wsId] = [];
+            map[wsId].push(win.lastIpcObject.class ?? "");
+        }
+        return map;
+    }
+
     // Breite kommt von innen: das RowLayout rechnet sie aus seinen Punkten,
     // die Karte fuellt root. Andersherum (root von der Karte) waere es eine
     // Binding-Schleife. Die Special-Chips zaehlen als Minimum mit – die Karte
@@ -125,6 +142,7 @@ Item {
                     activeWsId: root.activeWsId
                     occupied: root.occupied
                     groupOffset: root.groupOffset
+                    windowClasses: root.windowClasses
                 }
             }
         }
