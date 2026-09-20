@@ -56,7 +56,7 @@ Variants {
         // Launcher-Suchfeld oder WLAN-Passwort. Exclusive statt OnDemand, weil
         // der Launcher per Tastenkuerzel aufgeht – da ist kein Klick, der ihm
         // den Fokus geben koennte.
-        WlrLayershell.keyboardFocus: notch.launcherOpen || settings.typingPassword
+        WlrLayershell.keyboardFocus: notch.launcherOpen || settings.typingPassword || settings.typingPin
                                      ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         anchors {
             top: true

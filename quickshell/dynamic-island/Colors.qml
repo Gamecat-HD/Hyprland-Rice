@@ -168,6 +168,16 @@ Singleton {
         return Qt.rgba(c.r, c.g, c.b, a);
     }
 
+    // Zwei Farben ueberblenden, t = 0 gibt a, t = 1 gibt b.
+    // z.B. Colors.mix(Colors.primary, Colors.error, 0.5)
+    function mix(a: color, b: color, t: real): color {
+        const f = Math.max(0, Math.min(1, t));
+        return Qt.rgba(a.r + (b.r - a.r) * f,
+                       a.g + (b.g - a.g) * f,
+                       a.b + (b.b - a.b) * f,
+                       a.a + (b.a - a.a) * f);
+    }
+
     // Farbe aufhellen (f > 0) bzw. abdunkeln (f < 0), z.B. Colors.shade(Colors.background, 0.06)
     function shade(c: color, f: real): color {
         return Qt.hsla(c.hslHue, c.hslSaturation,

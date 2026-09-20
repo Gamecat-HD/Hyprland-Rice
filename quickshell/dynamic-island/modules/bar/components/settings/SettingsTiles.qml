@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 import qs.modules.services.audio
+import qs.modules.services.bluetooth
 import qs.modules.services.brightness
 import qs.modules.services.vpn
 
@@ -36,12 +37,13 @@ ColumnLayout {
     // Der Pfeil auf der Wi-Fi-Pille fuehrt in die Netzliste; die Karte
     // (Settings.qml) schaltet daraufhin ihre Ansicht um.
     signal openWifi()
+    signal openBluetooth()
 
     // ---------- Zustaende ----------
     property bool wifiOn: true
     property string wifiStatus: "…"
 
-    property bool btOn: false
+    readonly property bool btOn: BluetoothService.enabled
 
     property bool gameMode: false
     property bool noSleep: false
@@ -61,7 +63,6 @@ ColumnLayout {
 
     Component.onCompleted: {
         wifiPoll.running = true;
-        btPoll.running = true;
     }
 
     // ---------- Aktionen ----------
@@ -72,9 +73,7 @@ ColumnLayout {
     }
 
     function toggleBt(): void {
-        Quickshell.execDetached(["bluetoothctl", "power", root.btOn ? "off" : "on"]);
-        root.btOn = !root.btOn;
-        btPoll.running = true;
+        BluetoothService.setEnabled(!root.btOn);
     }
 
     function toggleNoSleep(): void {
@@ -180,16 +179,6 @@ ColumnLayout {
         }
     }
 
-    Process {
-        id: btPoll
-
-        command: ["sh", "-c", "bluetoothctl show | grep -q 'Powered: yes' && echo on || echo off"]
-
-        stdout: StdioCollector {
-            onStreamFinished: root.btOn = this.text.trim() === "on"
-        }
-    }
-
     // Haltet den Schlaf wach: solange dieser Prozess laeuft, haelt er einen
     // logind-Inhibitor gegen idle/suspend
     Process {
@@ -217,10 +206,7 @@ ColumnLayout {
         interval: 5000
         running: true
         repeat: true
-        onTriggered: {
-            wifiPoll.running = true;
-            btPoll.running = true;
-        }
+        onTriggered: wifiPoll.running = true
     }
 
     // ---------- Kacheln ----------
@@ -397,11 +383,55 @@ ColumnLayout {
         }
 
         Tile {
+            id: bluetoothTile
+
+            tapEnabled: false
             icon: root.btOn ? "bluetooth" : "bluetooth_disabled"
             title: "Bluetooth"
-            subtitle: root.btOn ? "An" : "Aus"
+            subtitle: !root.btOn ? "Aus"
+                      : BluetoothService.adapter?.devices?.values.some(device => device.connected)
+                        ? "Verbunden" : "An"
             active: root.btOn
             onToggled: root.toggleBt()
+
+            TapHandler {
+                id: bluetoothTap
+
+                onTapped: {
+                    if (bluetoothTap.point.position.x < bluetoothTile.width - 46)
+                        root.toggleBt();
+                }
+            }
+
+            Rectangle {
+                anchors {
+                    right: parent.right
+                    rightMargin: 8
+                    verticalCenter: parent.verticalCenter
+                }
+                width: 34
+                height: 34
+                radius: 17
+                color: bluetoothMore.containsMouse ? Colors.alpha(Colors.fgSurface, 0.16)
+                                                    : Colors.alpha(Colors.fgSurface, 0.08)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "chevron_right"
+                    font.family: "Material Symbols Outlined"
+                    font.pixelSize: 18
+                    color: Colors.fgBackground
+                }
+
+                MouseArea {
+                    id: bluetoothMore
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.openBluetooth()
+                }
+            }
         }
 
         CircleToggle {
