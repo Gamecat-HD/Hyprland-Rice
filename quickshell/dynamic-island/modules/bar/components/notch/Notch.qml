@@ -18,6 +18,7 @@ Item {
     required property real verticalMargin // margin über bzw unter der notch
     required property real borderWidth   // von außen überschreibbar (Bar.qml macht das)
     required property color borderColor
+    required property real cardRadius
 
     readonly property bool containsMouse: ma.containsMouse
     readonly property alias clock: clock
@@ -30,7 +31,6 @@ Item {
     readonly property bool launcherOpen: LauncherState.open && LauncherState.screen === hostScreen
     readonly property bool open: expanded || launcherOpen
 
-    readonly property real cardRadius: 18
     // Die Uhr rutscht beim Aufklappen etwas nach unten
     readonly property real clockDropMax: 7
     readonly property real clockDrop: open ? clockDropMax : 0

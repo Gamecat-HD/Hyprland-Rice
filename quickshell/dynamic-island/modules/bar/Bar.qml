@@ -8,6 +8,7 @@ import Quickshell.Io
 import "components/notch"
 import "components/settings"
 import "components/statusBar"
+import "components/workspaceSelector"
 import "root:/modules/launcher"
 
 import "root:/"
@@ -25,6 +26,11 @@ Variants {
 
         readonly property real borderWidth: 0.5
         readonly property color borderColor: Colors.outlineVariant   // M3-Neutralfarbe, passt zu jedem Scheme
+        // Eckenrundung aller Karten (Notch, Workspace-Selektor). Hier einmal
+        // setzen – die Komponenten verlangen den Wert und rechnen selbst, wie
+        // weit sie ihn ausreizen (die Notch wird flach zur Pille, der Selektor
+        // deckelt auf die halbe Breite).
+        readonly property real cardRadius: 18
 
         readonly property real verticalMargin: 10
         readonly property real barHeight: 40
@@ -77,11 +83,33 @@ Variants {
             }
             height: bar.barHeight
 
+
+            /* Workspace Selektor */
+            WorkspaceSelector {
+                verticalMargin: bar.verticalMargin
+                borderWidth: bar.borderWidth
+                borderColor: bar.borderColor
+                cardRadius: bar.cardRadius
+            }
+
+
+            /* Mittlere Notch */
+            StatusBar {
+                id: statusBar
+                anchors {
+                    right: parent.horizontalCenter
+                    rightMargin: notch.width / 2 + 15
+                }
+                verticalMargin: bar.verticalMargin
+                borderWidth: bar.borderWidth
+            }
+
             Notch {
                 id: notch
                 verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
                 borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
                 borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
+                cardRadius: bar.cardRadius     // dito – teilt sich den Wert mit dem Selektor
             }
 
             // Beide Nachbarn hängen an der Bildschirmmitte plus der halben
@@ -92,16 +120,6 @@ Variants {
                 anchors {
                     left: parent.horizontalCenter
                     leftMargin: notch.width / 2 + 15
-                }
-                verticalMargin: bar.verticalMargin
-                borderWidth: bar.borderWidth
-            }
-
-            StatusBar {
-                id: statusBar
-                anchors {
-                    right: parent.horizontalCenter
-                    rightMargin: notch.width / 2 + 15
                 }
                 verticalMargin: bar.verticalMargin
                 borderWidth: bar.borderWidth
