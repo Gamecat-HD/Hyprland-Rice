@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import Quickshell.Io
 
 import "components/notch"
+import "components/notifications"
 import "components/settings"
 import "components/statusBar"
 import "components/workspaceSelector"
@@ -67,7 +68,8 @@ Variants {
         // Hoch genug fuer den groesseren der beiden Ausklapp-Teile (Notch oder
         // Medien-Karte) – Platz reserviert wird trotzdem nur die Leiste.
         implicitHeight: bar.catching ? bar.modelData.height
-                                     : bar.barHeight + Math.max(notch.maxDrop, media.maxDrop, settings.maxDrop)
+                                     : bar.barHeight + Math.max(notch.maxDrop, media.maxDrop, settings.maxDrop,
+                                                        notifications.maxDrop)
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: bar.barHeight
         color: "transparent"
@@ -91,6 +93,9 @@ Variants {
             }
             Region {
                 item: settings.sleepMenu   // No-Sleep-Dropdown, solange offen
+            }
+            Region {
+                item: notifications        // aufgeklappte Benachrichtigungs-Karte
             }
         }
 
@@ -162,6 +167,23 @@ Variants {
                 borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
                 borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
                 cardRadius: bar.cardRadius     // dito - teilt sich den Wert mit Notch und Selektor
+            }
+
+
+            /* Benachrichtigungen – haengen links an der Medien-Karte und
+               wachsen in die freie Luecke daneben hinein. Die Anker stehen
+               hier und nicht in der Komponente, damit sie der Medien-Karte
+               folgen, wenn die ihre Breite aendert. */
+            NotificationPill {
+                id: notifications
+                anchors {
+                    right: media.left
+                    rightMargin: 10
+                }
+                verticalMargin: bar.verticalMargin
+                borderWidth: bar.borderWidth
+                borderColor: bar.borderColor
+                cardRadius: bar.cardRadius
             }
         }
     }

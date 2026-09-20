@@ -24,6 +24,19 @@ Item {
 
     implicitHeight: row.compact ? 30 : 52
 
+    // Dezente Flaeche unter der Zeile, damit man sieht, worauf man zeigt
+    Rectangle {
+        anchors.fill: parent
+        anchors.leftMargin: -6
+        anchors.rightMargin: -6
+        radius: 10
+        color: !row.compact && rowHover.hovered ? Colors.alpha(Colors.fgSurface, 0.05) : "transparent"
+
+        Behavior on color {
+            ColorAnimation { duration: 120 }
+        }
+    }
+
     // Klick loest die erste Aktion aus, wenn die Nachricht eine mitbringt
     // (z.B. "Oeffnen"). Ohne Aktion passiert nichts.
     TapHandler {
@@ -32,6 +45,8 @@ Item {
     }
 
     HoverHandler {
+        id: rowHover
+
         cursorShape: (row.notif?.actions?.length ?? 0) > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
     }
 
