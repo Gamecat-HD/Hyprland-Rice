@@ -9,6 +9,10 @@
 /quickshell/*
 !/quickshell/dynamic-island/
 
+# Shell-Einstellungen: pro Rechner, die Vorgaben stehen im Code
+# (quickshell/dynamic-island/modules/services/config/Config.qml)
+/dynamic-island/shell.json
+
 # lokale/privates
 .claude/
 .qmlls.ini
