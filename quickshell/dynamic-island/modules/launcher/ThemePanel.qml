@@ -28,9 +28,10 @@ Item {
 
     // Feste Hoehe des Kachelbereichs – das Karussell steckt in einem Loader
     // und ist im geschlossenen Zustand gar nicht da.
-    readonly property real listHeight: 117
+    readonly property real listHeight: 127
+    readonly property real cardWidth: 125
 
-    implicitWidth: 900
+    implicitWidth: 1000
     implicitHeight: searchRow.height + 1 + listWrapper.height + variantRow.height
 
     anchors {
@@ -180,6 +181,7 @@ Item {
             active: panel.active
 
             sourceComponent: ThemeList {
+                cardWidth: panel.cardWidth
                 query: search.text
                 onApplied: LauncherState.close()
             }
@@ -243,15 +245,40 @@ Item {
             font.letterSpacing: 0.8
         }
 
+        // Die Chips behalten ihre natuerliche Breite, der Abstand dazwischen
+        // verteilt den Rest – so fuellt die Reihe die Karte genau aus.
+        //
+        // Die Breiten melden die Chips selbst her: die Summe ueber `children`
+        // waere keine Bindung, die nachzieht, wenn eine Beschriftung erst nach
+        // dem Laden der Schrift ihre endgueltige Breite bekommt.
         Row {
+            id: chips
+
             anchors {
                 left: variantLabel.right
                 leftMargin: 14
                 right: parent.right
-                rightMargin: 12
+                rightMargin: 16
                 verticalCenter: parent.verticalCenter
             }
-            spacing: 5
+
+            property var widths: ({})
+            readonly property real naturalWidth: {
+                let sum = 0;
+                for (const key in chips.widths)
+                    sum += chips.widths[key];
+                return sum;
+            }
+
+            function report(index: int, width: real): void {
+                const next = Object.assign({}, chips.widths);
+                next[index] = width;
+                chips.widths = next;
+            }
+
+            spacing: Themes.variants.length > 1
+                ? Math.max(4, (chips.width - chips.naturalWidth) / (Themes.variants.length - 1))
+                : 0
 
             Repeater {
                 model: Themes.variants
@@ -259,12 +286,16 @@ Item {
                 Rectangle {
                     id: chip
 
+                    required property int index
                     required property string modelData
 
                     readonly property bool isCurrent: chip.modelData === Themes.currentVariant
 
                     implicitWidth: chipText.implicitWidth + 18
-                    implicitHeight: 24
+                    implicitHeight: 26
+
+                    onImplicitWidthChanged: chips.report(chip.index, chip.implicitWidth)
+                    Component.onCompleted: chips.report(chip.index, chip.implicitWidth)
                     radius: height / 2
                     color: chip.isCurrent ? Colors.alpha(Colors.primary, 0.18)
                          : chipArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08)

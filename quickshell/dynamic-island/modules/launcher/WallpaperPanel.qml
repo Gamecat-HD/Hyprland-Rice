@@ -30,12 +30,14 @@ Item {
     // gelesen: das steckt in einem Loader und ist im geschlossenen Zustand gar
     // nicht da – die Notch braucht die Reserve aber schon vorher, sonst
     // schneidet das Fenster die Karte beim Aufgehen einen Frame lang ab.
-    readonly property real listHeight: 137
+    readonly property real listHeight: 145
 
     // Breiter als der Launcher, damit fuenf Bilder nebeneinander passen:
-    // 888 nutzbare Breite / 176 je Kachel = 5 (PathView braucht eine ungerade
+    // 988 nutzbare Breite / 191 je Kachel = 5 (PathView braucht eine ungerade
     // Zahl, sonst sitzt keines in der Mitte).
-    implicitWidth: 900
+    implicitWidth: 1000
+    // Kachelbreite; die Hoehe darunter haengt daran (16:9 + Beschriftung)
+    readonly property real imageWidth: 175
     implicitHeight: searchRow.height + 1 + listWrapper.implicitHeight
 
     anchors {
@@ -189,6 +191,7 @@ Item {
             active: panel.active
 
             sourceComponent: WallpaperList {
+                imageWidth: panel.imageWidth
                 query: search.text
                 onApplied: LauncherState.close()
             }

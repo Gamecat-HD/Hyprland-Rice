@@ -18,8 +18,8 @@ Carousel {
     // Gesetzt, wenn ein Schema uebernommen wurde (die Karte schliesst dann)
     signal applied
 
-    property real cardWidth: 110
-    readonly property real cardHeight: 70
+    property real cardWidth: 125
+    readonly property real cardHeight: 80
     readonly property real itemPadding: 8
     itemWidth: view.cardWidth + view.itemPadding * 2
 
@@ -104,8 +104,11 @@ Carousel {
 
             width: view.cardWidth
             height: view.cardHeight
-            radius: 12
-            color: item.bg
+            radius: 14
+            // Wie die Kacheln im Settings-Feld: nicht der blanke Hintergrund
+            // des Schemas – der ist bei den dunklen fast schwarz und die
+            // Kachel verschwand in der Karte –, sondern eine Spur aufgehellt.
+            color: Colors.shade(item.bg, 0.05)
             // Markiert = ausgewaehlt im Karussell, Ring = das laufende Schema
             border.width: item.isCurrent ? 2 : item.isActive ? 1 : 0
             border.color: item.isCurrent ? Colors.primary : Colors.outline
@@ -130,25 +133,39 @@ Carousel {
                 color: Colors.alpha(item.primary, 0.7)
             }
 
+            // Primaer als grosser Kreis, Sekundaer und Tertiaer daneben –
+            // dasselbe Bild wie die Icon-Kreise der Settings-Kacheln.
             Row {
                 anchors {
                     left: parent.left
-                    bottom: parent.bottom
-                    margins: 10
+                    leftMargin: 14
+                    verticalCenter: parent.verticalCenter
                 }
-                spacing: 6
+                spacing: 8
 
-                Repeater {
-                    model: [item.primary, item.secondary, item.tertiary]
+                Rectangle {
+                    width: 28
+                    height: 28
+                    radius: height / 2
+                    color: item.primary
+                }
 
-                    Rectangle {
-                        required property color modelData
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
 
-                        width: 14
-                        height: 14
-                        radius: height / 2
-                        color: modelData
-                    }
+                    width: 16
+                    height: 16
+                    radius: height / 2
+                    color: item.secondary
+                }
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    width: 16
+                    height: 16
+                    radius: height / 2
+                    color: item.tertiary
                 }
             }
         }
