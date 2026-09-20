@@ -30,10 +30,11 @@ Rectangle {
         }
     }
 
-    // Masse: eingeklappt der gewohnte Kreis, ausgeklappt die grosse Karte
+    // Masse: eingeklappt der gewohnte Kreis, ausgeklappt die Karte. Hoehe =
+    // Kachelreihen + Raender (kein Kreis-Vorlauf mehr, die Tiles stehen oben).
     readonly property real collapsedSize: parent.height - verticalMargin
-    readonly property real expandedWidth: 280
-    readonly property real expandedHeight: 200
+    readonly property real expandedWidth: 360
+    readonly property real expandedHeight: 120
 
     anchors {
         top: parent.top
@@ -87,6 +88,20 @@ Rectangle {
     // VPN-Status unten im Kreis, dito
     VpnIcon {
         opacity: settings.expanded ? 0 : 1
+        visible: opacity > 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+    }
+
+    // Der Kachel-Inhalt der ausgeklappten Karte (Wi-Fi, Bluetooth, VPN,
+    // No-Sleep + Game-/DND-Kreise), fuellt die Karte komplett – oben beginnt
+    // direkt die erste Reihe, kein Whitespace.
+    SettingsTiles {
+        anchors.fill: parent
+        anchors.margins: 10
+        opacity: settings.expanded ? 1 : 0
         visible: opacity > 0
 
         Behavior on opacity {
