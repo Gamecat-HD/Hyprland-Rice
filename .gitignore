@@ -3,6 +3,7 @@
 !/hypr/
 !/quickshell/
 !/dynamic-island/
+!/README.md
 
 # innerhalb von quickshell nur die eigene Shell
 /quickshell/*

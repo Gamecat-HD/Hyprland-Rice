@@ -109,6 +109,11 @@ class List:
                         }
                     )
                     modes = get_scheme_modes(scheme, flavour)
+                    # Ein Schema ohne lesbare Modus-Datei (z.B. haengender
+                    # Symlink nach einem frischen Klon) hat die ganze Liste
+                    # abstuerzen lassen - lieber ueberspringen.
+                    if not modes:
+                        continue
                     if s.mode not in modes:
                         s._mode = modes[0]
                     try:

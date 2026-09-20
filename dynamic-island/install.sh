@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
 # install.sh — richtet den Dynamic-Island-Rice auf diesem Rechner ein.
 #
-# Setzt voraus, dass dieses Repo bereits unter ~/.config liegt (das Repo IST
-# ~/.config). Das Skript ist idempotent: mehrfach ausfuehren schadet nicht.
+# Laeuft aus einem frischen Klon heraus:
+#
+#     git clone https://github.com/Gamecat-HD/Hyprland-Rice.git
+#     cd Hyprland-Rice
+#     ./dynamic-island/install.sh
+#
+# Es verteilt hypr/, quickshell/dynamic-island/ und dynamic-island/ nach
+# ~/.config (standardmaessig als Symlinks, damit ein `git pull` im Klon
+# durchschlaegt) und richtet danach alles Weitere ein. Liegt das Repo selbst
+# unter ~/.config, faellt das Verteilen weg.
+#
+# Idempotent: mehrfach ausfuehren schadet nicht.
 #
 # ACHTUNG: Dieses Skript wurde mit KI erstellt. Vor dem Ausfuehren durchlesen.
 #
 #   ./install.sh                 einrichten (fragt vorher nach)
+#   ./install.sh --copy          Dateien kopieren statt verlinken
 #   ./install.sh --install-deps  fehlende Pakete gleich mitinstallieren
 #   ./install.sh --check         nur pruefen, nichts aendern
 #   ./install.sh --dry-run       zeigen was passieren wuerde
@@ -14,6 +25,8 @@
 set -uo pipefail
 
 DI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Das Repo ist der Ordner darueber – egal wohin geklont wurde
+REPO_DIR="$(cd "$DI_DIR/.." && pwd)"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}"
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}"
@@ -25,11 +38,22 @@ CHECK_ONLY=0
 DRY_RUN=0
 INSTALL_DEPS=0
 ASSUME_YES=0
+COPY=0
 FAILED=0
+
+# Was aus dem Repo nach ~/.config gehoert
+DEPLOY_PATHS=(hypr quickshell/dynamic-island dynamic-island)
 
 # ---------------------------------------------------------------- Ausgabe ---
 c_reset=$'\033[0m'; c_blue=$'\033[1;34m'; c_green=$'\033[1;32m'
 c_yellow=$'\033[1;33m'; c_red=$'\033[1;31m'; c_dim=$'\033[2m'
+
+short() {  # short <pfad> — ~ nur, wenn der Pfad auch im HOME liegt
+    case "$1" in
+        "$HOME"/*) printf '~%s' "${1#$HOME}" ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
 
 step() { printf '\n%s==>%s %s\n' "$c_blue" "$c_reset" "$1"; }
 ok()   { printf '  %s✓%s %s\n' "$c_green" "$c_reset" "$1"; }
@@ -38,13 +62,25 @@ warn() { printf '  %s!%s %s\n' "$c_yellow" "$c_reset" "$1"; }
 fail() { printf '  %s✗%s %s\n' "$c_red" "$c_reset" "$1"; FAILED=1; }
 run()  { if [ "$DRY_RUN" = 1 ]; then printf '  %s[dry-run]%s %s\n' "$c_dim" "$c_reset" "$*"; else "$@"; fi; }
 
-usage() { sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() {
+    cat <<'EOF'
+install.sh — richtet den Dynamic-Island-Rice auf diesem Rechner ein.
+
+  ./install.sh                 einrichten (fragt vorher nach)
+  ./install.sh --copy          Dateien kopieren statt verlinken
+  ./install.sh --install-deps  fehlende Pakete gleich mitinstallieren
+  ./install.sh --check         nur pruefen, nichts aendern
+  ./install.sh --dry-run       zeigen was passieren wuerde
+  ./install.sh -y              ohne Rueckfrage durchlaufen
+EOF
+}
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --check) CHECK_ONLY=1 ;;
         --dry-run) DRY_RUN=1 ;;
         --install-deps) INSTALL_DEPS=1 ;;
+        --copy) COPY=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unbekannte Option: $1" >&2; usage; exit 1 ;;
@@ -64,6 +100,9 @@ ki_warnung() {
     cat <<EOF
 
   Was es aendert:
+    - verlinkt hypr/, quickshell/dynamic-island/ und dynamic-island/ nach
+      ~/.config (mit --copy stattdessen kopieren); was dort im Weg liegt,
+      wandert vorher nach ~/backups/
     - Symlinks in ~/.local/bin (dynamic-island, hypr-profile, theme-set)
       und in ~/.config/fish/completions
     - legt Verzeichnisse an (~/.local/state/$SHELL_NAME, ~/.cache/$SHELL_NAME,
@@ -94,6 +133,18 @@ EOF
     esac
 }
 
+same_path() {  # same_path <a> <b> — zeigen beide auf dasselbe?
+    [ "$(readlink -f "$1" 2>/dev/null)" = "$(readlink -f "$2" 2>/dev/null)" ]
+}
+
+backup_move() {  # backup_move <pfad> — aus dem Weg raeumen, nicht loeschen
+    local target="$1" rel
+    rel="${target#$HOME/}"
+    run mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
+    run mv "$target" "$BACKUP_DIR/$rel"
+    warn "~${target#$HOME} liegt jetzt unter ~${BACKUP_DIR#$HOME}/$rel"
+}
+
 backup() {  # backup <datei> — echte Datei (kein Symlink) wegsichern
     local target="$1"
     [ -e "$target" ] && [ ! -L "$target" ] || return 0
@@ -111,7 +162,70 @@ link() {  # link <ziel> <linkname>
     backup "$dst"
     run mkdir -p "$(dirname "$dst")"
     run ln -sfn "$src" "$dst"
-    ok "~${dst#$HOME} -> ~${src#$HOME}"
+    ok "$(short "$dst") -> $(short "$src")"
+}
+
+# ----------------------------------------------------- 0. Verteilen ---
+# Aus einem Klon irgendwo im Dateisystem die drei Teile nach ~/.config
+# bringen. Symlinks, damit ein `git pull` im Klon sofort gilt; mit --copy
+# stattdessen Kopien (dann muss man nach einem Pull erneut installieren).
+deploy() {
+    step "Konfiguration nach ~/.config bringen"
+
+    if same_path "$REPO_DIR" "$CONFIG_DIR"; then
+        skip "Das Repo IST ~/.config — nichts zu verteilen"
+        return 0
+    fi
+
+    local rel src dst
+    for rel in "${DEPLOY_PATHS[@]}"; do
+        src="$REPO_DIR/$rel"
+        dst="$CONFIG_DIR/$rel"
+
+        if [ ! -e "$src" ]; then
+            fail "$rel fehlt im Repo ($src)"
+            continue
+        fi
+        if same_path "$dst" "$src"; then
+            skip "~${dst#$HOME} zeigt schon auf das Repo"
+            continue
+        fi
+
+        # Auch kaputte Symlinks muessen weg, deshalb -L dazu
+        if [ -e "$dst" ] || [ -L "$dst" ]; then
+            backup_move "$dst"
+        fi
+
+        run mkdir -p "$(dirname "$dst")"
+        if [ "$COPY" = 1 ]; then
+            run cp -a "$src" "$dst"
+            ok "$(short "$dst") kopiert"
+        else
+            run ln -sfn "$src" "$dst"
+            ok "$(short "$dst") -> $(short "$src")"
+        fi
+    done
+}
+
+check_deploy() {
+    step "Konfiguration unter ~/.config"
+
+    if same_path "$REPO_DIR" "$CONFIG_DIR"; then
+        skip "Das Repo IST ~/.config"
+        return 0
+    fi
+
+    local rel dst
+    for rel in "${DEPLOY_PATHS[@]}"; do
+        dst="$CONFIG_DIR/$rel"
+        if same_path "$dst" "$REPO_DIR/$rel"; then
+            ok "~${dst#$HOME} zeigt auf das Repo"
+        elif [ -e "$dst" ]; then
+            warn "~${dst#$HOME} existiert, kommt aber nicht aus diesem Repo"
+        else
+            fail "~${dst#$HOME} fehlt"
+        fi
+    done
 }
 
 # ------------------------------------------------------------ 1. Pakete ---
@@ -182,7 +296,8 @@ link_files() {
 
     case ":$PATH:" in
         *":$BIN_DIR:"*) ok "~/.local/bin liegt im PATH" ;;
-        *) warn "~/.local/bin fehlt im PATH — in die Shell-Config aufnehmen" ;;
+        *) warn "~/.local/bin fehlt im PATH — fish: fish_add_path ~/.local/bin"
+           warn "                                bash/zsh: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
     esac
 }
 
@@ -283,13 +398,17 @@ summary() {
     cat <<EOF
 
   Weiter geht es mit:
+    hyprctl reload                 Hyprland-Config neu laden
     dynamic-island shell -d        Shell starten
     hypr-profile status            Profil und Shell pruefen
-    hyprctl reload                 Hyprland-Config neu laden
     dynamic-island wallpaper -r    zufaelliges Wallpaper + Farbschema
 
   Profile wechseln:  CTRL + SUPER + SHIFT + P   (oder hypr-profile toggle)
 EOF
+    if [ "$COPY" = 1 ] && ! same_path "$REPO_DIR" "$CONFIG_DIR"; then
+        printf '\n  %sKopiert statt verlinkt: nach einem `git pull` dieses Skript erneut laufen lassen.%s\n' \
+            "$c_yellow" "$c_reset"
+    fi
 }
 
 check_links() {
@@ -305,6 +424,7 @@ check_links() {
 ki_warnung
 
 check_deps
+if [ "$CHECK_ONLY" = 1 ]; then check_deploy; else deploy; fi
 if [ "$CHECK_ONLY" = 1 ]; then check_links; else link_files; fi
 make_dirs
 migrate_state
