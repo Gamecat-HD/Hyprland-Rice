@@ -11,9 +11,9 @@ import "root:/"
 // Kacheln fuer das aufgeklappte Settings-Feld (Vorlage: Control-Center).
 // Zwei Reihen: [Wi-Fi, Bluetooth] / [VPN, No-Sleep] als Pillen, rechts
 // daneben Game-Mode und Nicht-stoeren als Kreise. Die No-Sleep-Pille traegt
-// einen Dauer-Dropdown (Standard: nichts gewaehlt = unbegrenzt); ist das
-// Menue offen, wächst die Karte um dropdownExtra mit (Settings.qml fragt es
-// ab), damit das Menue innerhalb von Clip und Eingabe-Maske bleibt.
+// einen Dauer-Dropdown (Standard: nichts gewaehlt = unbegrenzt); das Menue
+// haengt aus der Karte heraus, Bar.qml haelt es in der Eingabe-Maske offen
+// und Settings.zaehlt seinen Hover zur Karte dazu.
 //
 // Hintergruenge zu den Aktionen:
 //   - WLAN/Bluetooth: nmcli bzw. bluetoothctl, Status per Polling
@@ -52,6 +52,9 @@ ColumnLayout {
     // heraus und wird ueber Settings/Bar in die Eingabe-Maske gehaengt)
     property bool sleepMenuOpen: false
     readonly property alias sleepMenu: sleepMenuPanel
+    // Maus ueber dem herausragenden Menue – Settings muss das kennen, sonst
+    // klappt die Karte unter der Maus zu, sobald man ins Menue faehrt
+    readonly property alias sleepMenuHovered: sleepMenuHover.hovered
 
     Component.onCompleted: {
         wifiPoll.running = true;
@@ -489,8 +492,8 @@ ColumnLayout {
                 }
             }
 
-            // Das Menue haengt unter der Pille und ragt aus ihr heraus –
-            // deshalb wächst die Karte um dropdownExtra, solange es offen ist
+            // Das Menue haengt schmal unter dem Dropdown-Knopf und ragt aus
+            // der Karte heraus – Bar.qml haengt es in die Eingabe-Maske
             Rectangle {
                 id: sleepMenuPanel
 
@@ -498,14 +501,19 @@ ColumnLayout {
                 anchors {
                     top: parent.bottom
                     topMargin: 4
-                    left: parent.left
                     right: parent.right
+                    rightMargin: 10
                 }
+                width: 150
                 implicitHeight: 140
                 radius: 16
                 color: Colors.shade(Colors.background, 0.08)
                 border.width: 1
                 border.color: Colors.outlineVariant
+
+                HoverHandler {
+                    id: sleepMenuHover
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -517,7 +525,7 @@ ColumnLayout {
                             { label: "30m", sec: 1800 },
                             { label: "1h", sec: 3600 },
                             { label: "4h", sec: 14400 },
-                            { label: "Unbegrenzt", sec: 0 }
+                            { label: "---", sec: 0 }
                         ]
 
                         Rectangle {

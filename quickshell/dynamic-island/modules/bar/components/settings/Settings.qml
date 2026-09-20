@@ -16,8 +16,11 @@ Rectangle {
     property real borderWidth: 1
 
     // Auf-/Zuklappen: kurzes Verweilen zum Oeffnen, Nachlauf beim Schliessen
-    // (dasselbe Timing wie die Notch, damit Vorbeifahren nicht flackert)
-    readonly property bool containsMouse: hoverSensor.hovered
+    // (dasselbe Timing wie die Notch, damit Vorbeifahren nicht flackert).
+    // Das No-Sleep-Dropdown haengt UNTERHALB der Karte – sein Hover zaehlt
+    // mit, sonst klappt die Karte unter der Maus zu, sobald man hinunter in
+    // die Eintraege faehrt.
+    readonly property bool containsMouse: hoverSensor.hovered || tiles.sleepMenuHovered
     property bool expanded: false
 
     // Zweite Ansicht der Karte: die WLAN-Liste. Zu macht sie der Zurueck-Pfeil
@@ -63,9 +66,11 @@ Rectangle {
     width: expanded || wifiOpen ? expandedWidth : collapsedSize
     height: expanded || wifiOpen ? expandedHeight : collapsedSize
 
-    // Klappt die Karte zu, ist auch die WLAN-Ansicht vorbei
-    onExpandedChanged: if (!expanded)
-        settings.wifiOpen = false
+    // Klappt die Karte zu, ist auch die WLAN-Ansicht und das Dauer-Menue vorbei
+    onExpandedChanged: if (!expanded) {
+        settings.wifiOpen = false;
+        tiles.sleepMenuOpen = false;
+    }
 
     // Eingeklappt greift die halbe Breite (Kreis), aufgeklappt cardRadius
     radius: Math.min(height / 2, cardRadius)

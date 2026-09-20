@@ -31,67 +31,69 @@ Item {
         panel.menuSsid = "";
         panel.passwordSsid = "";
         Network.watching = active;
+        list.contentY = 0;   // oben anfangen – das verbundene Netz steht vorn
         if (active)
             Network.refresh(true);
     }
 
-    // Knopf im Aktions-Menue einer Zeile. Inline-Komponenten muessen auf
+    // Zeile im Aktions-Menue einer Zeile. Inline-Komponenten muessen auf
     // der obersten Ebene der Datei stehen – steckte sie (wie zuerst) im
     // Flow, legt Qt sie stillschweigend nicht an und das Menue blieb leer.
     component Action: Rectangle {
-        id: chip
+        id: actionRow
 
         property string icon
         property string label
         property bool danger: false
         signal triggered()
 
-        implicitWidth: chipRow.implicitWidth + 20
         implicitHeight: 30
-        radius: height / 2
-        color: chipArea.containsMouse ? Colors.alpha(chip.danger ? Colors.error : Colors.fgSurface, 0.16)
-                                      : Colors.shade(Colors.background, 0.08)
+        radius: 12
+        color: actionArea.containsMouse ? Colors.alpha(actionRow.danger ? Colors.error : Colors.fgSurface, 0.16)
+                                        : "transparent"
 
         Behavior on color {
             ColorAnimation { duration: 120 }
         }
 
         Row {
-            id: chipRow
-
-            anchors.centerIn: parent
-            spacing: 5
+            anchors {
+                left: parent.left
+                leftMargin: 10
+                verticalCenter: parent.verticalCenter
+            }
+            spacing: 8
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: chip.icon
+                text: actionRow.icon
                 font.family: "Material Symbols Outlined"
-                font.pixelSize: 14
-                color: chip.danger ? Colors.error : Colors.fgSurfaceVariant
+                font.pixelSize: 15
+                color: actionRow.danger ? Colors.error : Colors.fgSurfaceVariant
             }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: chip.label
-                font.pixelSize: 11
-                color: chip.danger ? Colors.error : Colors.fgBackground
+                text: actionRow.label
+                font.pixelSize: 12
+                color: actionRow.danger ? Colors.error : Colors.fgBackground
             }
         }
 
         MouseArea {
-            id: chipArea
+            id: actionArea
 
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: chip.triggered()
+            onClicked: actionRow.triggered()
         }
     }
 
-    function rowTapped(net: var): void {
+    function rowTapped(net: var, index: int): void {
         if (net.active) {
             // Verbundenes Netz: nur das Menue, Trennen ist eine bewusste Geste
-            panel.toggleMenu(net.ssid);
+            panel.toggleMenu(net.ssid, index);
         } else if (net.saved) {
             Network.connect(net, "");
         } else if (net.secured) {
@@ -102,9 +104,14 @@ Item {
         }
     }
 
-    function toggleMenu(ssid: string): void {
-        panel.menuSsid = panel.menuSsid === ssid ? "" : ssid;
+    function toggleMenu(ssid: string, index: int): void {
+        const opening = panel.menuSsid !== ssid;
+        panel.menuSsid = opening ? ssid : "";
         panel.passwordSsid = "";
+        // Das Menue haengt an seiner Zeile – steht die unten am Rand, scrollt
+        // die Liste nach, damit es nicht abgeschnitten im Clip endet
+        if (opening)
+            Qt.callLater(() => list.positionViewAtIndex(index, ListView.Contain));
     }
 
     // ---- Kopfzeile ----
@@ -299,6 +306,7 @@ Item {
                 id: row
 
                 required property var modelData
+                required property int index
 
                 readonly property bool menuOpen: panel.menuSsid === row.modelData.ssid
                 readonly property bool passwordOpen: panel.passwordSsid === row.modelData.ssid
@@ -325,7 +333,7 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: panel.rowTapped(row.modelData)
+                        onClicked: panel.rowTapped(row.modelData, row.index)
                     }
 
                     Text {
@@ -426,7 +434,7 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: panel.toggleMenu(row.modelData.ssid)
+                            onClicked: panel.toggleMenu(row.modelData.ssid, row.index)
                         }
                     }
                 }
@@ -528,64 +536,92 @@ Item {
                     }
                 }
 
-                // Aktionen
-                Flow {
+                // Aktions-Menue: klappt wie ein Dropdown unter der Zeile auf,
+                // eine Aktion pro Zeile. Ohne passende Aktion (offenes Netz
+                // ohne Profil) bleibt es zu.
+                Rectangle {
+                    id: actionMenu
+
+                    readonly property int visibleActions: {
+                        let count = 0;
+                        for (let i = 0; i < actionColumn.children.length; i++)
+                            if (actionColumn.children[i].visible)
+                                count++;
+                        return count;
+                    }
+
                     width: parent.width
-                    height: row.menuOpen ? implicitHeight : 0
+                    height: row.menuOpen && visibleActions > 0 ? actionColumn.implicitHeight + 12 : 0
                     visible: height > 0
-                    spacing: 6
+                    radius: 14
+                    color: Colors.shade(Colors.background, 0.08)
+                    border.width: 1
+                    border.color: Colors.outlineVariant
+                    clip: true
 
-                    Action {
-                        visible: row.modelData.active
-                        icon: "link_off"
-                        label: "Trennen"
-                        onTriggered: {
-                            Network.disconnect(row.modelData);
-                            panel.menuSsid = "";
+                    Column {
+                        id: actionColumn
+
+                        anchors {
+                            top: parent.top
+                            left: parent.left
+                            right: parent.right
+                            margins: 6
                         }
-                    }
+                        spacing: 2
 
-                    Action {
-                        visible: !row.modelData.active && row.modelData.saved && row.modelData.inRange
-                        icon: "wifi"
-                        label: "Verbinden"
-                        onTriggered: {
-                            Network.connect(row.modelData, "");
-                            panel.menuSsid = "";
+                        Action {
+                            visible: row.modelData.active
+                            icon: "link_off"
+                            label: "Trennen"
+                            onTriggered: {
+                                Network.disconnect(row.modelData);
+                                panel.menuSsid = "";
+                            }
                         }
-                    }
 
-                    Action {
-                        visible: row.modelData.saved && row.modelData.secured
-                        icon: "key"
-                        label: "Passwort ändern"
-                        onTriggered: {
-                            panel.menuSsid = "";
-                            panel.passwordSsid = row.modelData.ssid;
+                        Action {
+                            visible: !row.modelData.active && row.modelData.saved && row.modelData.inRange
+                            icon: "wifi"
+                            label: "Verbinden"
+                            onTriggered: {
+                                Network.connect(row.modelData, "");
+                                panel.menuSsid = "";
+                            }
                         }
-                    }
 
-                    // Der eigentliche Grund fuer diese Ansicht: mehrere Profile
-                    // auf denselben SSID. Weg mit denen, die nie funktioniert
-                    // haben – das benutzte bleibt.
-                    Action {
-                        visible: row.modelData.duplicate && row.modelData.stale.length > 0
-                        icon: "cleaning_services"
-                        label: `${row.modelData.stale.length} doppeltes Profil entfernen`
-                        onTriggered: {
-                            Network.dropStale(row.modelData);
-                            panel.menuSsid = "";
+                        Action {
+                            visible: row.modelData.saved && row.modelData.secured
+                            icon: "key"
+                            label: "Passwort ändern"
+                            onTriggered: {
+                                panel.menuSsid = "";
+                                panel.passwordSsid = row.modelData.ssid;
+                            }
                         }
-                    }
 
-                    Action {
-                        visible: row.modelData.saved
-                        icon: "delete"
-                        label: "Vergessen"
-                        danger: true
-                        onTriggered: {
-                            Network.forget(row.modelData);
-                            panel.menuSsid = "";
+                        // Der eigentliche Grund fuer diese Ansicht: mehrere Profile
+                        // auf denselben SSID. Weg mit denen, die nie funktioniert
+                        // haben – das benutzte bleibt.
+                        Action {
+                            visible: row.modelData.duplicate && row.modelData.stale.length > 0
+                            icon: "cleaning_services"
+                            label: `${row.modelData.stale.length} doppeltes Profil entfernen`
+                            onTriggered: {
+                                Network.dropStale(row.modelData);
+                                panel.menuSsid = "";
+                            }
+                        }
+
+                        Action {
+                            visible: row.modelData.saved
+                            icon: "delete"
+                            label: "Vergessen"
+                            danger: true
+                            onTriggered: {
+                                Network.forget(row.modelData);
+                                panel.menuSsid = "";
+                            }
                         }
                     }
                 }
