@@ -13,6 +13,8 @@ import "components/statusBar"
 import "components/workspaceSelector"
 import "components/mediaPlayer"
 import "root:/modules/launcher"
+import qs.modules.services.config
+import qs.modules.services.hypr
 
 import "root:/"
 
@@ -69,8 +71,11 @@ Variants {
         // Hoch genug fuer den groesseren der beiden Ausklapp-Teile (Notch oder
         // Medien-Karte) – Platz reserviert wird trotzdem nur die Leiste.
         implicitHeight: bar.catching ? bar.modelData.height
-                                     : bar.barHeight + Math.max(notch.maxDrop, media.maxDrop, settings.maxDrop,
-                                                        notifications.maxDrop, stats.maxDrop)
+                                     : bar.barHeight + Math.max(notch.maxDrop,
+                                                        Config.bar.media ? media.maxDrop : 0,
+                                                        Config.bar.settings ? settings.maxDrop : 0,
+                                                        Config.bar.notifications ? notifications.maxDrop : 0,
+                                                        Config.bar.stats ? stats.maxDrop : 0)
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: bar.barHeight
         color: "transparent"
@@ -126,6 +131,7 @@ Variants {
             /* Workspace Selektor */
             WorkspaceSelector {
                 id: workspaces
+                visible: Config.bar.workspaces
                 verticalMargin: bar.verticalMargin
                 borderWidth: bar.borderWidth
                 borderColor: bar.borderColor
@@ -138,9 +144,11 @@ Variants {
                nicht in der Komponente. */
             StatsPill {
                 id: stats
+                visible: Config.bar.stats
+                // Ohne Workspace-Punkte rueckt sie an den linken Rand
                 anchors {
-                    left: workspaces.right
-                    leftMargin: 10
+                    left: Config.bar.workspaces ? workspaces.right : parent.left
+                    leftMargin: Config.bar.workspaces ? 10 : HyprGaps.left
                 }
                 verticalMargin: bar.verticalMargin
                 borderWidth: bar.borderWidth
@@ -152,6 +160,7 @@ Variants {
             /* Mittlere Notch */
             StatusBar {
                 id: statusBar
+                visible: Config.bar.tray
                 anchors {
                     right: parent.horizontalCenter
                     rightMargin: notch.width / 2 + 15
@@ -173,6 +182,7 @@ Variants {
             // animiert zur Seite, statt unter der Karte zu verschwinden.
             Settings {
                 id: settings
+                visible: Config.bar.settings
                 anchors {
                     left: parent.horizontalCenter
                     leftMargin: notch.width / 2 + 15
@@ -184,6 +194,7 @@ Variants {
 
             MediaPlayer {
                 id: media
+                visible: Config.bar.media
                 verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
                 borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
                 borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
@@ -197,9 +208,11 @@ Variants {
                folgen, wenn die ihre Breite aendert. */
             NotificationPill {
                 id: notifications
+                visible: Config.bar.notifications
+                // Ohne Medien-Karte rueckt sie an den rechten Rand
                 anchors {
-                    right: media.left
-                    rightMargin: 10
+                    right: Config.bar.media ? media.left : parent.right
+                    rightMargin: Config.bar.media ? 10 : HyprGaps.right
                 }
                 verticalMargin: bar.verticalMargin
                 borderWidth: bar.borderWidth

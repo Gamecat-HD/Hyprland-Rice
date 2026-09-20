@@ -48,6 +48,13 @@ Singleton {
             run: () => LauncherState.mode = "theme"
         },
         {
+            name: "Einstellungen",
+            desc: "Was in der Leiste zu sehen ist",
+            icon: "tune",
+            keepOpen: true,
+            run: () => LauncherState.mode = "settings"
+        },
+        {
             name: "Zufaelliges Wallpaper",
             desc: "Irgendeines aus dem Wallpaper-Ordner",
             icon: "shuffle",
