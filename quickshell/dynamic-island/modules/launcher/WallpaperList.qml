@@ -9,14 +9,13 @@ import "root:/"
 // Wallpaper-Auswahl im Launcher: ein Karussell aus Vorschaubildern, das
 // aktuelle steht in der Mitte.
 //
-// Aufbau wie caelestia/modules/launcher/WallpaperList.qml – PathView auf einer
-// geraden Linie, mittiger Highlight-Bereich, die Nachbarn kleiner und die
-// Aussenseiter ausgeblendet. Die Liste selbst kommt aus dem Wallpapers-Dienst.
+// Die Mechanik (Pfad, Rad, Einrasten) steckt in Carousel.qml – hier stehen nur
+// die Bilder: Liste aus dem Wallpapers-Dienst, Kachel mit Vorschaubild.
 //
 // Waehrend man sich durchbewegt, zeigt der Hintergrund das markierte Bild
 // schon an (Vorschau) – aber erst nach kurzem Verweilen, sonst dekodiert Qt
 // bei jedem Tastendruck ein 2560x1440-Bild.
-PathView {
+Carousel {
     id: view
 
     property string query: ""
@@ -27,30 +26,10 @@ PathView {
     property real imageWidth: 160
     readonly property real imageHeight: Math.round(imageWidth / 16 * 9)
     readonly property real itemPadding: 8
-    readonly property real itemWidth: imageWidth + itemPadding * 2
+    itemWidth: view.imageWidth + view.itemPadding * 2
 
     readonly property var entries: Wallpapers.search(view.query)
     readonly property string currentPath: view.entries[view.currentIndex]?.path ?? ""
-
-    // Immer eine ungerade Zahl: sonst sitzt kein Bild wirklich in der Mitte.
-    readonly property int visibleItems: {
-        const fits = Math.floor(view.width / view.itemWidth);
-        if (fits <= 1)
-            return 1;
-        return fits % 2 === 0 ? fits - 1 : fits;
-    }
-
-    // Der Pfad reicht links und rechts je eine halbe Kachel ueber den Rand
-    // hinaus und traegt zwei Bilder mehr. Die beiden aeussersten haengen damit
-    // halb draussen und laufen in der Vignette aus, statt dass die Reihe an
-    // beiden Seiten hart aufhoert (so macht es der Datumsstreifen auch).
-    readonly property real overhang: view.itemWidth / 2
-
-    function moveBy(delta: int): void {
-        if (view.count === 0)
-            return;
-        view.currentIndex = (view.currentIndex + delta + view.count) % view.count;
-    }
 
     // Uebernehmen: Bild setzen und Bescheid geben
     function apply(): void {
@@ -63,14 +42,6 @@ PathView {
     implicitHeight: view.itemPadding + view.imageHeight + 4 + 15 + view.itemPadding
 
     model: view.entries
-    pathItemCount: view.visibleItems + 2
-    cacheItemCount: 2
-
-    snapMode: PathView.SnapToItem
-    preferredHighlightBegin: 0.5
-    preferredHighlightEnd: 0.5
-    highlightRangeMode: PathView.StrictlyEnforceRange
-    highlightMoveDuration: 180
 
     // Beim Aufbau auf dem aktuell gesetzten Bild stehen, bei einer Suche vorne.
     //
@@ -79,14 +50,8 @@ PathView {
     // wieder auf 0 – das Karussell stand dann immer auf dem ersten Bild statt
     // auf dem aktuellen.
     function selectCurrent(): void {
-        if (view.count === 0)
-            return;
-        view.currentIndex = view.query.trim() !== "" ? 0
-            : Math.max(0, view.entries.findIndex(w => w.path === Wallpapers.actualCurrent));
-        // currentIndex allein reicht nicht: der Versatz des Karussells bleibt
-        // nach einem Modellwechsel stehen, das markierte Bild sass dann neben
-        // der Mitte statt darin. SnapPosition zieht es auf den Highlight-Platz.
-        view.positionViewAtIndex(view.currentIndex, PathView.SnapPosition);
+        view.snapTo(view.query.trim() !== "" ? 0
+            : view.entries.findIndex(w => w.path === Wallpapers.actualCurrent));
     }
 
     onEntriesChanged: Qt.callLater(view.selectCurrent)
@@ -106,50 +71,6 @@ PathView {
         interval: 220
         onTriggered: if (view.currentPath !== "")
             Wallpapers.preview(view.currentPath)
-    }
-
-    // Mausrad blaettert durchs Karussell. Hi-Res-Raeder liefern Bruchteile
-    // einer Rastung, deshalb aufsummieren (gleiches Muster wie im DatePanel).
-    WheelHandler {
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-
-        property real accum: 0
-
-        onWheel: event => {
-            const angle = event.angleDelta.y + event.angleDelta.x;
-            const pixels = event.pixelDelta.y + event.pixelDelta.x;
-            accum += angle !== 0 ? angle / 120 : pixels / 40;
-
-            const steps = accum > 0 ? Math.floor(accum) : Math.ceil(accum);
-            if (steps !== 0) {
-                accum -= steps;
-                view.moveBy(-steps);
-            }
-            event.accepted = true;
-        }
-    }
-
-    path: Path {
-        // Beide Haelften gleich lang, sonst stehen die Bilder ungleichmaessig
-        startX: -view.overhang
-        startY: view.height / 2
-
-        PathAttribute {
-            name: "itemZ"
-            value: 0
-        }
-        PathLine {
-            x: view.width / 2
-            relativeY: 0
-        }
-        PathAttribute {
-            name: "itemZ"
-            value: 1
-        }
-        PathLine {
-            x: view.width + view.overhang
-            relativeY: 0
-        }
     }
 
     delegate: Item {

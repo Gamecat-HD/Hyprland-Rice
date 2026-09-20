@@ -18,6 +18,7 @@ Singleton {
     // Singletons: offen ist immer genau eine davon.
     //   "apps"       Suchfeld + Trefferliste (LauncherPanel)
     //   "wallpaper"  eigenes Suchfeld + Bild-Karussell (WallpaperPanel)
+    //   "theme"      eigenes Suchfeld + Farb-Karussell (ThemePanel)
     property string mode: "apps"
 
     function show(target: ShellScreen): void {
@@ -53,6 +54,12 @@ Singleton {
             root.showWallpapers(target);
     }
 
+    // Farbschema-Auswahl. Anders als die Wallpaper hat sie keinen Knopf in der
+    // Leiste – nur den Launcher-Befehl und diesen Weg hier.
+    function showThemes(target: ShellScreen): void {
+        root.showMode(target, "theme");
+    }
+
     // Für Aufrufe von außen (Tastenkürzel): Monitor unter dem Fokus nehmen
     function focusedScreen(): ShellScreen {
         const name = Hyprland.focusedMonitor?.name ?? "";
@@ -81,6 +88,10 @@ Singleton {
 
         function wallpaper(): void {
             root.showWallpapers(root.focusedScreen());
+        }
+
+        function theme(): void {
+            root.showThemes(root.focusedScreen());
         }
     }
 }

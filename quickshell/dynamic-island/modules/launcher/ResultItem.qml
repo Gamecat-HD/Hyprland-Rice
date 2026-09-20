@@ -99,9 +99,17 @@ Rectangle {
             leftMargin: 16
             verticalCenter: parent.verticalCenter
         }
+        // Der Pfad als eigene String-Property, nicht ueber `source` geprueft:
+        // `source` ist eine url, und `url !== ""` ist in JS immer wahr (andere
+        // Typen, kein Vergleich). Dadurch galt der Eintrag stets als "hat ein
+        // Icon" – die Zeile der Aktionen blieb links leer, weil die
+        // Material-Symbols-Alternative darunter nie sichtbar wurde.
+        readonly property string iconPath: item.isCommand || !item.modelData.icon
+            ? "" : Quickshell.iconPath(item.modelData.icon, "application-x-executable")
+
         implicitSize: 26
-        source: item.isCommand || !item.modelData.icon ? "" : Quickshell.iconPath(item.modelData.icon, "application-x-executable")
-        visible: source !== ""
+        source: icon.iconPath
+        visible: icon.iconPath !== ""
     }
 
     Text {

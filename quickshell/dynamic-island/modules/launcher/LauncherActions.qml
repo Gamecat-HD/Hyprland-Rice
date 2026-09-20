@@ -41,6 +41,13 @@ Singleton {
             run: () => LauncherState.mode = "wallpaper"
         },
         {
+            name: "Theme",
+            desc: "Farbschema und Variante wechseln",
+            icon: "palette",
+            keepOpen: true,
+            run: () => LauncherState.mode = "theme"
+        },
+        {
             name: "Zufaelliges Wallpaper",
             desc: "Irgendeines aus dem Wallpaper-Ordner",
             icon: "shuffle",
