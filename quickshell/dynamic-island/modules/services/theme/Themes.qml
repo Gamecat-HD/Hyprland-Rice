@@ -42,8 +42,19 @@ Singleton {
 
     // Die Material-Varianten der CLI (nur fuer das dynamische Schema von
     // Belang – sie steuern, wie aus dem Wallpaper eine Palette wird).
-    readonly property var variants: ["tonalspot", "vibrant", "expressive", "fidelity",
-        "fruitsalad", "monochrome", "neutral", "rainbow", "content"]
+    // Die Icons sind Material-Symbols-Ligaturen; alle in der installierten
+    // Schriftversion vorhanden ("wallpaper" z.B. waere es nicht).
+    readonly property var variants: [
+        { name: "tonalspot", icon: "tonality" },
+        { name: "vibrant", icon: "flare" },
+        { name: "expressive", icon: "brush" },
+        { name: "fidelity", icon: "colorize" },
+        { name: "fruitsalad", icon: "local_florist" },
+        { name: "monochrome", icon: "filter_b_and_w" },
+        { name: "neutral", icon: "opacity" },
+        { name: "rainbow", icon: "looks" },
+        { name: "content", icon: "photo_filter" }
+    ]
 
     function ensureLoaded(): void {
         if (!root.loaded && !root.loading)

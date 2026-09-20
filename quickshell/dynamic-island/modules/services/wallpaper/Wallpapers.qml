@@ -3,6 +3,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.modules.services.theme
+
+import "root:/"
 
 // Wallpaper-Dienst: kennt die Bilder im Wallpaper-Ordner, das aktuell
 // gesetzte und das gerade nur vorgeschaute.
@@ -75,16 +78,47 @@ Singleton {
     }
 
     // ---- Vorschau ----
-    // Nur das Bild, nicht das Farbschema: die Palette entsteht in der CLI und
-    // wuerde pro Vorschau einen ganzen Durchlauf kosten.
+    // Bild und Farben: `wallpaper -p` rechnet die Palette aus, die das Bild
+    // ergeben WUERDE, ohne etwas zu setzen (~90-230ms, danach aus dem Cache).
+    // Colors traegt sie nur zur Anzeige, gespeichert wird nichts.
+    //
+    // Nur wenn das Schema ueberhaupt am Wallpaper haengt: bei einem festen
+    // Schema (catppuccin, tokyonight, ...) aendert ein Bildwechsel die Farben
+    // nicht, die Vorschau wuerde also etwas zeigen, was nie eintritt.
     function preview(path: string): void {
         root.previewPath = path;
         root.showPreview = true;
+
+        if (Themes.currentName !== "dynamic")
+            return;
+
+        colourPreview.running = false;
+        colourPreview.wall = path;
+        colourPreview.running = true;
     }
 
     function stopPreview(): void {
         root.showPreview = false;
         root.previewPath = "";
+        colourPreview.running = false;
+        Colors.clearPreview();
+    }
+
+    Process {
+        id: colourPreview
+
+        property string wall: ""
+
+        command: [root.cli, "wallpaper", "-p", colourPreview.wall]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                // Wer inzwischen weitergeblaettert oder zugemacht hat, soll
+                // nicht die Farben von vorhin bekommen
+                if (root.showPreview && colourPreview.wall === root.previewPath)
+                    Colors.loadPreview(text);
+            }
+        }
     }
 
     Process {

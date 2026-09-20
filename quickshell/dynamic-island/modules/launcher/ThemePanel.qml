@@ -222,27 +222,14 @@ Item {
         }
         height: 46
 
+        // Ohne Beschriftung – dass die Reihe bei einem festen Schema nichts
+        // bewirkt, sagt die Zuruecknahme.
         readonly property bool relevant: Themes.currentName === "dynamic"
 
         opacity: variantRow.relevant ? 1 : 0.45
 
         Behavior on opacity {
             NumberAnimation { duration: 160 }
-        }
-
-        Text {
-            id: variantLabel
-
-            anchors {
-                left: parent.left
-                leftMargin: 16
-                verticalCenter: parent.verticalCenter
-            }
-            text: variantRow.relevant ? "VARIANTE" : "VARIANTE · NUR DYNAMIC"
-            color: Colors.fgSurfaceVariant
-            font.pixelSize: 9
-            font.weight: Font.Medium
-            font.letterSpacing: 0.8
         }
 
         // Die Chips behalten ihre natuerliche Breite, der Abstand dazwischen
@@ -255,8 +242,8 @@ Item {
             id: chips
 
             anchors {
-                left: variantLabel.right
-                leftMargin: 14
+                left: parent.left
+                leftMargin: 16
                 right: parent.right
                 rightMargin: 16
                 verticalCenter: parent.verticalCenter
@@ -287,11 +274,11 @@ Item {
                     id: chip
 
                     required property int index
-                    required property string modelData
+                    required property var modelData
 
-                    readonly property bool isCurrent: chip.modelData === Themes.currentVariant
+                    readonly property bool isCurrent: chip.modelData.name === Themes.currentVariant
 
-                    implicitWidth: chipText.implicitWidth + 18
+                    implicitWidth: chipRow.implicitWidth + 20
                     implicitHeight: 26
 
                     onImplicitWidthChanged: chips.report(chip.index, chip.implicitWidth)
@@ -307,13 +294,28 @@ Item {
                         ColorAnimation { duration: 90 }
                     }
 
-                    Text {
-                        id: chipText
+                    Row {
+                        id: chipRow
 
                         anchors.centerIn: parent
-                        text: chip.modelData
-                        color: chip.isCurrent ? Colors.primary : Colors.fgSurfaceVariant
-                        font.pixelSize: 11
+                        spacing: 5
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            text: chip.modelData.icon
+                            color: chip.isCurrent ? Colors.primary : Colors.fgSurfaceVariant
+                            font.family: "Material Symbols Outlined"
+                            font.pixelSize: 13
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            text: chip.modelData.name
+                            color: chip.isCurrent ? Colors.primary : Colors.fgSurfaceVariant
+                            font.pixelSize: 11
+                        }
                     }
 
                     MouseArea {
@@ -322,7 +324,7 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: Themes.setVariant(chip.modelData)
+                        onClicked: Themes.setVariant(chip.modelData.name)
                     }
                 }
             }

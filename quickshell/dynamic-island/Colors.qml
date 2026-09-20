@@ -27,6 +27,14 @@ Singleton {
 
     // geparstes scheme.json ({name, mode, colours:{...}}) – {} wenn nicht geladen
     property var scheme: ({})
+
+    // ---- Vorschau ----
+    // Waehrend man im Launcher durch die Wallpaper blaettert, faerbt sich die
+    // Shell schon in den Farben des markierten Bildes. Die kommen aus
+    // `dynamic-island wallpaper -p` (siehe Wallpapers.qml) und liegen nur hier,
+    // nicht in scheme.json – nichts davon wird gespeichert.
+    property var previewScheme: ({})
+    property bool showPreview: false
     readonly property bool dynamicActive: useDynamic && scheme.name !== undefined
 
     // ---- Dynamische Quelle: scheme.json (wallpaper-basiert) ----
@@ -49,9 +57,28 @@ Singleton {
         }
     }
 
-    // Rollen-Auflösung: dynamisch, wenn vorhanden, sonst Fallback aus dem Theme
+    function loadPreview(data: string): void {
+        try {
+            const s = JSON.parse(data);
+            if (s && s.colours) {
+                root.previewScheme = s;
+                root.showPreview = true;
+            }
+        } catch (e) {
+            console.warn("Colors: Vorschau-Schema unparsebar:", e);
+        }
+    }
+
+    function clearPreview(): void {
+        root.showPreview = false;
+        root.previewScheme = ({});
+    }
+
+    // Rollen-Auflösung: Vorschau schlaegt dynamisch, dynamisch schlaegt Theme
     function pick(key: string, fallback: color): color {
-        const c = root.scheme.colours ? root.scheme.colours[key] : null;
+        const colours = root.showPreview && root.previewScheme.colours ? root.previewScheme.colours
+                                                                       : root.scheme.colours;
+        const c = colours ? colours[key] : null;
         return c ? ("#" + c) : fallback;
     }
 
