@@ -23,7 +23,8 @@ PathView {
     // Wird gesetzt, wenn ein Bild uebernommen wurde (der Launcher schliesst dann)
     signal applied
 
-    readonly property real imageWidth: 180
+    // Von aussen setzbar: das Panel entscheidet, wie breit die Kacheln sind
+    property real imageWidth: 160
     readonly property real imageHeight: Math.round(imageWidth / 16 * 9)
     readonly property real itemPadding: 8
     readonly property real itemWidth: imageWidth + itemPadding * 2
@@ -38,6 +39,12 @@ PathView {
             return 1;
         return fits % 2 === 0 ? fits - 1 : fits;
     }
+
+    // Der Pfad reicht links und rechts je eine halbe Kachel ueber den Rand
+    // hinaus und traegt zwei Bilder mehr. Die beiden aeussersten haengen damit
+    // halb draussen und laufen in der Vignette aus, statt dass die Reihe an
+    // beiden Seiten hart aufhoert (so macht es der Datumsstreifen auch).
+    readonly property real overhang: view.itemWidth / 2
 
     function moveBy(delta: int): void {
         if (view.count === 0)
@@ -56,7 +63,7 @@ PathView {
     implicitHeight: view.itemPadding + view.imageHeight + 4 + 15 + view.itemPadding
 
     model: view.entries
-    pathItemCount: view.visibleItems
+    pathItemCount: view.visibleItems + 2
     cacheItemCount: 2
 
     snapMode: PathView.SnapToItem
@@ -123,6 +130,8 @@ PathView {
     }
 
     path: Path {
+        // Beide Haelften gleich lang, sonst stehen die Bilder ungleichmaessig
+        startX: -view.overhang
         startY: view.height / 2
 
         PathAttribute {
@@ -138,7 +147,7 @@ PathView {
             value: 1
         }
         PathLine {
-            x: view.width
+            x: view.width + view.overhang
             relativeY: 0
         }
     }
@@ -153,7 +162,9 @@ PathView {
         readonly property bool onPath: PathView.onPath
 
         width: view.itemWidth
-        height: view.implicitHeight
+        // Vom Panel vorgegeben (der Loader fuellt dessen Listenbereich);
+        // implicitHeight ist nur der Eigenbedarf, falls jemand es frei stellt.
+        height: view.height
         z: PathView.itemZ ?? 0
 
         scale: item.isCurrent ? 1 : item.onPath ? 0.86 : 0.5

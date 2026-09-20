@@ -28,6 +28,9 @@ Item {
     property bool expanded: false
     readonly property var hostScreen: notch.QsWindow.window?.screen ?? null
     readonly property bool launcherOpen: LauncherState.open && LauncherState.screen === hostScreen
+    // Die Karte hat im Launcher-Modus zwei Ansichten (siehe LauncherState.mode)
+    readonly property bool wallpaperOpen: launcherOpen && LauncherState.mode === "wallpaper"
+    readonly property bool appsOpen: launcherOpen && !wallpaperOpen
     readonly property bool open: expanded || launcherOpen
 
     // Die Uhr rutscht beim Aufklappen etwas nach unten
@@ -40,13 +43,17 @@ Item {
     // unten und mittig etwas in die Breite.
     readonly property real collapsedHeight: parent.height - verticalMargin
     readonly property real collapsedWidth: clock.implicitWidth + 50
-    readonly property real expandedWidth: launcherOpen ? Math.max(collapsedWidth, launcher.outerWidth)
+    readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth : launcher.outerWidth
+    readonly property real launcherHeight: wallpaperOpen ? wallpapers.outerHeight : launcher.outerHeight
+
+    readonly property real expandedWidth: launcherOpen ? Math.max(collapsedWidth, launcherWidth)
                                                        : Math.max(collapsedWidth, panel.outerWidth)
-    readonly property real expandedHeight: launcherOpen ? launcherTop + launcher.outerHeight
+    readonly property real expandedHeight: launcherOpen ? launcherTop + launcherHeight
                                                         : collapsedHeight + clockDropMax + panel.outerHeight
     // Reserve, die sich das Bar-Fenster nach unten nehmen muss (größter Fall)
     readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight,
-                                             launcherTop + launcher.maxOuterHeight) + verticalMargin
+                                             launcherTop + launcher.maxOuterHeight,
+                                             launcherTop + wallpapers.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
     y: verticalMargin / 2
@@ -272,8 +279,22 @@ Item {
 
             topOffset: notch.launcherTop
             cardRadius: notch.cardRadius
-            active: notch.launcherOpen
-            opacity: notch.launcherOpen ? 1 : 0
+            active: notch.appsOpen
+            opacity: notch.appsOpen ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+        }
+
+        WallpaperPanel {
+            id: wallpapers
+
+            topOffset: notch.launcherTop
+            cardRadius: notch.cardRadius
+            active: notch.wallpaperOpen
+            opacity: notch.wallpaperOpen ? 1 : 0
             visible: opacity > 0
 
             Behavior on opacity {

@@ -13,30 +13,21 @@ Singleton {
 
     property bool open: false
     property ShellScreen screen: null   // auf welchem Monitor er aufgeht
-    // Womit das Suchfeld beim Oeffnen gefuellt wird. Leer = normale App-Suche;
-    // ein Modus-Praefix wie ">wallpaper " springt direkt in dessen Ansicht.
-    property string initialText: ""
+    // Welche Ansicht die Karte gerade zeigt. Beide teilen sich Fenster und
+    // Fokus-Grab (siehe Bar.qml), deshalb ein gemeinsamer Zustand statt zweier
+    // Singletons: offen ist immer genau eine davon.
+    //   "apps"       Suchfeld + Trefferliste (LauncherPanel)
+    //   "wallpaper"  eigenes Suchfeld + Bild-Karussell (WallpaperPanel)
+    property string mode: "apps"
 
     function show(target: ShellScreen): void {
-        root.showWith(target, "");
+        root.showMode(target, "apps");
     }
 
-    function showWith(target: ShellScreen, text: string): void {
-        root.initialText = text;
+    function showMode(target: ShellScreen, mode: string): void {
+        root.mode = mode;
         root.screen = target;
         root.open = true;
-    }
-
-    // Direkt in die Wallpaper-Auswahl (Icon in der Notch, IPC, Tastenkuerzel)
-    function showWallpapers(target: ShellScreen): void {
-        root.showWith(target, ">wallpaper ");
-    }
-
-    function toggleWallpapers(target: ShellScreen): void {
-        if (root.open)
-            root.close();
-        else
-            root.showWallpapers(target);
     }
 
     function close(): void {
@@ -48,6 +39,18 @@ Singleton {
             root.close();
         else
             root.show(target);
+    }
+
+    // Direkt in die Wallpaper-Auswahl (Knopf in der Notch, IPC, Tastenkuerzel)
+    function showWallpapers(target: ShellScreen): void {
+        root.showMode(target, "wallpaper");
+    }
+
+    function toggleWallpapers(target: ShellScreen): void {
+        if (root.open && root.mode === "wallpaper")
+            root.close();
+        else
+            root.showWallpapers(target);
     }
 
     // Für Aufrufe von außen (Tastenkürzel): Monitor unter dem Fokus nehmen

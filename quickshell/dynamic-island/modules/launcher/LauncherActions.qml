@@ -12,12 +12,13 @@ import qs.modules.services.wallpaper
 //   desc  – Untertitel
 //   icon  – Material-Symbols-Name
 // und genau eine der beiden Bauarten:
-//   run:  () => { ... }   führt direkt aus und schließt den Launcher
-//   mode: "wallpaper"     schaltet die Liste in einen eigenen Modus um; der
-//                         Suchtext wird auf ">wallpaper " gesetzt. Was dann
-//                         angezeigt wird, kommt entweder aus der gleichnamigen
-//                         Quelle in LauncherPanel.modes – oder, wie beim
-//                         Wallpaper, aus einer eigenen Ansicht im Panel.
+//   run:  () => { ... }   führt direkt aus und schließt den Launcher;
+//                         mit `keepOpen: true` bleibt die Karte offen (für
+//                         Aktionen, die nur umschalten)
+//   mode: "name"          schaltet die Liste in einen eigenen Modus um; der
+//                         Suchtext wird auf ">name " gesetzt und alles Weitere
+//                         kommt aus der Quelle, die unter diesem Namen in
+//                         LauncherPanel.modes registriert ist.
 //                         (Genau so hängt bei Caelestia der Wallpaper-Wechsler
 //                         am `autocomplete`-Kommando.)
 Singleton {
@@ -34,7 +35,10 @@ Singleton {
             name: "Wallpaper",
             desc: "Hintergrund wechseln",
             icon: "wallpaper_slideshow",
-            mode: "wallpaper"
+            // Eigene Ansicht in derselben Karte (WallpaperPanel.qml), deshalb
+            // umschalten statt schliessen
+            keepOpen: true,
+            run: () => LauncherState.mode = "wallpaper"
         },
         {
             name: "Zufaelliges Wallpaper",
