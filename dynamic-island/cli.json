@@ -1,0 +1,23 @@
+{
+    "shell": {
+        "name": "dynamic-island"
+    },
+    "theme": {
+        "enableTerm": true,
+        "enableHypr": true,
+        "enableGtk": true,
+        "enableQt": true,
+        "enableBtop": true,
+        "enableCava": true,
+        "enableDiscord": true,
+
+        "enableFuzzel": false,
+        "enableChromium": false,
+        "enableSpicetify": false,
+        "enableZed": false,
+        "enableHtop": false,
+        "enableNvtop": false,
+        "enablePandora": false,
+        "enableWarp": false
+    }
+}

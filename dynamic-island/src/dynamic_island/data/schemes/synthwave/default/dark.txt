@@ -1,0 +1,1 @@
+/home/gamecat/.config/caelestia/schemes/synthwave/default/dark.txt

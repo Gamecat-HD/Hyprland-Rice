@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# theme-set [name] — schaltet das Farbtheme für Quickshell (dynamic-island) und Hyprland um.
+# Themes: ~/.config/quickshell/dynamic-island/themes/<name>.json
+set -euo pipefail
+
+THEMES="$HOME/.config/quickshell/dynamic-island/themes"
+HYPR_SCHEME="$HOME/.config/hypr/scheme/current.lua"
+
+if [[ $# -lt 1 ]]; then
+    cur=$(cat "$THEMES/current" 2>/dev/null || echo "-")
+    echo "Verfügbare Themes (aktiv: $cur):"
+    for f in "$THEMES"/*.json; do echo "  $(basename "${f%.json}")"; done
+    exit 0
+fi
+
+name="$1"
+file="$THEMES/$name.json"
+[[ -f "$file" ]] || { echo "Theme '$name' nicht gefunden: $file" >&2; exit 1; }
+
+# 1) Shell: folgt live über FileView.watchChanges
+printf '%s' "$name" > "$THEMES/current"
+
+# 2) Hyprland: Material-Keys aus dem JSON ableiten
+python3 - "$file" "$HYPR_SCHEME" "$name" <<'PY'
+import json, sys
+src, dst, name = sys.argv[1:4]
+t = json.load(open(src))
+h = lambda k: t[k].lstrip('#').upper()
+keys = {
+    "background": "background", "onBackground": "fgBackground",
+    "surface": "surface", "surfaceDim": "background", "surfaceBright": "surfaceBright",
+    "surfaceContainerLowest": "background", "surfaceContainerLow": "surface",
+    "surfaceContainer": "surfaceContainer", "surfaceContainerHigh": "surfaceBright",
+    "surfaceContainerHighest": "surfaceBright",
+    "onSurface": "fgBackground", "surfaceVariant": "surfaceBright", "onSurfaceVariant": "fgSurfaceVariant",
+    "outline": "outline", "outlineVariant": "surfaceBright",
+    "primary": "primary", "onPrimary": "fgPrimary", "primaryContainer": "primaryDim",
+    "onPrimaryContainer": "fgBackground", "inversePrimary": "primaryDim",
+    "secondary": "secondary", "onSecondary": "fgSecondary",
+    "tertiary": "tertiary", "onTertiary": "fgTertiary",
+    "error": "error", "onError": "fgError",
+    "inverseSurface": "fgBackground", "inverseOnSurface": "background",
+    "scrim": "background", "shadow": "background",
+}
+lines = [f"-- generiert von theme-set aus themes/{name}.json – nicht von Hand editieren"]
+lines.append("return {")
+for k, v in keys.items():
+    lines.append(f'    {k:<24}= "{h(v)}",')
+lines.append("}")
+open(dst, "w").write("\n".join(lines) + "\n")
+PY
+
+hyprctl reload >/dev/null
+echo "Theme '$name' aktiv (Shell + Hyprland)."

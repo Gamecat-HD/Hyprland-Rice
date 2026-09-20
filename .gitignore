@@ -2,11 +2,14 @@
 /*
 !/hypr/
 !/quickshell/
+!/dynamic-island/
 
 # innerhalb von quickshell nur die eigene Shell
 /quickshell/*
-!/quickshell/myshell/
+!/quickshell/dynamic-island/
 
 # lokale/privates
 .claude/
 .qmlls.ini
+__pycache__/
+*.pyc

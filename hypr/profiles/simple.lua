@@ -4,13 +4,13 @@
 -- Haengt an nichts aus ~/.config/hypr/hyprland/ (das gehoert zum Caelestia-Profil),
 -- laeuft also auch dann noch, wenn dort etwas kaputt ist.
 --
--- Die Shell dieses Profils ist die eigene Quickshell-Config "myshell"
--- (~/.config/quickshell/myshell, zeichnet Wallpaper + Bar). Ihr Name steht NICHT
+-- Die Shell dieses Profils ist die eigene Quickshell-Config "dynamic-island"
+-- (~/.config/quickshell/dynamic-island, zeichnet Wallpaper + Bar). Ihr Name steht NICHT
 -- hier, sondern in ~/.local/bin/hypr-profile (Tabelle PROFILE_SHELL oben im
 -- Script); Autostart und die Shell-Keybinds unten rufen nur dieses Script auf,
 -- damit es genau eine Stelle gibt, die weiss welche Shell zu welchem Profil gehoert.
 --
--- Was myshell (noch) nicht abdeckt und dieses Profil deshalb nicht hat:
+-- Was die Shell (noch) nicht abdeckt und dieses Profil deshalb nicht hat:
 -- Notifications, OSDs fuer Lautstaerke/Helligkeit, Sidebar, Launcher-Overlay.
 -- Launcher = fuzzel, Lockscreen = hyprlock.
 --
@@ -22,8 +22,8 @@ local hyprProfile = home .. "/.local/bin/hypr-profile"
 --------------------------------------------------------------------------------
 -- Farben
 --------------------------------------------------------------------------------
--- Nimmt das aktive Schema (scheme/current.lua, wird von `caelestia scheme` bzw.
--- `theme-set` geschrieben). Fehlt es, greift die eingebaute Palette.
+-- Nimmt das aktive Schema (scheme/current.lua, wird von `dynamic-island scheme`/
+-- `dynamic-island wallpaper` bzw. `theme-set` geschrieben). Fehlt es, greift die eingebaute Palette.
 local fallback = {
     primary          = "0ED2FC",
     onPrimary        = "000A0F",
@@ -188,8 +188,8 @@ hl.config({
         focus_on_activate         = true,
         mouse_move_enables_dpms   = true,
         key_press_enables_dpms    = true,
-        -- Farbe hinter allem. Das Wallpaper zeichnet myshell (Layer
-        -- myshell-background); laeuft keine Shell, bleibt diese Farbe stehen.
+        -- Farbe hinter allem. Das Wallpaper zeichnet die Shell (Layer
+        -- dynamic-island-background); laeuft keine Shell, bleibt diese Farbe stehen.
         background_color          = "rgb(" .. colour("surfaceContainer") .. ")",
     },
 
@@ -312,7 +312,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("trash-empty -f 30")
 
     -- Shell dieses Profils starten (Zuordnung steht in hypr-profile):
-    -- beendet eine noch laufende Caelestia-Shell und faehrt myshell hoch.
+    -- beendet eine noch laufende Caelestia-Shell und faehrt dynamic-island hoch.
     hl.exec_cmd(hyprProfile .. " shell-sync")
 end)
 
@@ -346,9 +346,9 @@ hl.bind("SUPER + W", hl.dsp.exec_cmd(cfg.browser))
 hl.bind("SUPER + P", hl.dsp.exec_cmd(cfg.editor))
 hl.bind("SUPER + E", hl.dsp.exec_cmd(cfg.fileExplorer))
 hl.bind("CTRL + ALT + V", hl.dsp.exec_cmd(cfg.audioSettings))
--- Super allein oeffnet das App-Menue von myshell (per Quickshell-IPC).
+-- Super allein oeffnet das App-Menue der Shell (per Quickshell-IPC).
 -- Laeuft die Shell gerade nicht, faellt es auf cfg.launcher (fuzzel) zurueck.
-hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd("qs -c myshell ipc call launcher toggle || " .. cfg.launcher), { release = true })
+hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher toggle || " .. cfg.launcher), { release = true })
 hl.bind("SUPER + Space", hl.dsp.exec_cmd(cfg.launcher))
 hl.bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd))
 hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), { locked = true })
@@ -393,10 +393,12 @@ hl.bind("CTRL + SUPER + SHIFT + Left", hl.dsp.window.move({ workspace = "m-1" })
 hl.bind("CTRL + SUPER + SHIFT + Right", hl.dsp.window.move({ workspace = "m+1" }), { repeating = true })
 
 -- Special-Workspaces (Scratchpads)
-hl.bind("SUPER + S", hl.dsp.workspace.toggle_special("special"))
-hl.bind("SUPER + M", hl.dsp.workspace.toggle_special("music"))
-hl.bind("SUPER + D", hl.dsp.workspace.toggle_special("communication"))
-hl.bind("CTRL + SHIFT + Escape", hl.dsp.workspace.toggle_special("sysmon"))
+-- ueber die CLI: startet die zugehoerige App gleich mit, wenn der Workspace leer ist
+-- (Zuordnung in ~/.config/dynamic-island/cli.json unter "toggles")
+hl.bind("SUPER + S", hl.dsp.exec_cmd("dynamic-island toggle specialws"))
+hl.bind("SUPER + M", hl.dsp.exec_cmd("dynamic-island toggle music"))
+hl.bind("SUPER + D", hl.dsp.exec_cmd("dynamic-island toggle communication"))
+hl.bind("CTRL + SHIFT + Escape", hl.dsp.exec_cmd("dynamic-island toggle sysmon"))
 hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special:special" }))
 
 -- Lautstaerke / Mikrofon
@@ -427,15 +429,28 @@ hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tru
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
 
--- Screenshots / Farbpicker
-hl.bind("Print", hl.dsp.exec_cmd("grim - | wl-copy"), { locked = true })
-hl.bind("SUPER + SHIFT + S", hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy'))
-hl.bind("SUPER + SHIFT + ALT + S", hl.dsp.exec_cmd('grim -g "$(slurp)" - | swappy -f -'))
+-- Screenshots / Farbpicker  (dynamic-island uebernimmt Zwischenablage,
+-- Benachrichtigung mit Open/Save und den Cache unter ~/.cache/dynamic-island)
+hl.bind("Print", hl.dsp.exec_cmd("dynamic-island screenshot"), { locked = true })
+hl.bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r -f"))
+hl.bind("SUPER + SHIFT + ALT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r -e"))
 hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))
 
+-- Bildschirmaufnahme (gpu-screen-recorder; derselbe Bind stoppt wieder)
+hl.bind("CTRL + ALT + R", hl.dsp.exec_cmd("dynamic-island record"))
+hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd("dynamic-island record -s"))
+hl.bind("SUPER + SHIFT + ALT + R", hl.dsp.exec_cmd("dynamic-island record -r"))
+
 -- Zwischenablage-Verlauf (cliphist via fuzzel)
-hl.bind("SUPER + V", hl.dsp.exec_cmd("pkill fuzzel || cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"))
-hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd("pkill fuzzel || cliphist list | fuzzel --dmenu | cliphist delete"))
+hl.bind("SUPER + V", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island clipboard"))
+hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island clipboard -d"))
+
+-- Emoji-/Glyph-Picker
+hl.bind("SUPER + Period", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island emoji -p"))
+
+-- Wallpaper und Farbschema
+hl.bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("dynamic-island wallpaper -r"))
+hl.bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("dynamic-island scheme set -r"))
 
 -- Shell dieses Profils neu starten / beenden (wie im Caelestia-Profil belegt)
 hl.bind("CTRL + SUPER + ALT + R", hl.dsp.exec_cmd(hyprProfile .. " shell-restart"), { release = true })
