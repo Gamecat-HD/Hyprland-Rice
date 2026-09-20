@@ -87,6 +87,21 @@ Singleton {
             e?.notif?.dismiss();
     }
 
+    // Aktionen einer Nachricht, aufgeteilt nach der Spezifikation:
+    //
+    //   "default"  gehoert dem Klick auf die Nachricht selbst und wird NICHT
+    //              als Knopf gezeigt (fast jede App schickt so eine mit)
+    //   alles andere kommt als Knopf unter den Text
+    function defaultAction(entry: var): var {
+        const actions = entry?.notif?.actions ?? [];
+        return actions.find(a => a.identifier === "default") ?? null;
+    }
+
+    function actionButtons(entry: var): var {
+        const actions = entry?.notif?.actions ?? [];
+        return actions.filter(a => a.identifier !== "default");
+    }
+
     // "jetzt" / "5m" / "2h" / "3d" – knapp genug fuer die Pille
     function formatAge(time: var): string {
         if (!time)

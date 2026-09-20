@@ -38,8 +38,11 @@ Item {
     // Bindungsschleife. Aufgeklappte Gruppen scrollen stattdessen.
     readonly property real listBody: {
         let h = 0;
-        for (const g of Notifications.groups)
-            h += (g.entries.length > 1 ? 26 : 0) + 54;
+        for (const g of Notifications.groups) {
+            h += g.entries.length > 1 ? 26 : 0;          // Gruppenkopf
+            // Zeile, bei Aktionsknoepfen eine Reihe hoeher
+            h += Notifications.actionButtons(g.entries[0]).length > 0 ? 86 : 54;
+        }
         return h;
     }
     // Nach unten gedeckelt, damit die Karte bei leerer Liste nicht in sich
