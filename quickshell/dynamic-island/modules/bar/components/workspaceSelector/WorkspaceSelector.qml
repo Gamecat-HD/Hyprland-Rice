@@ -37,6 +37,11 @@ Item {
     readonly property HyprlandMonitor hyprMonitor: Hyprland.monitorFor(root.QsWindow.window?.screen ?? null)
     readonly property int activeWsId: root.hyprMonitor?.activeWorkspace?.id ?? 1
 
+    // Ist auf DIESEM Monitor gerade ein Special offen? Bestimmt den Crossfade
+    // zwischen Punkten (normal) und Special-Chips – dasselbe Prinzip wie in
+    // caelestias Workspaces.qml, nur eben horizontal.
+    readonly property bool onSpecial: (root.hyprMonitor?.lastIpcObject.specialWorkspace?.name ?? "") !== ""
+
     // Welche 10er-Gruppe gehört zu diesem Monitor: 0 bei ws 1-10, 10 bei 11-20
     readonly property int groupOffset: Math.floor((root.activeWsId - 1) / root.workspacesPerMonitor) * root.workspacesPerMonitor
 
@@ -50,8 +55,10 @@ Item {
 
     // Breite kommt von innen: das RowLayout rechnet sie aus seinen Punkten,
     // die Karte fuellt root. Andersherum (root von der Karte) waere es eine
-    // Binding-Schleife.
-    implicitWidth: layout.implicitWidth + root.padding * 2
+    // Binding-Schleife. Die Special-Chips zaehlen als Minimum mit – die Karte
+    // schrumpft also nicht, wenn die Punkte weichen (wie caelestia: konstante
+    // Flaeche, nur der Inhalt wechselt).
+    implicitWidth: Math.max(layout.implicitWidth, specialWs.implicitWidth) + root.padding * 2
     height: parent.height - verticalMargin
     y: verticalMargin / 2
 
@@ -97,6 +104,18 @@ Item {
             // so grenzen die Klickzonen lückenlos aneinander.
             spacing: 0
 
+            // Waehrend ein Special offen ist weichen die Punkte (schrumpfen +
+            // verblassen), die Chips nehmen ihren Platz ein
+            opacity: root.onSpecial ? 0.5 : 1
+            scale: root.onSpecial ? 0.8 : 1
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+            Behavior on scale {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+
             Repeater {
                 id: workspaces
 
@@ -107,6 +126,27 @@ Item {
                     occupied: root.occupied
                     groupOffset: root.groupOffset
                 }
+            }
+        }
+
+        // Special-Chips statt Punkte, solange auf diesem Monitor ein Special
+        // offen ist (siehe SpecialWorkspaces.qml). ZULETZT deklariert = liegt
+        // ueber den Punkten und faengt die Klicks im Special-Modus.
+        SpecialWorkspaces {
+            id: specialWs
+
+            anchors.centerIn: parent
+            hyprMonitor: root.hyprMonitor
+
+            opacity: root.onSpecial ? 1 : 0
+            scale: root.onSpecial ? 1 : 0.5
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+            Behavior on scale {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
             }
         }
     }
