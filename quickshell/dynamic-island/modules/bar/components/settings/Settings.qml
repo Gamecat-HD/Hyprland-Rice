@@ -3,6 +3,7 @@ import QtQuick
 
 import qs.modules.services.audio
 import qs.modules.services.brightness
+import qs.modules.services.vpn
 
 import "root:/"
 
@@ -23,30 +24,59 @@ Rectangle {
     readonly property bool containsMouse: hoverSensor.hovered || tiles.sleepMenuHovered
     property bool expanded: false
     property bool showBrightness: false
+    // Hovern zieht die Pille seitlich auf und zeigt die Statuszeile
+    property bool peek: false
 
     // Zweite Ansicht der Karte: die WLAN-Liste. Zu macht sie der Zurueck-Pfeil
     // oder – wie bei den Kacheln – die Maus, die weggeht. Nur waehrend ein
     // Passwort getippt wird, bleibt sie stehen; dann haengt auch die Tastatur
     // an der Leiste (siehe Bar.qml).
     property bool wifiOpen: false
+    property bool bluetoothOpen: false
     readonly property bool typingPassword: wifiOpen && wifi.passwordSsid !== ""
+    readonly property bool typingPin: bluetoothOpen && bluetooth.pairingInputOpen
 
     function closeWifi(): void {
         settings.wifiOpen = false;
     }
 
     onContainsMouseChanged: {
-        if (containsMouse)
+        if (containsMouse) {
             closeTimer.stop();
-        else if (expanded)
-            closeTimer.restart();
+            peekClose.stop();
+            if (!expanded && !wifiOpen && !bluetoothOpen)
+                peekTimer.restart();
+        } else {
+            peekTimer.stop();
+            peekClose.restart();
+            if (expanded)
+                closeTimer.restart();
+        }
+    }
+
+    // Erst nach kurzem Verweilen aufziehen, damit blosses Vorbeifahren die
+    // Pille nicht zucken laesst (dasselbe Timing wie bei der Notch)
+    Timer {
+        id: peekTimer
+
+        interval: 180
+        onTriggered: settings.peek = true
+    }
+
+    Timer {
+        id: peekClose
+
+        interval: 260
+        onTriggered: settings.peek = false
     }
 
     // Masse: eingeklappt der gewohnte Kreis, ausgeklappt die Karte. Hoehe =
     // Kachelreihen + Raender (kein Kreis-Vorlauf mehr, die Tiles stehen oben).
     readonly property real collapsedSize: parent.height - verticalMargin
     readonly property real expandedWidth: 520
-    readonly property real expandedHeight: 10 + (wifiOpen ? wifi.implicitHeight : tiles.implicitHeight) + 10
+    readonly property real expandedHeight: 10 + (wifiOpen ? wifi.implicitHeight
+                                               : bluetoothOpen ? bluetooth.implicitHeight
+                                               : tiles.implicitHeight) + 10
 
     // Groesster Fall der WLAN-Ansicht – so viel muss sich das Bar-Fenster nach
     // unten reservieren (siehe Bar.qml), sonst schneidet es die Liste ab.
@@ -61,15 +91,21 @@ Rectangle {
         top: parent.top
         topMargin: verticalMargin / 2   // oben fix -> alles Wachstum geht nach unten
     }
-    width: expanded || wifiOpen ? expandedWidth : collapsedSize
-    height: expanded || wifiOpen ? expandedHeight : collapsedSize
+    // Aufgeklappt die Karte, beim Hovern die Statuszeile, sonst der Kreis
+    readonly property real peekWidth: status.implicitWidth + 12
+    width: expanded || wifiOpen || bluetoothOpen ? expandedWidth
+         : peek ? peekWidth
+         : collapsedSize
+    height: expanded || wifiOpen || bluetoothOpen ? expandedHeight : collapsedSize
 
     // Klappt die Karte zu, ist auch die WLAN-Ansicht und das Dauer-Menue vorbei
     onExpandedChanged: if (!expanded) {
         settings.wifiOpen = false;
+        settings.bluetoothOpen = false;
         tiles.sleepMenuOpen = false;
     } else {
         settings.showBrightness = false;
+        settings.peek = false;          // die Karte loest die Statuszeile ab
         brightnessDisplayTimer.stop();
     }
 
@@ -125,19 +161,85 @@ Rectangle {
         }
     }
 
-    // Wifi-Status mittig im Kreis, blendet beim Aufklappen aus
-    Wifi {
+    // Statuszeile: eingeklappt steht hier nur das WLAN-Symbol – und zwar
+    // genau dort, wo es vorher mittig im Kreis sass, weil das erste Feld so
+    // breit ist wie der Kreis. Beim Hovern kommen die anderen dazu und
+    // schieben die Pille auf.
+    Row {
+        id: status
+
+        anchors {
+            left: parent.left
+            top: parent.top
+        }
+        height: settings.collapsedSize
+        spacing: 2
         opacity: settings.expanded ? 0 : 1
         visible: opacity > 0
 
         Behavior on opacity {
             NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
         }
+
+        component StatusIcon: Text {
+            id: icon
+
+            property bool active: false
+            property bool shown: true
+
+            anchors.verticalCenter: parent?.verticalCenter ?? undefined
+            width: settings.peek && icon.shown ? implicitWidth + 6 : 0
+            visible: width > 0
+            opacity: settings.peek && icon.shown ? 1 : 0
+            horizontalAlignment: Text.AlignHCenter
+
+            color: icon.active ? Colors.secondary : Colors.alpha(Colors.fgSurfaceVariant, 0.6)
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 15
+
+            Behavior on width {
+                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: 160 }
+            }
+        }
+
+        // WLAN – das einzige, was immer zu sehen ist
+        Item {
+            width: settings.collapsedSize
+            height: settings.collapsedSize
+
+            Wifi {}
+        }
+
+        StatusIcon {
+            text: tiles.btOn ? "bluetooth" : "bluetooth_disabled"
+            active: tiles.btOn
+        }
+
+        StatusIcon {
+            text: Vpn.connected ? "vpn_key" : "vpn_key_off"
+            active: Vpn.connected
+        }
+
+        // Die beiden nur, wenn sie wirklich laufen
+        StatusIcon {
+            text: "coffee"
+            active: true
+            shown: tiles.noSleep
+        }
+
+        StatusIcon {
+            text: "sports_esports"
+            active: true
+            shown: tiles.gameMode
+        }
     }
 
-    // VPN-Status unten im Kreis, dito
+    // VPN-Status unten im Kreis – in der Statuszeile steht er schon
     VpnIcon {
-        opacity: settings.expanded || settings.showBrightness ? 0 : 1
+        opacity: settings.expanded || settings.showBrightness || settings.peek ? 0 : 1
         visible: opacity > 0
 
         Behavior on opacity {
@@ -176,10 +278,17 @@ Rectangle {
             right: parent.right
             margins: 10
         }
-        opacity: settings.expanded && !settings.wifiOpen ? 1 : 0
+        opacity: settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen ? 1 : 0
         visible: opacity > 0
 
-        onOpenWifi: settings.wifiOpen = true
+        onOpenWifi: {
+            settings.bluetoothOpen = false;
+            settings.wifiOpen = true;
+        }
+        onOpenBluetooth: {
+            settings.wifiOpen = false;
+            settings.bluetoothOpen = true;
+        }
 
         Behavior on opacity {
             NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -206,12 +315,32 @@ Rectangle {
         }
     }
 
+    BluetoothPanel {
+        id: bluetooth
+
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            margins: 10
+        }
+        active: settings.bluetoothOpen
+        opacity: settings.bluetoothOpen ? 1 : 0
+        visible: opacity > 0
+
+        onClosed: settings.bluetoothOpen = false
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+    }
+
     Timer {
         id: closeTimer
 
         interval: 700
         // Waehrend eines Passworts darf die Maus rausrutschen
-        onTriggered: if (!settings.typingPassword)
+        onTriggered: if (!settings.typingPassword && !settings.typingPin)
             settings.expanded = false
     }
 
@@ -226,7 +355,7 @@ Rectangle {
         target: Brightness
 
         function onValueChanged(): void {
-            if (Brightness.ready && !settings.expanded && !settings.wifiOpen) {
+            if (Brightness.ready && !settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen) {
                 settings.showBrightness = true;
                 brightnessDisplayTimer.restart();
             }
@@ -234,12 +363,12 @@ Rectangle {
     }
 
     TapHandler {
-        enabled: !settings.expanded && !settings.wifiOpen
+        enabled: !settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen
         onTapped: settings.expanded = true
     }
 
     WheelHandler {
-        enabled: !settings.expanded && !settings.wifiOpen
+        enabled: !settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
 
         property real acc: 0
