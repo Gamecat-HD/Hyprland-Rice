@@ -1,8 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
-import Quickshell
-import Quickshell.Services.Pipewire
+
+import qs.modules.services.audio
 
 import "root:/"
 
@@ -21,10 +21,9 @@ Shape {
     required property real startAngle
     required property real sweepAngle
 
-    // Lautstärke live aus PipeWire (0..1) + Mute-Flag
-    readonly property PwNode sink: Pipewire.defaultAudioSink
-    readonly property real volume: sink?.audio?.volume ?? 0
-    readonly property bool muted: sink?.audio?.muted ?? false
+    // Lautstärke/Mute kommen aus dem Audio-Service (PipeWire steckt dort)
+    readonly property real volume: Audio.volume
+    readonly property bool muted: Audio.muted
 
     readonly property real ringRadius: (Math.min(width, height) - arcWidth) / 2 - arcGap
     readonly property color barColor: slider.muted ? Colors.error : Colors.fgBackground
@@ -55,10 +54,5 @@ Shape {
             startAngle: slider.startAngle
             sweepAngle: slider.sweepAngle * slider.volume
         }
-    }
-
-    // Macht die PipeWire-Objekt-Properties live beobachtbar
-    PwObjectTracker {
-        objects: [slider.sink].filter(n => n)
     }
 }
