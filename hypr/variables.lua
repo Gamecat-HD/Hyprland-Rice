@@ -24,7 +24,7 @@ return {
     blurSpecialWs = false,
     blurPopups = true,
     blurInputMethods = true,
-    blurSize = 8,
+    blurSize = 4,
     blurPasses = 2,
     blurXray = false,
 

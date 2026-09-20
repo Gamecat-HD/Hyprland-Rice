@@ -25,79 +25,79 @@ local hyprProfile = home .. "/.local/bin/hypr-profile"
 -- Nimmt das aktive Schema (scheme/current.lua, wird von `dynamic-island scheme`/
 -- `dynamic-island wallpaper` bzw. `theme-set` geschrieben). Fehlt es, greift die eingebaute Palette.
 local fallback = {
-    primary          = "0ED2FC",
-    onPrimary        = "000A0F",
-    secondary        = "0372DC",
-    outline          = "3A5561",
-    onSurfaceVariant = "A9C2CC",
-    surfaceContainer = "0B1F29",
-    inversePrimary   = "036B85",
+	primary = "0ED2FC",
+	onPrimary = "000A0F",
+	secondary = "0372DC",
+	outline = "3A5561",
+	onSurfaceVariant = "A9C2CC",
+	surfaceContainer = "0B1F29",
+	inversePrimary = "036B85",
 }
 
 local ok, scheme = pcall(require, "scheme.current")
 if not ok or type(scheme) ~= "table" then
-    scheme = fallback
+	scheme = fallback
 end
 local function colour(key)
-    return scheme[key] or fallback[key] or "888888"
+	return scheme[key] or fallback[key] or "888888"
 end
 
 --------------------------------------------------------------------------------
 -- Die wichtigsten Einstellungen
 --------------------------------------------------------------------------------
 local cfg = {
-    -- Apps
-    terminal      = "kitty",
-    browser       = "zen-browser",
-    editor        = "codium",
-    fileExplorer  = "dolphin",
-    audioSettings = "pavucontrol",
-    launcher      = "fuzzel",
-    lockCmd       = "hyprlock",
+	-- Apps
+	terminal = "kitty",
+	browser = "zen-browser",
+	editor = "codium",
+	fileExplorer = "dolphin",
+	audioSettings = "pavucontrol",
+	launcher = "fuzzel",
+	lockCmd = "hyprlock",
 
-    -- Tastatur / Maus
-    kbLayout      = "de",
-    repeatDelay   = 250,
-    repeatRate    = 35,
-    cursorTheme   = "breeze_cursors",
-    cursorSize    = 24,
+	-- Tastatur / Maus
+	kbLayout = "de",
+	repeatDelay = 250,
+	repeatRate = 35,
+	cursorTheme = "breeze_cursors",
+	cursorSize = 24,
 
-    -- Layout / Abstaende
-    layout            = "dwindle",
-    windowGapsIn      = 5,
-    windowGapsOut     = 10,
-    -- Notch-Optik: Die Notch (30px) haengt zentriert in der 50px-Bar -> 10px Luft
-    -- ober- und unterhalb. Der Top-Gap muss 0 sein, damit der Abstand zum Fenster
-    -- genau diesen 10px entspricht und nicht 10+Gap.
-    windowGapsOutTop  = 0,
-    singleWindowGapsOut     = 20,
-    singleWindowGapsOutTop  = 0,  -- wie windowGapsOutTop: Notch-Symmetrie
-    workspaceGaps     = 20,
-    windowBorderSize  = 1,
-    windowRounding    = 15,
+	-- Layout / Abstaende
+	layout = "dwindle",
+	windowGapsIn = 5,
+	windowGapsOut = 10,
+	-- Notch-Optik: Die Notch (30px) haengt zentriert in der 50px-Bar -> 10px Luft
+	-- ober- und unterhalb. Der Top-Gap muss 0 sein, damit der Abstand zum Fenster
+	-- genau diesen 10px entspricht und nicht 10+Gap.
+	windowGapsOutTop = 0,
+	singleWindowGapsOut = 20,
+	singleWindowGapsOutTop = 0, -- wie windowGapsOutTop: Notch-Symmetrie
+	workspaceGaps = 20,
+	windowBorderSize = 1,
+	windowRounding = 15,
 
-    -- Optik
-    activeWindowOpacity   = 0.85,
-    inActiveWindowOpacity = 0.65,
-    blurEnabled           = true,
-    blurSize              = 8,
-    blurPasses            = 2,
-    shadowEnabled         = true,
-    shadowRange           = 15,
+	-- Optik
+	activeWindowOpacity = 0.85,
+	inActiveWindowOpacity = 0.60,
+	blurEnabled = true,
+	blurSize = 4,
+	blurPasses = 2,
+	shadowEnabled = true,
+	shadowRange = 15,
 
-    -- Schritte fuer Lautstaerke / Helligkeit
-    volumeStep     = 10,
-    volumeMax      = 100,
-    brightnessStep = 5,
+	-- Schritte fuer Lautstaerke / Helligkeit
+	volumeStep = 10,
+	volumeMax = 100,
+	brightnessStep = 5,
 
-    -- Energie
-    sleepCmd = "systemctl suspend-then-hibernate",
+	-- Energie
+	sleepCmd = "systemctl suspend-then-hibernate",
 
-    -- Workspaces: jeder Monitor hat seine eigene 10er-Gruppe (Anzeige jeweils 1-10)
-    wsMonitorOffset = {
-        ["HDMI-A-1"] = 0,  -- links:  Workspaces 1-10
-        ["DP-1"]     = 10, -- rechts: Workspaces 11-20
-    },
+	-- Workspaces: jeder Monitor hat seine eigene 10er-Gruppe (Anzeige jeweils 1-10)
+	wsMonitorOffset = {
+		["HDMI-A-1"] = 0, -- links:  Workspaces 1-10
+		["DP-1"] = 10, -- rechts: Workspaces 11-20
+	},
 }
 
 --------------------------------------------------------------------------------
@@ -124,80 +124,80 @@ hl.env("_JAVA_AWT_WM_NONREPARENTING", "1")
 -- Basis-Config
 --------------------------------------------------------------------------------
 hl.config({
-    general = {
-        layout          = cfg.layout,
-        gaps_in         = cfg.windowGapsIn,
-        gaps_out        = {
-            top    = cfg.windowGapsOutTop,
-            right  = cfg.windowGapsOut,
-            bottom = cfg.windowGapsOut,
-            left   = cfg.windowGapsOut,
-        },
-        gaps_workspaces = cfg.workspaceGaps,
-        border_size     = cfg.windowBorderSize,
-        allow_tearing   = false,
-        col             = {
-            active_border   = "rgba(" .. colour("primary") .. "e6)",
-            inactive_border = "rgba(" .. colour("onSurfaceVariant") .. "11)",
-        },
-    },
+	general = {
+		layout = cfg.layout,
+		gaps_in = cfg.windowGapsIn,
+		gaps_out = {
+			top = cfg.windowGapsOutTop,
+			right = cfg.windowGapsOut,
+			bottom = cfg.windowGapsOut,
+			left = cfg.windowGapsOut,
+		},
+		gaps_workspaces = cfg.workspaceGaps,
+		border_size = cfg.windowBorderSize,
+		allow_tearing = false,
+		col = {
+			active_border = "rgba(" .. colour("primary") .. "e6)",
+			inactive_border = "rgba(" .. colour("onSurfaceVariant") .. "11)",
+		},
+	},
 
-    dwindle = {
-        preserve_split = true,
-        smart_resizing = true,
-    },
+	dwindle = {
+		preserve_split = true,
+		smart_resizing = true,
+	},
 
-    decoration = {
-        rounding = cfg.windowRounding,
-        blur = {
-            enabled           = cfg.blurEnabled,
-            size              = cfg.blurSize,
-            passes            = cfg.blurPasses,
-            ignore_opacity    = true,
-            new_optimizations = true,
-            popups            = true,
-        },
-        shadow = {
-            enabled = cfg.shadowEnabled,
-            range   = cfg.shadowRange,
-            color   = "rgba(" .. colour("inversePrimary") .. "10)",
-        },
-    },
+	decoration = {
+		rounding = cfg.windowRounding,
+		blur = {
+			enabled = cfg.blurEnabled,
+			size = cfg.blurSize,
+			passes = cfg.blurPasses,
+			ignore_opacity = true,
+			new_optimizations = true,
+			popups = true,
+		},
+		shadow = {
+			enabled = cfg.shadowEnabled,
+			range = cfg.shadowRange,
+			color = "rgba(" .. colour("inversePrimary") .. "10)",
+		},
+	},
 
-    animations = {
-        enabled = true,
-    },
+	animations = {
+		enabled = true,
+	},
 
-    input = {
-        kb_layout          = cfg.kbLayout,
-        numlock_by_default = true,
-        repeat_delay       = cfg.repeatDelay,
-        repeat_rate        = cfg.repeatRate,
-        follow_mouse       = 1,
-        touchpad = {
-            natural_scroll       = true,
-            disable_while_typing = true,
-            scroll_factor        = 0.3,
-        },
-    },
+	input = {
+		kb_layout = cfg.kbLayout,
+		numlock_by_default = true,
+		repeat_delay = cfg.repeatDelay,
+		repeat_rate = cfg.repeatRate,
+		follow_mouse = 1,
+		touchpad = {
+			natural_scroll = true,
+			disable_while_typing = true,
+			scroll_factor = 0.3,
+		},
+	},
 
-    misc = {
-        disable_hyprland_logo     = true,
-        disable_splash_rendering  = true,
-        force_default_wallpaper   = 0,
-        focus_on_activate         = true,
-        mouse_move_enables_dpms   = true,
-        key_press_enables_dpms    = true,
-        -- Farbe hinter allem. Das Wallpaper zeichnet die Shell (Layer
-        -- dynamic-island-background); laeuft keine Shell, bleibt diese Farbe stehen.
-        background_color          = "rgb(" .. colour("surfaceContainer") .. ")",
-    },
+	misc = {
+		disable_hyprland_logo = true,
+		disable_splash_rendering = true,
+		force_default_wallpaper = 0,
+		focus_on_activate = true,
+		mouse_move_enables_dpms = true,
+		key_press_enables_dpms = true,
+		-- Farbe hinter allem. Das Wallpaper zeichnet die Shell (Layer
+		-- dynamic-island-background); laeuft keine Shell, bleibt diese Farbe stehen.
+		background_color = "rgb(" .. colour("surfaceContainer") .. ")",
+	},
 
-    gestures = {
-        workspace_swipe_distance       = 700,
-        workspace_swipe_cancel_ratio   = 0.15,
-        workspace_swipe_direction_lock = true,
-    },
+	gestures = {
+		workspace_swipe_distance = 700,
+		workspace_swipe_cancel_ratio = 0.15,
+		workspace_swipe_direction_lock = true,
+	},
 })
 
 hl.gesture({ fingers = 4, direction = "horizontal", action = "workspace" })
@@ -208,133 +208,139 @@ hl.gesture({ fingers = 3, direction = "up", action = "special", workspace_name =
 --------------------------------------------------------------------------------
 -- Transparenz fuer normale Fenster
 hl.window_rule({
-    match   = { fullscreen = false },
-    opacity = cfg.activeWindowOpacity .. " " .. cfg.inActiveWindowOpacity .. " override",
+	match = { fullscreen = false },
+	opacity = cfg.activeWindowOpacity .. " " .. cfg.inActiveWindowOpacity .. " override",
 })
 
 -- Terminals, Bild-/Grafik-Apps und Spiele bleiben deckend
 hl.window_rule({
-    match = {
-        class = "kitty|foot|imv|swappy|krita|gimp|inkscape|blender|kdenlive|zen|firefox|" ..
-            "(steam_app_(default|[0-9]+))|gamescope",
-    },
-    opaque = true,
+	match = {
+		class = "kitty|foot|imv|swappy|krita|gimp|inkscape|blender|kdenlive|zen|firefox|"
+			.. "(steam_app_(default|[0-9]+))|gamescope",
+	},
+	opaque = true,
 })
 
 -- Dialoge floaten und mittig
 hl.window_rule({ match = { float = true, xwayland = false }, center = true })
 hl.window_rule({
-    match = {
-        title = "(Select|Open)( a)? (File|Folder)(s)?|File (Operation|Upload)( Progress)?|" ..
-            ".* Properties|Save As|Library",
-    },
-    float = true,
+	match = {
+		title = "(Select|Open)( a)? (File|Folder)(s)?|File (Operation|Upload)( Progress)?|"
+			.. ".* Properties|Save As|Library",
+	},
+	float = true,
 })
 hl.window_rule({
-    match = { class = "yad|zenity|blueman-manager|org.pulseaudio.pavucontrol|feh|imv|org.quickshell" },
-    float = true,
+	match = { class = "yad|zenity|blueman-manager|org.pulseaudio.pavucontrol|feh|imv|org.quickshell" },
+	float = true,
 })
 
 -- Spiele: kein Tearing-Limit, kein Idle
 hl.window_rule({
-    match        = { class = "(steam_app_(default|[0-9]+))|gamescope" },
-    immediate    = true,
-    idle_inhibit = "always",
+	match = { class = "(steam_app_(default|[0-9]+))|gamescope" },
+	immediate = true,
+	idle_inhibit = "always",
 })
 
 -- Picture-in-Picture: klein, unten rechts, immer sichtbar
 hl.window_rule({
-    match             = { title = "Picture(-| )in(-| )[Pp]icture" },
-    float             = true,
-    pin               = true,
-    keep_aspect_ratio = true,
-    move              = "(monitor_w*0.98-window_w) (monitor_h*0.97-window_h)",
+	match = { title = "Picture(-| )in(-| )[Pp]icture" },
+	float = true,
+	pin = true,
+	keep_aspect_ratio = true,
+	move = "(monitor_w*0.98-window_w) (monitor_h*0.97-window_h)",
 })
 
 -- Feste Plaetze auf den Special-Workspaces (Binds siehe unten)
 hl.window_rule({ match = { class = "btop" }, workspace = "special:sysmon" })
 hl.window_rule({
-    match     = { class = "feishin|Spotify|Supersonic|Cider|com.github.th_ch.youtube_music|Plexamp" },
-    workspace = "special:music",
+	match = { class = "feishin|Spotify|Supersonic|Cider|com.github.th_ch.youtube_music|Plexamp" },
+	workspace = "special:music",
 })
 hl.window_rule({ match = { class = "discord|equibop|vesktop|whatsapp" }, workspace = "special:communication" })
 
 -- Einzelfenster bekommen mehr Luft (oben halbiert, siehe Variablen oben)
-hl.workspace_rule({ workspace = "w[tv1]s[false]", gaps_out = {
-    top    = cfg.singleWindowGapsOutTop,
-    right  = cfg.singleWindowGapsOut,
-    bottom = cfg.singleWindowGapsOut,
-    left   = cfg.singleWindowGapsOut,
-} })
-hl.workspace_rule({ workspace = "f[1]s[false]", gaps_out = {
-    top    = cfg.singleWindowGapsOutTop,
-    right  = cfg.singleWindowGapsOut,
-    bottom = cfg.singleWindowGapsOut,
-    left   = cfg.singleWindowGapsOut,
-} })
+hl.workspace_rule({
+	workspace = "w[tv1]s[false]",
+	gaps_out = {
+		top = cfg.singleWindowGapsOutTop,
+		right = cfg.singleWindowGapsOut,
+		bottom = cfg.singleWindowGapsOut,
+		left = cfg.singleWindowGapsOut,
+	},
+})
+hl.workspace_rule({
+	workspace = "f[1]s[false]",
+	gaps_out = {
+		top = cfg.singleWindowGapsOutTop,
+		right = cfg.singleWindowGapsOut,
+		bottom = cfg.singleWindowGapsOut,
+		left = cfg.singleWindowGapsOut,
+	},
+})
 
 -- Jede 10er-Gruppe fest an ihren Monitor binden
 for monitor, offset in pairs(cfg.wsMonitorOffset) do
-    for i = 1, 10 do
-        hl.workspace_rule({
-            workspace = tostring(offset + i),
-            monitor   = monitor,
-            default   = (i == 1),
-        })
-    end
+	for i = 1, 10 do
+		hl.workspace_rule({
+			workspace = tostring(offset + i),
+			monitor = monitor,
+			default = (i == 1),
+		})
+	end
 end
 
 -- Launcher-Overlay huebsch einblenden
 hl.layer_rule({ match = { namespace = "launcher" }, animation = "popin 80%", blur = true })
-hl.layer_rule({ match = { namespace = "selection" }, animation = "fade" })   -- slurp
+hl.layer_rule({ match = { namespace = "selection" }, animation = "fade" }) -- slurp
 hl.layer_rule({ match = { namespace = "hyprpicker" }, animation = "fade" })
 
 --------------------------------------------------------------------------------
 -- Autostart (nur beim Hyprland-Start, nicht bei jedem Reload)
 --------------------------------------------------------------------------------
 hl.on("hyprland.start", function()
-    -- Passwort-Dialoge fuer GUI-Apps
-    hl.exec_cmd("/usr/lib/polkit-kde-authentication-agent-1")
+	-- Passwort-Dialoge fuer GUI-Apps
+	hl.exec_cmd("/usr/lib/polkit-kde-authentication-agent-1")
 
-    -- Zwischenablage-Verlauf
-    hl.exec_cmd("wl-paste --type text --watch cliphist store")
-    hl.exec_cmd("wl-paste --type image --watch cliphist store")
+	-- Zwischenablage-Verlauf
+	hl.exec_cmd("wl-paste --type text --watch cliphist store")
+	hl.exec_cmd("wl-paste --type image --watch cliphist store")
 
-    -- Cursor
-    hl.exec_cmd("hyprctl setcursor " .. cfg.cursorTheme .. " " .. cfg.cursorSize)
-    hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-theme " .. cfg.cursorTheme)
-    hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-size " .. cfg.cursorSize)
+	-- Cursor
+	hl.exec_cmd("hyprctl setcursor " .. cfg.cursorTheme .. " " .. cfg.cursorSize)
+	hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-theme " .. cfg.cursorTheme)
+	hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-size " .. cfg.cursorSize)
 
-    -- Bluetooth-Medientasten an MPRIS weiterreichen
-    hl.exec_cmd("mpris-proxy")
+	-- Bluetooth-Medientasten an MPRIS weiterreichen
+	hl.exec_cmd("mpris-proxy")
 
-    -- Papierkorb aufraeumen
-    hl.exec_cmd("trash-empty -f 30")
+	-- Papierkorb aufraeumen
+	hl.exec_cmd("trash-empty -f 30")
 
-    -- Shell dieses Profils starten (Zuordnung steht in hypr-profile):
-    -- beendet eine noch laufende Caelestia-Shell und faehrt dynamic-island hoch.
-    hl.exec_cmd(hyprProfile .. " shell-sync")
+	-- Shell dieses Profils starten (Zuordnung steht in hypr-profile):
+	-- beendet eine noch laufende Caelestia-Shell und faehrt dynamic-island hoch.
+	hl.exec_cmd(hyprProfile .. " shell-sync")
 end)
 
 --------------------------------------------------------------------------------
 -- Workspace-Helfer: SUPER+N = Workspace N des fokussierten Monitors
 --------------------------------------------------------------------------------
 local function monitor_offset()
-    local mon = hl.get_active_monitor()
-    if mon and cfg.wsMonitorOffset[mon.name] then
-        return cfg.wsMonitorOffset[mon.name]
-    end
-    return 0
+	local mon = hl.get_active_monitor()
+	if mon and cfg.wsMonitorOffset[mon.name] then
+		return cfg.wsMonitorOffset[mon.name]
+	end
+	return 0
 end
 
 local function wsaction(action, i)
-    return function()
-        local target = monitor_offset() + i
-        if action == "move" then
-            return hl.dispatch(hl.dsp.window.move({ workspace = target }))
-        end
-        return hl.dispatch(hl.dsp.focus({ workspace = target }))
-    end
+	return function()
+		local target = monitor_offset() + i
+		if action == "move" then
+			return hl.dispatch(hl.dsp.window.move({ workspace = target }))
+		end
+		return hl.dispatch(hl.dsp.focus({ workspace = target }))
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -348,7 +354,11 @@ hl.bind("SUPER + E", hl.dsp.exec_cmd(cfg.fileExplorer))
 hl.bind("CTRL + ALT + V", hl.dsp.exec_cmd(cfg.audioSettings))
 -- Super allein oeffnet das App-Menue der Shell (per Quickshell-IPC).
 -- Laeuft die Shell gerade nicht, faellt es auf cfg.launcher (fuzzel) zurueck.
-hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher toggle || " .. cfg.launcher), { release = true })
+hl.bind(
+	"SUPER + SUPER_L",
+	hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher toggle || " .. cfg.launcher),
+	{ release = true }
+)
 hl.bind("SUPER + Space", hl.dsp.exec_cmd(cfg.launcher))
 hl.bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd))
 hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), { locked = true })
@@ -381,9 +391,9 @@ hl.bind("SHIFT + ALT + TAB", hl.dsp.window.cycle_next({ next = false }), { repea
 
 -- Workspaces des fokussierten Monitors
 for i = 1, 10 do
-    local key = i % 10 -- 10 liegt auf der Taste 0
-    hl.bind("SUPER + " .. key, wsaction("focus", i))
-    hl.bind("SUPER + ALT + " .. key, wsaction("move", i))
+	local key = i % 10 -- 10 liegt auf der Taste 0
+	hl.bind("SUPER + " .. key, wsaction("focus", i))
+	hl.bind("SUPER + ALT + " .. key, wsaction("move", i))
 end
 hl.bind("CTRL + SUPER + Left", hl.dsp.focus({ workspace = "m-1" }), { repeating = true })
 hl.bind("CTRL + SUPER + Right", hl.dsp.focus({ workspace = "m+1" }), { repeating = true })
@@ -406,17 +416,20 @@ hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ to
 hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
 hl.bind(
-    "XF86AudioRaiseVolume",
-    hl.dsp.exec_cmd(
-        "wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume -l " ..
-        (cfg.volumeMax / 100) .. " @DEFAULT_AUDIO_SINK@ " .. cfg.volumeStep .. "%+"
-    ),
-    { locked = true, repeating = true }
+	"XF86AudioRaiseVolume",
+	hl.dsp.exec_cmd(
+		"wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume -l "
+			.. (cfg.volumeMax / 100)
+			.. " @DEFAULT_AUDIO_SINK@ "
+			.. cfg.volumeStep
+			.. "%+"
+	),
+	{ locked = true, repeating = true }
 )
 hl.bind(
-    "XF86AudioLowerVolume",
-    hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ " .. cfg.volumeStep .. "%-"),
-    { locked = true, repeating = true }
+	"XF86AudioLowerVolume",
+	hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ " .. cfg.volumeStep .. "%-"),
+	{ locked = true, repeating = true }
 )
 
 -- Helligkeit
