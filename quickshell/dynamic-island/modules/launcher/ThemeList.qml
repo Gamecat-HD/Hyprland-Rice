@@ -83,10 +83,13 @@ Carousel {
             NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
         }
 
+        // Bewusst OHNE Auswahl per Hover: die Auswahl rueckt das Karussell zur
+        // Mitte, damit schiebt sich die naechste Kachel unter den Zeiger, die
+        // sich wieder auswaehlt – es lief endlos in die Richtung, in der die
+        // Maus stand. Ausgewaehlt wird per Pfeiltasten und Rad, geklickt wird
+        // direkt uebernommen.
         HoverHandler {
             cursorShape: Qt.PointingHandCursor
-            onHoveredChanged: if (hovered)
-                view.currentIndex = item.index
         }
 
         TapHandler {
