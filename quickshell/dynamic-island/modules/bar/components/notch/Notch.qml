@@ -20,9 +20,8 @@ Item {
     required property color borderColor
     required property real cardRadius
 
-    readonly property bool containsMouse: ma.containsMouse
+    readonly property bool containsMouse: hoverSensor.hovered
     readonly property alias clock: clock
-    readonly property alias ma: ma
 
     // Datums-Ansicht (per Hover) und Launcher (per Zug nach unten) teilen sich
     // dieselbe Karte – der Launcher hat Vorrang.
@@ -148,6 +147,64 @@ Item {
             }
         }
 
+        // Power-Knopf: sitzt auf der Uhr-Zeile, rechts in der Karte.
+        // Eingeklappt ist die Pille nur `clock.implicitWidth + 50` breit – dort
+        // waere kein Platz, deshalb haengt er an derselben Bedingung wie das
+        // DatePanel und fadet mit ihm ein.
+        //
+        // Der Hover haengt am Item, nicht am Text: das gibt eine Trefferflaeche,
+        // die groesser ist als der 15px-Glyph (dasselbe Muster wie bei den
+        // Workspace-Punkten), und damit auch die Cursor-Form eine Flaeche hat,
+        // auf der sie greift. Der rechte Rand ist so gewaehlt, dass der Glyph
+        // selbst ~14px von der Kartenkante steht.
+        Item {
+            id: powerButton
+
+            anchors {
+                right: parent.right
+                rightMargin: 8
+                verticalCenter: clock.verticalCenter
+            }
+            implicitWidth: 28
+            implicitHeight: 28
+            opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+
+            Text {
+                anchors.centerIn: parent
+
+                text: "power_settings_new"   // Material-Symbols-Ligatur, genau so
+                color: powerHover.hovered ? Colors.error : Colors.fgSurfaceVariant
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 15
+                // Material Symbols ist eine Variable Font: die Strichstaerke
+                // haengt an der wght-Achse (100-700), nicht an font.weight.
+                font.variableAxes: ({ wght: 700 })
+
+                Behavior on color {
+                    ColorAnimation { duration: 140 }
+                }
+            }
+
+            HoverHandler {
+                id: powerHover
+
+                cursorShape: Qt.PointingHandCursor
+            }
+
+            // Noch ohne Funktion: der Klick meldet sich vorerst nur im Log
+            // (`qs -c dynamic-island log`). TapHandler statt MouseArea, damit
+            // der Launcher-DragHandler in der Karte seinen Druck behaelt –
+            // ein Zug nach unten bricht den Tap ab, statt ihn wegzuschnappen.
+            TapHandler {
+                onTapped: console.log("Power-Knopf: geklickt (noch ohne Funktion)")
+            }
+        }
+
         DatePanel {
             id: panel
 
@@ -178,12 +235,14 @@ Item {
         }
     }
 
-    // Reiner Hover-Sensor: nimmt bewusst keine Klicks an, sonst würde er dem
-    // DragHandler in der Karte den Druck wegschnappen.
-    MouseArea {
-        id: ma
-        anchors.fill: parent
-        acceptedButtons: Qt.NoButton
-        hoverEnabled: true
+    // Reiner Hover-Sensor fuer das Auf-/Zuklappen.
+    //
+    // Frueher eine MouseArea mit `hoverEnabled` – die nimmt Hover-Events aber
+    // exklusiv an. Dadurch kam der HoverHandler des Power-Knopfs darunter nie
+    // zum Zug: kein Farbwechsel, keine Cursor-Form. HoverHandler blockieren
+    // sich gegenseitig nicht, beide sehen denselben Zeiger. Klicks nimmt der
+    // hier ohnehin keine, der DragHandler in der Karte behaelt seinen Druck.
+    HoverHandler {
+        id: hoverSensor
     }
 }

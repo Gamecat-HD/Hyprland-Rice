@@ -5,16 +5,17 @@ import Quickshell.Hyprland
 
 import "root:/"
 
-// Special-Workspaces in der Selektor-Karte – dieselbe Idee wie
+// Special-Overlay im Selektor – dieselbe Idee wie
 // caelestia/modules/bar/components/workspaces/SpecialWorkspaces.qml, nur
 // horizontal und ohne Fenster-Icons:
-//   - ein Chip pro EXISTIERENDEM Special-WS (special:<name>)
-//   - der auf diesem Monitor offene leuchtet, Klick toggelt ihn
+//   - ein Icon pro EXISTIERENDEM Special-WS (special:<name>)
 //   - Icons wie in caelestias utils/Icons.qml (Fallback: Anfangsbuchstabe)
+//   - der aktive bekommt eine tertiäre Pille hinter dem Icon – das Gegenstück
+//     zur aktiven Punktpille der Normalansicht
+//   - Klick toggelt das jeweilige Special
 //
-// Sichtbar ist die Reihe nur, waehrend auf diesem Monitor ein Special offen
-// ist – WorkspaceSelector blendet dafuer die Punkte weg. Eintritt ist der
-// Klick auf den aktiven Punkt (der toggelt den generischen "special").
+// WorkspaceSelector legt das Overlay zentriert über die verwischten Punkte;
+// solange es sichtbar ist, fängt es deren Klicks ab.
 RowLayout {
     id: root
 
@@ -30,50 +31,65 @@ RowLayout {
     readonly property var specials: Hyprland.workspaces.values.filter(
         w => w.name.startsWith("special:") && w.monitor?.name === root.hyprMonitor?.name)
 
-    // Gleicher Rhythmus wie die Punkte: 2px Luft, der Rest kommt aus den
-    // Chip-Raendern (dort hitPadding-Prinzip wie in Workspace.qml)
-    spacing: 2
+    // 0, weil der Abstand wie bei den Punkten aus dem hitPadding kommt –
+    // so bleiben die Klickzonen auch hier lückenlos aneinander.
+    spacing: 0
 
     Repeater {
         model: root.specials
 
-        Rectangle {
-            id: chip
+        Item {
+            id: ws
 
             required property var modelData   // HyprlandWorkspace
 
             // "special:music" -> "music". Der generische Special heisst intern
             // "special:special" (Hyprland haengt IMMER das Prefix an), also
             // bleibt der Key nie leer und bekommt den Star wie in caelestia.
-            readonly property string key: chip.modelData.name.slice("special:".length)
-            readonly property bool isActive: root.activeSpecial === chip.modelData.name
-            readonly property bool hasWindows: chip.modelData.lastIpcObject.windows > 0
+            readonly property string key: ws.modelData.name.slice("special:".length)
+            readonly property bool isActive: root.activeSpecial === ws.modelData.name
+            readonly property bool hasWindows: ws.modelData.lastIpcObject.windows > 0
+
+            // Gleiche Größenphilosophie wie die Punktreihe: deutliche
+            // Trefferfläche (hitPadding), das Sichtbare sitzt zentriert.
+            readonly property real iconSize: 18
+            readonly property real pillWidth: ws.iconSize + 16
+            readonly property real pillHeight: 24
+            readonly property real hitPadding: 6
 
             Layout.alignment: Qt.AlignVCenter
-            implicitWidth: icon.implicitWidth + 16
-            implicitHeight: 22
-            radius: height / 2
+            implicitWidth: ws.pillWidth + ws.hitPadding * 2
+            implicitHeight: ws.pillHeight + ws.hitPadding * 2
 
-            color: chip.isActive ? Colors.primary
-                 : hover.hovered ? Colors.alpha(Colors.fgSurface, 0.08)
-                 : "transparent"
+            // Die tertiäre Pille hinter dem aktiven Icon. Sie zieht sich
+            // inaktiv auf Breite 0 zusammen – derselbe Zug wie der aktive
+            // Punkt, der sich zur Pille dehnt bzw. schrumpft.
+            Rectangle {
+                anchors.centerIn: parent
 
-            Behavior on color {
-                ColorAnimation { duration: 140 }
+                width: ws.isActive ? ws.pillWidth : 0
+                height: ws.pillHeight
+                radius: height / 2
+                color: Colors.tertiary
+
+                Behavior on width {
+                    NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                }
             }
 
             Text {
-                id: icon
-
                 anchors.centerIn: parent
-                text: chip.iconName(chip.key)
+
+                text: ws.iconName(ws.key)
                 font.family: "Material Symbols Outlined"
-                font.pixelSize: 14
-                color: chip.isActive ? Colors.fgBackground
-                     : chip.hasWindows ? Colors.fgSurface
+                font.pixelSize: ws.iconSize
+
+                // Aktiv = onTertiary (lesbar auf der Pille). Belegte Specials
+                // heben sich vom leeren Rahmen ab – dieselbe Stufung wie bei
+                // den Punkten, nur ohne Groessenunterschied.
+                color: ws.isActive ? Colors.fgTertiary
+                     : ws.hasWindows ? Colors.fgSurface
                      : Colors.fgSurfaceVariant
-                // Belegte Specials heben sich vom leeren Rahmen ab – dieselbe
-                // Stufung wie bei den Punkten, nur ohne Groessenunterschied.
 
                 Behavior on color {
                     ColorAnimation { duration: 140 }
@@ -99,7 +115,9 @@ RowLayout {
             }
 
             TapHandler {
-                onTapped: Hyprland.dispatch(`hl.dsp.workspace.toggle_special("${chip.key}")`)
+                onTapped: Hyprland.dispatch(Hyprland.usingLua
+                    ? `hl.dsp.workspace.toggle_special("${ws.key}")`
+                    : `togglespecialworkspace ${ws.key}`);
             }
         }
     }

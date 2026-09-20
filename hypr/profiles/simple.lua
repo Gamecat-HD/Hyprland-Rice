@@ -406,7 +406,24 @@ hl.bind("CTRL + SUPER + SHIFT + Right", hl.dsp.window.move({ workspace = "m+1" }
 -- ueber die CLI: startet die zugehoerige App gleich mit, wenn der Workspace leer ist
 -- (Zuordnung in ~/.config/dynamic-island/cli.json unter "toggles")
 hl.bind("SUPER + S", hl.dsp.exec_cmd("dynamic-island toggle specialws"))
-hl.bind("SUPER + M", hl.dsp.exec_cmd("dynamic-island toggle music"))
+-- Music: laeuft Spotify schon, wird special:music auf dem Fokus-Monitor
+-- getoggelt (offen -> zu, zu/anderer Monitor -> hierher). Sonst startet
+-- Spotify zuerst und der Special wird geöffnet, sobald das Fenster da ist.
+hl.bind(
+	"SUPER + M",
+	hl.dsp.exec_cmd([[
+		if hyprctl -j clients | grep -q '"class": *"Spotify"'; then
+			hyprctl dispatch 'hl.dsp.workspace.toggle_special("music")'
+		else
+			spotify-launcher >/dev/null 2>&1 &
+			for i in $(seq 1 30); do
+				hyprctl -j clients | grep -q '"class": *"Spotify"' && break
+				sleep 0.5
+			done
+			hyprctl dispatch 'hl.dsp.focus({ workspace = "special:music" })'
+		fi
+	]])
+)
 hl.bind("SUPER + D", hl.dsp.exec_cmd("dynamic-island toggle communication"))
 hl.bind("CTRL + SHIFT + Escape", hl.dsp.exec_cmd("dynamic-island toggle sysmon"))
 hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special:special" }))

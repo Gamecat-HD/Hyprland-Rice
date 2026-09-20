@@ -232,6 +232,7 @@ Item {
             Keys.onEscapePressed: LauncherState.close()
             Keys.onUpPressed: panel.move(-1)
             Keys.onDownPressed: panel.move(1)
+            Keys.onTabPressed: panel.move(1)
             Keys.onReturnPressed: panel.activate(list.currentIndex)
             Keys.onEnterPressed: panel.activate(list.currentIndex)
 

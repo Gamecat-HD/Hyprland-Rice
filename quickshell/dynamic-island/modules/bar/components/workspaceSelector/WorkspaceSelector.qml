@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
@@ -38,9 +39,40 @@ Item {
     readonly property int activeWsId: root.hyprMonitor?.activeWorkspace?.id ?? 1
 
     // Ist auf DIESEM Monitor gerade ein Special offen? Bestimmt den Crossfade
-    // zwischen Punkten (normal) und Special-Chips – dasselbe Prinzip wie in
+    // zwischen Punkten (normal) und Special-Overlay – dasselbe Prinzip wie in
     // caelestias Workspaces.qml, nur eben horizontal.
     readonly property bool onSpecial: (root.hyprMonitor?.lastIpcObject.specialWorkspace?.name ?? "") !== ""
+
+    // Quickshell zieht die IPC-Objekte nicht bei jedem Event nach –
+    // specialWorkspace an den Monitoren und die Fensterzaehlen in den
+    // Workspaces bleiben sonst ewig stehen (die Overlay-Erkennung lief also
+    // leer). Caelestia loest es identisch: bei den relevanten Events die
+    // Listen neu ziehen, dann laufen alle Bindings hier mit echten Daten.
+    Connections {
+        target: Hyprland
+
+        function onRawEvent(event: HyprlandEvent): void {
+            const n = event.name;
+
+            // Special rein/raus -> Monitor-JSON (specialWorkspace) neu laden
+            if (n === "activespecial" || n === "activespecialv2") {
+                Hyprland.refreshMonitors();
+                Hyprland.refreshWorkspaces();
+            // Fenster oeffnen/schliessen/umziehen -> Punkt-Belegung frisch halten
+            } else if (n === "openwindow" || n === "closewindow" || n === "movewindow") {
+                Hyprland.refreshWorkspaces();
+            }
+        }
+    }
+
+    // Blur der Punkte, solange ein Special offen ist. Eigene Property, weil
+    // der Layer-Effekt am Wrapper haengt und beide animiert mitgehen sollen
+    // (caelestia loest das identisch).
+    property real dotBlur: root.onSpecial ? 1 : 0
+
+    Behavior on dotBlur {
+        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+    }
 
     // Welche 10er-Gruppe gehört zu diesem Monitor: 0 bei ws 1-10, 10 bei 11-20
     readonly property int groupOffset: Math.floor((root.activeWsId - 1) / root.workspacesPerMonitor) * root.workspacesPerMonitor
@@ -55,11 +87,11 @@ Item {
 
     // Breite kommt von innen: das RowLayout rechnet sie aus seinen Punkten,
     // die Karte fuellt root. Andersherum (root von der Karte) waere es eine
-    // Binding-Schleife. Im Special-Modus kommt LINKS der Platz fuer die Chips
-    // dazu – die Karte waechst also genau um deren Breite, mehr nicht. Die
-    // Punkte bleiben wo (und wie) sie sind.
-    implicitWidth: root.padding * 2 + layout.implicitWidth
-                   + (root.onSpecial ? specialWs.implicitWidth + 8 : 0)
+    // Binding-Schleife. Im Special-Modus misst die Karte stattdessen das
+    // Overlay – sie morpht also beim Eintritt auf dessen Breite, die Punkte
+    // verblassen darunter (siehe dotsWrap).
+    implicitWidth: root.padding * 2
+                   + (root.onSpecial ? specialWs.implicitWidth : layout.implicitWidth)
 
     Behavior on implicitWidth {
         NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
@@ -101,44 +133,84 @@ Item {
             }
         }
 
-        RowLayout {
-            id: layout
+        // Die Punkte hängen in einem eigenen Wrapper, damit sie sich als
+        // Ganzes zurücknehmen lassen: Beim Special-Eintritt schrumpfen sie,
+        // verblassen und werden unscharf (caelestia-Prinzip) – das Overlay
+        // legt sich darüber. Der Blur hängt am Layer des Wrappers; der harte
+        // layer.enabled-Umschprung fällt nicht auf, weil dotBlur bei 0 startet.
+        Item {
+            id: dotsWrap
+
             anchors.centerIn: parent
+            width: layout.implicitWidth
+            height: layout.implicitHeight
 
-            // 0, weil der Abstand aus dem hitPadding der Punkte kommt –
-            // so grenzen die Klickzonen lückenlos aneinander.
-            spacing: 0
+            scale: root.onSpecial ? 0.8 : 1
+            opacity: root.onSpecial ? 0.5 : 1
 
-            Repeater {
-                id: workspaces
+            // Wichtig: Punkte im Special-Modus komplett vom Input abkoppeln.
+            // Pointer-Handler sind nicht exklusiv – die TapHandler der Punkte
+            // bekommen vom Overlay-Klick sonst noch etwas mit (passiver Grab)
+            // und es feuern beide Aktionen. Disable trifft alle Handler
+            // inkl. Hover-Cursor der Kinder.
+            enabled: !root.onSpecial
 
-                model: root.workspacesPerMonitor
+            layer.enabled: root.dotBlur > 0
+            layer.effect: MultiEffect {
+                blurEnabled: true
+                blur: root.dotBlur
+                blurMax: 32
+            }
 
-                Workspace {
-                    activeWsId: root.activeWsId
-                    occupied: root.occupied
-                    groupOffset: root.groupOffset
+            Behavior on scale {
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+            }
+
+            RowLayout {
+                id: layout
+                anchors.centerIn: parent
+
+                // 0, weil der Abstand aus dem hitPadding der Punkte kommt –
+                // so grenzen die Klickzonen lückenlos aneinander.
+                spacing: 0
+
+                Repeater {
+                    id: workspaces
+
+                    model: root.workspacesPerMonitor
+
+                    Workspace {
+                        activeWsId: root.activeWsId
+                        occupied: root.occupied
+                        groupOffset: root.groupOffset
+                    }
                 }
             }
         }
 
-        // Special-Chips, solange auf diesem Monitor ein Special offen ist
-        // (siehe SpecialWorkspaces.qml). Sitzen LINKS neben den Punkten – die
-        // Karte waechst beim Eintritt nur um genau diese Breite, die Punkte
-        // selbst bleiben unangetastet.
+        // Special-Overlay, solange auf diesem Monitor ein Special offen ist
+        // (siehe SpecialWorkspaces.qml). Liegt ZENTRIERT über den verwischten
+        // Punkten – dieselbe Optik wie caelestia, nur horizontal. Die Punkte
+        // sind im Special-Modus über `enabled` abgeschaltet (siehe dotsWrap),
+        // weil Handler ihren Input sonst mit dem Overlay teilen würden.
         SpecialWorkspaces {
             id: specialWs
 
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: layout.left
-            anchors.rightMargin: 8
+            anchors.centerIn: parent
             hyprMonitor: root.hyprMonitor
 
             opacity: root.onSpecial ? 1 : 0
+            scale: root.onSpecial ? 1 : 0.5
             visible: opacity > 0
 
             Behavior on opacity {
-                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+            }
+            Behavior on scale {
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
             }
         }
     }
