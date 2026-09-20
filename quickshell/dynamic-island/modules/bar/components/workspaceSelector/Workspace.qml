@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
 import Quickshell.Hyprland
 
 import "root:/"
@@ -98,45 +97,6 @@ Item {
         id: hover
 
         cursorShape: Qt.PointingHandCursor
-
-        onHoveredChanged: {
-            if (hover.hovered) {
-                previewDelay.restart();
-            } else {
-                previewDelay.stop();
-                previewLoader.wanted = false;
-            }
-        }
-    }
-
-    // Vorschau erst nach kurzem Verweilen. Ohne die Verzoegerung blitzt sie
-    // beim Ueberfahren der Punktreihe an jedem Punkt einmal auf – und jede
-    // Vorschau haengt Live-Captures an die Fenster des Workspaces.
-    Timer {
-        id: previewDelay
-
-        interval: 350
-        onTriggered: previewLoader.wanted = true
-    }
-
-    // Loader statt dauerhaftem Popup: ausserhalb des Hovers existiert das
-    // Fenster gar nicht, es laufen also nie mehrere Captures nebeneinander.
-    Loader {
-        id: previewLoader
-
-        // `wanted` setzt der Timer, `active` haengt zusaetzlich am Fenster:
-        // beim Neuladen der Shell ist QsWindow.window kurz null, und ein Popup
-        // ohne Fenster hat keinen Screen, an dem es sich ausrichten koennte.
-        property bool wanted: false
-
-        active: previewLoader.wanted && !!root.QsWindow.window
-
-        sourceComponent: WorkspacePreview {
-            anchorItem: root
-            ws: root.ws
-            screen: root.QsWindow.window?.screen ?? null
-            visible: true
-        }
     }
 
     TapHandler {
