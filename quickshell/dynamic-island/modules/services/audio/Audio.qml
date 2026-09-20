@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Quickshell
 import Quickshell.Services.Pipewire
 
 // Zentrale Audio-Quelle: der Default-Sink von PipeWire, live getrackt.
