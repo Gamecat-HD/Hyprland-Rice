@@ -5,6 +5,7 @@ import QtQuick
 import Quickshell
 
 import "modules/bar"
+import "modules/settings"
 import "modules/window"
 
 // Minimaler Startpunkt für den eigenen Rice.
@@ -18,4 +19,5 @@ ShellRoot {
 
     Wallpaper {}
     Bar {}
+    SettingsWindow {}
 }

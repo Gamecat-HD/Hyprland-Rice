@@ -19,7 +19,6 @@ Singleton {
     //   "apps"       Suchfeld + Trefferliste (LauncherPanel)
     //   "wallpaper"  eigenes Suchfeld + Bild-Karussell (WallpaperPanel)
     //   "theme"      eigenes Suchfeld + Farb-Karussell (ThemePanel)
-    //   "settings"   Schalter fuer die Leiste (SettingsPanel)
     property string mode: "apps"
 
     function show(target: ShellScreen): void {
@@ -61,10 +60,6 @@ Singleton {
         root.showMode(target, "theme");
     }
 
-    function showSettings(target: ShellScreen): void {
-        root.showMode(target, "settings");
-    }
-
     // Für Aufrufe von außen (Tastenkürzel): Monitor unter dem Fokus nehmen
     function focusedScreen(): ShellScreen {
         const name = Hyprland.focusedMonitor?.name ?? "";
@@ -97,10 +92,6 @@ Singleton {
 
         function theme(): void {
             root.showThemes(root.focusedScreen());
-        }
-
-        function settings(): void {
-            root.showSettings(root.focusedScreen());
         }
     }
 }

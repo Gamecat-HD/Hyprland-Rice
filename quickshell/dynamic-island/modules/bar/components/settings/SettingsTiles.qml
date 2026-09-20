@@ -8,6 +8,8 @@ import qs.modules.services.audio
 import qs.modules.services.brightness
 import qs.modules.services.vpn
 
+import "root:/modules/settings"
+
 import "root:/"
 
 // Kacheln fuer das aufgeklappte Settings-Feld (Vorlage: Control-Center).
@@ -42,7 +44,6 @@ ColumnLayout {
     property bool btOn: false
 
     property bool gameMode: false
-    property bool dnd: false
     property bool noSleep: false
 
     // Gewaehlte Dauer in Sekunden; -1 = nichts gewaehlt (Standard),
@@ -333,32 +334,6 @@ ColumnLayout {
         }
     }
 
-    ColumnLayout {
-        Layout.fillWidth: true
-        spacing: 6
-
-        LevelSlider {
-            Layout.fillWidth: true
-            title: "Lautstärke"
-            icon: Audio.muted ? "volume_off"
-                               : Audio.volume >= 0.5 ? "volume_up" : "volume_down"
-            value: Audio.volume
-            accent: Audio.muted ? Colors.error : Colors.primary
-            onAdjusted: value => Audio.setVolume(value)
-        }
-
-        LevelSlider {
-            Layout.fillWidth: true
-            title: "Helligkeit"
-            icon: "brightness_6"
-            value: Brightness.value
-            accent: Colors.tertiary
-            enabled: Brightness.ready
-            opacity: enabled ? 1 : 0.5
-            onAdjusted: value => Brightness.setValue(value)
-        }
-    }
-
     RowLayout {
         Layout.fillWidth: true
         spacing: 10
@@ -437,8 +412,11 @@ ColumnLayout {
     }
 
     RowLayout {
+        id: lowerTileRow
+
         Layout.fillWidth: true
         spacing: 10
+        z: root.sleepMenuOpen ? 100 : 0
 
         Tile {
             icon: Vpn.connected ? "vpn_key" : "vpn_key_off"
@@ -613,10 +591,42 @@ ColumnLayout {
             }
         }
 
+        // Frueher "Nicht stoeren" (rein visuell, es gab keinen Daemon).
+        // Der Schalter steht jetzt im Einstellungs-Fenster, das dieser Kreis
+        // oeffnet – dort wirkt er auch wirklich.
         CircleToggle {
-            icon: root.dnd ? "do_not_disturb_on" : "do_not_disturb_off"
-            active: root.dnd
-            onToggled: root.dnd = !root.dnd   // kein Daemon vorhanden -> visuell
+            icon: "tune"
+            active: SettingsState.open
+            onToggled: SettingsState.toggleOnFocused()
+        }
+    }
+
+    ColumnLayout {
+        Layout.fillWidth: true
+        spacing: 6
+
+        LevelSlider {
+            Layout.fillWidth: true
+            title: "Lautstärke"
+            icon: Audio.muted ? "volume_off"
+                               : Audio.volume >= 0.5 ? "volume_up" : "volume_down"
+            value: Audio.volume
+            accent: Audio.muted ? Colors.error : Colors.primary
+            foreground: Audio.muted ? Colors.fgError : Colors.fgPrimary
+            onAdjusted: value => Audio.setVolume(value)
+        }
+
+        LevelSlider {
+            Layout.fillWidth: true
+            title: "Helligkeit"
+            icon: "brightness_6"
+            value: Brightness.value
+            accent: Brightness.value > 0.5
+                    ? Colors.alpha(Colors.primary, 0.78) : Colors.primaryDim
+            foreground: Brightness.value > 0.5 ? Colors.fgPrimary : Colors.fgBackground
+            enabled: Brightness.ready
+            opacity: enabled ? 1 : 0.5
+            onAdjusted: value => Brightness.setValue(value)
         }
     }
 }

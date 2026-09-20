@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
+import qs.modules.services.config
 
 // Benachrichtigungs-Dienst: die Shell IST hier der Notification-Daemon.
 //
@@ -42,8 +43,13 @@ Singleton {
     }
 
     // Nicht stoeren: unterdrueckt nur das Aufklappen der Pille, gesammelt wird
-    // weiter (dasselbe Verhalten wie bei caelestia).
-    property bool dnd: false
+    // weiter (dasselbe Verhalten wie bei caelestia). Liegt in der
+    // Konfiguration, ueberlebt also einen Neustart.
+    readonly property bool dnd: Config.notifications.dnd
+
+    function toggleDnd(): void {
+        Config.set("notifications", "dnd", !root.dnd);
+    }
 
     // Zaehlt hoch, damit sich die Altersangaben ("5m") von selbst auffrischen
     property int tick: 0
@@ -167,7 +173,7 @@ Singleton {
         }
 
         function toggleDnd(): bool {
-            root.dnd = !root.dnd;
+            root.toggleDnd();
             return root.dnd;
         }
     }

@@ -28,11 +28,10 @@ Item {
     property bool expanded: false
     readonly property var hostScreen: notch.QsWindow.window?.screen ?? null
     readonly property bool launcherOpen: LauncherState.open && LauncherState.screen === hostScreen
-    // Die Karte hat im Launcher-Modus vier Ansichten (siehe LauncherState.mode)
+    // Die Karte hat im Launcher-Modus drei Ansichten (siehe LauncherState.mode)
     readonly property bool wallpaperOpen: launcherOpen && LauncherState.mode === "wallpaper"
     readonly property bool themeOpen: launcherOpen && LauncherState.mode === "theme"
-    readonly property bool settingsOpen: launcherOpen && LauncherState.mode === "settings"
-    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !settingsOpen
+    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen
     readonly property bool open: expanded || launcherOpen
 
     // Die Uhr rutscht beim Aufklappen etwas nach unten
@@ -47,11 +46,9 @@ Item {
     readonly property real collapsedWidth: clock.implicitWidth + 50
     readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth
                                         : themeOpen ? themes.outerWidth
-                                        : settingsOpen ? shellSettings.outerWidth
                                         : launcher.outerWidth
     readonly property real launcherHeight: wallpaperOpen ? wallpapers.outerHeight
                                          : themeOpen ? themes.outerHeight
-                                         : settingsOpen ? shellSettings.outerHeight
                                          : launcher.outerHeight
 
     readonly property real expandedWidth: launcherOpen ? Math.max(collapsedWidth, launcherWidth)
@@ -62,8 +59,7 @@ Item {
     readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight,
                                              launcherTop + launcher.maxOuterHeight,
                                              launcherTop + wallpapers.maxOuterHeight,
-                                             launcherTop + themes.maxOuterHeight,
-                                             launcherTop + shellSettings.maxOuterHeight) + verticalMargin
+                                             launcherTop + themes.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
     y: verticalMargin / 2
@@ -306,20 +302,6 @@ Item {
             cardRadius: notch.cardRadius
             active: notch.wallpaperOpen
             opacity: notch.wallpaperOpen ? 1 : 0
-            visible: opacity > 0
-
-            Behavior on opacity {
-                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
-            }
-        }
-
-        SettingsPanel {
-            id: shellSettings
-
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.settingsOpen
-            opacity: notch.settingsOpen ? 1 : 0
             visible: opacity > 0
 
             Behavior on opacity {

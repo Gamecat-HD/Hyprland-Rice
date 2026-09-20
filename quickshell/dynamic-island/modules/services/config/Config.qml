@@ -24,9 +24,65 @@ Singleton {
     readonly property string path: Quickshell.env("HOME") + "/.config/dynamic-island/shell.json"
 
     readonly property alias bar: adapter.bar
+    readonly property alias notifications: adapter.notifications
+
+    // Klartext zu den Schluesseln. Steht hier neben den Vorgaben, damit eine
+    // neue Einstellung an einer einzigen Stelle entsteht: Default eintragen,
+    // Beschriftung dazu – im Menue erscheint sie von selbst.
+    readonly property var meta: ({
+        "bar.workspaces": { title: "Workspace-Punkte", desc: "Die Punktreihe links aussen" },
+        "bar.stats": { title: "System-Pille", desc: "Akkustand, Energieprofile und Auslastung" },
+        "bar.tray": { title: "Systemtray", desc: "Die Icons links neben der Uhr" },
+        "bar.settings": { title: "Settings-Karte", desc: "Der Kreis rechts der Uhr mit WLAN, Bluetooth und Co." },
+        "bar.media": { title: "Medien-Karte", desc: "Titel, Cover und Steuerung rechts aussen" },
+        "bar.notifications": { title: "Benachrichtigungen", desc: "Die Glocke mit Zaehler in der Leiste" },
+        "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" }
+    })
+
+    readonly property var sectionMeta: ({
+        "bar": "Leiste",
+        "notifications": "Benachrichtigungen"
+    })
+
+    // Die Datei als einfaches Objekt – daraus baut das Einstellungs-Fenster
+    // seine Liste, ohne dass dort jeder Schluessel einzeln stehen muss.
+    // Neue Schluessel im Adapter tauchen dadurch von selbst im Menue auf.
+    property var raw: ({})
 
     function save(): void {
         file.writeAdapter();
+        root.reread();
+    }
+
+    // Wert setzen, ohne den Namen fest zu verdrahten
+    function set(section: string, key: string, value: var): void {
+        const target = root[section];
+        if (!target)
+            return;
+        target[key] = value;
+        root.save();
+    }
+
+    function get(section: string, key: string): var {
+        return root[section]?.[key];
+    }
+
+    function reread(): void {
+        try {
+            root.raw = JSON.parse(file.text());
+        } catch (e) {
+            // Halb geschriebene Datei o.ae. – beim naechsten Mal wieder
+            return;
+        }
+
+        // Fehlt der Datei ein Abschnitt (neu dazugekommen), einmal
+        // zurueckschreiben. Sonst waere er im Menue nicht zu sehen, denn das
+        // baut sich aus der Datei.
+        for (const section of ["bar", "notifications"])
+            if (root.raw[section] === undefined) {
+                file.writeAdapter();
+                return;
+            }
     }
 
     FileView {
@@ -34,6 +90,7 @@ Singleton {
 
         path: root.path
         watchChanges: true
+        onLoaded: root.reread()
         // Beim allerersten Start gibt es die Datei noch nicht – das ist kein
         // Fehler, den man melden muesste (angelegt wird sie unten)
         printErrors: false
@@ -49,6 +106,11 @@ Singleton {
 
             // Was in der Leiste sichtbar ist. Die Notch selbst steht nicht zur
             // Wahl – ohne sie gaebe es weder Uhr noch Launcher.
+            // Alles, was hier steht, erscheint automatisch im Menue
+            property JsonObject notifications: JsonObject {
+                property bool dnd: false
+            }
+
             property JsonObject bar: JsonObject {
                 property bool workspaces: true
                 property bool tray: true

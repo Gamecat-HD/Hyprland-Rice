@@ -4,6 +4,8 @@ import QtQuick
 import Quickshell
 import qs.modules.services.wallpaper
 
+import "root:/modules/settings"
+
 // Aktionen des Launchers – das Gegenstück zu Caelestias `Actions`-Service.
 // Erreichbar über das Präfix `>`.
 //
@@ -49,10 +51,9 @@ Singleton {
         },
         {
             name: "Einstellungen",
-            desc: "Was in der Leiste zu sehen ist",
+            desc: "Fenster mit den Schaltern der Shell",
             icon: "tune",
-            keepOpen: true,
-            run: () => LauncherState.mode = "settings"
+            run: () => SettingsState.toggleOnFocused()
         },
         {
             name: "Zufaelliges Wallpaper",
