@@ -4,8 +4,12 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 
+import qs.modules.services.system
+
 import "root:/"
 import "root:/modules/launcher"
+// Fuer den Ring um die Uhr – derselbe, der an der Settings-Pille haengt
+import "root:/modules/bar/components/settings"
 
 // Notch mit Uhr: Karte, Hover-Logik und Auf-/Zuklapp-Animation. Den Inhalt des
 // ausgeklappten Teils bringt DatePanel komplett selbst mit (Datum, Gesten,
@@ -157,6 +161,40 @@ Item {
             }
             Behavior on opacity {
                 NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+            }
+        }
+
+        // Akku-Ring am Aussenrand der Pille, wenn ein Systemakku da ist.
+        // Derselbe Ring wie an der Settings-Pille: die Stadion-Form legt sich
+        // um die flache Pille, die Luecke sitzt unten in der Mitte.
+        //
+        // Nur eingeklappt – aufgeklappt waere es ein Rahmen um eine grosse
+        // Karte, und die Uhr ist dann ohnehin nicht mehr der Inhalt.
+        //
+        // `value` und `muted` ueberschreiben die Audio-Vorgaben der Datei
+        // (so macht es Settings.qml schon fuer die Helligkeit).
+        Audioslider {
+            id: batteryRing
+
+            // Voll = Primaerfarbe, leer = Fehlerfarbe. Der Umschlag ist bei
+            // 20 % erreicht, bei 60 % haelt sich beides die Waage; die 0.8
+            // unten ist die einzige Stellschraube dafuer.
+            // Der Exponent haelt die Mitte ausgewogen: linear waere bei 50 %
+            // schon fast alles rot.
+            readonly property real drain: Math.pow(Math.max(0, Math.min(1,
+                (1 - Power.percent / 100) / 0.8)), 1.5)
+
+            arcWidth: 2
+            arcGap: 3
+            value: Power.percent / 100
+            muted: false
+            activeColor: Colors.mix(Colors.primary, Colors.error, batteryRing.drain)
+
+            opacity: notch.open || !Power.hasSystemBattery ? 0 : 1
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
             }
         }
 

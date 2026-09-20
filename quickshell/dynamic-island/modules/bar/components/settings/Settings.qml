@@ -3,6 +3,7 @@ import QtQuick
 
 import qs.modules.services.audio
 import qs.modules.services.brightness
+import qs.modules.services.system
 import qs.modules.services.vpn
 
 import "root:/"
@@ -234,6 +235,50 @@ Rectangle {
             text: "sports_esports"
             active: true
             shown: tiles.gameMode
+        }
+
+        // Akku zum Schluss – Symbol samt Prozentzahl, deshalb kein StatusIcon
+        // (das ist ein reines Symbol). Gibt es keinen Akku, ist die Gruppe
+        // null breit und damit ganz weg.
+        Row {
+            id: battery
+
+            readonly property bool shown: settings.peek && Power.hasBattery
+            readonly property bool low: Power.percent <= 20 && !Power.charging
+
+            anchors.verticalCenter: parent.verticalCenter
+            width: battery.shown ? implicitWidth + 6 : 0
+            visible: width > 0
+            opacity: battery.shown ? 1 : 0
+            spacing: 3
+            clip: true
+
+            Behavior on width {
+                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: 160 }
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+
+                // Ohne Systemakku steckt der Akku in einem Geraet – dann sagt
+                // das Maus- bzw. Tastatursymbol mehr als ein Akku-Symbol
+                text: Power.hasSystemBattery ? Power.batteryIcon : Power.deviceIcon(Power.shown)
+                color: battery.low ? Colors.error : Colors.secondary
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 15
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+
+                text: `${Power.percent} %`
+                color: battery.low ? Colors.error : Colors.fgBackground
+                font.pixelSize: 11
+                font.weight: Font.DemiBold
+            }
         }
     }
 
