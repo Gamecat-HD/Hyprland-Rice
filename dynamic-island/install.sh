@@ -229,18 +229,48 @@ check_deploy() {
 }
 
 # ------------------------------------------------------------ 1. Pakete ---
-PKGS=(
-    hyprland quickshell python python-pillow python-materialyoucolor
-    grim slurp swappy hyprpicker wl-clipboard cliphist fuzzel
-    gpu-screen-recorder dart-sass dconf libnotify
-    ttf-material-symbols-variable-git otf-material-symbols
-)
-# Binary -> Paket (nur was wirklich gebraucht wird; Schriften separat geprueft)
+# Binary -> Paket. Ohne diese laeuft die Shell nicht oder es fehlen Teile,
+# die man sofort merkt (Leiste, Farben, Screenshots).
 declare -A NEEDED=(
     [qs]=quickshell [python]=python [grim]=grim [slurp]=slurp [swappy]=swappy
     [hyprpicker]=hyprpicker [wl-copy]=wl-clipboard [cliphist]=cliphist
     [fuzzel]=fuzzel [gpu-screen-recorder]=gpu-screen-recorder [sass]=dart-sass
     [dconf]=dconf [notify-send]=libnotify [hyprctl]=hyprland
+    # WLAN-Kachel, Netzliste und der Wifi-Ring in der Settings-Pille
+    [nmcli]=networkmanager
+    # Bluetooth-Kachel und Kopplung (der Dienst selbst redet ueber DBus,
+    # bluetoothctl wird nur als Pairing-Agent gestartet)
+    [bluetoothctl]=bluez-utils
+    # Akku und Energieprofile holt Quickshell ueber DBus – dafuer muessen die
+    # Daemons da sein; die CLIs dienen hier als Anwesenheitsprobe
+    [upower]=upower
+    [powerprofilesctl]=power-profiles-daemon
+    # Cover-Bilder der Medien-Karte: laden und die Grundfarbe ziehen
+    [curl]=curl
+    [magick]=imagemagick
+)
+
+# Ohne die laeuft alles weiter, nur eine Einzelheit fehlt.
+declare -A OPTIONAL=(
+    # Balken im Medien-Player
+    [cava]=cava
+    # Helligkeit ueber DDC/CI (Brightness.qml). Am Laptop meist unnoetig,
+    # dort regelt brightnessctl die interne Anzeige.
+    [ddcutil]=ddcutil
+    # Die VPN-Kachel spricht nordvpn an
+    [nordvpn]=nordvpn-bin
+)
+
+# Systemdienste, an denen die Shell ueber DBus haengt
+declare -A SERVICES=(
+    [NetworkManager]="WLAN-Liste und Kacheln"
+    [bluetooth]="Bluetooth-Kachel"
+    [upower]="Akkustand (Ring um die Uhr, Statuszeile)"
+    [power-profiles-daemon]="Energieprofile"
+)
+declare -A SERVICE_PKG=(
+    [NetworkManager]=networkmanager [bluetooth]=bluez
+    [upower]=upower [power-profiles-daemon]=power-profiles-daemon
 )
 
 check_deps() {
@@ -264,6 +294,16 @@ check_deps() {
         fi
     done
 
+    # Kuerbare Extras: melden, aber nicht als Fehler zaehlen
+    for bin in "${!OPTIONAL[@]}"; do
+        if command -v "$bin" >/dev/null 2>&1; then
+            ok "$bin"
+        else
+            warn "$bin fehlt (Paket: ${OPTIONAL[$bin]}) — nur diese Einzelheit faellt aus"
+            [ "$INSTALL_DEPS" = 1 ] && missing+=("${OPTIONAL[$bin]}")
+        fi
+    done
+
     if [ -n "$(fc-list 2>/dev/null | grep -i "material symbols")" ]; then
         ok "Schrift: Material Symbols"
     else
@@ -283,6 +323,48 @@ check_deps() {
         fi
     elif [ ${#missing[@]} -gt 0 ]; then
         warn "Nachinstallieren mit: ./install.sh --install-deps   (oder pacman -S ${missing[*]})"
+    fi
+}
+
+# ---------------------------------------------------------- 1b. Dienste ---
+# Akku, Energieprofile, Bluetooth und WLAN holt sich die Shell ueber DBus.
+# Laeuft der jeweilige Daemon nicht, bleibt die Anzeige einfach leer – das
+# sieht man der Shell nicht an, deshalb hier nachsehen.
+check_services() {
+    step "Systemdienste"
+
+    local unit state
+    for unit in "${!SERVICES[@]}"; do
+        state="$(systemctl is-active "$unit" 2>/dev/null)"
+        case "$state" in
+            active)
+                ok "$unit (${SERVICES[$unit]})" ;;
+            inactive|failed)
+                warn "$unit laeuft nicht — ${SERVICES[$unit]} bleibt leer"
+                warn "   sudo systemctl enable --now $unit" ;;
+            *)
+                warn "$unit nicht installiert (Paket: ${SERVICE_PKG[$unit]}) — ${SERVICES[$unit]} entfaellt" ;;
+        esac
+    done
+}
+
+# ------------------------------------------- 1c. Benachrichtigungen ---
+# Die Shell IST der Notification-Daemon (Quickshell.Services.Notifications).
+# Laeuft schon ein anderer, bekommt der den DBus-Namen und die Glocke in der
+# Leiste bleibt stumm.
+check_notifications() {
+    step "Benachrichtigungen"
+
+    local other=""
+    for d in mako dunst swaync fnott; do
+        pgrep -x "$d" >/dev/null 2>&1 && other="$d"
+    done
+
+    if [ -n "$other" ]; then
+        warn "$other laeuft und belegt org.freedesktop.Notifications"
+        warn "   Die Shell bringt einen eigenen Daemon mit – $other beenden oder abschalten."
+    else
+        ok "kein zweiter Daemon im Weg (die Shell bringt einen mit)"
     fi
 }
 
@@ -403,7 +485,19 @@ summary() {
     hypr-profile status            Profil und Shell pruefen
     dynamic-island wallpaper -r    zufaelliges Wallpaper + Farbschema
 
+  In der Shell:
+    Einstellungen                  Kreis rechts der Uhr aufklappen -> Regler-Symbol
+                                   (oder ">einstellungen" im Launcher)
+                                   Legt ~/.config/dynamic-island/shell.json an;
+                                   dort laesst sich jedes Leisten-Teil abschalten.
+    Wallpaper / Theme              ">wallpaper" bzw. ">theme" im Launcher
+    WLAN                           Pfeil auf der Wi-Fi-Kachel
+
   Profile wechseln:  CTRL + SUPER + SHIFT + P   (oder hypr-profile toggle)
+
+  Wenn die Helligkeit nicht reagiert: sie laeuft ueber DDC/CI, und die
+  Bus-Nummern stehen fest in modules/services/brightness/Brightness.qml.
+  Welche dieser Rechner hat, sagt "ddcutil detect".
 EOF
     if [ "$COPY" = 1 ] && ! same_path "$REPO_DIR" "$CONFIG_DIR"; then
         printf '\n  %sKopiert statt verlinkt: nach einem `git pull` dieses Skript erneut laufen lassen.%s\n' \
@@ -424,6 +518,8 @@ check_links() {
 ki_warnung
 
 check_deps
+check_services
+check_notifications
 if [ "$CHECK_ONLY" = 1 ]; then check_deploy; else deploy; fi
 if [ "$CHECK_ONLY" = 1 ]; then check_links; else link_files; fi
 make_dirs

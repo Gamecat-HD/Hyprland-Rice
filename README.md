@@ -43,8 +43,18 @@ kann das auch — dann faellt das Verteilen weg.
 Hyprland **mit Lua-Konfiguration** (getestet mit 0.56) — die Config ist
 `hypr/hyprland.lua`, keine `hyprland.conf`. Dazu Quickshell (getestet mit
 0.3.1), Python mit `pillow` und `materialyoucolor`, die Material-Symbols-
-Schrift und die ueblichen Wayland-Werkzeuge. `./dynamic-island/install.sh
---check` sagt, was fehlt.
+Schrift und die ueblichen Wayland-Werkzeuge.
+
+Mehrere Anzeigen haengen an Systemdiensten, mit denen die Shell ueber DBus
+redet: **NetworkManager** (WLAN), **bluez** (Bluetooth), **upower** (Akku) und
+**power-profiles-daemon** (Energieprofile). Optional sind `cava` (Balken im
+Medien-Player), `ddcutil` (Helligkeit ueber DDC/CI) und `nordvpn` (VPN-Kachel) —
+ohne sie faellt nur die jeweilige Einzelheit aus.
+
+Benachrichtigungen bringt die Shell selbst mit; ein zweiter Daemon (mako, dunst,
+swaync) muss aus sein, sonst belegt er den DBus-Namen.
+
+`./dynamic-island/install.sh --check` sagt, was davon fehlt.
 
 ## Profile
 
