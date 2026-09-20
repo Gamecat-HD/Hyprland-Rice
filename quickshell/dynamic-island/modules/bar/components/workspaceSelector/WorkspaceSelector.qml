@@ -53,29 +53,17 @@ Item {
         return occ;
     }
 
-    // { wsId: [Fensterklassen] } – Grundlage fuer die App-Icons in den
-    // Workspaces (statt nur eines belegten Punkts). Auch einmal gebaut und
-    // durchgereicht, damit nicht jeder Punkt selbst ueber die Toplevels
-    // iteriert.
-    readonly property var windowClasses: {
-        const map = {};
-        for (const win of Hyprland.toplevels.values) {
-            const wsId = win.workspace?.id;
-            if (wsId === undefined || wsId < 1)
-                continue;
-            if (!map[wsId])
-                map[wsId] = [];
-            map[wsId].push(win.lastIpcObject.class ?? "");
-        }
-        return map;
-    }
-
     // Breite kommt von innen: das RowLayout rechnet sie aus seinen Punkten,
     // die Karte fuellt root. Andersherum (root von der Karte) waere es eine
-    // Binding-Schleife. Die Special-Chips zaehlen als Minimum mit – die Karte
-    // schrumpft also nicht, wenn die Punkte weichen (wie caelestia: konstante
-    // Flaeche, nur der Inhalt wechselt).
-    implicitWidth: Math.max(layout.implicitWidth, specialWs.implicitWidth) + root.padding * 2
+    // Binding-Schleife. Im Special-Modus kommt LINKS der Platz fuer die Chips
+    // dazu – die Karte waechst also genau um deren Breite, mehr nicht. Die
+    // Punkte bleiben wo (und wie) sie sind.
+    implicitWidth: root.padding * 2 + layout.implicitWidth
+                   + (root.onSpecial ? specialWs.implicitWidth + 8 : 0)
+
+    Behavior on implicitWidth {
+        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+    }
     height: parent.height - verticalMargin
     y: verticalMargin / 2
 
@@ -121,18 +109,6 @@ Item {
             // so grenzen die Klickzonen lückenlos aneinander.
             spacing: 0
 
-            // Waehrend ein Special offen ist weichen die Punkte (schrumpfen +
-            // verblassen), die Chips nehmen ihren Platz ein
-            opacity: root.onSpecial ? 0.5 : 1
-            scale: root.onSpecial ? 0.8 : 1
-
-            Behavior on opacity {
-                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
-            }
-            Behavior on scale {
-                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
-            }
-
             Repeater {
                 id: workspaces
 
@@ -142,28 +118,26 @@ Item {
                     activeWsId: root.activeWsId
                     occupied: root.occupied
                     groupOffset: root.groupOffset
-                    windowClasses: root.windowClasses
                 }
             }
         }
 
-        // Special-Chips statt Punkte, solange auf diesem Monitor ein Special
-        // offen ist (siehe SpecialWorkspaces.qml). ZULETZT deklariert = liegt
-        // ueber den Punkten und faengt die Klicks im Special-Modus.
+        // Special-Chips, solange auf diesem Monitor ein Special offen ist
+        // (siehe SpecialWorkspaces.qml). Sitzen LINKS neben den Punkten – die
+        // Karte waechst beim Eintritt nur um genau diese Breite, die Punkte
+        // selbst bleiben unangetastet.
         SpecialWorkspaces {
             id: specialWs
 
-            anchors.centerIn: parent
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: layout.left
+            anchors.rightMargin: 8
             hyprMonitor: root.hyprMonitor
 
             opacity: root.onSpecial ? 1 : 0
-            scale: root.onSpecial ? 1 : 0.5
             visible: opacity > 0
 
             Behavior on opacity {
-                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
-            }
-            Behavior on scale {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
             }
         }
