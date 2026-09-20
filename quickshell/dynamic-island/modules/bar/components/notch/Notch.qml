@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 
+import qs.modules.services.config
 import qs.modules.services.system
 
 import "root:/"
@@ -190,7 +191,7 @@ Item {
             muted: false
             activeColor: Colors.mix(Colors.primary, Colors.error, batteryRing.drain)
 
-            opacity: notch.open || !Power.hasSystemBattery ? 0 : 1
+            opacity: notch.open || !Power.hasSystemBattery || !Config.bar.battery ? 0 : 1
             visible: opacity > 0
 
             Behavior on opacity {

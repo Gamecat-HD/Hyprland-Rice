@@ -36,6 +36,7 @@ Singleton {
         "bar.settings": { title: "Settings-Karte", desc: "Der Kreis rechts der Uhr mit WLAN, Bluetooth und Co." },
         "bar.media": { title: "Medien-Karte", desc: "Titel, Cover und Steuerung rechts aussen" },
         "bar.notifications": { title: "Benachrichtigungen", desc: "Die Glocke mit Zaehler in der Leiste" },
+        "bar.battery": { title: "Akkuanzeige", desc: "Ring um die Uhr und Akkustand in der Settings-Pille" },
         "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" }
     })
 
@@ -67,6 +68,13 @@ Singleton {
         return root[section]?.[key];
     }
 
+    // Einmal pro Start schreiben wir die Datei zurueck. Der Adapter hat dann
+    // schon alles aus ihr gelesen, ergaenzt aber fehlende Schluessel mit ihren
+    // Vorgaben – so taucht eine neu dazugekommene Einstellung im Menue auf,
+    // das sich ja aus der Datei baut. Das Flag verhindert die Schleife
+    // Schreiben -> Dateiwaechter -> Schreiben.
+    property bool normalised: false
+
     function reread(): void {
         try {
             root.raw = JSON.parse(file.text());
@@ -75,14 +83,10 @@ Singleton {
             return;
         }
 
-        // Fehlt der Datei ein Abschnitt (neu dazugekommen), einmal
-        // zurueckschreiben. Sonst waere er im Menue nicht zu sehen, denn das
-        // baut sich aus der Datei.
-        for (const section of ["bar", "notifications"])
-            if (root.raw[section] === undefined) {
-                file.writeAdapter();
-                return;
-            }
+        if (!root.normalised) {
+            root.normalised = true;
+            file.writeAdapter();
+        }
     }
 
     FileView {
@@ -119,6 +123,7 @@ Singleton {
                 property bool notifications: true
                 // Die System-Pille ist neu und standardmaessig aus
                 property bool stats: false
+                property bool battery: true
             }
         }
     }

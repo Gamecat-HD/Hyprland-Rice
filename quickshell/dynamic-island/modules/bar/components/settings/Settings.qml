@@ -3,6 +3,7 @@ import QtQuick
 
 import qs.modules.services.audio
 import qs.modules.services.brightness
+import qs.modules.services.config
 import qs.modules.services.system
 import qs.modules.services.vpn
 
@@ -243,7 +244,7 @@ Rectangle {
         Row {
             id: battery
 
-            readonly property bool shown: settings.peek && Power.hasBattery
+            readonly property bool shown: settings.peek && Power.hasBattery && Config.bar.battery
             readonly property bool low: Power.percent <= 20 && !Power.charging
 
             anchors.verticalCenter: parent.verticalCenter
