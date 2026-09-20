@@ -3,11 +3,12 @@ import QtQuick
 import QtQuick.Shapes
 import Quickshell
 import qs.modules.services.vpn
+import qs.modules.services.audio
 
 import "root:/"
 
 // Settings-Knopf rechts neben der Notch. Lautstärke-Ring INNERHALB des Kreises,
-// live aus PipeWire (kein Polling – Updates kommen sofort bei Volume-Änderung).
+// live aus dem Audio-Service (kein Polling – Updates kommen sofort bei Volume-Änderung).
 Rectangle {
     id: settings
 
@@ -42,10 +43,8 @@ Rectangle {
         hoverEnabled: true
         onClicked: Vpn.toggle()
         onWheel: event => {
-            if (!slider.sink.ready || !slider.sink.audio)
-                return;
             const step = event.angleDelta.y > 0 ? 0.01 : -0.01;
-            slider.sink.audio.volume = Math.max(0, Math.min(1, slider.volume + step));
+            Audio.setVolume(Audio.volume + step);   // setzt selbst auf 0..1
         }
     }
 
