@@ -64,18 +64,11 @@ Variants {
             right: true
         }
 
-        // Das Fenster ist höher als die sichtbare Leiste, damit die Notch nach
-        // unten aufklappen kann (Layer-Surfaces können nicht überzeichnen).
-        // Platz reserviert wird trotzdem nur die Leiste, und Eingaben nimmt nur
-        // an, was die `mask` abdeckt – der Rest ist klick-durchlässig.
-        // Hoch genug fuer den groesseren der beiden Ausklapp-Teile (Notch oder
-        // Medien-Karte) – Platz reserviert wird trotzdem nur die Leiste.
-        implicitHeight: bar.catching ? bar.modelData.height
-                                     : bar.barHeight + Math.max(notch.maxDrop,
-                                                        Config.bar.media ? media.maxDrop : 0,
-                                                        Config.bar.settings ? settings.maxDrop : 0,
-                                                        Config.bar.notifications ? notifications.maxDrop : 0,
-                                                        Config.bar.stats ? stats.maxDrop : 0)
+        // Die Layer-Surface bleibt immer gleich hoch. Ein Resize von Kartenhoehe
+        // auf Bildschirmhoehe beim Launcher-Start liess den Compositor die
+        // gesamte Leiste kurz neu skalieren. Die Maske macht den transparenten
+        // Rest weiterhin klick-durchlaessig; reserviert werden nur 40 px.
+        implicitHeight: bar.modelData.height
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: bar.barHeight
         color: "transparent"
