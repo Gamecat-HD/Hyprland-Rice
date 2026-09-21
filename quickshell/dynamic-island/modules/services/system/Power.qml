@@ -60,8 +60,12 @@ Singleton {
         if (!root.hasBattery)
             return "battery_unknown";
         const step = Math.max(0, Math.min(6, Math.floor(root.percent / 100 * 7)));
-        if (root.charging)
-            return step >= 6 ? "battery_charging_full" : `battery_charging_${(step + 1) * 10}`;
+        if (root.charging) {
+            // Material Symbols hat keine gleichmaessigen 10er-Stufen; Namen
+            // wie battery_charging_40 werden sonst als Klartext dargestellt.
+            const levels = [20, 30, 50, 60, 80, 90];
+            return step >= 6 ? "battery_charging_full" : `battery_charging_${levels[step]}`;
+        }
         return step >= 6 ? "battery_full" : `battery_${step}_bar`;
     }
 
