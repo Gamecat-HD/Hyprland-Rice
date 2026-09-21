@@ -11,8 +11,10 @@ Rectangle {
     property real value: 0
     property color accent: Colors.primary
     property color foreground: Colors.fgPrimary
+    property bool detailsAvailable: false
 
     signal adjusted(real value)
+    signal detailsRequested()
 
     implicitHeight: 58
     radius: 14
@@ -52,15 +54,48 @@ Rectangle {
     }
 
     Text {
+        id: percentText
+
         anchors {
             top: parent.top
             topMargin: 7
             right: parent.right
-            rightMargin: 12
+            rightMargin: root.detailsAvailable ? 36 : 12
         }
         text: `${Math.round(root.value * 100)}%`
         font.pixelSize: 11
         color: Colors.fgSurfaceVariant
+    }
+
+    Rectangle {
+        anchors {
+            right: parent.right
+            rightMargin: 6
+            top: parent.top
+            topMargin: 3
+        }
+        width: 26
+        height: 26
+        radius: 13
+        visible: root.detailsAvailable
+        color: detailsArea.containsMouse ? Colors.alpha(root.accent, 0.16) : "transparent"
+
+        Text {
+            anchors.centerIn: parent
+            text: "chevron_right"
+            color: detailsArea.containsMouse ? root.accent : Colors.fgSurfaceVariant
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 18
+        }
+
+        MouseArea {
+            id: detailsArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.detailsRequested()
+        }
     }
 
     Item {

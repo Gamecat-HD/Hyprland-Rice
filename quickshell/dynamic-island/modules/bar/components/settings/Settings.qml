@@ -35,6 +35,7 @@ Rectangle {
     // an der Leiste (siehe Bar.qml).
     property bool wifiOpen: false
     property bool bluetoothOpen: false
+    property bool audioOpen: false
     readonly property bool typingPassword: wifiOpen && wifi.passwordSsid !== ""
     readonly property bool typingPin: bluetoothOpen && bluetooth.pairingInputOpen
 
@@ -46,7 +47,7 @@ Rectangle {
         if (containsMouse) {
             closeTimer.stop();
             peekClose.stop();
-            if (!expanded && !wifiOpen && !bluetoothOpen)
+            if (!expanded && !wifiOpen && !bluetoothOpen && !audioOpen)
                 peekTimer.restart();
         } else {
             peekTimer.stop();
@@ -78,6 +79,7 @@ Rectangle {
     readonly property real expandedWidth: 520
     readonly property real expandedHeight: 10 + (wifiOpen ? wifi.implicitHeight
                                                : bluetoothOpen ? bluetooth.implicitHeight
+                                               : audioOpen ? audio.implicitHeight
                                                : tiles.implicitHeight) + 10
 
     // Groesster Fall der WLAN-Ansicht – so viel muss sich das Bar-Fenster nach
@@ -95,15 +97,16 @@ Rectangle {
     }
     // Aufgeklappt die Karte, beim Hovern die Statuszeile, sonst der Kreis
     readonly property real peekWidth: status.implicitWidth + 12
-    width: expanded || wifiOpen || bluetoothOpen ? expandedWidth
+    width: expanded || wifiOpen || bluetoothOpen || audioOpen ? expandedWidth
          : peek ? peekWidth
          : collapsedSize
-    height: expanded || wifiOpen || bluetoothOpen ? expandedHeight : collapsedSize
+    height: expanded || wifiOpen || bluetoothOpen || audioOpen ? expandedHeight : collapsedSize
 
     // Klappt die Karte zu, ist auch die WLAN-Ansicht und das Dauer-Menue vorbei
     onExpandedChanged: if (!expanded) {
         settings.wifiOpen = false;
         settings.bluetoothOpen = false;
+        settings.audioOpen = false;
         tiles.sleepMenuOpen = false;
     } else {
         settings.showBrightness = false;
@@ -324,16 +327,23 @@ Rectangle {
             right: parent.right
             margins: 10
         }
-        opacity: settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen ? 1 : 0
+        opacity: settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen && !settings.audioOpen ? 1 : 0
         visible: opacity > 0
 
         onOpenWifi: {
             settings.bluetoothOpen = false;
+            settings.audioOpen = false;
             settings.wifiOpen = true;
         }
         onOpenBluetooth: {
             settings.wifiOpen = false;
+            settings.audioOpen = false;
             settings.bluetoothOpen = true;
+        }
+        onOpenAudio: {
+            settings.wifiOpen = false;
+            settings.bluetoothOpen = false;
+            settings.audioOpen = true;
         }
 
         Behavior on opacity {
@@ -381,6 +391,26 @@ Rectangle {
         }
     }
 
+    AudioPanel {
+        id: audio
+
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            margins: 10
+        }
+        active: settings.audioOpen
+        opacity: settings.audioOpen ? 1 : 0
+        visible: opacity > 0
+
+        onClosed: settings.audioOpen = false
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+    }
+
     Timer {
         id: closeTimer
 
@@ -401,7 +431,8 @@ Rectangle {
         target: Brightness
 
         function onValueChanged(): void {
-            if (Brightness.ready && !settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen) {
+            if (Brightness.ready && !settings.expanded && !settings.wifiOpen
+                    && !settings.bluetoothOpen && !settings.audioOpen) {
                 settings.showBrightness = true;
                 brightnessDisplayTimer.restart();
             }
@@ -409,12 +440,12 @@ Rectangle {
     }
 
     TapHandler {
-        enabled: !settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen
+        enabled: !settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen && !settings.audioOpen
         onTapped: settings.expanded = true
     }
 
     WheelHandler {
-        enabled: !settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen
+        enabled: !settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen && !settings.audioOpen
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
 
         property real acc: 0

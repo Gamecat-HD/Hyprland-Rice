@@ -88,7 +88,7 @@ local cfg = {
 	blurEnabled = true,
 	blurSize = 4,
 	blurPasses = 2,
-	shadowEnabled = true,
+	shadowEnabled = false,
 	shadowRange = 15,
 
 	-- Schritte fuer Lautstaerke / Helligkeit

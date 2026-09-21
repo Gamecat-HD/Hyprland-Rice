@@ -36,7 +36,8 @@ Item {
     // Die Karte hat im Launcher-Modus drei Ansichten (siehe LauncherState.mode)
     readonly property bool wallpaperOpen: launcherOpen && LauncherState.mode === "wallpaper"
     readonly property bool themeOpen: launcherOpen && LauncherState.mode === "theme"
-    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen
+    readonly property bool powerOpen: launcherOpen && LauncherState.mode === "power"
+    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen
     readonly property bool open: expanded || launcherOpen
 
     // Die Uhr rutscht beim Aufklappen etwas nach unten
@@ -51,9 +52,11 @@ Item {
     readonly property real collapsedWidth: clock.implicitWidth + 50
     readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth
                                         : themeOpen ? themes.outerWidth
+                                        : powerOpen ? powerMenu.outerWidth
                                         : launcher.outerWidth
     readonly property real launcherHeight: wallpaperOpen ? wallpapers.outerHeight
                                          : themeOpen ? themes.outerHeight
+                                         : powerOpen ? powerMenu.outerHeight
                                          : launcher.outerHeight
 
     readonly property real expandedWidth: launcherOpen ? Math.max(collapsedWidth, launcherWidth)
@@ -64,7 +67,8 @@ Item {
     readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight,
                                              launcherTop + launcher.maxOuterHeight,
                                              launcherTop + wallpapers.maxOuterHeight,
-                                             launcherTop + themes.maxOuterHeight) + verticalMargin
+                                             launcherTop + themes.maxOuterHeight,
+                                             launcherTop + powerMenu.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
     y: verticalMargin / 2
@@ -338,12 +342,10 @@ Item {
                 cursorShape: Qt.PointingHandCursor
             }
 
-            // Noch ohne Funktion: der Klick meldet sich vorerst nur im Log
-            // (`qs -c dynamic-island log`). TapHandler statt MouseArea, damit
-            // der Launcher-DragHandler in der Karte seinen Druck behaelt –
-            // ein Zug nach unten bricht den Tap ab, statt ihn wegzuschnappen.
+            // TapHandler statt MouseArea, damit der Launcher-DragHandler in der
+            // Karte seinen Druck behaelt: ein Zug nach unten bricht den Tap ab.
             TapHandler {
-                onTapped: console.log("Power-Knopf: geklickt (noch ohne Funktion)")
+                onTapped: LauncherState.showPower(notch.QsWindow.window.screen)
             }
         }
 
@@ -448,6 +450,20 @@ Item {
             active: notch.themeOpen
             opacity: notch.themeOpen ? 1 : 0
             visible: notch.themeOpen
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+        }
+
+        PowerPanel {
+            id: powerMenu
+
+            topOffset: notch.launcherTop
+            cardRadius: notch.cardRadius
+            active: notch.powerOpen
+            opacity: notch.powerOpen ? 1 : 0
+            visible: notch.powerOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }

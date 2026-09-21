@@ -38,6 +38,7 @@ ColumnLayout {
     // (Settings.qml) schaltet daraufhin ihre Ansicht um.
     signal openWifi()
     signal openBluetooth()
+    signal openAudio()
 
     // ---------- Zustaende ----------
     property bool wifiOn: true
@@ -643,7 +644,9 @@ ColumnLayout {
             value: Audio.volume
             accent: Audio.muted ? Colors.error : Colors.primary
             foreground: Audio.muted ? Colors.fgError : Colors.fgPrimary
+            detailsAvailable: true
             onAdjusted: value => Audio.setVolume(value)
+            onDetailsRequested: root.openAudio()
         }
 
         LevelSlider {
