@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# hypr-profile — schaltet Hyprland zwischen der vollen Caelestia-Config und der
-# schlanken Config um (siehe ~/.config/hypr/hyprland.lua) und verwaltet dabei
-# die zum Profil gehoerende Quickshell-Shell.
+# hypr-profile — schaltet Hyprland zwischen den Profilen in
+# ~/.config/hypr/profiles/*.lua um (siehe ~/.config/hypr/hyprland.lua) und
+# verwaltet dabei die zum Profil gehoerende Quickshell-Shell.
 #
-# Keybind zum Umschalten: CTRL + SUPER + SHIFT + P
+# Keybind zum Umschalten: CTRL + SUPER + SHIFT + P — geht der Reihe nach durch
+# PROFILE_ORDER unten, aktuell caelestia -> simple -> shell2 -> caelestia.
 
 set -uo pipefail
 
@@ -14,17 +15,25 @@ DEFAULT_PROFILE="caelestia"
 ################################################################################
 # Welche Quickshell-Config gehoert zu welchem Profil?
 #
-# Leerer Wert = das Profil laeuft ohne Shell.
-# Das schlanke Profil faehrt die eigene Shell ~/.config/quickshell/dynamic-island hoch.
+# Leerer Wert = das Profil laeuft ohne Shell. Der Wert ist der Name der
+# Quickshell-Config, also der Ordner unter ~/.config/quickshell/<name>.
 # Diese Tabelle ist die einzige Stelle mit Shell-Namen: Autostart und die
-# Shell-Keybinds in profiles/simple.lua rufen nur dieses Script auf.
+# Shell-Keybinds in profiles/*.lua rufen nur dieses Script auf.
 ################################################################################
 declare -A PROFILE_SHELL=(
     [caelestia]="caelestia"
     [simple]="dynamic-island"
+    [shell2]="shell2"
 )
 
-# Startbefehl je Shell. Ohne Eintrag wird `qs -c <name> -n -d` benutzt.
+# Reihenfolge, in der `hypr-profile toggle` durchschaltet. Ein assoziatives
+# Array hat keine feste Reihenfolge, darum hier noch einmal als Liste — und
+# sie entscheidet zugleich, welche Namen als Argument gelten. Ein neues Profil
+# braucht drei Dinge: profiles/<name>.lua, einen Eintrag oben und einen hier.
+PROFILE_ORDER=(caelestia simple shell2)
+
+# Startbefehl je Shell. Ohne Eintrag wird `qs -c <name> -n -d` benutzt —
+# shell2 laeuft genau so, ohne eigenen CLI-Wrapper.
 declare -A SHELL_START=(
     [caelestia]="caelestia shell -d"
     [simple]="dynamic-island shell -d"
@@ -39,16 +48,18 @@ usage() {
     cat <<'USAGE'
 hypr-profile — Hyprland-Profil umschalten (Keybind: CTRL + SUPER + SHIFT + P)
 
-  hypr-profile                Profil umschalten (toggle)
+  hypr-profile                zum naechsten Profil weiterschalten (toggle)
   hypr-profile caelestia      volle Config + Caelestia-Shell
-  hypr-profile simple         schlanke Config
+  hypr-profile simple         schlanke Config + Shell dynamic-island
+  hypr-profile shell2         schlanke Config + Shell shell2 (im Aufbau)
   hypr-profile status         Profil und Shell-Zustand anzeigen
 
   hypr-profile shell-sync     Shell an das aktive Profil angleichen (Autostart)
   hypr-profile shell-restart  Shell des aktiven Profils neu starten
   hypr-profile shell-kill     Shell des aktiven Profils beenden
 
-Die Zuordnung Profil -> Quickshell-Config steht oben in diesem Script.
+Die Zuordnung Profil -> Quickshell-Config und die Reihenfolge des Toggles
+stehen oben in diesem Script (PROFILE_SHELL bzw. PROFILE_ORDER).
 USAGE
 }
 
@@ -59,13 +70,34 @@ notify() {
     echo "$text"
 }
 
+is_profile() {
+    local name
+    for name in "${PROFILE_ORDER[@]}"; do
+        [ "$name" = "$1" ] && return 0
+    done
+    return 1
+}
+
 current_profile() {
     local name=""
     [ -r "$PROFILE_FILE" ] && read -r name < "$PROFILE_FILE"
-    case "$name" in
-        caelestia|simple) echo "$name" ;;
-        *) echo "$DEFAULT_PROFILE" ;;
-    esac
+    if is_profile "$name"; then
+        echo "$name"
+    else
+        echo "$DEFAULT_PROFILE"
+    fi
+}
+
+# Naechstes Profil im Zyklus — landet am Ende wieder beim ersten
+next_profile() {
+    local count=${#PROFILE_ORDER[@]} i
+    for ((i = 0; i < count; i++)); do
+        if [ "${PROFILE_ORDER[i]}" = "$1" ]; then
+            echo "${PROFILE_ORDER[(i + 1) % count]}"
+            return 0
+        fi
+    done
+    echo "${PROFILE_ORDER[0]}"
 }
 
 profile_shell() {
@@ -207,7 +239,7 @@ status() {
     echo "Aktives Profil: $cur"
     echo
     printf '%-12s %-12s %s\n' "PROFIL" "SHELL" "ZUSTAND"
-    for profile in "${!PROFILE_SHELL[@]}"; do
+    for profile in "${PROFILE_ORDER[@]}"; do
         name="${PROFILE_SHELL[$profile]}"
         if [ -z "$name" ]; then
             printf '%-12s %-12s %s\n' "$profile" "-" "ohne Shell"
@@ -223,11 +255,8 @@ status() {
 
 target=""
 case "${1:-toggle}" in
-    caelestia|simple)
-        target="$1"
-        ;;
     toggle|"")
-        if [ "$(current_profile)" = "caelestia" ]; then target="simple"; else target="caelestia"; fi
+        target="$(next_profile "$(current_profile)")"
         ;;
     status)
         status
@@ -257,8 +286,13 @@ case "${1:-toggle}" in
         exit 0
         ;;
     *)
-        usage >&2
-        exit 1
+        # Jeder Name aus PROFILE_ORDER ist ein gueltiges Ziel
+        if is_profile "$1"; then
+            target="$1"
+        else
+            usage >&2
+            exit 1
+        fi
         ;;
 esac
 

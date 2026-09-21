@@ -1,14 +1,18 @@
 -- Hyprland-Hauptconfig: Monitore + Profil-Weiche.
 --
---   ~/.config/hypr/profile             aktives Profil ("caelestia" oder "simple")
+--   ~/.config/hypr/profile             Name des aktiven Profils
 --   ~/.config/hypr/profiles/*.lua      die Profile selbst
 --   ~/.local/bin/hypr-profile          Umschalter (Shell-Script)
 --
--- Umschalten im laufenden Betrieb:  CTRL + SUPER + SHIFT + P
--- oder im Terminal:                 hypr-profile [caelestia|simple|toggle|status]
+-- Umschalten im laufenden Betrieb:  CTRL + SUPER + SHIFT + P (schaltet durch)
+-- oder im Terminal:                 hypr-profile [<name>|toggle|status]
 --
 -- caelestia = volle Config + Caelestia-Quickshell-Shell (Bar, Notifications, Wallpaper)
--- simple    = eine schlanke Datei mit den wichtigsten Einstellungen, ohne Shell
+-- simple    = eine schlanke Datei mit den wichtigsten Einstellungen, Shell dynamic-island
+-- shell2    = dieselbe schlanke Basis, aber mit der neuen Shell shell2
+--
+-- Ein weiteres Profil braucht nur profiles/<name>.lua und einen Eintrag in
+-- hypr-profile (PROFILE_SHELL + PROFILE_ORDER) — hier ist nichts zu aendern.
 
 local home            = os.getenv("HOME")
 local hypr            = home .. "/.config/hypr"
@@ -53,8 +57,15 @@ local function read_profile()
     local name = (f:read("*l") or ""):gsub("%s", "")
     f:close()
 
-    if name == "caelestia" or name == "simple" then
-        return name
+    -- Gueltig ist jeder schlichte Name, zu dem es auch eine Profildatei gibt.
+    -- Das Muster haelt Pfadtrenner und Punkte heraus, damit `require` nicht
+    -- irgendwo anders im Dateisystem landet.
+    if name:match("^[%w_%-]+$") then
+        local profileLua = io.open(hypr .. "/profiles/" .. name .. ".lua")
+        if profileLua then
+            profileLua:close()
+            return name
+        end
     end
     return defaultProfile
 end
