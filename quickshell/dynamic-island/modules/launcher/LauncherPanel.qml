@@ -319,7 +319,14 @@ Item {
             left: parent.left
             right: parent.right
         }
-        implicitHeight: Math.min(panel.maxListHeight, list.contentHeight + 12)
+        // Ohne Treffer traegt die Liste nichts bei (contentHeight == 0). Dann
+        // waere der Wrapper nur 12px hoch, waehrend der Hinweis darunter rund
+        // 16px braucht -- er ragte unten aus der Karte heraus und stand damit
+        // ohne Hintergrund vor den Fenstern dahinter. Im leeren Fall richtet
+        // sich die Hoehe deshalb nach dem Hinweis.
+        implicitHeight: panel.results.length === 0
+            ? emptyHint.implicitHeight + 24
+            : Math.min(panel.maxListHeight, list.contentHeight + 12)
 
         ListView {
             id: list
@@ -382,6 +389,8 @@ Item {
         }
 
         Text {
+            id: emptyHint
+
             anchors.centerIn: parent
             opacity: panel.results.length === 0 ? 1 : 0
             visible: opacity > 0
