@@ -37,6 +37,7 @@ Singleton {
         "bar.media": { title: "Medien-Karte", desc: "Titel, Cover und Steuerung rechts aussen" },
         "bar.notifications": { title: "Benachrichtigungen", desc: "Die Glocke mit Zaehler in der Leiste" },
         "bar.battery": { title: "Akkuanzeige", desc: "Ring um die Uhr und Akkustand in der Settings-Pille" },
+        "bar.batteryPulse": { title: "Akku-Ladeimpuls", desc: "Bewegter Impuls im leeren Teil des Akkurings" },
         "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" }
     })
 
@@ -131,6 +132,7 @@ Singleton {
                 // Die System-Pille ist neu und standardmaessig aus
                 property bool stats: false
                 property bool battery: true
+                property bool batteryPulse: true
             }
         }
     }

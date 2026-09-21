@@ -187,55 +187,104 @@ Item {
 
             arcWidth: 2
             arcGap: 3
+            showTrack: false
             value: Power.percent / 100
             muted: false
             activeColor: Colors.mix(Colors.primary, Colors.error, batteryRing.drain)
 
             opacity: notch.open || !Power.hasSystemBattery || !Config.bar.battery ? 0 : 1
-            visible: opacity > 0
+            // Nicht ueber die aufklappende Karte mitstrecken. Beim Schliessen
+            // darf der Ring weiterhin weich wieder eingeblendet werden.
+            visible: !notch.open && Power.hasSystemBattery && Config.bar.battery
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
             }
         }
 
-        // Beim Laden laeuft ein heller Impuls vom Ende des gefuellten Rings
-        // nach vorn. Seine Wiederholrate folgt grob der von UPower gemeldeten
-        // Ladeleistung: 5 W sind langsam, ab etwa 65 W ist sie am schnellsten.
+        // Der leere Teil bleibt ein statischer Pfad und wird deshalb nur bei
+        // einer Aenderung des Akkustands neu aufgebaut.
         Audioslider {
-            id: batteryPulse
+            id: batteryEmpty
 
             readonly property real progress: Power.percent / 100
-            readonly property real pulseStart: progress
-                + (1 - progress) * pulseAnimation.pulseProgress
-            readonly property bool running: Power.activelyCharging
-                && progress < 0.995 && Config.bar.battery && !notch.open
-            readonly property real rateFactor: Math.max(0, Math.min(1,
-                (Power.chargeRate - 5) / 60))
 
-            arcWidth: 3
+            arcWidth: 2
             arcGap: 3
             showTrack: false
             muted: false
-            fromValue: pulseStart
-            value: Math.min(1, pulseStart + 0.045)
-            activeColor: Colors.mix(batteryRing.activeColor, Colors.fgBackground, 0.65)
+            fromValue: progress
+            value: 1
+            activeColor: Colors.alpha(batteryRing.activeColor, 0.55)
 
-            opacity: running ? Math.max(0, Math.min(1,
-                Math.min(pulseAnimation.pulseProgress / 0.12,
-                         (1 - pulseAnimation.pulseProgress) / 0.22))) : 0
-            visible: opacity > 0
+            opacity: notch.open || !Power.hasSystemBattery || !Config.bar.battery ? 0 : 1
+            // Sofort ausblenden: Sonst wird der Wellenpfad waehrend der
+            // breiten Launcher-Animation fuer jeden Frame neu berechnet.
+            visible: !notch.open && Power.hasSystemBattery && Config.bar.battery
+        }
 
-            QtObject {
-                id: pulseAnimation
-                property real pulseProgress: 0
+        // Effizienter Ladeimpuls: statt den SVG-Pfad pro Frame neu zu bauen,
+        // bewegt sich nur ein kleines Rechteck entlang der vorhandenen
+        // Ring-Geometrie. Die Weggeschwindigkeit skaliert mit der Ladeleistung.
+        Item {
+            id: batteryPulse
 
-                NumberAnimation on pulseProgress {
+            readonly property real chargeProgress: Power.percent / 100
+            readonly property bool running: Config.bar.batteryPulse
+                && Config.bar.battery && Power.activelyCharging
+                && chargeProgress < 0.995 && !notch.open
+            readonly property real rateFactor: Math.max(0, Math.min(1,
+                (Power.chargeRate - 5) / 60))
+            readonly property real pathStart: batteryRing.fromLength
+                + (batteryRing.toLength - batteryRing.fromLength) * chargeProgress
+            readonly property real pathLength: Math.max(0, batteryRing.toLength - pathStart)
+            readonly property real distance: pathStart + pathLength * travel
+            readonly property var point: batteryRing.pointAt(distance)
+            readonly property int travelDuration: Math.round(750 - rateFactor * 400)
+            readonly property int pulseInterval: Math.round(1800 - rateFactor * 1200)
+
+            property real travel: 0
+
+            anchors.fill: parent
+            visible: running
+
+            Rectangle {
+                width: 7
+                height: 7
+                radius: width / 2
+                x: batteryPulse.point.x - width / 2
+                y: batteryPulse.point.y - height / 2
+                color: Colors.alpha(batteryRing.activeColor, 0.22)
+                opacity: pulseCore.opacity
+            }
+
+            Rectangle {
+                id: pulseCore
+
+                width: 3
+                height: 3
+                radius: width / 2
+                x: batteryPulse.point.x - width / 2
+                y: batteryPulse.point.y - height / 2
+                color: Colors.mix(batteryRing.activeColor, Colors.fgBackground, 0.7)
+                opacity: Math.max(0, Math.min(1,
+                    Math.min(batteryPulse.travel / 0.1,
+                             (1 - batteryPulse.travel) / 0.18)))
+            }
+
+            SequentialAnimation on travel {
+                running: batteryPulse.running
+                loops: Animation.Infinite
+
+                NumberAnimation {
                     from: 0
                     to: 1
-                    duration: 2400 - batteryPulse.rateFactor * 1700
-                    loops: Animation.Infinite
-                    running: batteryPulse.running
+                    duration: batteryPulse.travelDuration
+                    easing.type: Easing.InOutSine
+                }
+
+                PauseAnimation {
+                    duration: batteryPulse.pulseInterval
                 }
             }
         }
@@ -261,7 +310,7 @@ Item {
             implicitWidth: 28
             implicitHeight: 28
             opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
-            visible: opacity > 0
+            visible: notch.expanded && !notch.launcherOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -312,7 +361,7 @@ Item {
             implicitWidth: 28
             implicitHeight: 28
             opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
-            visible: opacity > 0
+            visible: notch.expanded && !notch.launcherOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -354,7 +403,9 @@ Item {
             gestureArea: pill                 // Mausrad gilt auf der ganzen Karte
             dragEnabled: !launcherDrag.active
             opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
-            visible: opacity > 0
+            // Beim Wechsel zum Launcher sofort aus dem Renderpfad nehmen. So
+            // wird der Datumsstreifen nicht auf Launcherbreite mitanimiert.
+            visible: notch.expanded && !notch.launcherOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -368,7 +419,7 @@ Item {
             cardRadius: notch.cardRadius
             active: notch.appsOpen
             opacity: notch.appsOpen ? 1 : 0
-            visible: opacity > 0
+            visible: notch.appsOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -382,7 +433,7 @@ Item {
             cardRadius: notch.cardRadius
             active: notch.wallpaperOpen
             opacity: notch.wallpaperOpen ? 1 : 0
-            visible: opacity > 0
+            visible: notch.wallpaperOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -396,7 +447,7 @@ Item {
             cardRadius: notch.cardRadius
             active: notch.themeOpen
             opacity: notch.themeOpen ? 1 : 0
-            visible: opacity > 0
+            visible: notch.themeOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
