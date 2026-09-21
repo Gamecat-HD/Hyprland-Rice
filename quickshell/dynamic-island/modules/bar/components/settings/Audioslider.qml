@@ -147,11 +147,14 @@ Shape {
         capStyle: ShapePath.RoundCap
 
         PathSvg {
-            path: slider.buildPath(slider.fromLength
-                    + (slider.toLength - slider.fromLength)
-                        * Math.max(0, Math.min(1, slider.fromValue)),
-                slider.fromLength + (slider.toLength - slider.fromLength)
-                    * Math.max(0, Math.min(1, slider.value)))
+            readonly property real start: slider.fromLength
+                + (slider.toLength - slider.fromLength)
+                    * Math.max(0, Math.min(1, slider.fromValue))
+            readonly property real end: slider.fromLength
+                + (slider.toLength - slider.fromLength)
+                    * Math.max(0, Math.min(1, slider.value))
+
+            path: slider.buildPath(start, end)
         }
     }
 }
