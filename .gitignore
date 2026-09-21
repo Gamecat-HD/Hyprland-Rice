@@ -6,6 +6,7 @@
 !/README.md
 # Die eigenen Wallpaper (die Sammlung aus dem fremden Repo bleibt draussen)
 !/wallpapers/
+!/hyprlock/
 
 # innerhalb von quickshell nur die eigene Shell
 /quickshell/*
@@ -20,3 +21,7 @@
 .qmlls.ini
 __pycache__/
 *.pyc
+
+# hyprlock: die Bildersammlung aus dem fremden Repo bleibt draussen,
+# die Layouts/Skripte werden getrackt
+/hyprlock/wallpapers/
