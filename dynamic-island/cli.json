@@ -5,6 +5,7 @@
     "theme": {
         "enableTerm": true,
         "enableHypr": true,
+        "enableHyprlock": true,
         "enableGtk": true,
         "enableQt": true,
         "enableBtop": true,

@@ -150,6 +150,18 @@ def apply_hypr(conf: str) -> None:
 
 
 @log_exception
+def apply_hyprlock(colours: dict[str, str]) -> None:
+    """Farbdatei fuer den Sperrbildschirm.
+
+    Das Layout (~/.config/hypr/hyprlock.conf) ist handgeschrieben und bleibt
+    unangetastet; es holt sich diese Datei per `source`. hyprlock liest sie
+    beim Start, ein laufender Lockscreen aendert seine Farben also nicht mehr.
+    """
+    template = gen_replace(colours, templates_dir / "hyprlock.conf")
+    atomic_write(config_dir / "hypr/scheme/hyprlock.conf", template)
+
+
+@log_exception
 def apply_discord(scss: str) -> None:
     with tempfile.TemporaryDirectory("w") as tmp_dir:
         (Path(tmp_dir) / "_colours.scss").write_text(scss)
@@ -426,6 +438,8 @@ def apply_colours(colours: dict[str, str], mode: str) -> None:
                 apply_terms(gen_sequences(colours))
             if check("enableHypr"):
                 apply_hypr(gen_lua(colours) if is_lua_config() else gen_conf(colours))
+            if check("enableHyprlock"):
+                apply_hyprlock(colours)
             if check("enableDiscord"):
                 apply_discord(gen_scss(colours))
             if check("enableSpicetify"):

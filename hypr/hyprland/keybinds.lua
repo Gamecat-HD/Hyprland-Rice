@@ -9,7 +9,9 @@ hl.bind(vars.kbSession, hl.dsp.global("caelestia:session"))
 hl.bind(vars.kbShowSidebar, hl.dsp.global("caelestia:sidebar"))
 hl.bind(vars.kbClearNotifs, hl.dsp.global("caelestia:clearNotifs"), { locked = true })
 hl.bind(vars.kbShowPanels, hl.dsp.global("caelestia:showall"))
-hl.bind(vars.kbLock, hl.dsp.global("caelestia:lock"))
+-- Der alte Global "caelestia:lock" gehoerte zur caelestia-Shell; die
+-- dynamic-island-Shell meldet ihn nicht an, deshalb direkt hyprlock starten.
+hl.bind(vars.kbLock, hl.dsp.exec_cmd("hyprlock"))
 
 -- Restore lock
 hl.bind(vars.kbRestoreLock, function()

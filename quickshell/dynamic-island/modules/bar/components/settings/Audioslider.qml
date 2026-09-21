@@ -34,8 +34,10 @@ Shape {
     property real sweepAngle: 280
 
     property real value: Audio.volume
+    property real fromValue: 0
     property bool muted: Audio.muted
     property color activeColor: muted ? Colors.error : Colors.fgBackground
+    property bool showTrack: true
 
     // Radius der Kappen; alles Weitere haengt daran
     readonly property real ringRadius: (Math.min(width, height) - arcWidth) / 2 - arcGap
@@ -129,7 +131,7 @@ Shape {
 
     ShapePath {
         strokeWidth: slider.arcWidth
-        strokeColor: Colors.alpha(slider.activeColor, 0.55)   // Track
+        strokeColor: slider.showTrack ? Colors.alpha(slider.activeColor, 0.55) : "transparent"
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
 
@@ -145,7 +147,9 @@ Shape {
         capStyle: ShapePath.RoundCap
 
         PathSvg {
-            path: slider.buildPath(slider.fromLength,
+            path: slider.buildPath(slider.fromLength
+                    + (slider.toLength - slider.fromLength)
+                        * Math.max(0, Math.min(1, slider.fromValue)),
                 slider.fromLength + (slider.toLength - slider.fromLength)
                     * Math.max(0, Math.min(1, slider.value)))
         }

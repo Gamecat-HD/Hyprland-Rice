@@ -52,7 +52,6 @@ Singleton {
 
     function save(): void {
         file.writeAdapter();
-        root.reread();
     }
 
     // Wert setzen, ohne den Namen fest zu verdrahten
@@ -61,6 +60,14 @@ Singleton {
         if (!target)
             return;
         target[key] = value;
+
+        // FileView writes asynchronously. Reflect the new value immediately
+        // instead of reading the still-old file back into the settings model.
+        const next = Object.assign({}, root.raw);
+        next[section] = Object.assign({}, next[section] ?? {});
+        next[section][key] = value;
+        root.raw = next;
+
         root.save();
     }
 

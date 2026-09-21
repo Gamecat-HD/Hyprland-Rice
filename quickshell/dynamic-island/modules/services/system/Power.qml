@@ -43,6 +43,11 @@ Singleton {
                                                        : (root.deviceBatteries[0] ?? null)
     readonly property bool hasBattery: root.shown !== null
     readonly property int percent: Math.round((root.shown?.percentage ?? 0) * 100)
+    readonly property bool activelyCharging: root.hasSystemBattery
+        && UPower.displayDevice.state === UPowerDeviceState.Charging
+    // UPower meldet die momentane Energieaenderung in Watt.
+    readonly property real chargeRate: root.activelyCharging
+        ? Math.max(0, UPower.displayDevice.changeRate ?? 0) : 0
     readonly property bool charging: {
         const s = root.shown?.state ?? UPowerDeviceState.Unknown;
         return s === UPowerDeviceState.Charging || s === UPowerDeviceState.FullyCharged

@@ -53,7 +53,10 @@ local cfg = {
 	fileExplorer = "dolphin",
 	audioSettings = "pavucontrol",
 	launcher = "fuzzel",
-	lockCmd = "hyprlock",
+	-- Testweise Layout 12 aus Hyprlock-Dots (SUPER + L).
+	-- Zurueck auf die eigene Sperrconfig (~/.config/hypr/hyprlock.conf):
+	-- wieder schlicht lockCmd = "hyprlock" eintragen.
+	lockCmd = "hyprlock -c " .. home .. "/.config/hyprlock/layout12.conf",
 
 	-- Tastatur / Maus
 	kbLayout = "de",
@@ -188,6 +191,10 @@ hl.config({
 		focus_on_activate = true,
 		mouse_move_enables_dpms = true,
 		key_press_enables_dpms = true,
+		-- Stirbt hyprlock ab, waehrend die Session gesperrt ist, bleibt der
+		-- Compositor sonst unbedienbar zurueck ("lockdead") -- Rettung nur noch
+		-- ueber ein TTY. Mit dieser Option genuegt ein erneutes `hyprlock`.
+		allow_session_lock_restore = true,
 		-- Farbe hinter allem. Das Wallpaper zeichnet die Shell (Layer
 		-- dynamic-island-background); laeuft keine Shell, bleibt diese Farbe stehen.
 		background_color = "rgb(" .. colour("surfaceContainer") .. ")",

@@ -238,6 +238,9 @@ declare -A NEEDED=(
     [hyprpicker]=hyprpicker [wl-copy]=wl-clipboard [cliphist]=cliphist
     [fuzzel]=fuzzel [gpu-screen-recorder]=gpu-screen-recorder [sass]=dart-sass
     [dconf]=dconf [notify-send]=libnotify [hyprctl]=hyprland
+    # Sperrbildschirm: Super+L und der Sperren-Knopf der Settings-Karte.
+    # Layout in hypr/hyprlock.conf, Farben in hypr/scheme/hyprlock.conf
+    [hyprlock]=hyprlock
     # WLAN-Kachel, Netzliste und der Wifi-Ring in der Settings-Pille
     [nmcli]=networkmanager
     # Bluetooth-Kachel und Kopplung (der Dienst selbst redet ueber DBus,

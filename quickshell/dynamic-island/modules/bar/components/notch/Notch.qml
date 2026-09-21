@@ -199,6 +199,47 @@ Item {
             }
         }
 
+        // Beim Laden laeuft ein heller Impuls vom Ende des gefuellten Rings
+        // nach vorn. Seine Wiederholrate folgt grob der von UPower gemeldeten
+        // Ladeleistung: 5 W sind langsam, ab etwa 65 W ist sie am schnellsten.
+        Audioslider {
+            id: batteryPulse
+
+            readonly property real progress: Power.percent / 100
+            readonly property real pulseStart: progress
+                + (1 - progress) * pulseAnimation.pulseProgress
+            readonly property bool running: Power.activelyCharging
+                && progress < 0.995 && Config.bar.battery && !notch.open
+            readonly property real rateFactor: Math.max(0, Math.min(1,
+                (Power.chargeRate - 5) / 60))
+
+            arcWidth: 3
+            arcGap: 3
+            showTrack: false
+            muted: false
+            fromValue: pulseStart
+            value: Math.min(1, pulseStart + 0.045)
+            activeColor: Colors.mix(batteryRing.activeColor, Colors.fgBackground, 0.65)
+
+            opacity: running ? Math.max(0, Math.min(1,
+                Math.min(pulseAnimation.pulseProgress / 0.12,
+                         (1 - pulseAnimation.pulseProgress) / 0.22))) : 0
+            visible: opacity > 0
+
+            QtObject {
+                id: pulseAnimation
+                property real pulseProgress: 0
+
+                NumberAnimation on pulseProgress {
+                    from: 0
+                    to: 1
+                    duration: 2400 - batteryPulse.rateFactor * 1700
+                    loops: Animation.Infinite
+                    running: batteryPulse.running
+                }
+            }
+        }
+
         // Power-Knopf: sitzt auf der Uhr-Zeile, rechts in der Karte.
         // Eingeklappt ist die Pille nur `clock.implicitWidth + 50` breit – dort
         // waere kein Platz, deshalb haengt er an derselben Bedingung wie das
