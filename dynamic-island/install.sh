@@ -457,8 +457,34 @@ seed_wallpapers() {
 # ------------------------------------------------- 5. Farbschema setzen ---
 seed_scheme() {
     step "Farbschema"
+
+    # Aus dem Schema erzeugte Dateien. Sie liegen bewusst nicht im Repo, weil
+    # sie sich bei jedem Theme- und Wallpaperwechsel aendern und sonst dauernd
+    # als geaendert im `git status` haengen. Nach einem frischen Clone muessen
+    # sie aber da sein: hyprlock bricht mit "source= globbing error: found no
+    # match" ab, wenn hypr/scheme/hyprlock.conf fehlt.
+    local derived f missing=0
+    for f in "$CONFIG_DIR/hypr/scheme/hyprlock.conf" \
+             "$CONFIG_DIR/hypr/scheme/current.lua"; do
+        [ -s "$f" ] || missing=1
+    done
+
     if [ -s "$STATE_DIR/$SHELL_NAME/scheme.json" ]; then
-        skip "scheme.json vorhanden ($("$BIN_DIR/dynamic-island" scheme get -n 2>/dev/null || echo '?'))"
+        if [ "$missing" = 0 ]; then
+            skip "scheme.json vorhanden ($("$BIN_DIR/dynamic-island" scheme get -n 2>/dev/null || echo '?'))"
+            return 0
+        fi
+        # Schema ist gesetzt, aber die daraus erzeugten Dateien fehlen.
+        # Einmal dasselbe Schema neu anwenden schreibt sie zurueck.
+        [ "$DRY_RUN" = 1 ] && { warn "wuerde die erzeugten Farbdateien neu schreiben"; return 0; }
+        local name
+        name="$("$BIN_DIR/dynamic-island" scheme get -n 2>/dev/null)"
+        if [ -n "$name" ] && "$BIN_DIR/dynamic-island" scheme set -n "$name"; then
+            ok "Erzeugte Farbdateien neu geschrieben (Schema '$name')"
+        else
+            warn "Farbdateien fehlen und liessen sich nicht erzeugen"
+            warn "  spaeter von Hand: dynamic-island scheme set -n island"
+        fi
         return 0
     fi
     [ "$DRY_RUN" = 1 ] && { warn "wuerde ein Schema erzeugen"; return 0; }
