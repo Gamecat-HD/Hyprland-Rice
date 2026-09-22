@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.modules.services.vpn
 
-import "root:/"
+import qs
 
 // VPN-Icon unten im Settings-Kreis – reine Ansicht, der Zustand lebt im
 // Vpn-Singleton (modules/services/vpn/Vpn.qml).

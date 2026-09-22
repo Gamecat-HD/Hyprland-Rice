@@ -3,8 +3,9 @@ import QtQuick
 import Quickshell
 import qs.modules.services.wallpaper
 
-import "root:/"
-import "root:/modules/bar/components/notch"
+import qs
+import qs.modules.bar.components.notch
+import qs.modules.services.config
 
 // Wallpaper-Auswahl der Notch: eigenes Suchfeld und darunter das Karussell.
 //
@@ -82,6 +83,7 @@ Item {
 
         TextInput {
             id: search
+            font.family: Config.font
 
             anchors {
                 left: searchIcon.right

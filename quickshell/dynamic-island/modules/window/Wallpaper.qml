@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.modules.services.wallpaper
 
-import "root:/"
+import qs
 
 // Hintergrund-Layer (Wallpaper) – enthält selbst die Pro-Monitor-Logik.
 // Die `required property modelData` im Delegaten wird von `Variants`

@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell
 import qs.modules.services.network
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // WLAN-Ansicht der Settings-Karte: Liste der Netze, verbinden, Passwort
 // aendern, vergessen. Die Karte zeigt entweder die Kacheln oder das hier
@@ -72,6 +73,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 anchors.verticalCenter: parent.verticalCenter
                 text: actionRow.modelData.label
                 font.pixelSize: 12
@@ -155,6 +157,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             anchors {
                 left: backButton.right
                 leftMargin: 6
@@ -253,6 +256,7 @@ Item {
     // ---- Meldung ----
     Text {
         id: statusText
+        font.family: Config.font
 
         anchors {
             top: header.bottom
@@ -400,6 +404,7 @@ Item {
                         spacing: 1
 
                         Text {
+                            font.family: Config.font
                             width: parent.width
                             text: row.modelData.ssid
                             color: Colors.fgBackground
@@ -409,6 +414,7 @@ Item {
                         }
 
                         Text {
+                            font.family: Config.font
                             width: parent.width
                             text: {
                                 const net = row.modelData;
@@ -587,6 +593,7 @@ Item {
 
                     TextInput {
                         id: password
+                        font.family: Config.font
 
                         anchors {
                             left: keyIcon.right
@@ -641,6 +648,7 @@ Item {
                         }
 
                         Text {
+                            font.family: Config.font
                             anchors.centerIn: parent
                             text: "Verbinden"
                             font.pixelSize: 11
@@ -660,6 +668,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             anchors.centerIn: parent
             visible: list.count === 0
             text: Network.radioOn ? (Network.loaded ? "Keine Netze gefunden" : "Suche…") : "WLAN ist aus"

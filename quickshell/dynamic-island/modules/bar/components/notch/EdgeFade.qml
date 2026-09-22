@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-import "root:/"
+import qs
 
 // Weiche Kante: Verlauf von der Kartenfarbe nach transparent, damit der
 // Tagesstreifen an den Rändern ausläuft statt hart abzubrechen.

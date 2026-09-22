@@ -25,6 +25,10 @@ Singleton {
 
     readonly property alias bar: adapter.bar
     readonly property alias notifications: adapter.notifications
+    readonly property alias appearance: adapter.appearance
+
+    // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
+    readonly property string font: adapter.appearance.font
 
     // Klartext zu den Schluesseln. Steht hier neben den Vorgaben, damit eine
     // neue Einstellung an einer einzigen Stelle entsteht: Default eintragen,
@@ -38,12 +42,20 @@ Singleton {
         "bar.notifications": { title: "Benachrichtigungen", desc: "Die Glocke mit Zaehler in der Leiste" },
         "bar.battery": { title: "Akkuanzeige", desc: "Ring um die Uhr und Akkustand in der Settings-Pille" },
         "bar.batteryPulse": { title: "Akku-Ladeimpuls", desc: "Bewegter Impuls im leeren Teil des Akkurings" },
-        "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" }
+        "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" },
+        // `options` macht aus der Zeile eine Auswahl. Nicht installierte
+        // Schriften blendet das Menue aus.
+        "appearance.font": {
+            title: "Schriftart",
+            desc: "Für alle Texte der Shell",
+            options: ["SF Pro", "SF Pro Rounded", "Inter", "Noto Sans", "Adwaita Sans", "Fira Sans", "Cantarell"]
+        }
     })
 
     readonly property var sectionMeta: ({
         "bar": "Leiste",
-        "notifications": "Benachrichtigungen"
+        "notifications": "Benachrichtigungen",
+        "appearance": "Darstellung"
     })
 
     // Die Datei als einfaches Objekt – daraus baut das Einstellungs-Fenster
@@ -121,6 +133,10 @@ Singleton {
             // Alles, was hier steht, erscheint automatisch im Menue
             property JsonObject notifications: JsonObject {
                 property bool dnd: false
+            }
+
+            property JsonObject appearance: JsonObject {
+                property string font: "SF Pro"
             }
 
             property JsonObject bar: JsonObject {

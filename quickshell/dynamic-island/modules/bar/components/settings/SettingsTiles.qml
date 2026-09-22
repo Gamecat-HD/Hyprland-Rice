@@ -7,11 +7,13 @@ import Quickshell.Io
 import qs.modules.services.audio
 import qs.modules.services.bluetooth
 import qs.modules.services.brightness
+import qs.modules.services.record
 import qs.modules.services.vpn
 
-import "root:/modules/settings"
+import qs.modules.settings
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Kacheln fuer das aufgeklappte Settings-Feld (Vorlage: Control-Center).
 // Zwei Reihen: [Wi-Fi, Bluetooth] / [VPN, No-Sleep] als Pillen, rechts
@@ -219,6 +221,11 @@ ColumnLayout {
         property string subtitle
         property bool active
 
+        // Farbe des aktiven Zustands. Standard ist die Themenfarbe; die
+        // Aufnahme-Kachel setzt hier das feste Rot aus Colors.qml.
+        property color accent: Colors.primary
+        property color onAccent: Colors.fgPrimary
+
         // false = die Kachel togglet nicht selbst (No-Sleep hat einen
         // eigenen Guard, damit Dropdown-Klicks nicht doppelt ausloesen)
         property bool tapEnabled: true
@@ -238,7 +245,7 @@ ColumnLayout {
                 Layout.preferredWidth: 36
                 Layout.preferredHeight: 36
                 radius: 18
-                color: tile.active ? Colors.primary : Colors.alpha(Colors.fgSurface, 0.08)
+                color: tile.active ? tile.accent : Colors.alpha(Colors.fgSurface, 0.08)
 
                 Behavior on color {
                     ColorAnimation { duration: 140 }
@@ -250,7 +257,7 @@ ColumnLayout {
                     text: tile.icon
                     font.family: "Material Symbols Outlined"
                     font.pixelSize: 19
-                    color: tile.active ? Colors.fgPrimary : Colors.fgSurfaceVariant
+                    color: tile.active ? tile.onAccent : Colors.fgSurfaceVariant
                 }
             }
 
@@ -259,6 +266,7 @@ ColumnLayout {
                 spacing: 1
 
                 Text {
+                    font.family: Config.font
                     text: tile.title
                     color: Colors.fgBackground
                     font.pixelSize: 13
@@ -268,6 +276,7 @@ ColumnLayout {
                 }
 
                 Text {
+                    font.family: Config.font
                     text: tile.subtitle
                     color: Colors.fgSurfaceVariant
                     font.pixelSize: 11
@@ -284,6 +293,51 @@ ColumnLayout {
 
         HoverHandler {
             cursorShape: Qt.PointingHandCursor
+        }
+    }
+
+    // Kleiner Knopf auf einer Kachel. Wi-Fi und Bluetooth bauen sich ihren
+    // Pfeil noch von Hand; hier lohnt das Bauteil, weil zwei nebeneinander
+    // stehen und beide gleich aussehen sollen.
+    component MiniButton: Rectangle {
+        id: mini
+
+        property string icon
+        signal tapped()
+
+        implicitWidth: 34
+        implicitHeight: 34
+        radius: height / 2
+        opacity: enabled ? 1 : 0.4
+        color: miniHover.hovered ? Colors.alpha(Colors.fgSurface, 0.16)
+                                 : Colors.alpha(Colors.fgSurface, 0.08)
+
+        Behavior on color {
+            ColorAnimation { duration: 120 }
+        }
+
+        Behavior on opacity {
+            NumberAnimation { duration: 140 }
+        }
+
+        Text {
+            anchors.centerIn: parent
+
+            text: mini.icon
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 18
+            color: Colors.fgBackground
+        }
+
+        HoverHandler {
+            id: miniHover
+
+            cursorShape: Qt.PointingHandCursor
+        }
+
+        TapHandler {
+            gesturePolicy: TapHandler.ReleaseWithinBounds   // exklusiv: kein Kachel-Toggle
+            onTapped: mini.tapped()
         }
     }
 
@@ -506,6 +560,7 @@ ColumnLayout {
 
                     Text {
                         id: dropdownLabel
+                        font.family: Config.font
 
                         text: root.durationLabel(root.sleepDurationSec)
                         font.pixelSize: 12
@@ -594,6 +649,7 @@ ColumnLayout {
                                 spacing: 6
 
                                 Text {
+                                    font.family: Config.font
                                     text: option.modelData.label
                                     font.pixelSize: 12
                                     color: root.sleepDurationSec === option.modelData.sec ? Colors.fgPrimary : Colors.fgBackground
@@ -629,6 +685,63 @@ ColumnLayout {
             icon: "tune"
             active: SettingsState.open
             onToggled: SettingsState.toggleOnFocused()
+        }
+    }
+
+    // Bildschirmaufnahme. Start und Stopp macht die CLI (Recorder-Service),
+    // laeuft eine Aufnahme, sitzt ein roter Punkt neben der Uhr (Notch.qml).
+    // Volle Breite statt Pille + Kreis: die beiden Reihen darueber sind voll.
+    Tile {
+        id: recordTile
+
+        tapEnabled: false   // Toggle macht der bewachte TapHandler unten
+
+        icon: Recorder.active ? "stop_circle" : "screen_record"
+        title: "Aufnahme"
+        subtitle: Recorder.active
+                  ? "Läuft · " + Recorder.elapsedLabel
+                  : (Recorder.region ? "Bereich" : "Vollbild")
+                    + (Recorder.sound ? " · mit Ton" : " · ohne Ton")
+        active: Recorder.active
+        accent: Colors.record
+        onAccent: Colors.fgRecord
+        onToggled: Recorder.toggle()
+
+        // Links schaltet die Aufnahme, rechts sitzen die beiden Schalter
+        // (dasselbe Muster wie bei der Wi-Fi-Pille)
+        TapHandler {
+            id: recordTap
+
+            onTapped: {
+                if (recordTap.point.position.x < recordTile.width - 90)
+                    Recorder.toggle();
+            }
+        }
+
+        // Modus und Ton. Beide gelten ab der naechsten Aufnahme – waehrend
+        // einer laufenden bekommt gpu-screen-recorder nichts mehr gesagt,
+        // deshalb sind sie dann ausgegraut.
+        Row {
+            anchors {
+                right: parent.right
+                rightMargin: 8
+                verticalCenter: parent.verticalCenter
+            }
+            spacing: 6
+
+            MiniButton {
+                // Vollbild = fokussierter Monitor, Bereich = Rahmen mit slurp
+                enabled: !Recorder.active
+                icon: Recorder.region ? "screenshot_region" : "fullscreen"
+                onTapped: Recorder.region = !Recorder.region
+            }
+
+            MiniButton {
+                // Desktop-Ton (default_output), nicht das Mikrofon
+                enabled: !Recorder.active
+                icon: Recorder.sound ? "volume_up" : "volume_off"
+                onTapped: Recorder.sound = !Recorder.sound
+            }
         }
     }
 

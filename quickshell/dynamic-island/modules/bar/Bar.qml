@@ -12,11 +12,11 @@ import "components/settings"
 import "components/statusBar"
 import "components/workspaceSelector"
 import "components/mediaPlayer"
-import "root:/modules/launcher"
+import qs.modules.launcher
 import qs.modules.services.config
 import qs.modules.services.hypr
 
-import "root:/"
+import qs
 
 // Leiste oben – enthält selbst die Pro-Monitor-Logik.
 // Die `required property modelData` im Delegaten wird von `Variants`
@@ -52,6 +52,8 @@ Variants {
 
         screen: bar.modelData
         WlrLayershell.namespace: "dynamic-island-bar"
+        // Authentifizierung muss auch ueber echten Vollbild-Fenstern liegen.
+        WlrLayershell.layer: notch.authOpen ? WlrLayer.Overlay : WlrLayer.Top
         // Tastatur holt sich die Leiste nur, wenn wirklich getippt wird:
         // Launcher-Suchfeld oder WLAN-Passwort. Exclusive statt OnDemand, weil
         // der Launcher per Tastenkuerzel aufgeht – da ist kein Klick, der ihm
@@ -59,7 +61,8 @@ Variants {
         // Das Power-Menue braucht keinen Tastaturfokus. Exclusive wuerde den
         // gesamten Wayland-Seat binden und damit Klicks auf anderen Monitoren
         // blockieren, bis das Menue wieder geschlossen wird.
-        WlrLayershell.keyboardFocus: (notch.launcherOpen && !notch.powerOpen)
+        WlrLayershell.keyboardFocus: notch.authOpen
+                                     || (notch.launcherOpen && !notch.powerOpen)
                                      || settings.typingPassword || settings.typingPin
                                      ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         anchors {

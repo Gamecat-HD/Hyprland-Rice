@@ -1,7 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Eine Messzeile der Statistik-Karte: Symbol, Bezeichnung, Balken, Wert.
 //
@@ -35,6 +36,7 @@ Item {
 
     Text {
         id: name
+        font.family: Config.font
 
         anchors {
             left: iconLabel.right
@@ -50,6 +52,7 @@ Item {
 
     Text {
         id: detail
+        font.family: Config.font
 
         anchors {
             right: parent.right

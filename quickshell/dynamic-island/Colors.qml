@@ -163,6 +163,12 @@ Singleton {
     readonly property color error: pick("error", t.error)
     readonly property color fgError: pick("onError", t.fgError)
 
+    // Aufnahme-Rot. Bewusst fest und nicht aus dem Schema: der Punkt an der
+    // Uhr soll in jedem Theme als "es laeuft eine Aufnahme" lesbar sein, und
+    // `error` ist je nach Schema auch mal pink oder orange.
+    readonly property color record: "#ff4d4f"
+    readonly property color fgRecord: "#ffffff"
+
     // Farbe mit Alpha, z.B. Colors.alpha(Colors.surface, 0.8)
     function alpha(c: color, a: real): color {
         return Qt.rgba(c.r, c.g, c.b, a);

@@ -5,12 +5,14 @@ import Quickshell.Wayland
 import Quickshell.Io
 
 import qs.modules.services.config
+import qs.modules.services.auth
+import qs.modules.services.record
 import qs.modules.services.system
 
-import "root:/"
-import "root:/modules/launcher"
+import qs
+import qs.modules.launcher
 // Fuer den Ring um die Uhr – derselbe, der an der Settings-Pille haengt
-import "root:/modules/bar/components/settings"
+import qs.modules.bar.components.settings
 
 // Notch mit Uhr: Karte, Hover-Logik und Auf-/Zuklapp-Animation. Den Inhalt des
 // ausgeklappten Teils bringt DatePanel komplett selbst mit (Datum, Gesten,
@@ -38,18 +40,28 @@ Item {
     readonly property bool themeOpen: launcherOpen && LauncherState.mode === "theme"
     readonly property bool powerOpen: launcherOpen && LauncherState.mode === "power"
     readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen
-    readonly property bool open: expanded || launcherOpen
+    readonly property bool authOpen: Auth.active && Auth.screen === hostScreen
+    readonly property bool open: expanded || launcherOpen || authOpen
 
     // Die Uhr rutscht beim Aufklappen etwas nach unten
     readonly property real clockDropMax: 7
     readonly property real clockDrop: open ? clockDropMax : 0
+
+    // Roter Punkt neben der Uhr, solange eine Bildschirmaufnahme läuft.
+    // Solange er da ist, wird die Pille um genau seinen Platz breiter und die
+    // Uhr rückt um die Hälfte davon nach links – so steht das Paar aus Uhr
+    // und Punkt weiterhin mittig in der Pille.
+    readonly property bool recording: Recorder.active
+    readonly property real recordDotSize: 8
+    readonly property real recordGap: 7
+    readonly property real recordReserve: recording ? recordDotSize + recordGap : 0
     // Im Launcher-Modus ist die Uhr ausgeblendet, das Panel beginnt oben
     readonly property real launcherTop: 10
 
     // Maße: eingeklappt exakt wie vorher, ausgeklappt wächst die Karte nach
     // unten und mittig etwas in die Breite.
     readonly property real collapsedHeight: parent.height - verticalMargin
-    readonly property real collapsedWidth: clock.implicitWidth + 50
+    readonly property real collapsedWidth: clock.implicitWidth + 50 + recordReserve
     readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth
                                         : themeOpen ? themes.outerWidth
                                         : powerOpen ? powerMenu.outerWidth
@@ -59,16 +71,19 @@ Item {
                                          : powerOpen ? powerMenu.outerHeight
                                          : launcher.outerHeight
 
-    readonly property real expandedWidth: launcherOpen ? Math.max(collapsedWidth, launcherWidth)
-                                                       : Math.max(collapsedWidth, panel.outerWidth)
-    readonly property real expandedHeight: launcherOpen ? launcherTop + launcherHeight
-                                                        : collapsedHeight + clockDropMax + panel.outerHeight
+    readonly property real expandedWidth: authOpen ? Math.max(collapsedWidth, authPanel.outerWidth)
+                                                   : launcherOpen ? Math.max(collapsedWidth, launcherWidth)
+                                                                  : Math.max(collapsedWidth, panel.outerWidth)
+    readonly property real expandedHeight: authOpen ? launcherTop + authPanel.outerHeight
+                                                    : launcherOpen ? launcherTop + launcherHeight
+                                                                   : collapsedHeight + clockDropMax + panel.outerHeight
     // Reserve, die sich das Bar-Fenster nach unten nehmen muss (größter Fall)
     readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight,
                                              launcherTop + launcher.maxOuterHeight,
-                                             launcherTop + wallpapers.maxOuterHeight,
-                                             launcherTop + themes.maxOuterHeight,
-                                             launcherTop + powerMenu.maxOuterHeight) + verticalMargin
+                                              launcherTop + wallpapers.maxOuterHeight,
+                                              launcherTop + themes.maxOuterHeight,
+                                              launcherTop + powerMenu.maxOuterHeight,
+                                              launcherTop + authPanel.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
     y: verticalMargin / 2
@@ -91,6 +106,12 @@ Item {
     onExpandedChanged: if (!expanded) panel.dayOffset = 0
     // Der Launcher übernimmt die Karte: Datums-Ansicht dabei einklappen
     onLauncherOpenChanged: if (launcherOpen) expanded = false
+    onAuthOpenChanged: {
+        if (authOpen) {
+            expanded = false;
+            LauncherState.close();
+        }
+    }
 
     Timer {
         id: openTimer
@@ -135,7 +156,7 @@ Item {
 
             target: null
             xAxis.enabled: false
-            enabled: !LauncherState.open
+            enabled: !LauncherState.open && !Auth.active
 
             readonly property real threshold: 55
             property bool triggered: false
@@ -155,10 +176,12 @@ Item {
             id: clock
 
             anchors.horizontalCenter: parent.horizontalCenter
+            // Platz für den Aufnahme-Punkt rechts daneben (0, wenn keiner da)
+            anchors.horizontalCenterOffset: -notch.recordReserve / 2
             // im eingeklappten Band zentriert, beim Aufklappen etwas tiefer;
             // im Launcher-Modus macht sie ganz Platz
             y: (notch.collapsedHeight - height) / 2 + notch.clockDrop
-            opacity: notch.launcherOpen ? 0 : 1
+            opacity: notch.launcherOpen || notch.authOpen ? 0 : 1
             visible: opacity > 0
 
             Behavior on y {
@@ -166,6 +189,46 @@ Item {
             }
             Behavior on opacity {
                 NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+            }
+            // Gleiches Timing wie die Pille selbst, damit Uhr und Kante
+            // zusammen wandern
+            Behavior on anchors.horizontalCenterOffset {
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+            }
+        }
+
+        // Der Aufnahme-Punkt. Er pulst langsam, damit er als Zustand lesbar
+        // ist und nicht als Deko; im Launcher-Modus geht er mit der Uhr.
+        Item {
+            id: recordDot
+
+            anchors {
+                left: clock.right
+                leftMargin: notch.recordGap
+                verticalCenter: clock.verticalCenter
+            }
+            implicitWidth: notch.recordDotSize
+            implicitHeight: notch.recordDotSize
+            opacity: notch.recording && !notch.launcherOpen && !notch.authOpen ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+
+                radius: width / 2
+                color: Colors.record
+
+                SequentialAnimation on opacity {
+                    running: notch.recording
+                    loops: Animation.Infinite
+
+                    NumberAnimation { from: 1; to: 0.35; duration: 900; easing.type: Easing.InOutSine }
+                    NumberAnimation { from: 0.35; to: 1; duration: 900; easing.type: Easing.InOutSine }
+                }
             }
         }
 
@@ -313,8 +376,8 @@ Item {
             }
             implicitWidth: 28
             implicitHeight: 28
-            opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
-            visible: notch.expanded && !notch.launcherOpen
+            opacity: notch.expanded && !notch.launcherOpen && !notch.authOpen ? 1 : 0
+            visible: notch.expanded && !notch.launcherOpen && !notch.authOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -362,8 +425,8 @@ Item {
             }
             implicitWidth: 28
             implicitHeight: 28
-            opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
-            visible: notch.expanded && !notch.launcherOpen
+            opacity: notch.expanded && !notch.launcherOpen && !notch.authOpen ? 1 : 0
+            visible: notch.expanded && !notch.launcherOpen && !notch.authOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -404,10 +467,10 @@ Item {
             cardRadius: notch.cardRadius
             gestureArea: pill                 // Mausrad gilt auf der ganzen Karte
             dragEnabled: !launcherDrag.active
-            opacity: notch.expanded && !notch.launcherOpen ? 1 : 0
+            opacity: notch.expanded && !notch.launcherOpen && !notch.authOpen ? 1 : 0
             // Beim Wechsel zum Launcher sofort aus dem Renderpfad nehmen. So
             // wird der Datumsstreifen nicht auf Launcherbreite mitanimiert.
-            visible: notch.expanded && !notch.launcherOpen
+            visible: notch.expanded && !notch.launcherOpen && !notch.authOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -464,6 +527,21 @@ Item {
             active: notch.powerOpen
             opacity: notch.powerOpen ? 1 : 0
             visible: notch.powerOpen
+
+            Behavior on opacity {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+        }
+
+        AuthPanel {
+            id: authPanel
+
+            topOffset: notch.launcherTop
+            cardRadius: notch.cardRadius
+            active: notch.authOpen
+            flow: Auth.flow
+            opacity: notch.authOpen ? 1 : 0
+            visible: notch.authOpen
 
             Behavior on opacity {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }

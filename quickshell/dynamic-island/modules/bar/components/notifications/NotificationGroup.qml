@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell
 import qs.modules.services.notifications
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Die Nachrichten einer App als Buendel.
 //
@@ -87,6 +88,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 anchors {
                     left: parent.left
                     leftMargin: 20

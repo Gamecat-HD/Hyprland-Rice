@@ -33,3 +33,16 @@ __pycache__/
 # install.sh (seed_scheme) legt beide nach einem frischen Clone wieder an.
 /hypr/scheme/current.lua
 /hypr/scheme/hyprlock.conf
+
+# Zustand, keine Konfiguration: welches Profil und welches Theme gerade laufen.
+# Beides schreiben hypr-profile bzw. theme-set bei jedem Umschalten neu und es
+# ist pro Rechner verschieden. Ohne die Dateien geht nichts kaputt: hyprland.lua
+# faellt auf "caelestia" zurueck (install.sh -> hypr_profile legt "simple" an),
+# Colors.qml auf das Theme "ink".
+/hypr/profile
+/quickshell/dynamic-island/themes/current
+
+# Reste von Merges und Skripten, die eine Datei ueber eine .tmp neu schreiben
+*.orig
+*.rej
+*.tmp

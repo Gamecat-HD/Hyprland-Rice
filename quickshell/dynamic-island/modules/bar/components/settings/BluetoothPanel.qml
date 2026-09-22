@@ -5,7 +5,8 @@ import Quickshell.Bluetooth as QB
 
 import qs.modules.services.bluetooth
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 Item {
     id: panel
@@ -56,6 +57,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 anchors.verticalCenter: parent.verticalCenter
                 text: actionRow.modelData.label
                 font.pixelSize: 12
@@ -121,6 +123,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             anchors {
                 left: backButton.right
                 leftMargin: 6
@@ -325,6 +328,7 @@ Item {
                     visible: row.showSection
 
                     Text {
+                        font.family: Config.font
                         anchors {
                             left: parent.left
                             leftMargin: 8
@@ -379,6 +383,7 @@ Item {
                         spacing: 1
 
                         Text {
+                            font.family: Config.font
                             width: parent.width
                             text: BluetoothService.deviceName(row.modelData)
                             color: Colors.fgBackground
@@ -388,6 +393,7 @@ Item {
                         }
 
                         Text {
+                            font.family: Config.font
                             width: parent.width
                             text: {
                                 const parts = [];
@@ -520,6 +526,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             anchors.centerIn: parent
             visible: list.count === 0 && !pairingDialog.visible
             text: !BluetoothService.enabled ? "Bluetooth ist aus"
@@ -543,6 +550,7 @@ Item {
 
             Text {
                 id: pairingTitle
+                font.family: Config.font
 
                 anchors {
                     top: parent.top
@@ -560,6 +568,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 anchors {
                     top: pairingTitle.bottom
                     topMargin: 3
@@ -594,6 +603,7 @@ Item {
 
                 TextInput {
                     id: pinInput
+                    font.family: Config.font
 
                     anchors.fill: parent
                     anchors.leftMargin: 10
@@ -641,6 +651,7 @@ Item {
                 color: pinInput.text === "" ? Colors.alpha(Colors.fgSurface, 0.1) : Colors.primary
 
                 Text {
+                    font.family: Config.font
                     anchors.centerIn: parent
                     text: "Senden"
                     font.pixelSize: 11
@@ -672,6 +683,7 @@ Item {
                     color: Colors.alpha(Colors.fgSurface, 0.1)
 
                     Text {
+                        font.family: Config.font
                         anchors.centerIn: parent
                         text: BluetoothService.pairingRequest === "error" ? "Schließen" : "Abbrechen"
                         color: Colors.fgBackground
@@ -693,6 +705,7 @@ Item {
                     color: Colors.primary
 
                     Text {
+                        font.family: Config.font
                         anchors.centerIn: parent
                         text: "Bestätigen"
                         color: Colors.fgPrimary

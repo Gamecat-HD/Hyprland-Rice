@@ -8,7 +8,8 @@ import qs.modules.services.hypr
 import qs.modules.services.media
 import qs.modules.services.audio
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Medien-Pille rechts in der Leiste.
 //
@@ -337,6 +338,7 @@ Item {
 
                 // ---- Zeit ----
                 Text {
+                    font.family: Config.font
                     Layout.alignment: Qt.AlignVCenter
                     visible: Media.timeLabel !== ""
 
@@ -415,6 +417,7 @@ Item {
 
                         Text {
                             id: title
+                            font.family: Config.font
 
                             text: marquee.label
                             color: Colors.fgBackground

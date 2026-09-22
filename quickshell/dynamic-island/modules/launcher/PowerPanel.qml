@@ -2,7 +2,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Sitzungsmenue der Notch. Aufbau und Masse folgen den Auswahlkarten fuer
 // Wallpaper und Themes; statt eines Karussells gibt es eine Reihe Aktionen.
@@ -114,6 +115,7 @@ Item {
                         }
 
                         Text {
+                            font.family: Config.font
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: action.modelData.label
                             color: action.hovered ? action.modelData.hue : Colors.fgSurfaceVariant

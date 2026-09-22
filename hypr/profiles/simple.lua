@@ -309,9 +309,6 @@ hl.layer_rule({ match = { namespace = "hyprpicker" }, animation = "fade" })
 -- Autostart (nur beim Hyprland-Start, nicht bei jedem Reload)
 --------------------------------------------------------------------------------
 hl.on("hyprland.start", function()
-	-- Passwort-Dialoge fuer GUI-Apps
-	hl.exec_cmd("/usr/lib/polkit-kde-authentication-agent-1")
-
 	-- Zwischenablage-Verlauf
 	hl.exec_cmd("wl-paste --type text --watch cliphist store")
 	hl.exec_cmd("wl-paste --type image --watch cliphist store")

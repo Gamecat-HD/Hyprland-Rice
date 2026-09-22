@@ -4,7 +4,7 @@ import QtQuick.Shapes
 
 import qs.modules.services.audio
 
-import "root:/"
+import qs
 
 // Der Ring am Aussenrand der Settings-Karte.
 //

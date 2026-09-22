@@ -4,7 +4,7 @@ import QtQuick
 import Quickshell
 import qs.modules.services.wallpaper
 
-import "root:/modules/settings"
+import qs.modules.settings
 
 // Aktionen des Launchers – das Gegenstück zu Caelestias `Actions`-Service.
 // Erreichbar über das Präfix `>`.

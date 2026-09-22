@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell
 import qs.modules.services.system
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // System-Pille rechts neben dem Workspace-Selektor.
 //
@@ -131,6 +132,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 anchors.verticalCenter: parent.verticalCenter
                 visible: Power.hasBattery
 
@@ -230,6 +232,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 width: parent.width
                 text: SystemStats.cpuName !== "" ? SystemStats.cpuName : "System"
                 color: Colors.fgSurfaceVariant
@@ -289,6 +292,7 @@ Item {
 
             // Was sonst noch Temperatur hat, in einer Zeile
             Text {
+                font.family: Config.font
                 width: parent.width
                 topPadding: 4
                 visible: text !== ""
@@ -308,6 +312,7 @@ Item {
             // Geraete-Akkus: am Desktop steht der erste schon in der Pille,
             // hier stehen sie mit Namen
             Text {
+                font.family: Config.font
                 width: parent.width
                 visible: text !== ""
                 text: {
@@ -322,6 +327,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 width: parent.width
                 topPadding: 2
                 visible: Power.degraded

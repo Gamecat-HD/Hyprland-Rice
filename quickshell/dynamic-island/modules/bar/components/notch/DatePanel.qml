@@ -2,7 +2,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Ausklapp-Inhalt der Notch: Monat + Tagesstreifen als Karussell.
 // Bringt alles Datums-Bezogene selbst mit – Datumsrechnung, Gesten (Rad und
@@ -145,6 +146,7 @@ Item {
     // ---- Inhalt ----
     Text {
         id: header
+        font.family: Config.font
 
         anchors.horizontalCenter: parent.horizontalCenter
         y: panel.topPadding

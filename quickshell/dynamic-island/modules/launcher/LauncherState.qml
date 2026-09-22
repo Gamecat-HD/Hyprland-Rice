@@ -75,16 +75,87 @@ Singleton {
         root.toggle(root.focusedScreen());
     }
 
+    // ---- Fullscreen-Sperre ----------------------------------------------
+    // simple.lua bindet SUPER allein (beim Loslassen) auf
+    // `ipc call launcher toggle`. Ein Fullscreen-Fenster – typisch ein Spiel –
+    // greift sich die Tastatur; die SUPER-Freigabe erreicht Hyprland dann
+    // erst, wenn das Fenster schon steht, und der Bind feuert, ohne dass in
+    // dem Moment jemand etwas gedrückt hat. Der Launcher ging so über dem
+    // Spiel von selbst auf.
+    //
+    // Deshalb fragt jede Anfrage von außen erst nach, ob gerade ein Fenster
+    // im Vollbild den Fokus hat, und wird dann fallen gelassen. Betroffen
+    // sind nur IPC und Tastenkürzel für das App-Menü; der Zug an der Notch
+    // und die gezielten Wege (Wallpaper, Theme, Power) laufen direkt durch –
+    // die löst niemand versehentlich aus.
+    property bool blockOnFullscreen: true
+
+    // Modus, der auf die Antwort von hyprctl wartet ("" = keine Anfrage offen)
+    property string pendingMode: ""
+
+    function request(mode: string, asToggle: bool): void {
+        // Zumachen darf immer, das kostet keine Prüfung
+        if (asToggle && root.open) {
+            root.close();
+            return;
+        }
+
+        if (!root.blockOnFullscreen) {
+            root.showMode(root.focusedScreen(), mode);
+            return;
+        }
+
+        root.pendingMode = mode;
+        if (!fullscreenProbe.running)
+            fullscreenProbe.running = true;
+    }
+
+    Process {
+        id: fullscreenProbe
+
+        command: ["hyprctl", "activewindow", "-j"]
+
+        stdout: StdioCollector {
+            id: probeCollector
+
+            onStreamFinished: {
+                const mode = root.pendingMode;
+                root.pendingMode = "";
+                if (!mode)
+                    return;
+
+                let win = null;
+                try {
+                    win = JSON.parse(probeCollector.text);
+                } catch (e) {
+                    // Ohne fokussiertes Fenster liefert hyprctl nichts
+                    // Brauchbares – im Zweifel aufmachen.
+                }
+
+                // Hyprlands Modus: 0 = normal, 1 = maximiert, 2 = Vollbild.
+                // Maximierte Fenster sind Alltag und sollen nicht sperren.
+                const fs = Math.max(win?.fullscreen ?? 0, win?.fullscreenClient ?? 0);
+                if (fs >= 2) {
+                    console.log("Launcher: Anfrage verworfen –",
+                                win?.title ?? "ein Fenster", "läuft im Vollbild");
+                    return;
+                }
+
+                root.showMode(root.focusedScreen(), mode);
+            }
+        }
+    }
+
     // Erreichbar über:  qs -c dynamic-island ipc call launcher toggle
     IpcHandler {
         target: "launcher"
 
         function toggle(): void {
-            root.toggleOnFocused();
+            root.request("apps", true);
         }
 
         function open(): void {
-            root.show(root.focusedScreen());
+            root.request("apps", false);
         }
 
         function close(): void {

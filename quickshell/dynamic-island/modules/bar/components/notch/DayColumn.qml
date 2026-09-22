@@ -1,7 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Eine Spalte im Tagesstreifen: Wochentag oben, Datum in der Pille darunter.
 // Größe, Deckkraft und Farbe ergeben sich aus dem Abstand zur Mitte:
@@ -34,6 +35,7 @@ Item {
 
     // Wochentag: nur der gewählte Tag bekommt das volle Kürzel
     Text {
+        font.family: Config.font
         anchors {
             horizontalCenter: parent.horizontalCenter
             top: parent.top
@@ -64,6 +66,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             anchors.centerIn: parent
             text: column.day.getDate()
             color: column.accent

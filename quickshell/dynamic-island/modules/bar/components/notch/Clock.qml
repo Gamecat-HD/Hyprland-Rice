@@ -3,12 +3,14 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Uhr-Label. Positioniert wird von der Notch (bleibt beim Aufklappen im
 // oberen Band stehen).
 Text {
     id: clock
+    font.family: Config.font
 
     color: Colors.secondary
     text: Qt.formatDateTime(clockSource.date, "HH:mm")

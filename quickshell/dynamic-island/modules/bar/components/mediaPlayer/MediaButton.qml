@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
-import "root:/"
+import qs
 
 // Ein Icon-Knopf der Medien-Pille. Trefferflaeche und Glyph sind entkoppelt:
 // das Item ist groesser als das Zeichen, damit man nicht zielen muss (dasselbe

@@ -4,7 +4,8 @@ import Quickshell
 import Quickshell.Services.Notifications
 import qs.modules.services.notifications
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Eine Benachrichtigung: Bild/Icon, Titel, Text, Alter, Schliessen-Knopf –
 // und darunter die Aktionsknoepfe, falls die App welche mitschickt.
@@ -201,6 +202,7 @@ Item {
             spacing: row.compact ? 0 : 2
 
             Text {
+                font.family: Config.font
                 width: parent.width
                 text: row.notif?.summary ?? ""
                 color: row.critical ? Colors.error : Colors.fgBackground
@@ -210,6 +212,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 width: parent.width
                 visible: text !== ""
                 // Die Spec meint ein HTML-Subset, nicht Markdown
@@ -233,6 +236,7 @@ Item {
             spacing: 4
 
             Text {
+                font.family: Config.font
                 anchors.verticalCenter: parent.verticalCenter
 
                 // `tick` haengt nur mit drin, damit sich die Angabe auffrischt
@@ -305,6 +309,7 @@ Item {
 
                 Text {
                     id: buttonText
+                    font.family: Config.font
 
                     anchors.centerIn: parent
                     text: button.modelData.text

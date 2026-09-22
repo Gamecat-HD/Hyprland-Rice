@@ -2,7 +2,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Launcher-Inhalt der Notch: Suchfeld mit Favoriten-Schalter und Trefferliste.
 // Steckt wie das DatePanel in der Karte der Notch – die sagt nur, wo es
@@ -223,6 +224,7 @@ Item {
 
         TextInput {
             id: search
+            font.family: Config.font
 
             anchors {
                 left: searchIcon.right
@@ -287,6 +289,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 anchors.centerIn: parent
                 // Unicode statt Material Symbols: die gefüllte Variante gibt es
                 // dort nur über die FILL-Achse, und die greift mit dieser
@@ -390,6 +393,7 @@ Item {
 
         Text {
             id: emptyHint
+            font.family: Config.font
 
             anchors.centerIn: parent
             opacity: panel.results.length === 0 ? 1 : 0

@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.modules.services.theme
 
-import "root:/"
+import qs
 
 // Wallpaper-Dienst: kennt die Bilder im Wallpaper-Ordner, das aktuell
 // gesetzte und das gerade nur vorgeschaute.

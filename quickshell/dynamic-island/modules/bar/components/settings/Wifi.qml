@@ -3,7 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-import "root:/"
+import qs
 
 Item {
     id: wrapper

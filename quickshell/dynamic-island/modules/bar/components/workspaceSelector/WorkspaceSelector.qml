@@ -8,7 +8,7 @@ import Quickshell.Io
 import QtQuick.Layouts
 import qs.modules.services.hypr
 
-import "root:/"
+import qs
 
 // Karte links in der Leiste. Rundung, Randstärke und Randfarbe kommen aus
 // Bar.qml, damit sie sich nichts mit der Notch ausdenken muss.

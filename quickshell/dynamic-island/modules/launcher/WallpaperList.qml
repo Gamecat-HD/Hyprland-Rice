@@ -4,7 +4,8 @@ import QtQuick.Effects
 import Quickshell
 import qs.modules.services.wallpaper
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Wallpaper-Auswahl im Launcher: ein Karussell aus Vorschaubildern, das
 // aktuelle steht in der Mitte.
@@ -187,6 +188,7 @@ Carousel {
         }
 
         Text {
+            font.family: Config.font
             anchors {
                 top: frame.bottom
                 topMargin: 4

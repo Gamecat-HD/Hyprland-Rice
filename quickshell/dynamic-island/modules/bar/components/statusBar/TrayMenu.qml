@@ -4,7 +4,8 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Widgets
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Tray-Menue als undurchsichtige Karte in der Formensprache der Bar:
 // runde Karte mit 1px-Border, Eintraege als Pillen, Untermenues auf einem
@@ -249,6 +250,7 @@ Item {
                         }
 
                         Text {
+                            font.family: Config.font
                             anchors {
                                 left: backIcon.right
                                 leftMargin: 6
@@ -405,6 +407,7 @@ Item {
                                 }
 
                                 Text {
+                                    font.family: Config.font
                                     anchors {
                                         left: parent.left
                                         leftMargin: page.leadColumn ? menuRoot.rowPad + menuRoot.leadSize + 9 : menuRoot.rowPad

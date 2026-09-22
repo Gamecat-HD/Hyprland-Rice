@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 
-import "root:/"
+import qs
 
 // Systemtray im Settings-Stil: Pille mit Border, kollabiert auf einen Kreis,
 // Hover klappt nach links auf. Ab `maxVisible` Icons wird die Reihe scrollbar

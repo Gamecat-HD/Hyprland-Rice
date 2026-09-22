@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.modules.services.config
 
-import "root:/"
+import qs
 
 // Einstellungs-Fenster, mittig auf dem Bildschirm.
 //
@@ -60,6 +60,7 @@ Variants {
             // Kopfzeile
             Text {
                 id: title
+                font.family: Config.font
 
                 anchors {
                     left: parent.left
@@ -74,6 +75,7 @@ Variants {
             }
 
             Text {
+                font.family: Config.font
                 anchors {
                     left: title.left
                     top: title.bottom
@@ -152,6 +154,7 @@ Variants {
 
                 TextInput {
                     id: search
+                    font.family: Config.font
 
                     anchors {
                         left: searchIcon.right
@@ -217,6 +220,8 @@ Variants {
                                     key,
                                     value: values[key],
                                     title: meta?.title ?? key,
+                                    // Feste Auswahl (z. B. Schriften) – sonst null
+                                    options: meta?.options ?? null,
                                     // Ohne Eintrag in der Tabelle: ehrlich sagen,
                                     // dass der Schluessel neu ist
                                     desc: meta?.desc ?? `Schlüssel "${key}" aus shell.json`
@@ -261,6 +266,7 @@ Variants {
                 }
 
                 Text {
+                    font.family: Config.font
                     anchors.centerIn: parent
                     visible: list.count === 0
 

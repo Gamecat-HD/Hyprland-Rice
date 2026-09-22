@@ -6,7 +6,8 @@ import Quickshell
 import qs.modules.services.media
 import qs.modules.services.audio
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Ausklapp-Inhalt der Medien-Pille – kein eigenes Fenster, sondern ein Teil
 // der Karte selbst (dasselbe Prinzip wie DatePanel in der Notch). Dadurch
@@ -98,6 +99,7 @@ Item {
                     }
 
                     Text {
+                        font.family: Config.font
                         anchors {
                             left: parent.left
                             leftMargin: 8
@@ -154,6 +156,7 @@ Item {
                         color: entryHover.hovered ? Colors.shade(panel.tint, 0.11) : "transparent"
 
                         Text {
+                            font.family: Config.font
                             anchors {
                                 left: parent.left
                                 leftMargin: 8
@@ -301,6 +304,7 @@ Item {
 
         // ---- Titel ----
         Text {
+            font.family: Config.font
             Layout.fillWidth: true
 
             text: Media.title || "Nichts"
@@ -312,6 +316,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             Layout.fillWidth: true
             Layout.topMargin: -8
             visible: text !== ""
@@ -331,6 +336,7 @@ Item {
             spacing: 8
 
             Text {
+                font.family: Config.font
                 text: Media.formatTime(Media.position)
                 color: Colors.fgSurfaceVariant
                 font.pixelSize: 9
@@ -391,6 +397,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 text: Media.hasLength ? Media.formatTime(Media.length) : "--:--"
                 color: Colors.fgSurfaceVariant
                 font.pixelSize: 9

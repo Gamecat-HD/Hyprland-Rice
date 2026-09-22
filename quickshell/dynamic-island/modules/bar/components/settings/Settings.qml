@@ -7,7 +7,7 @@ import qs.modules.services.config
 import qs.modules.services.system
 import qs.modules.services.vpn
 
-import "root:/"
+import qs
 
 // Settings-Knopf rechts neben der Notch. Bei Hover waechst er wie die Notch
 // zu einer (noch leeren) Karte – nach RECHTS und UNTEN: oben links fix
@@ -276,6 +276,7 @@ Rectangle {
             }
 
             Text {
+                font.family: Config.font
                 anchors.verticalCenter: parent.verticalCenter
 
                 text: `${Power.percent} %`

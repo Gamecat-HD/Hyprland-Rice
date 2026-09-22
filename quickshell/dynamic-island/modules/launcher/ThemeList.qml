@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell
 import qs.modules.services.theme
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Theme-Auswahl: dasselbe Karussell wie bei den Wallpapern (Carousel.qml),
 // nur zeigen die Kacheln hier keine Bilder, sondern die Farben des jeweiligen
@@ -174,6 +175,7 @@ Carousel {
         }
 
         Text {
+            font.family: Config.font
             anchors {
                 top: card.bottom
                 topMargin: 4

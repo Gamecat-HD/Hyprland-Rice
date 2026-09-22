@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell
 import qs.modules.services.notifications
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Benachrichtigungs-Pille links neben der Medien-Karte.
 //
@@ -198,6 +199,7 @@ Item {
                 }
 
                 Text {
+                    font.family: Config.font
                     anchors.centerIn: parent
                     text: Notifications.count > 9 ? "9+" : Notifications.count
                     color: Colors.fgPrimary
@@ -241,6 +243,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             anchors {
                 left: parent.left
                 leftMargin: 14
@@ -280,6 +283,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 anchors {
                     left: parent.left
                     leftMargin: 14
@@ -373,6 +377,7 @@ Item {
             }
 
             Text {
+                font.family: Config.font
                 anchors.centerIn: parent
                 visible: Notifications.count === 0
 

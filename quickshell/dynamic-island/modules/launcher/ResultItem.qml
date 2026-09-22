@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Widgets
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Eine Zeile in der Trefferliste: Icon, Name, Beschreibung.
 // Die ausgewählte Zeile bekommt Fläche und einen Balken an der linken Kante.
@@ -150,6 +151,7 @@ Rectangle {
         }
 
         Text {
+            font.family: Config.font
             anchors.centerIn: parent
             text: item.modelData.favorite ? "★" : "☆"
             font.pixelSize: 15
@@ -168,6 +170,7 @@ Rectangle {
         spacing: 1
 
         Text {
+            font.family: Config.font
             width: parent.width
             text: item.modelData.name
             color: Colors.fgSurface
@@ -177,6 +180,7 @@ Rectangle {
         }
 
         Text {
+            font.family: Config.font
             width: parent.width
             visible: text !== ""
             text: item.modelData.desc ?? ""

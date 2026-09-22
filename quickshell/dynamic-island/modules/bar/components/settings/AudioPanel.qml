@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell.Services.Pipewire
 
 import qs.modules.services.audio
-import "root:/"
+import qs
+import qs.modules.services.config
 
 // Eigene Settings-Ansicht fuer PipeWire-Ausgabe- und Eingabegeraete.
 Item {
@@ -58,6 +59,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             anchors {
                 left: backButton.right
                 leftMargin: 6
@@ -108,6 +110,7 @@ Item {
                 spacing: 4
 
                 Text {
+                    font.family: Config.font
                     text: "AUSGABE"
                     color: Colors.primary
                     font.pixelSize: 10
@@ -129,6 +132,7 @@ Item {
                 }
 
                 Text {
+                    font.family: Config.font
                     width: devices.width
                     height: Audio.sinks.length === 0 ? 36 : 0
                     visible: height > 0
@@ -140,6 +144,7 @@ Item {
                 }
 
                 Text {
+                    font.family: Config.font
                     text: "EINGABE"
                     color: Colors.secondary
                     font.pixelSize: 10
@@ -161,6 +166,7 @@ Item {
                 }
 
                 Text {
+                    font.family: Config.font
                     width: devices.width
                     height: Audio.sources.length === 0 ? 36 : 0
                     visible: height > 0
@@ -216,6 +222,7 @@ Item {
         }
 
         Text {
+            font.family: Config.font
             anchors {
                 left: parent.left
                 leftMargin: 50

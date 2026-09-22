@@ -3,8 +3,9 @@ import QtQuick
 import Quickshell
 import qs.modules.services.theme
 
-import "root:/"
-import "root:/modules/bar/components/notch"
+import qs
+import qs.modules.bar.components.notch
+import qs.modules.services.config
 
 // Theme-Auswahl der Notch: eigenes Suchfeld, darunter das Farb-Karussell und
 // ganz unten die Material-Varianten.
@@ -76,6 +77,7 @@ Item {
 
         TextInput {
             id: search
+            font.family: Config.font
 
             anchors {
                 left: searchIcon.right
@@ -310,6 +312,7 @@ Item {
                         }
 
                         Text {
+                            font.family: Config.font
                             anchors.verticalCenter: parent.verticalCenter
 
                             text: chip.modelData.name

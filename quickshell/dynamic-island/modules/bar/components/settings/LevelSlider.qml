@@ -1,7 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-import "root:/"
+import qs
+import qs.modules.services.config
 
 Rectangle {
     id: root
@@ -41,6 +42,7 @@ Rectangle {
     }
 
     Text {
+        font.family: Config.font
         anchors {
             top: parent.top
             topMargin: 7
@@ -55,6 +57,7 @@ Rectangle {
 
     Text {
         id: percentText
+        font.family: Config.font
 
         anchors {
             top: parent.top
