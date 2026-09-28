@@ -23,7 +23,7 @@ Rectangle {
 
     // Ein Klick oeffnet die Karte. Hover haelt eine geoeffnete Karte nur noch
     // offen; beim Verlassen greift weiterhin der kurze Schliess-Nachlauf.
-    readonly property bool containsMouse: hoverSensor.hovered || tiles.sleepMenuHovered
+    readonly property bool containsMouse: hoverSensor.hovered || tiles.sleepMenuHovered || tiles.vpnMenuHovered
     property bool expanded: false
     property bool showBrightness: false
     // Hovern zieht die Pille seitlich auf und zeigt die Statuszeile
@@ -90,6 +90,7 @@ Rectangle {
     // Das No-Sleep-Dropdown haengt aus der Karte heraus; Bar.qml haengt es
     // in die Fenster-Maske, damit man die Eintraege klicken kann
     readonly property alias sleepMenu: tiles.sleepMenu
+    readonly property alias vpnMenu: tiles.vpnMenu
 
     anchors {
         top: parent.top
@@ -108,6 +109,7 @@ Rectangle {
         settings.bluetoothOpen = false;
         settings.audioOpen = false;
         tiles.sleepMenuOpen = false;
+        tiles.vpnMenuOpen = false;
     } else {
         settings.showBrightness = false;
         settings.peek = false;          // die Karte loest die Statuszeile ab

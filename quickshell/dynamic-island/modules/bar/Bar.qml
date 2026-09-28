@@ -101,6 +101,9 @@ Variants {
                 item: settings.sleepMenu   // No-Sleep-Dropdown, solange offen
             }
             Region {
+                item: settings.vpnMenu     // VPN-Anbieter-Dropdown
+            }
+            Region {
                 item: notifications        // aufgeklappte Benachrichtigungs-Karte
             }
             Region {

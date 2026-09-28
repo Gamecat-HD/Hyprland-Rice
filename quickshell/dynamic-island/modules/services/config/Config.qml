@@ -26,6 +26,7 @@ Singleton {
     readonly property alias bar: adapter.bar
     readonly property alias notifications: adapter.notifications
     readonly property alias appearance: adapter.appearance
+    readonly property alias vpn: adapter.vpn
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -43,6 +44,11 @@ Singleton {
         "bar.battery": { title: "Akkuanzeige", desc: "Ring um die Uhr und Akkustand in der Settings-Pille" },
         "bar.batteryPulse": { title: "Akku-Ladeimpuls", desc: "Bewegter Impuls im leeren Teil des Akkurings" },
         "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" },
+        "vpn.provider": {
+            title: "VPN-Anbieter",
+            desc: "Anbieter der VPN-Kachel",
+            options: ["nordvpn", "cloudflare"]
+        },
         // `options` macht aus der Zeile eine Auswahl. Nicht installierte
         // Schriften blendet das Menue aus.
         "appearance.font": {
@@ -55,6 +61,7 @@ Singleton {
     readonly property var sectionMeta: ({
         "bar": "Leiste",
         "notifications": "Benachrichtigungen",
+        "vpn": "VPN",
         "appearance": "Darstellung"
     })
 
@@ -137,6 +144,10 @@ Singleton {
 
             property JsonObject appearance: JsonObject {
                 property string font: "SF Pro"
+            }
+
+            property JsonObject vpn: JsonObject {
+                property string provider: "nordvpn"
             }
 
             property JsonObject bar: JsonObject {

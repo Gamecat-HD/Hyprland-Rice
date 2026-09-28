@@ -262,8 +262,9 @@ declare -A OPTIONAL=(
     # Helligkeit ueber DDC/CI (Brightness.qml). Am Laptop meist unnoetig,
     # dort regelt brightnessctl die interne Anzeige.
     [ddcutil]=ddcutil
-    # Die VPN-Kachel spricht nordvpn an
+    # Die VPN-Kachel kann zwischen NordVPN und Cloudflare WARP wechseln
     [nordvpn]=nordvpn-bin
+    [warp-cli]=cloudflare-warp-bin
 )
 
 # Systemdienste, an denen die Shell ueber DBus haengt

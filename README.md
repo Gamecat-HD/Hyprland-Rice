@@ -53,7 +53,8 @@ Schrift und die ueblichen Wayland-Werkzeuge.
 Mehrere Anzeigen haengen an Systemdiensten, mit denen die Shell ueber DBus
 redet: **NetworkManager** (WLAN), **bluez** (Bluetooth), **upower** (Akku) und
 **power-profiles-daemon** (Energieprofile). Optional sind `cava` (Balken im
-Medien-Player), `ddcutil` (Helligkeit ueber DDC/CI) und `nordvpn` (VPN-Kachel) —
+Medien-Player), `ddcutil` (Helligkeit ueber DDC/CI), `nordvpn` und `warp-cli`
+(waehlbare Anbieter der VPN-Kachel) —
 ohne sie faellt nur die jeweilige Einzelheit aus.
 
 Benachrichtigungen bringt die Shell selbst mit; ein zweiter Daemon (mako, dunst,

@@ -24,7 +24,7 @@ import qs.modules.services.config
 //
 // Hintergruenge zu den Aktionen:
 //   - WLAN/Bluetooth: nmcli bzw. bluetoothctl, Status per Polling
-//   - VPN: der bestehende Vpn-Service (nordvpn)
+//   - VPN: der Vpn-Service mit NordVPN oder Cloudflare WARP
 //   - No-Sleep: ein systemd-inhibit-Prozess (logind-Lock), der waehrend der
 //     Aktivitaet am Leben gehalten wird
 //   - Game-Mode: hyprctl eval 'hl.config{...}' (keyword ist im Lua-Parser
@@ -63,6 +63,10 @@ ColumnLayout {
     // Maus ueber dem herausragenden Menue – Settings muss das kennen, sonst
     // klappt die Karte unter der Maus zu, sobald man ins Menue faehrt
     readonly property alias sleepMenuHovered: sleepMenuHover.hovered
+
+    property bool vpnMenuOpen: false
+    readonly property alias vpnMenu: vpnMenuPanel
+    readonly property alias vpnMenuHovered: vpnMenuHover.hovered
 
     Component.onCompleted: {
         wifiPoll.running = true;
@@ -501,14 +505,144 @@ ColumnLayout {
 
         Layout.fillWidth: true
         spacing: 10
-        z: root.sleepMenuOpen ? 100 : 0
+        z: root.sleepMenuOpen || root.vpnMenuOpen ? 100 : 0
 
         Tile {
+            id: vpnTile
+
+            tapEnabled: false
             icon: Vpn.connected ? "vpn_key" : "vpn_key_off"
-            title: "VPN"
-            subtitle: Vpn.connected ? "Verbunden" : "Getrennt"
+            title: Vpn.providerName
+            subtitle: Vpn.statusText
             active: Vpn.connected
             onToggled: Vpn.toggle()
+
+            TapHandler {
+                id: vpnTap
+
+                onTapped: {
+                    if (vpnTap.point.position.x < vpnTile.width - 46)
+                        Vpn.toggle();
+                }
+            }
+
+            Rectangle {
+                anchors {
+                    right: parent.right
+                    rightMargin: 8
+                    verticalCenter: parent.verticalCenter
+                }
+                width: 34
+                height: 34
+                radius: 17
+                color: root.vpnMenuOpen ? Colors.alpha(Colors.fgSurface, 0.16)
+                                        : Colors.alpha(Colors.fgSurface, 0.08)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.vpnMenuOpen ? "expand_less" : "expand_more"
+                    font.family: "Material Symbols Outlined"
+                    font.pixelSize: 18
+                    color: Colors.fgBackground
+                }
+
+                TapHandler {
+                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                    onTapped: {
+                        root.vpnMenuOpen = !root.vpnMenuOpen;
+                        if (root.vpnMenuOpen)
+                            root.sleepMenuOpen = false;
+                    }
+                }
+            }
+
+            Rectangle {
+                id: vpnMenuPanel
+
+                visible: root.vpnMenuOpen
+                anchors {
+                    top: parent.bottom
+                    topMargin: 4
+                    left: parent.left
+                    leftMargin: 10
+                }
+                width: 180
+                height: 72
+                z: 200
+                radius: 16
+                color: Colors.shade(Colors.background, 0.08)
+                border.width: 1
+                border.color: Colors.outlineVariant
+
+                // Eigene Trefferflaeche, damit Klicks nicht zur darunter
+                // liegenden Aufnahme-Kachel durchfallen.
+                MouseArea {
+                    anchors.fill: parent
+                }
+
+                HoverHandler {
+                    id: vpnMenuHover
+                }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    spacing: 2
+
+                    Repeater {
+                        model: [
+                            { id: "nordvpn", label: "NordVPN" },
+                            { id: "cloudflare", label: "Cloudflare WARP" }
+                        ]
+
+                        Rectangle {
+                            id: providerOption
+
+                            required property var modelData
+
+                            Layout.fillWidth: true
+                            implicitHeight: 30
+                            radius: 15
+                            color: Vpn.provider === providerOption.modelData.id ? Colors.primary : "transparent"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 6
+
+                                Text {
+                                    font.family: Config.font
+                                    text: providerOption.modelData.label
+                                    font.pixelSize: 12
+                                    color: Vpn.provider === providerOption.modelData.id ? Colors.fgPrimary : Colors.fgBackground
+                                    Layout.fillWidth: true
+                                }
+
+                                Text {
+                                    text: "check"
+                                    font.family: "Material Symbols Outlined"
+                                    font.pixelSize: 16
+                                    visible: Vpn.provider === providerOption.modelData.id
+                                    color: Colors.fgPrimary
+                                }
+                            }
+
+                            MouseArea {
+                                id: providerMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    Vpn.selectProvider(providerOption.modelData.id);
+                                    root.vpnMenuOpen = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // No-Sleep mit integriertem Dauer-Dropdown. Der Klick auf die Pille
@@ -580,7 +714,11 @@ ColumnLayout {
 
                 TapHandler {
                     gesturePolicy: TapHandler.ReleaseWithinBounds   // exklusiv: kein Pillen-Toggle
-                    onTapped: root.sleepMenuOpen = !root.sleepMenuOpen
+                    onTapped: {
+                        root.sleepMenuOpen = !root.sleepMenuOpen;
+                        if (root.sleepMenuOpen)
+                            root.vpnMenuOpen = false;
+                    }
                 }
             }
 
@@ -597,7 +735,7 @@ ColumnLayout {
                     rightMargin: 10
                 }
                 width: 150
-                implicitHeight: 140
+                height: 140
                 radius: 16
                 color: Colors.shade(Colors.background, 0.08)
                 border.width: 1
