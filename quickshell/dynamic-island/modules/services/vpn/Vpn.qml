@@ -12,9 +12,15 @@ Singleton {
     readonly property string provider: Config.vpn.provider === "cloudflare" ? "cloudflare" : "nordvpn"
     readonly property string providerName: provider === "cloudflare" ? "Cloudflare WARP" : "NordVPN"
     readonly property bool connected: statusProc.status === "Connected"
-    readonly property string statusText: connected ? "Verbunden"
+    readonly property string statusText: !root.available ? (root.toolsChecked ? "Nicht installiert" : "Nicht bereit")
+                                                : connected ? "Verbunden"
                                                 : statusProc.status === "Disconnected" ? "Getrennt"
                                                 : "Nicht bereit"
+    // Welche CLIs installiert sind – fehlende werden gar nicht erst aufgerufen
+    property bool nordAvailable: false
+    property bool warpAvailable: false
+    property bool toolsChecked: false
+    readonly property bool available: provider === "cloudflare" ? warpAvailable : nordAvailable
     property bool nordConnected: false
     property bool warpConnected: false
     property bool nordStatusReady: false
@@ -36,7 +42,7 @@ Singleton {
     }
 
     function applyDetectedProvider(): void {
-        if (!nordStatusReady || !warpStatusReady)
+        if (!root.nordStatusReady || !root.warpStatusReady)
             return;
 
         if (warpConnected && !nordConnected && root.provider !== "cloudflare")
@@ -45,14 +51,31 @@ Singleton {
             Config.set("vpn", "provider", "nordvpn");
     }
 
+    // Nicht installierte CLIs gelten sofort als "getrennt und fertig gelesen"
     function detectProviders(): void {
-        root.nordStatusReady = false;
-        root.warpStatusReady = false;
-        nordStatusProc.running = true;
-        warpStatusProc.running = true;
+        root.nordConnected = root.nordConnected && root.nordAvailable;
+        root.warpConnected = root.warpConnected && root.warpAvailable;
+        root.nordStatusReady = !root.nordAvailable;
+        root.warpStatusReady = !root.warpAvailable;
+        if (root.nordAvailable)
+            nordStatusProc.running = true;
+        if (root.warpAvailable)
+            warpStatusProc.running = true;
+        root.applyDetectedProvider();
+    }
+
+    function refreshStatus(): void {
+        if (root.available)
+            statusProc.running = true;
+        else
+            statusProc.status = "Unknown";
     }
 
     function toggle(): void {
+        if (!root.available) {
+            console.warn("VPN (" + providerName + "): CLI nicht installiert");
+            return;
+        }
         if (connected) {
             console.log("VPN (" + providerName + "): disconnecting...");
             statusProc.status = "Disconnected";
@@ -79,7 +102,6 @@ Singleton {
     Process {
         id: statusProc
         command: root.commandFor(root.provider, "status")
-        running: true
 
         property string status: ""
         property string _prevStatus: ""   // "" = noch nie gelesen -> keine Boot-Notification
@@ -111,9 +133,25 @@ Singleton {
     }
 
     Process {
+        id: toolCheck
+        command: ["sh", "-c", "for t in nordvpn warp-cli; do command -v \"$t\" >/dev/null && echo \"$t\"; done"]
+        running: true
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const found = this.text.split("\n");
+                root.nordAvailable = found.includes("nordvpn");
+                root.warpAvailable = found.includes("warp-cli");
+                root.toolsChecked = true;
+                root.refreshStatus();
+                root.detectProviders();
+            }
+        }
+    }
+
+    Process {
         id: nordStatusProc
         command: ["nordvpn", "status"]
-        running: true
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -127,7 +165,6 @@ Singleton {
     Process {
         id: warpStatusProc
         command: ["warp-cli", "status"]
-        running: true
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -147,14 +184,14 @@ Singleton {
     Timer {
         id: providerRefresh
         interval: 100
-        onTriggered: statusProc.running = true
+        onTriggered: root.refreshStatus()
     }
 
     // Einmal-Timer: nach connect/disconnect den Status neu lesen
     Timer {
         id: refreshTimer
         interval: 5000
-        onTriggered: statusProc.running = true
+        onTriggered: root.refreshStatus()
     }
 
     // Regelmäßiges Polling, falls sich außerhalb der Shell was ändert
@@ -162,9 +199,7 @@ Singleton {
         interval: 15000
         running: true
         repeat: true
-        onTriggered: {
-            statusProc.running = true;
-            root.detectProviders();
-        }
+        // prueft auch die CLIs neu, damit ein nachinstalliertes Tool auftaucht
+        onTriggered: toolCheck.running = true
     }
 }
