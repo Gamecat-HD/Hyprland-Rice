@@ -415,3 +415,11 @@ unter der Karte herausragt (`mapToItem`) – vorher wuchs die Ansicht beim Oeffn
 Unterseiten und Dropdowns aendern die Notch-Hoehe nicht mehr (gemessen: 438 px in allen Zustaenden).
 **Rad ueber den Workspace-Staebchen:** springt je Rastung zum naechsten/vorigen Workspace mit Fenstern (leere werden
 uebersprungen, am Ende von vorn). `flipZone` liegt dafuer mit `z: -1` unter den Staebchen.
+
+**Steuerung erweitert (2026-10-12 abends):** Audio-Dienst kennt Eingangspegel (`sourceVolume`, `setSourceVolume`,
+`toggleSourceMute`), Pegel je Knoten (`setNodeVolume`, `toggleNodeMute`) und die Wiedergabe-Streams der Apps
+(`streams`, `streamLabel`). Audio-Menue: Pegel-Zeile (`LevelRow`) fuer gewaehltes Aus- und Eingabegeraet, Abschnitt
+APPS mit Lautstaerke je App (Symbol = stumm). Neue Kacheln `mic` (Mikrofon-Regler, Symbol-Klick = stumm) und `power`
+(Energieprofil zyklisch) in QuickLayout/SettingsTiles. **WLAN schneller:** `Network.refresh()` liest sofort den Cache
+(`--rescan no`, ~60 ms statt 6 s) und stoesst die Suche separat an (`nmcli device wifi rescan`, kehrt sofort zurueck),
+danach zweimal nachlesen; `scanning` dreht den Aktualisieren-Knopf. Die Steuerung laedt die Liste schon beim Oeffnen vor.

@@ -198,7 +198,7 @@ Item {
                     to: 360
                     duration: 900
                     loops: Animation.Infinite
-                    running: Network.busy
+                    running: Network.busy || Network.scanning
                     onRunningChanged: if (!running)
                         rescanIcon.rotation = 0
                 }

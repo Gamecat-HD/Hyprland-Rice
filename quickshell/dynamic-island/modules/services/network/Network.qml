@@ -66,10 +66,26 @@ Singleton {
         action.running = true;
     }
 
+    // Laeuft gerade eine Funk-Suche nach neuen Netzen
+    readonly property bool scanning: rescanProc.running || rescanFollowUp.running
+
     // ---- Abfragen ----
+    // Zweistufig: `--rescan yes` blockiert ~6 s, bevor nmcli ueberhaupt etwas
+    // liefert. Deshalb zuerst SOFORT die zwischengespeicherte Liste (~60 ms),
+    // und die Suche nach neuen Netzen laeuft daneben (`nmcli device wifi
+    // rescan` kehrt gleich zurueck, der NetworkManager sucht weiter). Danach
+    // wird zweimal nachgelesen – neue Netze tauchen nach und nach auf.
     function refresh(rescan: bool): void {
-        scan.rescan = rescan ? "yes" : "no";
-        scan.running = true;
+        scan.rescan = "no";
+        if (scan.running)
+            scan.pending = true;
+        else
+            scan.running = true;
+
+        if (rescan && !rescanProc.running) {
+            rescanFollowUp.round = 0;
+            rescanProc.running = true;
+        }
     }
 
     // ---- Aktionen ----
@@ -190,9 +206,34 @@ Singleton {
         }
     }
 
+    // Suche anstossen (ohne zu warten)
+    Process {
+        id: rescanProc
+
+        command: ["nmcli", "device", "wifi", "rescan"]
+        onExited: rescanFollowUp.restart()
+    }
+
+    // Nach der Suche zweimal nachlesen (2,5 s und 5 s)
+    Timer {
+        id: rescanFollowUp
+
+        property int round: 0
+
+        interval: 2500
+        onTriggered: {
+            root.refresh(false);
+            rescanFollowUp.round++;
+            if (rescanFollowUp.round < 2)
+                rescanFollowUp.restart();
+        }
+    }
+
     Process {
         id: scan
 
+        // Kam waehrend eines Laufs eine weitere Anfrage, danach nochmal
+        property bool pending: false
         property string rescan: "no"
         // Nach einem gescheiterten Versuch: die neu entstandenen, nie
         // benutzten Profile dieses Netzes wieder loswerden
@@ -280,6 +321,11 @@ Singleton {
 
                 root.networks = list;
                 root.loaded = true;
+
+                if (scan.pending) {
+                    scan.pending = false;
+                    Qt.callLater(() => scan.running = true);
+                }
 
                 // Aufraeumen nach einem Fehlversuch (siehe connect)
                 if (scan.cleanupSsid !== "") {

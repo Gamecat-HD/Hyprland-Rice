@@ -5,6 +5,7 @@ import Quickshell.Services.SystemTray
 import qs
 import qs.modules.bar.components.settings
 import qs.modules.bar.components.statusBar
+import qs.modules.services.network
 
 // Untermenue "Steuerung" der Notch: Tray-Icons und die Schnell-Kacheln der
 // Settings-Karte (WLAN, Bluetooth, VPN, Audio-Geraete, Helligkeit ...).
@@ -26,8 +27,12 @@ ViewPanel {
     contentHeight: root.trayHeight + embeddedSettings.height + embeddedSettings.dropdownReserve
     maxContentHeight: root.trayHeight + embeddedSettings.maxHeight
 
-    // Unterseiten zuruecksetzen, wenn die Ansicht geht
-    onActiveChanged: if (!active) {
+    // Unterseiten zuruecksetzen, wenn die Ansicht geht. Beim Oeffnen schon
+    // mal die WLAN-Liste aus dem Cache holen (~60 ms) – klappt man die
+    // WLAN-Seite auf, steht sie dann sofort da.
+    onActiveChanged: if (active) {
+        Network.refresh(false);
+    } else {
         embeddedSettings.wifiOpen = false;
         embeddedSettings.bluetoothOpen = false;
         embeddedSettings.audioOpen = false;

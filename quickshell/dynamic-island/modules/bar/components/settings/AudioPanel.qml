@@ -120,6 +120,16 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                 }
 
+                // Pegel des gewaehlten Ausgabegeraets
+                LevelRow {
+                    width: devices.width
+                    node: Audio.sink
+                    label: "Lautstärke"
+                    icon: "volume_up"
+                    mutedIcon: "volume_off"
+                    accent: Colors.primary
+                }
+
                 Repeater {
                     model: Audio.sinks
 
@@ -154,6 +164,16 @@ Item {
                     verticalAlignment: Text.AlignBottom
                 }
 
+                // Pegel des gewaehlten Eingabegeraets (Mikrofon)
+                LevelRow {
+                    width: devices.width
+                    node: Audio.source
+                    label: "Mikrofon"
+                    icon: "mic"
+                    mutedIcon: "mic_off"
+                    accent: Colors.secondary
+                }
+
                 Repeater {
                     model: Audio.sources
 
@@ -175,6 +195,165 @@ Item {
                     font.pixelSize: 11
                     leftPadding: 10
                     verticalAlignment: Text.AlignVCenter
+                }
+
+                // ---- Lautstaerke je App ----
+                Text {
+                    font.family: Config.font
+                    visible: Audio.streams.length > 0
+                    text: "APPS"
+                    color: Colors.tertiary
+                    font.pixelSize: 10
+                    font.weight: Font.Bold
+                    leftPadding: 10
+                    height: 26
+                    verticalAlignment: Text.AlignBottom
+                }
+
+                Repeater {
+                    model: Audio.streams
+
+                    LevelRow {
+                        required property PwNode modelData
+
+                        width: devices.width
+                        node: modelData
+                        label: Audio.streamLabel(modelData)
+                        icon: "graphic_eq"
+                        mutedIcon: "volume_off"
+                        accent: Colors.tertiary
+                    }
+                }
+            }
+        }
+    }
+
+    // Kompakter Pegel fuer einen Knoten (Geraet oder App-Stream):
+    // Symbol = stummschalten, Spur = Klicken/Ziehen setzt den Wert. Kein
+    // eigenes Mausrad – das scrollt die Liste.
+    component LevelRow: Item {
+        id: level
+
+        property PwNode node: null
+        property string label: ""
+        property string icon: "volume_up"
+        property string mutedIcon: "volume_off"
+        property color accent: Colors.primary
+
+        readonly property real value: level.node?.audio?.volume ?? 0
+        readonly property bool muted: level.node?.audio?.muted ?? false
+
+        height: 36
+        visible: level.node !== null
+
+        // Stummschalten
+        Rectangle {
+            id: muteButton
+
+            anchors {
+                left: parent.left
+                leftMargin: 4
+                verticalCenter: parent.verticalCenter
+            }
+            width: 30
+            height: 30
+            radius: 15
+            color: muteArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.12) : "transparent"
+
+            Text {
+                anchors.centerIn: parent
+                text: level.muted ? level.mutedIcon : level.icon
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 17
+                color: level.muted ? Colors.error : level.accent
+            }
+
+            MouseArea {
+                id: muteArea
+
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Audio.toggleNodeMute(level.node)
+            }
+        }
+
+        Text {
+            id: levelLabel
+
+            anchors {
+                left: muteButton.right
+                leftMargin: 6
+                verticalCenter: parent.verticalCenter
+            }
+            width: 96
+            text: level.label
+            elide: Text.ElideRight
+            font.family: Config.font
+            font.pixelSize: 11
+            font.weight: Font.Medium
+            color: Colors.fgBackground
+        }
+
+        Text {
+            id: percent
+
+            anchors {
+                right: parent.right
+                rightMargin: 10
+                verticalCenter: parent.verticalCenter
+            }
+            width: 34
+            horizontalAlignment: Text.AlignRight
+            text: `${Math.round(level.value * 100)} %`
+            font.family: Config.font
+            font.pixelSize: 10
+            color: Colors.fgSurfaceVariant
+        }
+
+        // Spur
+        Rectangle {
+            id: track
+
+            anchors {
+                left: levelLabel.right
+                leftMargin: 8
+                right: percent.left
+                rightMargin: 8
+                verticalCenter: parent.verticalCenter
+            }
+            height: 8
+            radius: 4
+            color: Colors.alpha(Colors.fgSurface, 0.1)
+
+            Rectangle {
+                width: parent.width * Math.max(0, Math.min(1, level.value))
+                height: parent.height
+                radius: parent.radius
+                color: level.muted ? Colors.alpha(level.accent, 0.35) : level.accent
+
+                Behavior on width {
+                    enabled: !trackArea.pressed
+                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                }
+            }
+
+            MouseArea {
+                id: trackArea
+
+                anchors.fill: parent
+                anchors.margins: -10        // groessere Trefferflaeche als die 8-px-Spur
+                cursorShape: Qt.PointingHandCursor
+                preventStealing: true
+
+                function setAt(x: real): void {
+                    Audio.setNodeVolume(level.node, (x - 10) / track.width);
+                }
+
+                onPressed: mouse => setAt(mouse.x)
+                onPositionChanged: mouse => {
+                    if (pressed)
+                        setAt(mouse.x);
                 }
             }
         }
