@@ -260,9 +260,11 @@ Beispiel „KalenderPanel":
    `topOffset/cardRadius/inset/active` + `outerWidth/outerHeight/maxOuterHeight`.
 2. Neuen `mode`-String in **`LauncherState.qml`** (Z. 17–22) dokumentieren und
    `showXxx(target)` ergänzen (Muster: `showThemes`, Z. 59–61); optional IPC-Endpoint (Z. 74–96).
-3. In **Notch.qml**: `readonly property bool xxxOpen` (Muster Z. 37–39), Panel-Instanz mit
-   `active: notch.xxxOpen` + `opacity`-Binding (Muster Z. 351–363), Maße in
-   `launcherWidth`/`launcherHeight` (Z. 52–57) und `maxDrop` (Z. 64–67) ergänzen.
+3. In **Notch.qml**: `readonly property bool xxxOpen` (Muster Z. 37–39), Panel als
+   `LazyPanel { open: notch.xxxOpen; sourceComponent: XxxPanel { …; active: true } }`
+   (Muster: `launcher`), Maße in `launcherWidth`/`launcherHeight` über `xxx.outerWidth/outerHeight`
+   des LazyPanels ergänzen. Startarbeit des Panels (Fokus, Suchfeld leeren) muss auch im
+   `Component.onCompleted` laufen – es entsteht bereits mit `active: true` (siehe Abschnitt 7).
 
 ### C) Kleinste Variante: Launcher-Listenmodus ohne eigenes Panel
 
@@ -438,3 +440,28 @@ Zeile seitlich (Flickable, Mausrad). **Energie-Kachel** nur mit Systemakku waehl
 **Akku im Notch-Layout** (Test mit simuliertem Akku ergab: dort gab es keine Anzeige, der Ring ist nur fuer die Insel):
 eingeklappt Symbol + Prozent in `compactRight`, in der Uebersicht ein Chip in `SystemGlance`; <= 20 % ohne Laden rot.
 Beides haengt an `Power.hasSystemBattery && Config.bar.battery`.
+
+## 7. Performance-Regeln (seit 2026-10-12)
+
+Gemessen mit laufender Musik, zwei Monitore, Notch-Layout: qs-CPU 12,7 % → 6 %, Kindprozesse 7,5 % → 0,6 %
+(102 → 8 neue Prozesse/min), CPU-Zeit beim Start 2,4 s → 1,1 s, RssAnon 435 → 246 MB.
+
+- **Nichts Unsichtbares bauen.** Insel-Pillen hängen in `Bar.qml` an einem Loader (`active: !bar.notchMode`,
+  Zugriff über `pills.item?.settings` bzw. `bar.pillSettings`). Notch-Ansichten sind `LazyPanel`
+  (`modules/widgets/LazyPanel.qml`), die Settings-Unterseiten Loader (eingebettet immer da, weil die
+  Notch die größte Höhe reserviert), das Einstellungsfenster ein `LazyLoader` nur auf dem Ziel-Monitor.
+- **Geteilte Dienste per `Demand`.** `modules/services/core/Demand.qml` + `DemandRequest.qml`: jeder
+  Verbraucher meldet `DemandRequest { demand: Cava.demand; active: … }` an, der Dienst läuft, solange
+  irgendeiner will. Nie mehr ein `Binding` je Monitor auf eine Singleton-Property – der zuletzt
+  geänderte Monitor gewann. Dienste mit Demand: Cava, SystemStats, Media (`positionDemand`), Network,
+  WifiStatus, Brightness, Vpn.
+- **Nicht pollen, was ein Ereignis hat.** WLAN-Kurzstatus kommt aus `services/network/WifiStatus.qml`
+  (`nmcli monitor`, Signal alle 15 s nur bei Bedarf). No-Sleep/Game-Mode leben in
+  `services/system/SessionModes.qml` (ein Zustand für alle Kachel-Instanzen).
+- **Animationen nur sichtbar.** Eine laufende Animation lässt das ganze (bildschirmgroße) Leistenfenster
+  neu zeichnen, auf DP-2 mit 180 Hz. Visualiser/Ring folgen cava nur bei `visible`, `loops: Animation.Infinite`
+  immer mit `&& item.visible` im `running`.
+- **Bilder mit `sourceSize`.** Wallpaper wird in Bildschirmgröße decodiert und über `cache: true` geteilt.
+- Messskripte: CPU/Kindprozesse über `/proc/<pid>/stat` (utime/stime, cutime/cstime) und
+  `/proc/<pid>/task/*/children`, Startzeit = Neustart bis „Configuration Loaded“.
+
