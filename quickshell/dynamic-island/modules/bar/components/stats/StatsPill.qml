@@ -5,6 +5,7 @@ import qs.modules.services.system
 
 import qs
 import qs.modules.services.config
+import qs.modules.widgets
 
 // System-Pille rechts neben dem Workspace-Selektor.
 //
@@ -54,12 +55,8 @@ Item {
          : root.headWidth
     height: root.open ? root.cardHeight : root.collapsedSize
 
-    Behavior on width {
-        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
-    }
-    Behavior on height {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
+    Morph on width {}
+    Morph on height {}
 
     // Profile erst nach kurzem Verweilen – sonst zuckt die Pille bei jedem
     // Vorbeifahren
@@ -77,16 +74,14 @@ Item {
         onTriggered: root.profilesOpen = false
     }
 
-    Rectangle {
+    Surface {
         id: pill
 
         anchors.fill: parent
 
-        radius: Math.min(height / 2, root.cardRadius)
-        color: Colors.background
-        border.width: root.borderWidth
-        border.color: root.borderColor
-        clip: true
+        maxRadius: root.cardRadius
+        borderWidth: root.borderWidth
+        borderColor: root.borderColor
 
         HoverHandler {
             id: hover

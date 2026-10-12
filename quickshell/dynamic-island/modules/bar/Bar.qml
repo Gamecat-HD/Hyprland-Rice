@@ -15,6 +15,9 @@ import "components/mediaPlayer"
 import qs.modules.launcher
 import qs.modules.services.config
 import qs.modules.services.hypr
+import qs.modules.services.bluetooth
+import qs.modules.services.media
+import qs.modules.services.audio
 
 import qs
 
@@ -29,13 +32,27 @@ Variants {
 
         required property ShellScreen modelData
 
-        readonly property real borderWidth: 0.5
-        readonly property color borderColor: Colors.outlineVariant   // M3-Neutralfarbe, passt zu jedem Scheme
+        Connections {
+            target: BluetoothService
+
+            function onPairingActiveChanged(): void {
+                if (BluetoothService.pairingActive && Hyprland.focusedMonitor?.name === bar.modelData.name) {
+                    settings.expanded = true;
+                    settings.wifiOpen = false;
+                    settings.audioOpen = false;
+                    settings.bluetoothOpen = true;
+                }
+            }
+        }
+
+        // Optik der Karten kommt zentral aus Appearance.qml
+        readonly property real borderWidth: Appearance.borderWidth
+        readonly property color borderColor: Appearance.borderColor
         // Eckenrundung aller Karten (Notch, Workspace-Selektor). Hier einmal
         // setzen – die Komponenten verlangen den Wert und rechnen selbst, wie
         // weit sie ihn ausreizen (die Notch wird flach zur Pille, der Selektor
         // deckelt auf die halbe Breite).
-        readonly property real cardRadius: 18
+        readonly property real cardRadius: Appearance.radius
 
         readonly property real verticalMargin: 10
         readonly property real barHeight: 40
@@ -49,6 +66,28 @@ Variants {
         // weder gezeichnet noch mit Eingaben beliefert – deshalb hier, im
         // Fenster, das beides nachweislich bekommt.
         readonly property bool catching: notch.launcherOpen
+
+        // Notch-Layout (Config.appearance.layout, umschaltbar im Menue): die
+        // anderen Pillen parken im Hub der Notch (`parent: notch.hub`) und
+        // erscheinen dort, wenn sie aufklappt. Es sind dieselben Instanzen –
+        // alle Referenzen unten (Maske, Tastaturfokus) gelten weiter.
+        readonly property bool notchMode: Config.appearance.layout === "notch"
+        // Wo der Pillen-Wrapper haengt: in der Leiste oder im Hub der Notch
+        readonly property Item pillParent: bar.notchMode ? notch.hub : row
+        // Linkes Ende der Kette im Hub, an das Tray und Settings anschliessen
+        readonly property Item hubChainLeft: Config.bar.stats ? stats
+                                           : Config.bar.workspaces ? workspaces
+                                           : null
+
+        // Der Visualiser ist ein eigener Prozess – er laeuft nur, solange
+        // wirklich etwas spielt UND jemand die Pegel zeigt: die Medien-Karte
+        // oder die Live-Activity der Notch. Ein Binding fuer beide, sonst
+        // wuerden sich zwei Bindings an Cava.enabled gegenseitig ueberschreiben.
+        Binding {
+            target: Cava
+            property: "enabled"
+            value: Media.playing && (Config.bar.media || (bar.notchMode && Config.notch.media))
+        }
 
         screen: bar.modelData
         WlrLayershell.namespace: "dynamic-island-bar"
@@ -131,49 +170,117 @@ Variants {
             height: bar.barHeight
 
 
-            /* Workspace Selektor */
-            WorkspaceSelector {
-                id: workspaces
-                visible: Config.bar.workspaces
-                verticalMargin: bar.verticalMargin
-                borderWidth: bar.borderWidth
-                borderColor: bar.borderColor
-                cardRadius: bar.cardRadius
-            }
+            // Alle Pillen ausser der Notch leben in diesem Wrapper. Er ist es,
+            // der im Notch-Layout als Ganzes in den Hub der Notch umzieht –
+            // so bleiben die Pillen immer Geschwister und ihre Anker
+            // untereinander (stats -> workspaces, notifications -> media)
+            // reissen beim Umparken nicht ab. Er fuellt seinen Elter (Leiste
+            // bzw. Hub, beide 40 px hoch), die Pillen merken keinen Unterschied.
+            Item {
+                id: pills
 
+                parent: bar.pillParent
+                anchors.fill: parent
 
-            /* System-Pille – haengt rechts am Selektor und wandert mit, wenn
-               der breiter wird (Special-Workspaces). Anker deshalb hier und
-               nicht in der Komponente. */
-            StatsPill {
-                id: stats
-                visible: Config.bar.stats
-                // Ohne Workspace-Punkte rueckt sie an den linken Rand
-                anchors {
-                    left: Config.bar.workspaces ? workspaces.right : parent.left
-                    leftMargin: Config.bar.workspaces ? 10 : HyprGaps.left
+                /* Workspace Selektor */
+                WorkspaceSelector {
+                    id: workspaces
+                    visible: Config.bar.workspaces
+                    anchors.leftMargin: bar.notchMode ? 12 : HyprGaps.left
+                    verticalMargin: bar.verticalMargin
+                    borderWidth: bar.borderWidth
+                    borderColor: bar.borderColor
+                    cardRadius: bar.cardRadius
                 }
-                verticalMargin: bar.verticalMargin
-                borderWidth: bar.borderWidth
-                borderColor: bar.borderColor
-                cardRadius: bar.cardRadius
-            }
 
 
-            /* Mittlere Notch */
-            StatusBar {
-                id: statusBar
-                visible: Config.bar.tray
-                anchors {
-                    right: parent.horizontalCenter
-                    rightMargin: notch.width / 2 + 15
+                /* System-Pille – haengt rechts am Selektor und wandert mit, wenn
+                   der breiter wird (Special-Workspaces). Anker deshalb hier und
+                   nicht in der Komponente. */
+                StatsPill {
+                    id: stats
+                    visible: Config.bar.stats
+                    // Ohne Workspace-Punkte rueckt sie an den linken Rand
+                    anchors {
+                        left: Config.bar.workspaces ? workspaces.right : parent.left
+                        leftMargin: Config.bar.workspaces ? 10 : HyprGaps.left
+                    }
+                    verticalMargin: bar.verticalMargin
+                    borderWidth: bar.borderWidth
+                    borderColor: bar.borderColor
+                    cardRadius: bar.cardRadius
                 }
-                verticalMargin: bar.verticalMargin
-                borderWidth: bar.borderWidth
+
+
+                /* Mittlere Notch */
+                StatusBar {
+                    id: statusBar
+                    visible: Config.bar.tray
+                    // Leiste: links der Notch. Hub: rechts an der Kette.
+                    anchors {
+                        right: bar.notchMode ? undefined : parent.horizontalCenter
+                        rightMargin: notch.width / 2 + 15
+                        left: !bar.notchMode ? undefined
+                            : bar.hubChainLeft ? bar.hubChainLeft.right : parent.left
+                        leftMargin: bar.hubChainLeft ? 10 : 12
+                    }
+                    verticalMargin: bar.verticalMargin
+                    borderWidth: bar.borderWidth
+                }
+
+                Settings {
+                    id: settings
+                    visible: Config.bar.settings
+                    // Aufgeklappt ueber den Nachbarn im Hub liegen
+                    z: settings.expanded ? 2 : 0
+                    anchors {
+                        left: !bar.notchMode ? parent.horizontalCenter
+                            : Config.bar.tray ? statusBar.right
+                            : bar.hubChainLeft ? bar.hubChainLeft.right
+                            : parent.left
+                        leftMargin: !bar.notchMode ? notch.width / 2 + 15
+                                  : Config.bar.tray || bar.hubChainLeft ? 10 : 12
+                    }
+                    verticalMargin: bar.verticalMargin
+                    borderWidth: bar.borderWidth
+                    cardRadius: bar.cardRadius
+                }
+
+                MediaPlayer {
+                    id: media
+                    visible: Config.bar.media
+                    anchors.rightMargin: bar.notchMode ? 12 : HyprGaps.right
+                    verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
+                    borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
+                    borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
+                    cardRadius: bar.cardRadius     // dito - teilt sich den Wert mit Notch und Selektor
+                }
+
+
+                /* Benachrichtigungen – haengen links an der Medien-Karte und
+                   wachsen in die freie Luecke daneben hinein. Die Anker stehen
+                   hier und nicht in der Komponente, damit sie der Medien-Karte
+                   folgen, wenn die ihre Breite aendert. */
+                NotificationPill {
+                    id: notifications
+                    visible: Config.bar.notifications
+                    // Ohne Medien-Karte rueckt sie an den rechten Rand
+                    anchors {
+                        right: Config.bar.media ? media.left : parent.right
+                        rightMargin: Config.bar.media ? 10 : HyprGaps.right
+                    }
+                    verticalMargin: bar.verticalMargin
+                    borderWidth: bar.borderWidth
+                    borderColor: bar.borderColor
+                    cardRadius: bar.cardRadius
+                }
             }
 
             Notch {
                 id: notch
+                // Im Hub darf die Settings-Karte (520 px) rechts herausragen:
+                // dann wird der Hub – und damit die Notch – so breit
+                hubContentWidth: bar.notchMode && Config.bar.settings ? settings.x + settings.width + 12 : 0
                 verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
                 borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
                 borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
@@ -183,45 +290,6 @@ Variants {
             // Beide Nachbarn hängen an der Bildschirmmitte plus der halben
             // *aktuellen* Notch-Breite: klappt die Notch auf, weichen sie
             // animiert zur Seite, statt unter der Karte zu verschwinden.
-            Settings {
-                id: settings
-                visible: Config.bar.settings
-                anchors {
-                    left: parent.horizontalCenter
-                    leftMargin: notch.width / 2 + 15
-                }
-                verticalMargin: bar.verticalMargin
-                borderWidth: bar.borderWidth
-                cardRadius: bar.cardRadius
-            }
-
-            MediaPlayer {
-                id: media
-                visible: Config.bar.media
-                verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
-                borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
-                borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
-                cardRadius: bar.cardRadius     // dito - teilt sich den Wert mit Notch und Selektor
-            }
-
-
-            /* Benachrichtigungen – haengen links an der Medien-Karte und
-               wachsen in die freie Luecke daneben hinein. Die Anker stehen
-               hier und nicht in der Komponente, damit sie der Medien-Karte
-               folgen, wenn die ihre Breite aendert. */
-            NotificationPill {
-                id: notifications
-                visible: Config.bar.notifications
-                // Ohne Medien-Karte rueckt sie an den rechten Rand
-                anchors {
-                    right: Config.bar.media ? media.left : parent.right
-                    rightMargin: Config.bar.media ? 10 : HyprGaps.right
-                }
-                verticalMargin: bar.verticalMargin
-                borderWidth: bar.borderWidth
-                borderColor: bar.borderColor
-                cardRadius: bar.cardRadius
-            }
         }
     }
 }

@@ -10,6 +10,7 @@ import qs.modules.services.audio
 
 import qs
 import qs.modules.services.config
+import qs.modules.widgets
 
 // Medien-Pille rechts in der Leiste.
 //
@@ -75,9 +76,7 @@ Item {
     width: Math.max(content.implicitWidth + root.padding * 2, root.minWidth)
     height: root.expanded ? root.expandedHeight : root.collapsedHeight
 
-    Behavior on height {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
+    Morph on height {}
 
     // Aufklappen nach kurzem Verweilen – ohne die Verzoegerung springt die
     // Karte schon auf, wenn man nur auf dem Weg zum Systray drueberfaehrt.
@@ -101,14 +100,8 @@ Item {
         onTriggered: root.expanded = false
     }
 
-    // Der Visualiser ist ein eigener Prozess – er laeuft nur, solange wirklich
-    // etwas spielt. `Binding` statt Zuweisung, damit er beim Zerstoeren dieser
-    // Komponente automatisch wieder aus geht.
-    Binding {
-        target: Cava
-        property: "enabled"
-        value: Media.playing && root.visible
-    }
+    // Den Visualiser (Cava) schaltet Bar.qml ein – die Notch zeigt die Pegel
+    // auch, deshalb haengt das nicht mehr an dieser Karte allein.
 
     // Die abgelaufene Zeit muss gepollt werden (MPRIS schickt sie nicht von
     // selbst). Auch das nur, solange die Pille da ist.
@@ -118,22 +111,18 @@ Item {
         value: root.visible
     }
 
-    Rectangle {
+    Surface {
         id: pill
         anchors.fill: parent
 
-        // Wie die Notch: Pille, solange sie flach ist; waechst sie ueber ~2x
-        // cardRadius, wird daraus eine Karte. Als Formel statt Zustand, damit
-        // die Rundung waehrend einer Animation mitwandert.
-        radius: Math.min(height / 2, root.cardRadius)
-        border.width: root.borderWidth
-        border.color: root.borderColor
+        maxRadius: root.cardRadius
+        borderWidth: root.borderWidth
+        borderColor: root.borderColor
         // Eingeklappt der normale Theme-Grund, ausgeklappt der Ton des Covers
         // (und darueber dessen unscharfes Bild, siehe unten).
-        color: root.expanded ? root.cardColor : Colors.background
-        clip: true
+        baseColor: root.expanded ? root.cardColor : Colors.background
 
-        Behavior on color {
+        Behavior on baseColor {
             ColorAnimation { duration: 400 }
         }
 
@@ -349,43 +338,17 @@ Item {
                 }
 
                 // ---- Visualiser ----
-                Row {
-                    // Die Pille zeigt immer vier Balken, egal wie fein cava laeuft
-                    readonly property int shown: 4
-
-                    Layout.preferredWidth: root.barWidth * shown + root.barSpacing * (shown - 1)
-                    Layout.preferredHeight: root.artSize
+                // Gespiegelte Wellenform (modules/widgets/Visualizer.qml);
+                // pausiert steht sie als ruhiger Bogen da
+                Visualizer {
+                    Layout.preferredWidth: implicitWidth
+                    Layout.preferredHeight: root.artSize - 2
                     Layout.alignment: Qt.AlignVCenter
 
+                    count: 5
+                    barWidth: root.barWidth
                     spacing: root.barSpacing
-
-                    Repeater {
-                        model: parent.shown
-
-                        delegate: Rectangle {
-                            id: bar
-
-                            required property int index
-
-                            // 2px Sockel, damit die Balken bei Stille nicht
-                            // ganz verschwinden
-                            readonly property real level: Cava.bucket(bar.index, 4)
-
-                            width: root.barWidth
-                            height: Math.max(2, bar.level * root.artSize)
-                            y: root.artSize - height     // von unten wachsen
-                            radius: root.barWidth / 2
-                            color: Colors.primary
-                            opacity: Media.playing ? 1 : 0.35
-
-                            Behavior on height {
-                                NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
-                            }
-                            Behavior on opacity {
-                                NumberAnimation { duration: 200 }
-                            }
-                        }
-                    }
+                    active: Media.playing
                 }
 
                 // ---- Titel als Laufschrift ----

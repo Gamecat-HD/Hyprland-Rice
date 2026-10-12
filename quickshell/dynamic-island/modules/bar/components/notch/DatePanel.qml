@@ -28,6 +28,9 @@ Item {
     // Von außen abschaltbar – die Notch legt das Ziehen still, solange ihre
     // eigene Geste (Launcher aufziehen) läuft.
     property bool dragEnabled: true
+    // Grundton der Karte, in den die Randverlaeufe auslaufen (die angedockte
+    // Notch ist schwarz, die Insel hat den Theme-Hintergrund)
+    property color fadeColor: Colors.background
 
     // Platz, den die Karte für das Panel bereithalten muss
     readonly property real outerWidth: implicitWidth + inset * 2
@@ -190,6 +193,7 @@ Item {
             bottom: parent.bottom
         }
         cornerRadius: panel.cardRadius - panel.inset
+        baseColor: panel.fadeColor
     }
 
     EdgeFade {
@@ -200,5 +204,6 @@ Item {
         }
         mirrored: true
         cornerRadius: panel.cardRadius - panel.inset
+        baseColor: panel.fadeColor
     }
 }

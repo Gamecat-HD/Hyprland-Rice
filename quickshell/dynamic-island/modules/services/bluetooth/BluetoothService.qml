@@ -26,8 +26,11 @@ Singleton {
     property string pairingRequest: ""
     property string pairingPasskey: ""
     property string pairingMessage: ""
-    property string agentBuffer: ""
-    property int agentOffset: 0
+    property bool agentReady: false
+    readonly property bool pairingInputRequired: pairingRequest === "pin" || pairingRequest === "passkey"
+    readonly property bool pairingActive: pairingDevice !== null
+    property int pairingEntered: 0
+    property bool pairingLocallyStarted: false
 
     function deviceName(device: var): string {
         return device?.name || device?.deviceName || device?.address || "Unbekanntes Gerät";
@@ -112,41 +115,46 @@ Singleton {
     }
 
     function beginPairing(device: var): void {
-        if (!device)
+        if (!device || root.pairingActive)
             return;
         root.pairingDevice = device;
+        root.pairingLocallyStarted = true;
         root.pairingRequest = "waiting";
         root.pairingPasskey = "";
         root.pairingMessage = "Kopplung wird gestartet…";
-        if (!agent.running)
-            agent.running = true;
-        pairDelay.restart();
+        if (!root.agentReady) {
+            root.pairingRequest = "error";
+            root.pairingMessage = "Bluetooth-Agent ist noch nicht bereit";
+            return;
+        }
+        sendAgent({ action: "pair", path: device.dbusPath });
     }
 
     function submitPin(pin: string): void {
-        if (pin === "")
+        if (!root.pairingInputRequired || pin === "")
             return;
-        agent.write(pin + "\n");
+        sendAgent({ action: "respond", value: pin });
         root.pairingRequest = "waiting";
         root.pairingMessage = "PIN wird geprüft…";
     }
 
     function confirmPairing(accept: bool): void {
-        agent.write((accept ? "yes" : "no") + "\n");
+        if (root.pairingRequest !== "confirm" && root.pairingRequest !== "authorize")
+            return;
+        sendAgent({ action: "respond", accept: accept });
         if (accept) {
             root.pairingRequest = "waiting";
             root.pairingMessage = "Kopplung wird bestätigt…";
+            if (root.pairingDevice?.paired && !root.pairingLocallyStarted)
+                root.clearPairing();
         } else {
             root.clearPairing();
         }
     }
 
     function cancelPairing(): void {
-        agent.write("no\n");
-        if (root.pairingDevice) {
-            agent.write(`cancel-pairing ${root.pairingDevice.address}\n`);
-            root.pairingDevice.cancelPair();
-        }
+        if (root.pairingDevice && root.pairingRequest !== "error")
+            sendAgent({ action: "cancel", path: root.pairingDevice.dbusPath });
         root.clearPairing();
     }
 
@@ -155,80 +163,100 @@ Singleton {
         root.pairingRequest = "";
         root.pairingPasskey = "";
         root.pairingMessage = "";
+        root.pairingEntered = 0;
+        root.pairingLocallyStarted = false;
     }
 
-    function handleAgentOutput(chunk: string): void {
-        const clean = chunk.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "");
-        root.agentBuffer = (root.agentBuffer + clean).slice(-1500);
-        const lower = root.agentBuffer.toLowerCase();
+    function sendAgent(message: var): void {
+        agent.write(JSON.stringify(message) + "\n");
+    }
 
-        if (lower.includes("confirm passkey")) {
-            const match = root.agentBuffer.match(/confirm passkey\s+([0-9]+)/i);
-            root.pairingPasskey = match ? match[1] : "";
-            root.pairingRequest = "confirm";
-            root.pairingMessage = "Stimmt dieser Code auf beiden Geräten überein?";
-            root.agentBuffer = "";
-        } else if (lower.includes("enter pin code") || lower.includes("request pin code")
-                   || lower.includes("enter passkey") || lower.includes("request passkey")) {
-            root.pairingRequest = "pin";
-            root.pairingMessage = "PIN oder Passkey eingeben";
-            root.agentBuffer = "";
-        } else if (lower.includes("authorize service")) {
-            root.pairingPasskey = "";
-            root.pairingRequest = "confirm";
-            root.pairingMessage = "Dienste dieses Geräts autorisieren?";
-            root.agentBuffer = "";
-        } else if (lower.includes("pairing successful") || lower.includes("pairing successful")) {
-            const device = root.pairingDevice;
-            if (device) {
-                device.trusted = true;
-                device.connect();
+    function handleAgentOutput(line: string): void {
+        let event;
+        try {
+            event = JSON.parse(line);
+        } catch (error) {
+            console.warn("Bluetooth-Agent: ungültige Antwort", error);
+            return;
+        }
+        if (event.event === "ready") {
+            root.agentReady = event.ready;
+            if (!event.ready && root.pairingActive) {
+                root.pairingRequest = "error";
+                root.pairingMessage = "Bluetooth-Agent ist nicht verfügbar";
             }
+        } else if (event.event === "request") {
+            const device = QB.Bluetooth.devices.values.find(device => device.dbusPath === event.path);
+            if (!device) {
+                sendAgent({ action: "respond", accept: false });
+                return;
+            }
+            root.pairingDevice = device;
+            root.pairingPasskey = event.passkey || "";
+            root.pairingEntered = event.entered || 0;
+            root.pairingMessage = event.kind === "pin" ? "PIN des Geräts eingeben"
+                : event.kind === "passkey" ? "Passkey des Geräts eingeben (1–6 Ziffern)"
+                : event.kind === "confirm" ? "Stimmt dieser Code auf beiden Geräten überein?"
+                : event.kind === "display" ? "Diesen Code am anderen Gerät eingeben"
+                : "Verbindung bzw. Dienste dieses Geräts erlauben?";
+            root.pairingRequest = event.kind;
+        } else if (event.event === "paired") {
+            if (root.pairingDevice?.dbusPath === event.path) {
+                root.pairingDevice.trusted = true;
+                root.pairingDevice.connect();
+                root.clearPairing();
+            }
+        } else if (event.event === "canceled") {
             root.clearPairing();
-            root.agentBuffer = "";
-        } else if (lower.includes("failed to pair") || lower.includes("authenticationfailed")
-                   || lower.includes("authentication canceled") || lower.includes("authentication rejected")) {
-            root.pairingRequest = "error";
-            root.pairingMessage = "Kopplung fehlgeschlagen";
-            root.agentBuffer = "";
+        } else if (event.event === "input-error") {
+            root.pairingRequest = event.kind;
+            root.pairingMessage = event.message;
+        } else if (event.event === "error") {
+            if (event.path && event.path !== root.pairingDevice?.dbusPath)
+                return;
+            console.warn("Bluetooth-Agent:", event.message);
+            if (root.pairingActive) {
+                root.pairingRequest = "error";
+                root.pairingMessage = "Kopplung fehlgeschlagen: " + event.message;
+            }
+        }
+    }
+
+    Connections {
+        target: root.pairingDevice
+
+        function onPairedChanged(): void {
+            // Vom Handy gestartete Kopplungen haben keinen eigenen Pair-Aufruf.
+            if (root.pairingDevice?.paired && !root.pairingLocallyStarted)
+                root.clearPairing();
+        }
+
+        function onConnectedChanged(): void {
+            if (root.pairingDevice?.connected && root.pairingRequest === "waiting" && !root.pairingLocallyStarted)
+                root.clearPairing();
         }
     }
 
     Process {
         id: agent
 
-        command: ["bluetoothctl", "--agent", "KeyboardDisplay"]
+        command: ["python", Quickshell.shellPath("modules/services/bluetooth/agent.py")]
         stdinEnabled: true
         running: true
 
-        onStarted: {
-            root.agentOffset = 0;
-            root.agentBuffer = "";
-            agent.write("agent KeyboardDisplay\n");
-            agent.write("default-agent\n");
-        }
-
-        onExited: if (root.pairingDevice) {
-            root.pairingRequest = "error";
-            root.pairingMessage = "Bluetooth-Agent wurde beendet";
-        }
-
-        stdout: StdioCollector {
-            waitForEnd: false
-            onDataChanged: {
-                const chunk = text.slice(root.agentOffset);
-                root.agentOffset = text.length;
-                if (chunk !== "")
-                    root.handleAgentOutput(chunk);
+        onExited: {
+            root.agentReady = false;
+            if (root.pairingDevice) {
+                root.pairingRequest = "error";
+                root.pairingMessage = "Bluetooth-Agent wurde beendet";
             }
         }
-    }
 
-    Timer {
-        id: pairDelay
-
-        interval: 120
-        onTriggered: if (root.pairingDevice)
-            agent.write(`pair ${root.pairingDevice.address}\n`)
+        stdout: SplitParser {
+            onRead: line => root.handleAgentOutput(line)
+        }
+        stderr: SplitParser {
+            onRead: line => console.warn("Bluetooth-Agent:", line)
+        }
     }
 }

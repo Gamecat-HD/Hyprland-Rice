@@ -5,18 +5,19 @@ import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 
 import qs
+import qs.modules.widgets
 
 // Systemtray im Settings-Stil: Pille mit Border, kollabiert auf einen Kreis,
 // Hover klappt nach links auf. Ab `maxVisible` Icons wird die Reihe scrollbar
 // statt breiter.
 // Menüs: eigenes PopupWindow + TrayMenu (kein Wayland-Grab) -> Hover-Öffnen
 // mit Delay UND Schließen-beim-Verlassen funktionieren beide.
-Rectangle {
+// Optik (Verlauf, Rand, Schatten) kommt von Surface.
+Surface {
     id: root
 
     // Schnittstelle (Bar.qml setzt verticalMargin / borderWidth – wie bei Settings)
     required property real verticalMargin
-    property real borderWidth: 1
 
     readonly property real iconSize: 16
     readonly property real padding: 7      // 7 + 16 + 7 = 30 = Höhe -> kollabiert exakt Kreis
@@ -55,18 +56,11 @@ Rectangle {
         verticalCenter: parent.verticalCenter
     }
     implicitWidth: expanded ? rowViewWidth + padding * 2 : height
-    height: parent.height - verticalMargin
-    radius: height / 2                       // Kreis (kollabiert) -> Pille (ausgeklappt)
-    color: Colors.background
-    border.width: borderWidth
-    border.color: Colors.outlineVariant
-    clip: true
+    height: parent.height - verticalMargin   // flach -> Surface rundet zum Kreis
 
     onExpandedChanged: if (!expanded) trayScroll = 0
 
-    Behavior on implicitWidth {
-        NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
-    }
+    Morph on implicitWidth {}
     Behavior on trayScroll {
         NumberAnimation { duration: 130; easing.type: Easing.OutCubic }
     }

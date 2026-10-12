@@ -6,20 +6,23 @@ import qs.modules.services.brightness
 import qs.modules.services.config
 import qs.modules.services.system
 import qs.modules.services.vpn
+import qs.modules.services.bluetooth
 
 import qs
+import qs.modules.widgets
 
 // Settings-Knopf rechts neben der Notch. Bei Hover waechst er wie die Notch
 // zu einer (noch leeren) Karte – nach RECHTS und UNTEN: oben links fix
 // (x kommt aus Bar.qml linksseitig, y haengt oben am Leistenrand).
 // Eingeklappt zeigen Wifi- und VPN-Icon, aufgeklappt ist die Karte leer.
-Rectangle {
+// Optik (Verlauf, Rand, Schatten) kommt von Surface, die Kinder liegen in
+// dessen Karte.
+Surface {
     id: settings
 
     // Schnittstelle (Bar.qml setzt verticalMargin/cardRadius)
     required property real verticalMargin
     required property real cardRadius
-    property real borderWidth: 1
 
     // Ein Klick oeffnet die Karte. Hover haelt eine geoeffnete Karte nur noch
     // offen; beim Verlassen greift weiterhin der kurze Schliess-Nachlauf.
@@ -117,18 +120,11 @@ Rectangle {
     }
 
     // Eingeklappt greift die halbe Breite (Kreis), aufgeklappt cardRadius
-    radius: Math.min(height / 2, cardRadius)
-    color: Colors.background
-    border.width: borderWidth
-    border.color: Colors.outlineVariant
-    clip: false   // muss offen sein: das Dropdown haengt unten raus
+    maxRadius: cardRadius
+    clipContent: false   // muss offen sein: das Dropdown haengt unten raus
 
-    Behavior on width {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
-    Behavior on height {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
+    Morph on width {}
+    Morph on height {}
 
     // Lautstaerke-Ring um den Kreis – reine ANZEIGE (Scrollen/Klicken ist
     // raus, das Volumen regelt man woanders). Blendet beim Aufklappen mit
@@ -419,7 +415,7 @@ Rectangle {
 
         interval: 700
         // Waehrend eines Passworts darf die Maus rausrutschen
-        onTriggered: if (!settings.typingPassword && !settings.typingPin)
+        onTriggered: if (!settings.typingPassword && !BluetoothService.pairingActive)
             settings.expanded = false
     }
 

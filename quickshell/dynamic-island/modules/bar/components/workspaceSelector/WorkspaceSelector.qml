@@ -7,8 +7,10 @@ import Quickshell.Wayland
 import Quickshell.Io
 import QtQuick.Layouts
 import qs.modules.services.hypr
+import qs.modules.services.config
 
 import qs
+import qs.modules.widgets
 
 // Karte links in der Leiste. Rundung, Randstärke und Randfarbe kommen aus
 // Bar.qml, damit sie sich nichts mit der Notch ausdenken muss.
@@ -31,7 +33,7 @@ Item {
 
     // Größe einer Monitor-Gruppe. `wsMonitorOffset` in der Hypr-Config vergibt
     // je 10 am Stück (HDMI-A-1 ab 1, DP-1 ab 11).
-    property int workspacesPerMonitor: 5
+    property int workspacesPerMonitor: Math.max(1, Math.min(10, Config.bar.workspaceCount))
 
     // Der Monitor, auf dem DIESE Leiste sitzt – bewusst nicht der fokussierte.
     // Sonst zeigten beide Leisten dieselbe Gruppe an.
@@ -99,22 +101,18 @@ Item {
     implicitWidth: root.padding * 2
                    + (root.onSpecial ? specialWs.implicitWidth : layout.implicitWidth)
 
-    Behavior on implicitWidth {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
+    Morph on implicitWidth {}
+
     height: parent.height - verticalMargin
     y: verticalMargin / 2
 
-    Rectangle {
+    Surface {
         id: card
         anchors.fill: parent
 
-        // Bei flacher Karte greift die halbe Breite, sonst bliebe die Rundung
-        // an den kurzen Kanten hängen – dasselbe Muster wie in der Notch.
-        radius: Math.min(width / 2, root.cardRadius)
-        border.width: root.borderWidth
-        border.color: root.borderColor
-        color: Colors.background
+        maxRadius: root.cardRadius
+        borderWidth: root.borderWidth
+        borderColor: root.borderColor
 
         // Scrollen schaltet Workspaces. Touchpads/Hi-Res-Räder liefern viele
         // kleine Events pro Zug, oft mit angleDelta.y == 0 (nur pixelDelta

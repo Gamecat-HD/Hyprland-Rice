@@ -13,7 +13,7 @@ Item {
 
     property bool active: false
     property string menuAddress: ""
-    readonly property bool pairingInputOpen: active && BluetoothService.pairingRequest === "pin"
+    readonly property bool pairingInputOpen: active && BluetoothService.pairingInputRequired
     readonly property real rowHeight: 50
     readonly property real listHeight: 268
 
@@ -21,11 +21,15 @@ Item {
 
     implicitHeight: header.height + 6 + listWrapper.height
 
-    onActiveChanged: if (!active) {
-        panel.menuAddress = "";
-        BluetoothService.setDiscovering(false);
-        if (BluetoothService.pairingDevice)
-            BluetoothService.cancelPairing();
+    onActiveChanged: {
+        if (!active) {
+            panel.menuAddress = "";
+            BluetoothService.setDiscovering(false);
+            if (BluetoothService.pairingDevice)
+                BluetoothService.cancelPairing();
+        } else if (BluetoothService.pairingInputRequired) {
+            Qt.callLater(() => pinInput.forceActiveFocus());
+        }
     }
 
     component Action: Rectangle {
@@ -535,18 +539,30 @@ Item {
             font.pixelSize: 12
         }
 
+        MouseArea {
+            anchors.fill: parent
+            visible: pairingDialog.visible
+            z: 499
+            // Eingaben hinter dem Kopplungsdialog abfangen.
+            onWheel: wheel => wheel.accepted = true
+        }
+
         Rectangle {
             id: pairingDialog
 
             anchors.centerIn: parent
             width: Math.min(parent.width - 40, 370)
-            height: BluetoothService.pairingRequest === "pin" ? 132 : 112
+            height: 210
             visible: panel.active && BluetoothService.pairingDevice !== null
             z: 500
             radius: 18
             color: Colors.surfaceContainer
             border.width: 1
             border.color: Colors.outlineVariant
+
+            MouseArea {
+                anchors.fill: parent
+            }
 
             Text {
                 id: pairingTitle
@@ -575,12 +591,33 @@ Item {
                     left: pairingTitle.left
                     right: pairingTitle.right
                 }
-                text: BluetoothService.pairingRequest === "confirm" && BluetoothService.pairingPasskey !== ""
-                      ? `${BluetoothService.pairingMessage}  ${BluetoothService.pairingPasskey}`
-                      : BluetoothService.pairingMessage
+                text: BluetoothService.pairingMessage
                 color: BluetoothService.pairingRequest === "error" ? Colors.error : Colors.fgSurfaceVariant
                 font.pixelSize: 11
+                wrapMode: Text.Wrap
+                maximumLineCount: 3
                 elide: Text.ElideRight
+            }
+
+            Text {
+                anchors.centerIn: parent
+                visible: BluetoothService.pairingPasskey !== ""
+                text: BluetoothService.pairingPasskey
+                font.family: Config.font
+                font.pixelSize: 28
+                font.letterSpacing: 5
+                font.weight: Font.DemiBold
+                color: Colors.primary
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 134
+                visible: BluetoothService.pairingRequest === "display" && BluetoothService.pairingEntered > 0
+                text: `${BluetoothService.pairingEntered} von 6 Ziffern eingegeben`
+                font.family: Config.font
+                font.pixelSize: 11
+                color: Colors.fgSurfaceVariant
             }
 
             Rectangle {
@@ -589,13 +626,13 @@ Item {
                 anchors {
                     left: parent.left
                     leftMargin: 12
-                    right: submitButton.left
-                    rightMargin: 8
-                    bottom: parent.bottom
-                    bottomMargin: 12
+                    right: parent.right
+                    rightMargin: 12
+                    bottom: submitButton.top
+                    bottomMargin: 8
                 }
                 height: 34
-                visible: BluetoothService.pairingRequest === "pin"
+                visible: BluetoothService.pairingInputRequired
                 radius: 12
                 color: Colors.shade(Colors.background, 0.06)
                 border.width: 1
@@ -609,7 +646,12 @@ Item {
                     anchors.leftMargin: 10
                     anchors.rightMargin: 10
                     verticalAlignment: TextInput.AlignVCenter
-                    echoMode: TextInput.Password
+                    echoMode: BluetoothService.pairingRequest === "passkey" ? TextInput.Normal : TextInput.Password
+                    maximumLength: BluetoothService.pairingRequest === "passkey" ? 6 : 16
+                    validator: RegularExpressionValidator {
+                        regularExpression: BluetoothService.pairingRequest === "passkey" ? /[0-9]{1,6}/ : /[^\x00\r\n]{1,16}/
+                    }
+                    inputMethodHints: BluetoothService.pairingRequest === "passkey" ? Qt.ImhDigitsOnly : Qt.ImhSensitiveData
                     color: Colors.fgBackground
                     selectionColor: Colors.alpha(Colors.primary, 0.35)
                     font.pixelSize: 12
@@ -620,7 +662,7 @@ Item {
                     Text {
                         anchors.fill: parent
                         visible: pinInput.text === ""
-                        text: "PIN / Passkey"
+                        text: BluetoothService.pairingRequest === "passkey" ? "Passkey (1–6 Ziffern)" : "PIN"
                         color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                         font: pinInput.font
                         verticalAlignment: Text.AlignVCenter
@@ -632,7 +674,7 @@ Item {
                 id: submitButton
 
                 function submit(): void {
-                    if (pinInput.text === "")
+                    if (!pinInput.acceptableInput)
                         return;
                     BluetoothService.submitPin(pinInput.text);
                     pinInput.text = "";
@@ -646,9 +688,9 @@ Item {
                 }
                 width: 86
                 height: 34
-                visible: BluetoothService.pairingRequest === "pin"
+                visible: BluetoothService.pairingInputRequired
                 radius: 12
-                color: pinInput.text === "" ? Colors.alpha(Colors.fgSurface, 0.1) : Colors.primary
+                color: !pinInput.acceptableInput ? Colors.alpha(Colors.fgSurface, 0.1) : Colors.primary
 
                 Text {
                     font.family: Config.font
@@ -656,7 +698,7 @@ Item {
                     text: "Senden"
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
-                    color: pinInput.text === "" ? Colors.fgSurfaceVariant : Colors.fgPrimary
+                    color: !pinInput.acceptableInput ? Colors.fgSurfaceVariant : Colors.fgPrimary
                 }
 
                 MouseArea {
@@ -668,13 +710,12 @@ Item {
 
             Row {
                 anchors {
-                    right: parent.right
-                    rightMargin: 12
+                    left: parent.left
+                    leftMargin: 12
                     bottom: parent.bottom
                     bottomMargin: 12
                 }
                 spacing: 8
-                visible: BluetoothService.pairingRequest !== "pin"
 
                 Rectangle {
                     width: 82
@@ -700,14 +741,14 @@ Item {
                 Rectangle {
                     width: 82
                     height: 32
-                    visible: BluetoothService.pairingRequest === "confirm"
+                    visible: BluetoothService.pairingRequest === "confirm" || BluetoothService.pairingRequest === "authorize"
                     radius: 12
                     color: Colors.primary
 
                     Text {
                         font.family: Config.font
                         anchors.centerIn: parent
-                        text: "Bestätigen"
+                        text: BluetoothService.pairingRequest === "authorize" ? "Erlauben" : "Bestätigen"
                         color: Colors.fgPrimary
                         font.pixelSize: 11
                         font.weight: Font.DemiBold
@@ -726,7 +767,8 @@ Item {
             target: BluetoothService
 
             function onPairingRequestChanged(): void {
-                if (BluetoothService.pairingRequest === "pin")
+                pinInput.text = "";
+                if (panel.active && BluetoothService.pairingInputRequired)
                     Qt.callLater(() => pinInput.forceActiveFocus());
             }
         }

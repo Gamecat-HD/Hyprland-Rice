@@ -12,10 +12,14 @@ Text {
     id: clock
     font.family: Config.font
 
-    color: Colors.secondary
-    text: Qt.formatDateTime(clockSource.date, "HH:mm")
+    // Fuer Datumsanzeigen daneben (Notch-Layout), ohne zweite SystemClock
+    readonly property date date: clockSource.date
+
+    color: Colors.fgBackground
+    text: Qt.formatDateTime(clockSource.date, Config.appearance.clock === "12h" ? "h:mm AP" : "HH:mm")
     font.pointSize: 13
     font.weight: Font.Bold
+    font.letterSpacing: 0.4
 
     // Eingebaute Uhr statt externem `date`-Prozess pro Sekunde
     SystemClock {

@@ -5,6 +5,7 @@ import qs.modules.services.notifications
 
 import qs
 import qs.modules.services.config
+import qs.modules.widgets
 
 // Benachrichtigungs-Pille links neben der Medien-Karte.
 //
@@ -67,21 +68,19 @@ Item {
     width: root.open ? root.openWidth : root.wide ? root.peekWidth : root.collapsedSize
     height: root.open ? root.openHeight : root.collapsedSize
 
-    Behavior on width {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
-    Behavior on height {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
+        Morph on width {}
+    Morph on height {}
 
     // Neue Nachricht: kurz aufklappen, dann wieder zu. Wie lange, sagt die
-    // Nachricht selbst (expireTimeout), begrenzt auf 3-10 Sekunden.
+    // Nachricht selbst (expireTimeout), sonst die Einstellung; begrenzt auf
+    // 2-15 Sekunden.
     Connections {
         target: Notifications
 
         function onArrived(entry: var): void {
             const timeout = entry?.notif?.expireTimeout ?? 0;
-            peekTimer.interval = Math.min(10000, Math.max(3000, timeout > 0 ? timeout : 5000));
+            const fallback = Config.notifications.peekSeconds * 1000;
+            peekTimer.interval = Math.min(15000, Math.max(2000, timeout > 0 ? timeout : fallback));
             root.peek = true;
             peekTimer.restart();
         }
@@ -106,16 +105,14 @@ Item {
         }
     }
 
-    Rectangle {
+    Surface {
         id: pill
 
         anchors.fill: parent
 
-        radius: Math.min(height / 2, root.cardRadius)
-        color: Colors.background
-        border.width: root.borderWidth
-        border.color: root.borderColor
-        clip: true
+        maxRadius: root.cardRadius
+        borderWidth: root.borderWidth
+        borderColor: root.borderColor
 
         HoverHandler {
             id: hover

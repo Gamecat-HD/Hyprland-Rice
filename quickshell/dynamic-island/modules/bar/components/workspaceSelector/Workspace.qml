@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell.Hyprland
 
 import qs
+import qs.modules.widgets
 
 // Ein Punkt im Workspace-Selektor.
 //
@@ -56,9 +57,7 @@ Item {
     implicitWidth: (root.isActive ? root.activeWidth : root.dotSize) + root.hitPadding * 2
     implicitHeight: root.hitHeight + root.hitPadding * 2
 
-    Behavior on implicitWidth {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
+    Morph on implicitWidth {}
 
     Rectangle {
         anchors.centerIn: parent
