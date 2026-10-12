@@ -74,12 +74,19 @@ Item {
     readonly property bool overviewShown: docked && cardShown
     readonly property real overviewInset: 14
     readonly property real overviewWidth: Math.max(collapsedWidth, 400, panel.outerWidth + 2 * overviewInset)
-    readonly property real panelBottom: collapsedHeight + clockDropMax + panel.outerHeight
+    // Workspace-Leiste direkt unter der Uhr (nur angedockt), das Datum ruckt
+    // um ihren Platz nach unten
+    readonly property real stripTop: collapsedHeight + clockDropMax + 4
+    readonly property real stripSpace: docked ? workspaceStrip.implicitHeight + 10 : 0
+    readonly property real panelBottom: collapsedHeight + clockDropMax + stripSpace + panel.outerHeight
     readonly property bool showNowPlaying: Media.available
     readonly property real overviewBottom: systemGlance.y + systemGlance.height
     // Seiten-Indikator: Punkte fuer Uebersicht + Untermenues
     readonly property bool pagerShown: docked && (overviewShown || viewOpen)
     readonly property real pagerSpace: 18
+
+    // Blaettern: Inhalt gleitet in Scrollrichtung herein (siehe flipWheel)
+    property real slide: 0
 
     // Was die Bar zentral einschaltet (Bar.qml): Visualiser, Systemwerte,
     // Medien-Position, Tastaturfokus fuers WLAN-Passwort in der Steuerung
@@ -175,9 +182,9 @@ Item {
     readonly property real expandedHeight: authOpen ? launcherTop + authPanel.outerHeight
                                                     : launcherOpen ? launcherTop + launcherHeight + (pagerShown ? pagerSpace : 0)
                                                     : docked ? pager.y + pager.height + 10
-                                                             : collapsedHeight + clockDropMax + panel.outerHeight
+                                                             : panelBottom
     // Reserve, die sich das Bar-Fenster nach unten nehmen muss (größter Fall)
-    readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight + 120,
+    readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight + 170,
                                              launcherTop + launcher.maxOuterHeight,
                                               launcherTop + wallpapers.maxOuterHeight,
                                               launcherTop + themes.maxOuterHeight,
@@ -607,9 +614,24 @@ Item {
             }
         }
 
+        // ---- Uebersicht: Workspaces + Specials zum Anklicken ----
+        WorkspaceStrip {
+            id: workspaceStrip
+
+            x: (parent.width - width) / 2
+            y: notch.stripTop
+            width: Math.min(parent.width - 2 * notch.overviewInset, implicitWidth)
+            opacity: notch.overviewShown ? 1 : 0
+            visible: opacity > 0
+            transform: Translate { x: notch.slide }
+
+            Fade on opacity {}
+        }
+
         // ---- Uebersicht: Jetzt laeuft ----
         NowPlayingRow {
             id: nowPlaying
+            transform: Translate { x: notch.slide }
 
             x: notch.overviewInset
             y: notch.panelBottom + 8
@@ -624,6 +646,7 @@ Item {
         // ---- Uebersicht: Systemwerte ----
         SystemGlance {
             id: systemGlance
+            transform: Translate { x: notch.slide }
 
             x: notch.overviewInset
             y: notch.showNowPlaying ? nowPlaying.y + nowPlaying.height + 8 : notch.panelBottom + 8
@@ -689,32 +712,66 @@ Item {
             enabled: notch.pagerShown
 
             property real accum: 0
+            // Nach einem Wechsel ist die Geste "verbraucht", bis das Rad bzw.
+            // das Touchpad kurz Ruhe gibt – ein Freilauf-Dreh am G502 oder ein
+            // Wisch mit Nachlauf blaettert so genau EINE Seite.
+            property bool spent: false
 
             onWheel: event => {
                 event.accepted = true;
-                if (flipCooldown.running)
+                gestureEnd.restart();
+                if (flipWheel.spent)
                     return;
-                const angle = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y)
-                    ? event.angleDelta.x : event.angleDelta.y;
-                const pixels = Math.abs(event.pixelDelta.x) > Math.abs(event.pixelDelta.y)
-                    ? event.pixelDelta.x : event.pixelDelta.y;
-                flipWheel.accum += angle !== 0 ? angle / 120 : pixels / 60;
+
+                const horizontal = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y)
+                    || Math.abs(event.pixelDelta.x) > Math.abs(event.pixelDelta.y);
+                const angle = horizontal ? event.angleDelta.x : event.angleDelta.y;
+                const pixels = horizontal ? event.pixelDelta.x : event.pixelDelta.y;
+                // Touchpad braucht einen deutlichen Zug, eine Rastung reicht
+                const delta = pixels !== 0 ? pixels / 70 : angle / 120;
+
+                // Richtungswechsel verwirft den Rest der alten Richtung
+                if (flipWheel.accum !== 0 && Math.sign(delta) !== Math.sign(flipWheel.accum))
+                    flipWheel.accum = 0;
+                flipWheel.accum += delta;
                 if (Math.abs(flipWheel.accum) < 1)
                     return;
-                // Rad nach unten bzw. nach rechts wischen = naechste Ansicht
+
+                // Rad nach unten bzw. nach links wischen = naechste Ansicht
                 const dir = flipWheel.accum < 0 ? 1 : -1;
                 flipWheel.accum = 0;
-                flipCooldown.restart();
+                flipWheel.spent = true;
+
+                const before = LauncherState.viewIndex;
                 const view = LauncherState.step(notch.QsWindow.window.screen, dir);
                 if (view === "overview")
                     notch.expanded = true;
+                if (LauncherState.viewIndex !== before || view === "overview" && before !== 0) {
+                    slideIn.from = dir * 36;
+                    slideIn.restart();
+                }
             }
         }
 
+        // Ruhe auf dem Rad -> naechste Geste darf wieder blaettern
         Timer {
-            id: flipCooldown
+            id: gestureEnd
 
-            interval: 280
+            interval: 220
+            onTriggered: {
+                flipWheel.spent = false;
+                flipWheel.accum = 0;
+            }
+        }
+
+        NumberAnimation {
+            id: slideIn
+
+            target: notch
+            property: "slide"
+            to: 0
+            duration: Appearance.morphDuration
+            easing.type: Easing.OutCubic
         }
 
         // ---- Live-Activity: Cover links ----
@@ -913,8 +970,9 @@ Item {
 
         DatePanel {
             id: panel
+            transform: Translate { x: notch.slide }
 
-            topOffset: notch.collapsedHeight + notch.clockDrop
+            topOffset: notch.collapsedHeight + notch.clockDrop + notch.stripSpace
             cardRadius: notch.cardRadius
             // Insel: Mausrad gilt auf der ganzen Karte. Angedockt nur auf dem
             // Streifen selbst – sonst blaettert das Rad die Ansichten
@@ -991,6 +1049,7 @@ Item {
         // ---- Untermenues (Notch-Layout und Insel) ----
         MediaViewPanel {
             id: mediaView
+            transform: Translate { x: notch.slide }
 
             topOffset: notch.launcherTop
             cardRadius: notch.cardRadius
@@ -1003,6 +1062,7 @@ Item {
 
         ControlPanel {
             id: controlView
+            transform: Translate { x: notch.slide }
 
             topOffset: notch.launcherTop
             cardRadius: notch.cardRadius
@@ -1015,6 +1075,7 @@ Item {
 
         NotificationsPanel {
             id: notificationsView
+            transform: Translate { x: notch.slide }
 
             topOffset: notch.launcherTop
             cardRadius: notch.cardRadius
@@ -1027,6 +1088,7 @@ Item {
 
         SystemPanel {
             id: systemView
+            transform: Translate { x: notch.slide }
 
             topOffset: notch.launcherTop
             cardRadius: notch.cardRadius

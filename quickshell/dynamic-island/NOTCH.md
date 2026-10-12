@@ -365,3 +365,12 @@ ihre Inhalte stehen als **Untermenues** in der Notch. Das sind Launcher-Modi wie
   ausser beim WLAN-Passwort/BT-PIN in der Steuerung (`notch.controlTyping`).
 - Geteilte Dienste mit genau einem Binding in Bar.qml: `Cava.enabled`, `SystemStats.watching`, `Media.trackPosition`.
 - Eingeklappt: `notch.media` = Cover, neu `notch.visualizer` = Pegel (statt Datum).
+
+**Workspaces per Maus (2026-10-12):** `WorkspaceStrip.qml` direkt unter der Uhr in der Uebersicht: Nummern der Workspaces
+dieses Monitors (Klick = wechseln, schliesst einen offenen Special vorher) und die existierenden Special-Workspaces als
+Symbole (Klick = toggeln, aktiver = tertiaere Pille). Symbole aus `SpecialIcons.js` (geteilt mit `NotchWorkspaces.qml`,
+das eingeklappt ein offenes Special als Symbol hinter den Staebchen zeigt).
+
+**Blaettern ueberarbeitet:** eine Geste = eine Seite (`flipWheel.spent`, frei erst nach 220 ms Ruhe, `gestureEnd`),
+Touchpad-Schwelle 70 px, Richtungswechsel verwirft den Rest. Der Inhalt gleitet in Scrollrichtung herein
+(`notch.slide` + `slideIn`, `Translate` auf Uebersicht-Elementen und Untermenues).

@@ -5,6 +5,7 @@ import Quickshell.Hyprland
 
 import qs
 import qs.modules.services.config
+import "SpecialIcons.js" as SpecialIcons
 
 // Kompakte Workspace-Anzeige fuer die eingeklappte Notch: senkrechte
 // Stäbchen statt Punkten, der aktive ist hoeher. Im Notch-Layout parkt der
@@ -26,6 +27,8 @@ Row {
     readonly property HyprlandMonitor hyprMonitor: Hyprland.monitorFor(root.QsWindow.window?.screen ?? null)
     readonly property int activeId: root.hyprMonitor?.activeWorkspace?.id ?? 1
     readonly property int groupOffset: Math.floor((root.activeId - 1) / root.perMonitor) * root.perMonitor
+    // Offener Special-Workspace auf DIESEM Monitor ("" = keiner)
+    readonly property string activeSpecial: root.hyprMonitor?.lastIpcObject.specialWorkspace?.name ?? ""
 
     // { wsId: hatFenster }. WorkspaceSelector haelt die Liste ueber
     // refreshWorkspaces() frisch, hier wird nur gelesen.
@@ -90,5 +93,18 @@ Row {
                 }
             }
         }
+    }
+
+    // Liegt ein Special-Workspace offen, steht sein Symbol hinter den
+    // Staebchen (tertiaer, wie die Special-Pille der grossen Leiste)
+    Text {
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.activeSpecial !== ""
+        text: SpecialIcons.iconFor(root.activeSpecial.slice("special:".length))
+        color: Colors.tertiary
+        font.family: "Material Symbols Outlined"
+        font.pixelSize: 15
+        font.variableAxes: ({ FILL: 1 })
+        leftPadding: 2
     }
 }
