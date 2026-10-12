@@ -711,9 +711,13 @@ Item {
         // weiter – ohne Sperre danach, eine Rastung = eine Seite.
         // Den Zaehler NICHT bei kurzen Pausen zuruecksetzen, sonst kommt
         // langsames Drehen nie ueber die Schwelle (accumDecay erst nach 500 ms).
+        // Unter allem anderen (z: -1): wer ein eigenes Rad hat – die
+        // Workspace-Staebchen springen damit zwischen Workspaces – nimmt es
+        // zuerst, der Rest der Kopfzeile faellt hierher durch.
         Item {
             id: flipZone
 
+            z: -1
             width: parent.width
             height: notch.flipZoneHeight
         }

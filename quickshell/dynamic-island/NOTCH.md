@@ -410,3 +410,8 @@ bekommt die Notch eine 1-px-Kontur (`notchBorder`), die Schultern ziehen sie ent
 Sperre, Zaehler verfaellt nach 500 ms. **Steuerung:** `Settings.dropdownReserve` rechnet nur noch den Teil, der wirklich
 unter der Karte herausragt (`mapToItem`) – vorher wuchs die Ansicht beim Oeffnen jedes Dropdowns um dessen volle Hoehe.
 **Benachrichtigungen:** Liste waechst mit `list.contentHeight` (alle Zeilen per `cacheBuffer` erzeugt) bis 440 px.
+
+**Steuerung fest hoch:** eingebettet ist `Settings.height` = `embeddedHeight` (groesste von Kacheln/WLAN/BT/Audio + Rand);
+Unterseiten und Dropdowns aendern die Notch-Hoehe nicht mehr (gemessen: 438 px in allen Zustaenden).
+**Rad ueber den Workspace-Staebchen:** springt je Rastung zum naechsten/vorigen Workspace mit Fenstern (leere werden
+uebersprungen, am Ende von vorn). `flipZone` liegt dafuer mit `z: -1` unter den Staebchen.

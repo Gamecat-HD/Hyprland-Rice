@@ -124,7 +124,13 @@ Surface {
     width: expanded || wifiOpen || bluetoothOpen || audioOpen ? expandedWidth
          : peek ? peekWidth
          : collapsedSize
-    height: expanded || wifiOpen || bluetoothOpen || audioOpen ? expandedHeight : collapsedSize
+    // Eingebettet (Steuerungs-Untermenue) immer gleich hoch: die groesste
+    // Ansicht (Kacheln bzw. WLAN/BT/Audio). Unterseiten und Dropdowns lassen
+    // die Notch so nicht springen.
+    readonly property real embeddedHeight: 20 + Math.max(tiles.implicitHeight, wifi.implicitHeight,
+                                                        bluetooth.implicitHeight, audio.implicitHeight)
+    height: settings.embedded ? settings.embeddedHeight
+          : expanded || wifiOpen || bluetoothOpen || audioOpen ? expandedHeight : collapsedSize
 
     // Klappt die Karte zu, ist auch die WLAN-Ansicht und das Dauer-Menue vorbei
     onExpandedChanged: if (!expanded) {

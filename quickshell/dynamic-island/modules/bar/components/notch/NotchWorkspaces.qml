@@ -54,6 +54,57 @@ Item {
     implicitWidth: bars.implicitWidth
     implicitHeight: root.activeHeight
 
+    // Mausrad: zum naechsten bzw. vorigen Workspace MIT Fenstern dieser
+    // Gruppe springen (leere werden uebersprungen), am Ende geht es von vorn
+    // weiter. Eine Rastung (120, Hi-Res-Teilschritte aufsummiert) = ein Sprung.
+    function jump(dir: int): void {
+        const ids = [];
+        for (let i = 1; i <= root.perMonitor; i++) {
+            const id = root.groupOffset + i;
+            if (root.occupied[id] || id === root.activeId)
+                ids.push(id);
+        }
+        if (ids.length < 2)
+            return;
+        const at = Math.max(0, ids.indexOf(root.activeId));
+        const next = ids[((at + dir) % ids.length + ids.length) % ids.length];
+        Hyprland.dispatch(Hyprland.usingLua
+            ? `hl.dsp.focus({ workspace = ${next} })`
+            : `workspace ${next}`);
+    }
+
+    WheelHandler {
+        id: wheel
+
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        // Waehrend ein Special offen ist, gehoert das Rad nicht hierher
+        enabled: !root.onSpecial
+
+        property real accum: 0
+
+        onWheel: event => {
+            const angle = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+            const pixels = event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.pixelDelta.x;
+            const delta = pixels !== 0 ? pixels / 60 : angle / 120;
+            if (wheel.accum !== 0 && Math.sign(delta) !== Math.sign(wheel.accum))
+                wheel.accum = 0;
+            wheel.accum += delta;
+            wheelDecay.restart();
+            if (Math.abs(wheel.accum) < 1)
+                return;
+            // Rad nach unten = naechster Workspace
+            root.jump(wheel.accum < 0 ? 1 : -1);
+            wheel.accum = 0;
+        }
+    }
+
+    Timer {
+        id: wheelDecay
+
+        interval: 500
+        onTriggered: wheel.accum = 0
+    }
+
     // Feste, gut unterscheidbare Farbe je Special: eigener Farbton, Helligkeit
     // und Saettigung am Theme ausgerichtet (die Theme-Rollen selbst liegen in
     // vielen Schemata zu nah beieinander). Unbekannte Specials reihum.
