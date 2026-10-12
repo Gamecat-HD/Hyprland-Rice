@@ -19,7 +19,8 @@ ViewPanel {
     readonly property alias settings: embeddedSettings
     readonly property bool typing: embeddedSettings.typingPassword || embeddedSettings.typingPin
     readonly property bool hasTray: SystemTray.items.values.length > 0
-    readonly property real trayHeight: root.hasTray ? 40 : 0
+    // Tray-Kacheln plus Abstand zu den Schnelleinstellungen
+    readonly property real trayHeight: root.hasTray ? trayGrid.implicitHeight + 10 : 0
 
     title: "Steuerung"
     icon: "toggle_on"
@@ -38,17 +39,13 @@ ViewPanel {
         embeddedSettings.audioOpen = false;
     }
 
-    Item {
-        id: trayBox
+    // Tray als Kachel-Reihe (Name + Symbol, Rechtsklick = Menue)
+    TrayGrid {
+        id: trayGrid
 
-        width: parent.width
-        height: root.trayHeight
+        x: 10
+        width: parent.width - 20
         visible: root.hasTray
-
-        StatusBar {
-            embedded: true
-            verticalMargin: 10
-        }
     }
 
     Item {

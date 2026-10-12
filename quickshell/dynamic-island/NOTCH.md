@@ -426,3 +426,9 @@ danach zweimal nachlesen; `scanning` dreht den Aktualisieren-Knopf. Die Steuerun
 
 **Glocke anklickbar:** Klick auf die Glocke oben rechts oeffnet das Untermenue Benachrichtigungen, aus diesem heraus geht
 es per Klick zurueck zur Uebersicht.
+
+**Tray in der Steuerung:** `statusBar/TrayGrid.qml` statt der eingebetteten Tray-Pille: eine Kachel je App mit Symbol und
+Namen (Titel/Tooltip, sonst aus der ID abgeleitet – Discord liefert keinen Titel), gleich breit ueber die Zeile (max. 4,
+dann Umbruch). Passive Apps gedimmt und hinten, "braucht Aufmerksamkeit" mit Akzentpunkt. Links = oeffnen, rechts = Menue
+(TrayMenu-Popup wie in der Leiste), Mitte = secondaryActivate; Hover oeffnet hier nichts. Die Leisten-Pille (Insel)
+bleibt unveraendert.
