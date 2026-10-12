@@ -21,6 +21,9 @@ Shape {
     property color color: "black"
     // false = linke Schulter (Kurve oeffnet nach links), true = rechte
     property bool mirrored: false
+    // Kontur nur entlang der Kurve – setzt die Randlinie der Notch fort
+    property real strokeWidth: 0
+    property color strokeColor: "transparent"
 
     width: size
     height: size
@@ -50,6 +53,24 @@ Shape {
             y: 0
             controlX: root.mirrored ? 0 : root.size
             controlY: 0
+        }
+    }
+
+    // Kontur: nur die Kurve, von der Notch-Kante hoch zur Bildschirmkante
+    ShapePath {
+        strokeWidth: root.strokeWidth > 0 ? root.strokeWidth : -1
+        strokeColor: root.strokeColor
+        fillColor: "transparent"
+        capStyle: ShapePath.FlatCap
+
+        startX: root.mirrored ? root.strokeWidth / 2 : root.size - root.strokeWidth / 2
+        startY: root.size
+
+        PathQuad {
+            x: root.mirrored ? root.size : 0
+            y: root.strokeWidth / 2
+            controlX: root.mirrored ? root.strokeWidth / 2 : root.size - root.strokeWidth / 2
+            controlY: root.strokeWidth / 2
         }
     }
 }

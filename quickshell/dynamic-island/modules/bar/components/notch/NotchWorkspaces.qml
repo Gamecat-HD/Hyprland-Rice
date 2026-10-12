@@ -130,10 +130,19 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                     }
 
+                    // Klick auf den aktiven Workspace = Special oeffnen bzw.
+                    // schliessen (wie der aktive Punkt der grossen Leiste)
                     TapHandler {
-                        onTapped: Hyprland.dispatch(Hyprland.usingLua
-                            ? `hl.dsp.focus({ workspace = ${slot.ws} })`
-                            : `workspace ${slot.ws}`)
+                        onTapped: {
+                            if (slot.active)
+                                Hyprland.dispatch(Hyprland.usingLua
+                                    ? 'hl.dsp.workspace.toggle_special("special")'
+                                    : "togglespecialworkspace special");
+                            else
+                                Hyprland.dispatch(Hyprland.usingLua
+                                    ? `hl.dsp.focus({ workspace = ${slot.ws} })`
+                                    : `workspace ${slot.ws}`);
+                        }
                     }
                 }
             }

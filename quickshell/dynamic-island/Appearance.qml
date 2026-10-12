@@ -3,7 +3,10 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 
+import Quickshell.Io
+
 import qs.modules.services.config
+import qs.modules.services.wallpaper
 
 // Gestalt-Singleton – ueberall per `Appearance.<wert>` nutzbar.
 //
@@ -34,7 +37,23 @@ Singleton {
     // Die angedockte Notch ist schwarz wie ein Displayrahmen und geht ueber
     // gewoelbte Schultern in die Oberkante ueber (saneAspect-Vorbild).
     readonly property bool notchLayout: Config.appearance.layout === "notch"
-    readonly property color notchColor: "#000000"
+    // Normal schwarz. Hat das Farbschema aber dunkle Schrift (helles Schema,
+    // helles Wallpaper), waere die auf Schwarz kaum lesbar – dann nimmt die
+    // Notch den hellen Theme-Hintergrund.
+    readonly property bool darkText: root.luminance(Colors.fgBackground) < 0.45
+    readonly property color notchColor: root.darkText ? Colors.background : "#000000"
+
+    // Hebt sich die Notch nicht vom Wallpaper ab (schwarz auf sehr dunklem
+    // Bild, hell auf sehr hellem), bekommt sie eine leichte Kontur. Gemessen
+    // wird nur der Streifen oben in der Mitte, wo die Notch sitzt.
+    property real wallTopLuma: -1          // -1 = noch nicht gemessen
+    readonly property bool notchBorder: root.wallTopLuma >= 0
+        && Math.abs(root.wallTopLuma - root.luminance(root.notchColor)) < 0.14
+    readonly property color notchBorderColor: Colors.alpha(Colors.fgBackground, 0.22)
+
+    function luminance(c: color): real {
+        return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+    }
     // Radius der Schultern (eingeklappt / aufgeklappt). Aufgeklappt folgt er
     // der Eckenrundung (appearance.radius), damit Ober- und Unterecken der
     // Karte zueinander passen.
@@ -68,4 +87,38 @@ Singleton {
         "stark": 2.1
     })
     readonly property real overshoot: root.bounceLevels[Config.appearance.bounce] ?? 1.3
+
+    // ---- Wallpaper-Helligkeit oben mittig ----
+    // Einmal je Wallpaper (auch waehrend der Vorschau in der Auswahl): klein
+    // rechnen, oberen Mittelstreifen ausschneiden, mittlere Helligkeit 0..1.
+    readonly property string wallpaper: Wallpapers.current
+
+    onWallpaperChanged: lumaDelay.restart()
+    Component.onCompleted: lumaDelay.restart()
+
+    Timer {
+        id: lumaDelay
+
+        interval: 250
+        onTriggered: if (root.wallpaper !== "") {
+            lumaProc.running = false;
+            lumaProc.running = true;
+        }
+    }
+
+    Process {
+        id: lumaProc
+
+        command: ["magick", root.wallpaper + "[0]", "-resize", "480x", "-gravity", "North",
+                  "-crop", "34%x7%+0+0", "+repage", "-colorspace", "Gray",
+                  "-format", "%[fx:mean]", "info:"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const v = parseFloat(text);
+                if (!isNaN(v))
+                    root.wallTopLuma = v;
+            }
+        }
+    }
 }

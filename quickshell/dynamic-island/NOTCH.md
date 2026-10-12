@@ -398,3 +398,10 @@ wie die Staebchen-Reihe, die Specials teilen sich die Breite.
 Workspace-Staebchen blenden fast aus (0.12), an ihrer Stelle die Specials als Staebchen, jeder in eigener Farbe
 (`specialColor`: Musik gruen, Kommunikation blau, Sysmon orange, Stern violett, Helligkeit am Theme), der offene hoch.
 `SpecialIcons.js` entfernt.
+
+**Kontrast:** `Appearance.notchColor` ist schwarz, ausser das Farbschema hat dunkle Schrift (`darkText`, Luminanz von
+`Colors.fgBackground` < 0.45) – dann der helle Theme-Hintergrund. `wallTopLuma` misst per `magick` bei jedem
+Wallpaper-Wechsel (auch Vorschau) die Helligkeit des oberen Mittelstreifens; liegt sie naeher als 0.14 an der Notch-Farbe,
+bekommt die Notch eine 1-px-Kontur (`notchBorder`), die Schultern ziehen sie entlang der Kurve weiter
+(`NotchShoulder.strokeWidth`), die obere Kante liegt ausserhalb (`y: -borderWidth`).
+**Klick auf den aktiven Workspace** toggelt den allgemeinen Special (`special:special`). **Blaettern ohne Sperre.**

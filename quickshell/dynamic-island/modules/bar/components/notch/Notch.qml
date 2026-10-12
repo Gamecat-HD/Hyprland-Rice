@@ -201,7 +201,8 @@ Item {
                                               launcherTop + authPanel.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
-    y: docked ? 0 : verticalMargin / 2
+    // Angedockt mit Kontur: die obere Randlinie liegt ausserhalb des Bildes
+    y: docked ? -pill.borderWidth : verticalMargin / 2
     width: open ? expandedWidth : collapsedWidth + 2 * growth
     height: open ? expandedHeight : collapsedHeight + growth
 
@@ -265,8 +266,9 @@ Item {
         // des Displayrahmens wirken, die Schultern muessen nahtlos passen.
         baseColor: notch.docked ? Appearance.notchColor : Colors.background
         lift: notch.docked ? 0 : Appearance.lift
-        borderWidth: notch.docked ? 0 : notch.borderWidth
-        borderColor: notch.borderColor
+        // Kontur nur, wenn sie sich sonst nicht vom Wallpaper abhebt
+        borderWidth: notch.docked ? (Appearance.notchBorder ? 1 : 0) : notch.borderWidth
+        borderColor: notch.docked ? Appearance.notchBorderColor : notch.borderColor
         docked: notch.docked
         // Eingeklappt ist sie Rahmen, kein Objekt – Schatten erst, wenn sie
         // als Karte ueber den Fenstern liegt
@@ -705,12 +707,10 @@ Item {
         // (Datum, Listen), damit es an jeder Stelle immer dasselbe tut.
         //
         // Hi-Res-Raeder (G502) liefern ~15 Einheiten je Event statt 120 je
-        // Rastung. Deshalb: aufsummieren, ab einer halben Rastung blaettern,
-        // danach eine FESTE Sperre (weitere Events verlaengern sie nicht).
-        // Langsames Drehen kommt so zuverlaessig an, ein Freilauf-Dreh
-        // blaettert hoechstens ~3 Seiten pro Sekunde. Fruehere Fassung setzte
-        // den Zaehler bei jeder kurzen Pause zurueck – langsam gedreht kam
-        // man nie ueber die Schwelle.
+        // Rastung. Deshalb aufsummieren und ab einer Viertel-Rastung eine
+        // Seite weiter – ohne Sperre danach (auf Wunsch: direkt durchdrehen).
+        // Den Zaehler NICHT bei kurzen Pausen zuruecksetzen, sonst kommt
+        // langsames Drehen nie ueber die Schwelle (accumDecay erst nach 500 ms).
         Item {
             id: flipZone
 
@@ -730,8 +730,6 @@ Item {
             onWheel: event => {
                 event.accepted = true;
                 accumDecay.restart();
-                if (flipCooldown.running)
-                    return;
 
                 const horizontal = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y)
                     || Math.abs(event.pixelDelta.x) > Math.abs(event.pixelDelta.y);
@@ -750,7 +748,6 @@ Item {
                 // Rad nach unten bzw. nach links wischen = naechste Ansicht
                 const dir = flipWheel.accum < 0 ? 1 : -1;
                 flipWheel.accum = 0;
-                flipCooldown.restart();
 
                 const before = LauncherState.viewIndex;
                 const view = LauncherState.step(notch.QsWindow.window.screen, dir);
@@ -761,13 +758,6 @@ Item {
                     slideIn.restart();
                 }
             }
-        }
-
-        // Feste Sperre nach einem Wechsel
-        Timer {
-            id: flipCooldown
-
-            interval: 300
         }
 
         // Angefangener Zug verfaellt erst nach einer echten Pause
@@ -1142,6 +1132,8 @@ Item {
         y: 0
         size: notch.shoulder
         color: Appearance.notchColor
+        strokeWidth: pill.borderWidth
+        strokeColor: Appearance.notchBorderColor
         visible: notch.docked
 
         Morph on size {}
@@ -1152,6 +1144,8 @@ Item {
         y: 0
         size: notch.shoulder
         color: Appearance.notchColor
+        strokeWidth: pill.borderWidth
+        strokeColor: Appearance.notchBorderColor
         mirrored: true
         visible: notch.docked
 
