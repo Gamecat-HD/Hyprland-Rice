@@ -454,6 +454,39 @@ Item {
                 }
             }
 
+            // Akku (nur mit Systemakku und Einstellung "Akkuanzeige"). Der Ring
+            // des Insel-Layouts passt nicht um die angedockte Notch – hier
+            // stehen Symbol und Prozent, knapp = rot.
+            Row {
+                id: compactBattery
+
+                readonly property bool low: Power.percent <= 20 && !Power.charging
+
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Power.hasSystemBattery && Config.bar.battery
+                spacing: 2
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Power.batteryIcon
+                    rotation: 90
+                    color: compactBattery.low ? Colors.error
+                         : Power.charging ? Colors.primary
+                         : Colors.alpha(Colors.fgBackground, 0.7)
+                    font.family: "Material Symbols Outlined"
+                    font.pixelSize: 15
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: `${Power.percent}%`
+                    color: compactBattery.low ? Colors.error : Colors.alpha(Colors.fgBackground, 0.7)
+                    font.family: Config.font
+                    font.pixelSize: 11
+                    font.weight: Font.DemiBold
+                }
+            }
+
             // Wochentag und Tag, gedaempft – die Uhr bleibt der Blickfang
             Text {
                 anchors.verticalCenter: parent.verticalCenter

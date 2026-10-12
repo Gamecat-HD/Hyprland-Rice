@@ -21,6 +21,9 @@ Row {
         ];
         if (SystemStats.cpuTemp > 0)
             list.push({ icon: "thermostat", text: SystemStats.formatTemp(SystemStats.cpuTemp), warn: SystemStats.cpuTemp >= 80 });
+        if (Power.hasSystemBattery && Config.bar.battery)
+            list.push({ icon: Power.batteryIcon, text: `${Power.percent} %`,
+                        warn: Power.percent <= 20 && !Power.charging });
         if (SystemStats.hasGpu && SystemStats.gpuTemp > 0)
             list.push({ icon: "videogame_asset", text: SystemStats.formatTemp(SystemStats.gpuTemp), warn: SystemStats.gpuTemp >= 85 });
         return list;

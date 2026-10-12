@@ -432,3 +432,9 @@ Namen (Titel/Tooltip, sonst aus der ID abgeleitet – Discord liefert keinen Tit
 dann Umbruch). Passive Apps gedimmt und hinten, "braucht Aufmerksamkeit" mit Akzentpunkt. Links = oeffnen, rechts = Menue
 (TrayMenu-Popup wie in der Leiste), Mitte = secondaryActivate; Hover oeffnet hier nichts. Die Leisten-Pille (Insel)
 bleibt unveraendert.
+
+**Tray einzeilig:** TrayGrid zeigt alle Apps in einer Zeile; unter 96 px je Kachel nur das Symbol, unter 44 px scrollt die
+Zeile seitlich (Flickable, Mausrad). **Energie-Kachel** nur mit Systemakku waehlbar, sonst gedimmt mit "Nur mit Akku".
+**Akku im Notch-Layout** (Test mit simuliertem Akku ergab: dort gab es keine Anzeige, der Ring ist nur fuer die Insel):
+eingeklappt Symbol + Prozent in `compactRight`, in der Uebersicht ein Chip in `SystemGlance`; <= 20 % ohne Laden rot.
+Beides haengt an `Power.hasSystemBattery && Config.bar.battery`.
