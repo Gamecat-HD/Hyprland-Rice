@@ -707,8 +707,8 @@ Item {
         // (Datum, Listen), damit es an jeder Stelle immer dasselbe tut.
         //
         // Hi-Res-Raeder (G502) liefern ~15 Einheiten je Event statt 120 je
-        // Rastung. Deshalb aufsummieren und ab einer Viertel-Rastung eine
-        // Seite weiter – ohne Sperre danach (auf Wunsch: direkt durchdrehen).
+        // Rastung. Deshalb aufsummieren und je voller Rastung eine Seite
+        // weiter – ohne Sperre danach, eine Rastung = eine Seite.
         // Den Zaehler NICHT bei kurzen Pausen zuruecksetzen, sonst kommt
         // langsames Drehen nie ueber die Schwelle (accumDecay erst nach 500 ms).
         Item {
@@ -735,8 +735,10 @@ Item {
                     || Math.abs(event.pixelDelta.x) > Math.abs(event.pixelDelta.y);
                 const angle = horizontal ? event.angleDelta.x : event.angleDelta.y;
                 const pixels = horizontal ? event.pixelDelta.x : event.pixelDelta.y;
-                // Schritte: Viertel-Rastung (30) bzw. 30 px Touchpad = 1
-                const delta = pixels !== 0 ? pixels / 30 : angle / 30;
+                // Eine Seite je echter Rastung (120). Das Hi-Res-Rad der G502
+                // liefert die in ~8 Teilen zu 15 – die werden aufsummiert.
+                // Touchpad: 60 px Zug je Seite.
+                const delta = pixels !== 0 ? pixels / 60 : angle / 120;
 
                 // Richtungswechsel verwirft den Rest der alten Richtung
                 if (flipWheel.accum !== 0 && Math.sign(delta) !== Math.sign(flipWheel.accum))

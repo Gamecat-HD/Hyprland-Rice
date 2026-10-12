@@ -13,21 +13,15 @@ import qs.modules.bar.components.notifications
 ViewPanel {
     id: root
 
-    readonly property real maxListHeight: 360
+    readonly property real maxListHeight: 440
     readonly property real toolbarHeight: 32
-    // Hoehe aus dem Modell statt aus list.contentHeight (Bindungsschleife,
-    // siehe NotificationPill.qml)
-    readonly property real listBody: {
-        let h = 0;
-        for (const g of Notifications.groups) {
-            h += g.entries.length > 1 ? 26 : 0;
-            h += Notifications.actionButtons(g.entries[0]).length > 0 ? 86 : 54;
-        }
-        return h;
-    }
-    // Leer keine Liste – die Werkzeugleiste sagt schon "Keine Nachrichten"
+    // Die Liste waechst mit ihrem echten Inhalt (auch aufgeklappte Gruppen)
+    // bis maxListHeight, danach scrollt sie. Hier geht das mit
+    // list.contentHeight, weil die Hoehe der Liste ihre Inhaltshoehe nicht
+    // beeinflusst (die Pille rechnet anders, siehe NotificationPill.qml).
+    // Leer keine Liste – die Werkzeugleiste sagt schon "Keine Nachrichten".
     readonly property real listHeight: Notifications.count === 0 ? 0
-        : Math.max(70, Math.min(root.maxListHeight, root.listBody))
+        : Math.min(root.maxListHeight, Math.max(54, list.contentHeight))
 
     title: "Benachrichtigungen"
     icon: "notifications"
@@ -137,6 +131,9 @@ ViewPanel {
         height: root.listHeight
         clip: true
         spacing: 2
+        // Alle Zeilen erzeugen, damit contentHeight die echte Hoehe ist und
+        // nicht aus den sichtbaren geschaetzt wird
+        cacheBuffer: 4000
         model: ScriptModel {
             values: Notifications.groups
         }

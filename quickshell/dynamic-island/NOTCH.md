@@ -405,3 +405,8 @@ Wallpaper-Wechsel (auch Vorschau) die Helligkeit des oberen Mittelstreifens; lie
 bekommt die Notch eine 1-px-Kontur (`notchBorder`), die Schultern ziehen sie entlang der Kurve weiter
 (`NotchShoulder.strokeWidth`), die obere Kante liegt ausserhalb (`y: -borderWidth`).
 **Klick auf den aktiven Workspace** toggelt den allgemeinen Special (`special:special`). **Blaettern ohne Sperre.**
+
+**Hi-Res-Rad richtig:** eine Seite je voller Rastung (120 Einheiten; die G502 liefert ~8 x 15), Touchpad 60 px, keine
+Sperre, Zaehler verfaellt nach 500 ms. **Steuerung:** `Settings.dropdownReserve` rechnet nur noch den Teil, der wirklich
+unter der Karte herausragt (`mapToItem`) – vorher wuchs die Ansicht beim Oeffnen jedes Dropdowns um dessen volle Hoehe.
+**Benachrichtigungen:** Liste waechst mit `list.contentHeight` (alle Zeilen per `cacheBuffer` erzeugt) bis 440 px.

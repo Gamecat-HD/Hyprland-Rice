@@ -100,11 +100,20 @@ Surface {
     // in die Fenster-Maske, damit man die Eintraege klicken kann
     readonly property alias sleepMenu: tiles.sleepMenu
     readonly property alias vpnMenu: tiles.vpnMenu
-    // Platz, den ein offenes Dropdown unter der Karte braucht – die Notch
-    // clippt ihren Inhalt, eingebettet muss die Ansicht dafuer wachsen
-    readonly property real dropdownReserve: tiles.sleepMenuOpen ? tiles.sleepMenu.height
-                                          : tiles.vpnMenuOpen ? tiles.vpnMenu.height
-                                          : 0
+    // Platz, den ein offenes Dropdown UNTER der Karte braucht – die Notch
+    // clippt ihren Inhalt, eingebettet muss die Ansicht dafuer wachsen. Nur
+    // der Teil, der wirklich unten herausragt: liegt das Dropdown innerhalb
+    // der Karte (der Normalfall), waechst nichts.
+    readonly property real dropdownReserve: {
+        const menu = tiles.sleepMenuOpen ? tiles.sleepMenu
+                   : tiles.vpnMenuOpen ? tiles.vpnMenu
+                   : null;
+        if (!menu || !menu.visible)
+            return 0;
+        // Abhaengigkeiten fuer die Neuberechnung: Groesse von Menue und Karte
+        const bottom = menu.mapToItem(settings, 0, menu.height).y + 0 * settings.height;
+        return Math.max(0, Math.ceil(bottom - settings.height + 8));
+    }
 
     anchors {
         top: parent.top
