@@ -350,7 +350,7 @@ ihre Inhalte stehen als **Untermenues** in der Notch. Das sind Launcher-Modi wie
 | Ansicht | Datei | Kuerzel | Launcher |
 |---|---|---|---|
 | Uebersicht (Hover) | Notch.qml: Uhr + Glocke (Indikator), DatePanel, `NowPlayingRow`, `SystemGlance` | – | – |
-| Medien | `launcher/MediaViewPanel.qml` (MediaPanel: Player-Auswahl, Ring-Visualiser, Fortschritt) | SUPER+ALT+M | `>medien` |
+| Medien | `launcher/MediaViewPanel.qml` (MediaPanel: Player-Auswahl, Ring-Visualiser, Fortschritt) | – (SUPER+M = Music-Workspace) | `>medien` |
 | Steuerung | `launcher/ControlPanel.qml` (Tray + `Settings { embedded: true }`) | SUPER+A | `>steuerung` |
 | Benachrichtigungen | `launcher/NotificationsPanel.qml` (Liste, Nicht stoeren, Alle loeschen) | SUPER+N | `>benachrichtigungen` |
 | System | `launcher/SystemPanel.qml` (`stats/StatsCard.qml`, auch von der StatsPill genutzt) | SUPER+I | `>system` |
@@ -374,3 +374,9 @@ das eingeklappt ein offenes Special als Symbol hinter den Staebchen zeigt).
 **Blaettern ueberarbeitet:** eine Geste = eine Seite (`flipWheel.spent`, frei erst nach 220 ms Ruhe, `gestureEnd`),
 Touchpad-Schwelle 70 px, Richtungswechsel verwirft den Rest. Der Inhalt gleitet in Scrollrichtung herein
 (`notch.slide` + `slideIn`, `Translate` auf Uebersicht-Elementen und Untermenues).
+
+**Nachbesserung:** Specials stehen nur in der Workspace-Leiste, wenn auf dem Monitor einer offen ist (als Pille hinten
+in der Reihe). Blaettern nur noch ueber der Kopfzeile (`flipZone`, Hoehe bis zur Workspace-Leiste): die Karte haengt oben
+fest, die Seiten sind unterschiedlich hoch – unten springt alles, oben nie. Seiten-Punkte oben links auf Uhr-Hoehe
+(`headerCenter`), Untermenue-Titel mittig. Benachrichtigungsliste scrollt animiert (`scrollAnim`). Kein Kuerzel fuer
+Medien mehr (SUPER+M gehoert dem Music-Workspace).

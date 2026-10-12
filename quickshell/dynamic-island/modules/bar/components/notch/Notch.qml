@@ -83,7 +83,12 @@ Item {
     readonly property real overviewBottom: systemGlance.y + systemGlance.height
     // Seiten-Indikator: Punkte fuer Uebersicht + Untermenues
     readonly property bool pagerShown: docked && (overviewShown || viewOpen)
-    readonly property real pagerSpace: 18
+    // Mitte der Kopfzeile: Uhr (Uebersicht) bzw. Titel (Untermenue) stehen
+    // beide auf dieser Hoehe, die Punkte links daneben
+    readonly property real headerCenter: collapsedHeight / 2 + clockDropMax
+    // Blaetter-Zone: die Kopfzeile. Die Karte haengt oben am Bildschirmrand,
+    // deshalb bleibt dieser Streifen fest, egal wie hoch die Seiten sind.
+    readonly property real flipZoneHeight: stripTop
 
     // Blaettern: Inhalt gleitet in Scrollrichtung herein (siehe flipWheel)
     property real slide: 0
@@ -180,8 +185,8 @@ Item {
                                                    : docked ? overviewWidth
                                                             : Math.max(collapsedWidth, panel.outerWidth)
     readonly property real expandedHeight: authOpen ? launcherTop + authPanel.outerHeight
-                                                    : launcherOpen ? launcherTop + launcherHeight + (pagerShown ? pagerSpace : 0)
-                                                    : docked ? pager.y + pager.height + 10
+                                                    : launcherOpen ? launcherTop + launcherHeight
+                                                    : docked ? overviewBottom + overviewInset
                                                              : panelBottom
     // Reserve, die sich das Bar-Fenster nach unten nehmen muss (größter Fall)
     readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight + 170,
@@ -189,10 +194,10 @@ Item {
                                               launcherTop + wallpapers.maxOuterHeight,
                                               launcherTop + themes.maxOuterHeight,
                                               launcherTop + powerMenu.maxOuterHeight,
-                                              launcherTop + mediaView.maxOuterHeight + pagerSpace,
-                                              launcherTop + controlView.maxOuterHeight + pagerSpace,
-                                              launcherTop + notificationsView.maxOuterHeight + pagerSpace,
-                                              launcherTop + systemView.maxOuterHeight + pagerSpace,
+                                              launcherTop + mediaView.maxOuterHeight,
+                                              launcherTop + controlView.maxOuterHeight,
+                                              launcherTop + notificationsView.maxOuterHeight,
+                                              launcherTop + systemView.maxOuterHeight,
                                               launcherTop + authPanel.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
@@ -659,13 +664,14 @@ Item {
 
         // ---- Seiten-Indikator ----
         // Ein Punkt je Ansicht (LauncherState.views), der aktive breit in der
-        // Akzentfarbe. Kein Knopf – blaettern geht mit Mausrad bzw. Wischen.
+        // Akzentfarbe. Kein Knopf – blaettern geht mit dem Mausrad bzw.
+        // Wischen ueber der Kopfzeile (flipZone). Sitzt oben links, damit er
+        // nicht mit der Hoehe der Seiten wandert.
         Row {
             id: pager
 
-            x: (parent.width - width) / 2
-            y: notch.launcherOpen ? notch.launcherTop + notch.launcherHeight + 4
-                                  : notch.overviewBottom + 12
+            x: notch.overviewInset + 4
+            y: notch.headerCenter - height / 2
             height: 6
             spacing: 5
             opacity: notch.pagerShown ? 1 : 0
@@ -705,9 +711,20 @@ Item {
         // Hi-Res-Raeder (G502) liefern Bruchteile – aufsummieren, und nach
         // einem Wechsel kurz sperren, damit ein Touchpad-Wisch nicht gleich
         // mehrere Seiten weiterspringt.
+        // Nur die Kopfzeile blaettert. Darunter gehoert das Rad dem Inhalt
+        // (Datum, Listen) – vorher blaetterte es "ueberall, wo sonst niemand
+        // will", und je nach Stelle passierte etwas anderes.
+        Item {
+            id: flipZone
+
+            width: parent.width
+            height: notch.flipZoneHeight
+        }
+
         WheelHandler {
             id: flipWheel
 
+            parent: flipZone
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
             enabled: notch.pagerShown
 

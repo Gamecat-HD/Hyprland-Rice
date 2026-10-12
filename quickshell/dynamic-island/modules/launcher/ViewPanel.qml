@@ -57,10 +57,13 @@ Item {
     Keys.onEscapePressed: LauncherState.close()
 
     // ---- Titelzeile ----
+    // Mittig, auf derselben Hoehe wie die Uhr der Uebersicht – links davon
+    // stehen die Seiten-Punkte der Notch, die Kopfzeile ist dort die
+    // Blaetter-Zone und bleibt beim Blaettern an Ort und Stelle.
     Row {
         id: header
 
-        x: panel.padding + 2
+        x: (panel.width - width) / 2
         height: panel.headerHeight - 8
         spacing: 8
 

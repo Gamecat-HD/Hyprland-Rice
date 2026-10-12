@@ -9,9 +9,10 @@ import qs.modules.widgets
 import "SpecialIcons.js" as SpecialIcons
 
 // Workspace-Leiste in der aufgeklappten Notch (Uebersicht): Nummern der
-// Workspaces dieses Monitors zum Anklicken, dahinter die Special-Workspaces
-// als Symbole (Klick toggelt sie). Der aktive Workspace ist eine breite Pille
-// in der Akzentfarbe, ein offener Special die tertiaere Pille.
+// Workspaces dieses Monitors zum Anklicken. Der aktive Workspace ist eine
+// breite Pille in der Akzentfarbe. Special-Workspaces stehen NICHT dauerhaft
+// daneben – nur wenn auf diesem Monitor einer offen ist, haengt sein Symbol
+// als tertiaere Pille hinten in der Reihe (Klick schliesst ihn wieder).
 //
 // Dieselbe Gruppenlogik wie WorkspaceSelector.qml und NotchWorkspaces.qml
 // (bar.workspaceCount je Monitor). Die Hyprland-Listen haelt der
@@ -32,9 +33,9 @@ Item {
             occ[ws.id] = ws.lastIpcObject.windows > 0;
         return occ;
     }
+    // Nur der offene Special dieses Monitors (oder keiner)
     readonly property var specials: Hyprland.workspaces.values
-        .filter(w => w.name.startsWith("special:"))
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .filter(w => w.name === root.activeSpecial)
 
     readonly property real chip: 26
 
@@ -122,21 +123,6 @@ Item {
                     }
                 }
             }
-        }
-
-        // ---- Trenner ----
-        Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
-            visible: root.specials.length > 0
-            width: 1
-            height: 16
-            color: Colors.alpha(Colors.fgBackground, 0.15)
-        }
-
-        Item {
-            visible: root.specials.length > 0
-            width: 2
-            height: 1
         }
 
         // ---- Special-Workspaces ----

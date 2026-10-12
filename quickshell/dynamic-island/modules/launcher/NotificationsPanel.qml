@@ -140,7 +140,20 @@ ViewPanel {
         }
         boundsBehavior: Flickable.StopAtBounds
 
-        // Nur senkrecht scrollen – waagerecht blaettert die Notch die Ansicht
+        // Nur senkrecht scrollen – waagerecht gehoert der Notch. Das Rad
+        // gleitet zum Ziel (scrollAnim) statt in 54-px-Spruengen; das
+        // Touchpad liefert ohnehin feine Pixel-Schritte und geht direkt.
+        property real targetY: 0
+
+        NumberAnimation {
+            id: scrollAnim
+
+            target: list
+            property: "contentY"
+            duration: 180
+            easing.type: Easing.OutCubic
+        }
+
         WheelHandler {
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
 
@@ -151,10 +164,22 @@ ViewPanel {
                     event.accepted = false;
                     return;
                 }
-                const delta = angle !== 0 ? angle / 120 : pixels / 40;
-                const max = Math.max(0, list.contentHeight - list.height);
-                list.contentY = Math.max(0, Math.min(max, list.contentY - delta * 54));
                 event.accepted = true;
+                const max = Math.max(0, list.contentHeight - list.height);
+
+                if (pixels !== 0) {
+                    scrollAnim.stop();
+                    list.contentY = Math.max(0, Math.min(max, list.contentY - pixels));
+                    list.targetY = list.contentY;
+                    return;
+                }
+
+                // Laeuft gerade keine Animation, vom aktuellen Stand ausgehen
+                if (!scrollAnim.running)
+                    list.targetY = list.contentY;
+                list.targetY = Math.max(0, Math.min(max, list.targetY - angle / 120 * 60));
+                scrollAnim.to = list.targetY;
+                scrollAnim.restart();
             }
         }
 
