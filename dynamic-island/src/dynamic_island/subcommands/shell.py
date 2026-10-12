@@ -1,3 +1,4 @@
+import os
 import subprocess
 from argparse import Namespace
 
@@ -6,6 +7,15 @@ from dynamic_island.utils.paths import c_cache_dir, get_config
 # Name der Quickshell-Config (~/.config/quickshell/<name>).
 # Ueber cli.json aenderbar:  {"shell": {"name": "..."}}
 SHELL_NAME: str = get_config().get("shell", {}).get("name", "dynamic-island")
+
+# glibc-Heap fuer die Shell: grosse Puffer (decodierte Wallpaper, Cover) per
+# mmap holen, damit sie beim Freigeben sofort ans System zurueckgehen – mit
+# der dynamischen Schwelle blieben sie im Heap und der RSS auf dem Hoechststand.
+# Weniger Arenen, weil Quickshell ~45 Threads hat, die kaum parallel allozieren.
+SHELL_ENV: dict[str, str] = {
+    "MALLOC_ARENA_MAX": "2",
+    "MALLOC_MMAP_THRESHOLD_": "1048576",
+}
 
 
 class Command:
@@ -32,11 +42,12 @@ class Command:
             args = ["qs", "-c", SHELL_NAME, "-n"]
             if self.args.log_rules:
                 args.extend(["--log-rules", self.args.log_rules])
+            env = os.environ | SHELL_ENV
             if self.args.daemon:
                 args.append("-d")
-                subprocess.run(args)
+                subprocess.run(args, env=env)
             else:
-                shell = subprocess.Popen(args, stdout=subprocess.PIPE, universal_newlines=True)
+                shell = subprocess.Popen(args, stdout=subprocess.PIPE, universal_newlines=True, env=env)
 
                 # Ensure stdout is not None for the type checker
                 if shell.stdout:

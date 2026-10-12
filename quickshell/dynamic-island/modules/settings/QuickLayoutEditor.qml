@@ -354,7 +354,8 @@ Item {
 
                         Rectangle {
                             width: editor.unit
-                            height: parent.height
+                            // Beim Umbau des Repeaters ist parent kurz null
+                            height: parent?.height ?? 0
                             radius: 12
                             color: "transparent"
                             border.width: 1

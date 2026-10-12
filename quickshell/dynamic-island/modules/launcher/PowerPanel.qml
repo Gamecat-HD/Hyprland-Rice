@@ -49,6 +49,10 @@ Item {
     // damit ein versehentliches Enter nichts Endgueltiges ausloest.
     property int current: 0
 
+    // Per LazyPanel entsteht die Ansicht bereits aktiv – dann gibt es kein
+    // Wechsel-Signal, die Startarbeit (Fokus, Suchfeld) wird nachgeholt
+    Component.onCompleted: if (panel.active) Qt.callLater(panel.activeChanged)
+
     onActiveChanged: {
         if (active) {
             panel.current = 0;

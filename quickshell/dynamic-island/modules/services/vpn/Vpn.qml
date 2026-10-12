@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 import qs.modules.services.config
+import qs.modules.services.core
 
 Singleton {
     id: root
@@ -25,6 +26,11 @@ Singleton {
     property bool warpConnected: false
     property bool nordStatusReady: false
     property bool warpStatusReady: false
+
+    // Offene VPN-Anzeige (Kachel) laesst haeufiger nachsehen, sonst reicht
+    // eine Minute – Aenderungen ueber die Shell liest refreshTimer sofort nach
+    readonly property Demand demand: Demand {}
+    readonly property bool watching: root.demand.active
 
     function commandFor(vpnProvider: string, action: string): list<string> {
         return vpnProvider === "cloudflare" ? ["warp-cli", action] : ["nordvpn", action];
@@ -51,15 +57,17 @@ Singleton {
             Config.set("vpn", "provider", "nordvpn");
     }
 
-    // Nicht installierte CLIs gelten sofort als "getrennt und fertig gelesen"
+    // Nicht installierte CLIs gelten sofort als "getrennt und fertig gelesen".
+    // Der gewaehlte Anbieter wird nicht extra gefragt – das erledigt
+    // statusProc ohnehin (frueher lief `nordvpn status` so zweimal je Takt).
     function detectProviders(): void {
         root.nordConnected = root.nordConnected && root.nordAvailable;
         root.warpConnected = root.warpConnected && root.warpAvailable;
         root.nordStatusReady = !root.nordAvailable;
         root.warpStatusReady = !root.warpAvailable;
-        if (root.nordAvailable)
+        if (root.nordAvailable && root.provider !== "nordvpn")
             nordStatusProc.running = true;
-        if (root.warpAvailable)
+        if (root.warpAvailable && root.provider !== "cloudflare")
             warpStatusProc.running = true;
         root.applyDetectedProvider();
     }
@@ -128,6 +136,16 @@ Singleton {
                     statusProc.status = "Unknown";
                 else
                     statusProc.status = match[1].toLowerCase() === "connected" ? "Connected" : "Disconnected";
+
+                // Zaehlt zugleich als Ergebnis der Anbieter-Erkennung
+                if (root.provider === "cloudflare") {
+                    root.warpConnected = root.connected;
+                    root.warpStatusReady = true;
+                } else {
+                    root.nordConnected = root.connected;
+                    root.nordStatusReady = true;
+                }
+                root.applyDetectedProvider();
             }
         }
     }
@@ -196,10 +214,20 @@ Singleton {
 
     // Regelmäßiges Polling, falls sich außerhalb der Shell was ändert
     Timer {
-        interval: 15000
+        interval: root.watching ? 15000 : 60000
+        running: root.toolsChecked && (root.nordAvailable || root.warpAvailable)
+        repeat: true
+        onTriggered: {
+            root.refreshStatus();
+            root.detectProviders();
+        }
+    }
+
+    // Selten: nachinstallierte CLIs entdecken
+    Timer {
+        interval: 600000
         running: true
         repeat: true
-        // prueft auch die CLIs neu, damit ein nachinstalliertes Tool auftaucht
         onTriggered: toolCheck.running = true
     }
 }

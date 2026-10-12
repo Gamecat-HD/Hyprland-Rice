@@ -29,6 +29,10 @@ Item {
     }
     y: topOffset
 
+    // Per LazyPanel entsteht die Ansicht bereits aktiv – dann gibt es kein
+    // Wechsel-Signal, die Startarbeit (Fokus, Suchfeld) wird nachgeholt
+    Component.onCompleted: if (panel.active) Qt.callLater(panel.activeChanged)
+
     onActiveChanged: {
         password.text = "";
         if (active)

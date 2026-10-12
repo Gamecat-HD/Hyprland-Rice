@@ -5,6 +5,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+import qs.modules.services.core
+
 // Pegel fuer den Visualiser – kommt von cava, das PipeWire abhoert und die
 // Frequenzbaender fertig ausgerechnet ausgibt.
 //
@@ -25,14 +27,24 @@ Singleton {
     property int bars: 36
     // Bildrate von cava. Hoeher = fluessiger und teurer.
     property int framerate: 30
-    // Verbraucher schalten den Prozess an und aus
-    property bool enabled: false
+    // Verbraucher schalten den Prozess an und aus – per DemandRequest, damit
+    // sich die Leisten mehrerer Monitore nicht gegenseitig ueberschreiben
+    readonly property Demand demand: Demand {}
+    readonly property bool enabled: root.demand.active
 
     // Ein Wert je Balken, 0..1. Solange nichts laeuft: alles auf 0, damit die
     // UI nicht auf dem letzten Ausschlag stehen bleibt.
     property var values: Array(root.bars).fill(0)
 
-    onEnabledChanged: if (!root.enabled) root.values = Array(root.bars).fill(0)
+    // Letzte Rohzeile von cava – identische Frames (Stille, Pausen) werden
+    // gar nicht erst zugewiesen, sonst rechnet jeder Verbraucher umsonst neu.
+    property string lastFrame: ""
+
+    onEnabledChanged: {
+        root.lastFrame = "";
+        if (!root.enabled)
+            root.values = Array(root.bars).fill(0);
+    }
 
     // Mittelwert der i-ten von n Gruppen – damit eine Anzeige mit weniger
     // Balken dieselbe Quelle nutzen kann, statt cava ein zweites Mal zu starten.
@@ -71,6 +83,9 @@ noise_reduction=30
         stdout: SplitParser {
             // cava schreibt eine Zeile pro Frame: "12;40;33;7;"
             onRead: data => {
+                if (data === root.lastFrame)
+                    return;
+                root.lastFrame = data;
                 const parts = data.split(";").filter(v => v !== "");
                 if (parts.length !== root.bars)
                     return;

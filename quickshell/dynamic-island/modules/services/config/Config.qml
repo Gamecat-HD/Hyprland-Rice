@@ -272,12 +272,25 @@ Singleton {
         return root[section]?.[key];
     }
 
-    // Einmal pro Start schreiben wir die Datei zurueck. Der Adapter hat dann
-    // schon alles aus ihr gelesen, ergaenzt aber fehlende Schluessel mit ihren
-    // Vorgaben – so taucht eine neu dazugekommene Einstellung im Menue auf,
-    // das sich ja aus der Datei baut. Das Flag verhindert die Schleife
-    // Schreiben -> Dateiwaechter -> Schreiben.
+    // Einmal pro Start schreiben wir die Datei zurueck – aber nur, wenn ihr
+    // Schluessel fehlen. Der Adapter hat dann schon alles aus ihr gelesen,
+    // ergaenzt aber fehlende Schluessel mit ihren Vorgaben – so taucht eine
+    // neu dazugekommene Einstellung im Menue auf, das sich ja aus der Datei
+    // baut. Ohne fehlende Schluessel waere das Schreiben nur ein zweiter
+    // Ladedurchlauf (Watcher -> reread -> alles neu). Das Flag verhindert die
+    // Schleife Schreiben -> Dateiwaechter -> Schreiben.
     property bool normalised: false
+
+    function missingKeys(): bool {
+        const full = root.snapshot(adapter);
+        for (const section in full) {
+            for (const key in full[section]) {
+                if (root.raw[section]?.[key] === undefined)
+                    return true;
+            }
+        }
+        return false;
+    }
 
     function reread(): void {
         try {
@@ -289,7 +302,8 @@ Singleton {
 
         if (!root.normalised) {
             root.normalised = true;
-            file.writeAdapter();
+            if (root.missingKeys())
+                file.writeAdapter();
         }
     }
 
@@ -298,6 +312,10 @@ Singleton {
 
         path: root.path
         watchChanges: true
+        // Synchron lesen (die Datei ist ~1 KB): sonst baut sich die ganze
+        // Oberflaeche erst mit den Vorgaben auf (Layout "insel", andere
+        // Schrift, andere Kachel-Raster) und gleich danach noch einmal
+        blockLoading: true
         onLoaded: root.reread()
         // Beim allerersten Start gibt es die Datei noch nicht – das ist kein
         // Fehler, den man melden muesste (angelegt wird sie unten)

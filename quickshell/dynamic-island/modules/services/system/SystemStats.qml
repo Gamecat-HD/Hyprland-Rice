@@ -4,6 +4,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+import qs.modules.services.core
+
 // Auslastung und Temperaturen aus /proc und /sys.
 //
 // Quickshell bringt dafuer nichts mit (caelestia loest es mit einem
@@ -22,7 +24,9 @@ Singleton {
     id: root
 
     // Die Oberflaeche schaltet das ein, solange die Karte offen ist
-    property bool watching: false
+    // Anforderungen per DemandRequest (je Monitor eine), siehe core/Demand.qml
+    readonly property Demand demand: Demand {}
+    readonly property bool watching: root.demand.active
     property bool loaded: false
 
     // ---- CPU ----

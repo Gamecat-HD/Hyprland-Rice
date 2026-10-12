@@ -46,6 +46,21 @@ Variants {
             readonly property string path: Wallpapers.current
             property bool showA: true
 
+            // Nach dem Ueberblenden das verdeckte Bild freigeben – es blieb
+            // sonst bis zum naechsten Wechsel decodiert im Speicher
+            onShowAChanged: releaseTimer.restart()
+
+            Timer {
+                id: releaseTimer
+
+                interval: 400
+                onTriggered: {
+                    const hidden = stage.showA ? imgB : imgA;
+                    if (hidden.status === Image.Ready)
+                        hidden.source = "";
+                }
+            }
+
             onPathChanged: {
                 const next = stage.showA ? imgB : imgA;
                 next.source = stage.path !== "" ? `file://${stage.path}` : "";
@@ -57,7 +72,10 @@ Variants {
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
-                cache: false
+                // Nur in Bildschirmgroesse decodieren (statt z. B. 6K voll) und
+                // ueber den Cache teilen – beide Monitore zeigen dasselbe Bild
+                sourceSize: Qt.size(win.modelData.width, win.modelData.height)
+                cache: true
                 opacity: stage.showA ? 1 : 0
 
                 onStatusChanged: {
@@ -76,7 +94,10 @@ Variants {
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
-                cache: false
+                // Nur in Bildschirmgroesse decodieren (statt z. B. 6K voll) und
+                // ueber den Cache teilen – beide Monitore zeigen dasselbe Bild
+                sourceSize: Qt.size(win.modelData.width, win.modelData.height)
+                cache: true
                 opacity: stage.showA ? 0 : 1
 
                 onStatusChanged: {

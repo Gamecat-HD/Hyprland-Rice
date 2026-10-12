@@ -22,8 +22,8 @@ Shape {
 
     anchors.fill: parent
     preferredRendererType: Shape.CurveRenderer   // echte Kurven, nicht "eckig"
-    layer.enabled: true
-    layer.samples: 8                             // 8x Supersampling -> glatte Kanten
+    // Kein layer.samples: der CurveRenderer glaettet selbst, ein 8x-
+    // Multisampling-Layer kostete je Ring einen eigenen Puffer
     smooth: true
     antialiasing: true
 

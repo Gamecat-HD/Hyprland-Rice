@@ -30,6 +30,10 @@ ViewPanel {
     // Unterseiten zuruecksetzen, wenn die Ansicht geht. Beim Oeffnen schon
     // mal die WLAN-Liste aus dem Cache holen (~60 ms) – klappt man die
     // WLAN-Seite auf, steht sie dann sofort da.
+    // Per LazyPanel entsteht die Ansicht bereits aktiv – dann gibt es kein
+    // Wechsel-Signal, die Startarbeit (Fokus, Suchfeld) wird nachgeholt
+    Component.onCompleted: if (root.active) Qt.callLater(root.activeChanged)
+
     onActiveChanged: if (active) {
         Network.refresh(false);
     } else {

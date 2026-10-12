@@ -306,7 +306,7 @@ Item {
 
                             Behavior on y {
                                 SequentialAnimation {
-                                    PauseAnimation { duration: Math.min(entry.index * 16, 160) }
+                                    PauseAnimation { duration: Math.max(0, Math.min(entry.index * 16, 160)) }
                                     NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
                                 }
                             }
@@ -314,7 +314,7 @@ Item {
 
                         Behavior on opacity {
                             SequentialAnimation {
-                                PauseAnimation { duration: Math.min(entry.index * 16, 160) }
+                                PauseAnimation { duration: Math.max(0, Math.min(entry.index * 16, 160)) }
                                 NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
                             }
                         }
@@ -362,15 +362,15 @@ Item {
                                 IconImage {
                                     id: entryIcon
 
-                                    visible: entry.modelData.icon !== ""
+                                    visible: (entry.modelData?.icon ?? "") !== ""
                                     anchors {
                                         left: parent.left
                                         leftMargin: menuRoot.rowPad
                                         verticalCenter: parent.verticalCenter
                                     }
                                     implicitSize: menuRoot.leadSize
-                                    opacity: entry.modelData.enabled ? 1 : 0.4
-                                    source: entry.modelData.icon
+                                    opacity: (entry.modelData?.enabled ?? false) ? 1 : 0.4
+                                    source: entry.modelData?.icon ?? ""
                                 }
 
                                 MaterialSymbol {
@@ -382,17 +382,17 @@ Item {
                                         leftMargin: menuRoot.rowPad - 1
                                         verticalCenter: parent.verticalCenter
                                     }
-                                    text: entry.modelData.buttonType === QsMenuButtonType.RadioButton
+                                    text: entry.modelData?.buttonType === QsMenuButtonType.RadioButton
                                           ? (entry.checked ? "radio_button_checked" : "radio_button_unchecked")
                                           : (entry.checked ? "check_box" : "check_box_outline_blank")
                                     color: entry.checked ? Colors.primary
-                                         : Colors.alpha(Colors.fgSurfaceVariant, entry.modelData.enabled ? 0.8 : 0.4)
+                                         : Colors.alpha(Colors.fgSurfaceVariant, (entry.modelData?.enabled ?? false) ? 0.8 : 0.4)
                                 }
 
                                 MaterialSymbol {
                                     id: chevron
 
-                                    visible: entry.modelData.hasChildren
+                                    visible: entry.modelData?.hasChildren ?? false
                                     anchors {
                                         right: parent.right
                                         rightMargin: menuRoot.rowPad - 3
@@ -415,8 +415,8 @@ Item {
                                         rightMargin: chevron.visible ? menuRoot.rowPad + menuRoot.leadSize : menuRoot.rowPad
                                         verticalCenter: parent.verticalCenter
                                     }
-                                    text: entry.modelData.text
-                                    color: entry.modelData.enabled ? Colors.fgSurface
+                                    text: entry.modelData?.text ?? ""
+                                    color: (entry.modelData?.enabled ?? false) ? Colors.fgSurface
                                          : Colors.alpha(Colors.fgSurface, 0.38)
                                     font.pixelSize: menuRoot.fontSize
                                     elide: Text.ElideRight

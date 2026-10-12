@@ -4,6 +4,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+import qs.modules.services.core
+
 // WLAN-Dienst auf nmcli-Basis: sichtbare Netze, gespeicherte Profile,
 // Verbinden/Trennen/Vergessen.
 //
@@ -39,7 +41,9 @@ Singleton {
 
     // Die Oberflaeche schaltet das ein, solange sie offen ist – nur dann wird
     // regelmaessig nachgesehen.
-    property bool watching: false
+    // (per DemandRequest – WifiPanel gibt es je Monitor und Einbauort)
+    readonly property Demand demand: Demand {}
+    readonly property bool watching: root.demand.active
 
     readonly property var activeNetwork: root.networks.find(n => n.active) ?? null
 

@@ -94,8 +94,9 @@ Item {
     readonly property bool wantsVisualizer: (overviewShown && Media.available) || mediaOpen
     readonly property bool wantsStats: overviewShown || systemOpen
     readonly property bool wantsMediaPosition: mediaOpen
-    readonly property bool controlTyping: controlOpen && controlView.typing
-    readonly property alias controlView: controlView
+    readonly property bool controlTyping: controlOpen && (controlView?.typing ?? false)
+    // Steuerungs-Untermenue (nur gebaut, solange offen – sonst null)
+    readonly property Item controlView: controlLoader.item
 
     // Kopfzeile der aufgeklappten Karte: runde Knoepfe links und rechts der Uhr
     // (nur Insel-Layout; angedockt steht dort nur die Glocke)
@@ -163,7 +164,7 @@ Item {
                                         : themeOpen ? themes.outerWidth
                                         : powerOpen ? powerMenu.outerWidth
                                         : mediaOpen ? mediaView.outerWidth
-                                        : controlOpen ? controlView.outerWidth
+                                        : controlOpen ? controlLoader.outerWidth
                                         : notificationsOpen ? notificationsView.outerWidth
                                         : systemOpen ? systemView.outerWidth
                                         : launcher.outerWidth
@@ -171,7 +172,7 @@ Item {
                                          : themeOpen ? themes.outerHeight
                                          : powerOpen ? powerMenu.outerHeight
                                          : mediaOpen ? mediaView.outerHeight
-                                         : controlOpen ? controlView.outerHeight
+                                         : controlOpen ? controlLoader.outerHeight
                                          : notificationsOpen ? notificationsView.outerHeight
                                          : systemOpen ? systemView.outerHeight
                                          : launcher.outerHeight
@@ -185,17 +186,6 @@ Item {
                                                     : launcherOpen ? launcherTop + launcherHeight
                                                     : docked ? overviewBottom + overviewInset
                                                              : panelBottom
-    // Reserve, die sich das Bar-Fenster nach unten nehmen muss (größter Fall)
-    readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight + 170,
-                                             launcherTop + launcher.maxOuterHeight,
-                                              launcherTop + wallpapers.maxOuterHeight,
-                                              launcherTop + themes.maxOuterHeight,
-                                              launcherTop + powerMenu.maxOuterHeight,
-                                              launcherTop + mediaView.maxOuterHeight,
-                                              launcherTop + controlView.maxOuterHeight,
-                                              launcherTop + notificationsView.maxOuterHeight,
-                                              launcherTop + systemView.maxOuterHeight,
-                                              launcherTop + authPanel.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
     // Angedockt mit Kontur: die obere Randlinie liegt ausserhalb des Bildes
@@ -352,13 +342,17 @@ Item {
             }
 
             Rectangle {
+                id: islandRecordDot
+
                 anchors.fill: parent
 
                 radius: width / 2
                 color: Colors.record
 
+                // Nur pulsen, solange der Punkt zu sehen ist – eine laufende
+                // Animation zeichnet sonst das ganze Leistenfenster neu
                 SequentialAnimation on opacity {
-                    running: notch.recording
+                    running: notch.recording && islandRecordDot.visible
                     loops: Animation.Infinite
 
                     NumberAnimation { from: 1; to: 0.35; duration: 900; easing.type: Easing.InOutSine }
@@ -412,6 +406,8 @@ Item {
 
             // Aufnahme-Punkt, pulst langsam wie sein Gegenstueck im Insel-Layout
             Rectangle {
+                id: dockedRecordDot
+
                 anchors.verticalCenter: parent.verticalCenter
                 visible: notch.recording
                 width: notch.recordDotSize
@@ -420,7 +416,7 @@ Item {
                 color: Colors.record
 
                 SequentialAnimation on opacity {
-                    running: notch.recording && notch.docked
+                    running: notch.recording && notch.docked && dockedRecordDot.visible
                     loops: Animation.Infinite
 
                     NumberAnimation { from: 1; to: 0.35; duration: 900; easing.type: Easing.InOutSine }
@@ -1061,127 +1057,117 @@ Item {
             }
         }
 
-        LauncherPanel {
+        LazyPanel {
             id: launcher
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.appsOpen
-            opacity: notch.appsOpen ? 1 : 0
-            visible: notch.appsOpen
+            open: notch.appsOpen
 
-            Behavior on opacity {
-                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+            sourceComponent: LauncherPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
             }
         }
 
-        WallpaperPanel {
+        LazyPanel {
             id: wallpapers
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.wallpaperOpen
-            opacity: notch.wallpaperOpen ? 1 : 0
-            visible: notch.wallpaperOpen
+            open: notch.wallpaperOpen
 
-            Behavior on opacity {
-                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+            sourceComponent: WallpaperPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
             }
         }
 
-        ThemePanel {
+        LazyPanel {
             id: themes
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.themeOpen
-            opacity: notch.themeOpen ? 1 : 0
-            visible: notch.themeOpen
+            open: notch.themeOpen
 
-            Behavior on opacity {
-                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+            sourceComponent: ThemePanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
             }
         }
 
-        PowerPanel {
+        LazyPanel {
             id: powerMenu
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.powerOpen
-            opacity: notch.powerOpen ? 1 : 0
-            visible: notch.powerOpen
+            open: notch.powerOpen
 
-            Behavior on opacity {
-                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+            sourceComponent: PowerPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
             }
         }
 
         // ---- Untermenues (Notch-Layout und Insel) ----
-        MediaViewPanel {
+        LazyPanel {
             id: mediaView
             transform: Translate { x: notch.slide }
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.mediaOpen
-            opacity: notch.mediaOpen ? 1 : 0
-            visible: notch.mediaOpen
+            open: notch.mediaOpen
 
-            Fade on opacity {}
+            sourceComponent: MediaViewPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
+            }
         }
 
-        ControlPanel {
-            id: controlView
+        LazyPanel {
+            id: controlLoader
             transform: Translate { x: notch.slide }
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.controlOpen
-            opacity: notch.controlOpen ? 1 : 0
-            visible: notch.controlOpen
+            open: notch.controlOpen
 
-            Fade on opacity {}
+            sourceComponent: ControlPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
+            }
         }
 
-        NotificationsPanel {
+        LazyPanel {
             id: notificationsView
             transform: Translate { x: notch.slide }
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.notificationsOpen
-            opacity: notch.notificationsOpen ? 1 : 0
-            visible: notch.notificationsOpen
+            open: notch.notificationsOpen
 
-            Fade on opacity {}
+            sourceComponent: NotificationsPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
+            }
         }
 
-        SystemPanel {
+        LazyPanel {
             id: systemView
             transform: Translate { x: notch.slide }
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.systemOpen
-            opacity: notch.systemOpen ? 1 : 0
-            visible: notch.systemOpen
+            open: notch.systemOpen
 
-            Fade on opacity {}
+            sourceComponent: SystemPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
+            }
         }
 
-        AuthPanel {
+        LazyPanel {
             id: authPanel
 
-            topOffset: notch.launcherTop
-            cardRadius: notch.cardRadius
-            active: notch.authOpen
-            flow: Auth.flow
-            opacity: notch.authOpen ? 1 : 0
-            visible: notch.authOpen
+            open: notch.authOpen
 
-            Behavior on opacity {
-                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+            sourceComponent: AuthPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
+                flow: Auth.flow
             }
         }
     }

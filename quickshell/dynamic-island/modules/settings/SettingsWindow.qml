@@ -22,13 +22,16 @@ import qs
 // Bewusst keine Anker: eine Layer-Oberflaeche ohne Anker setzt der Compositor
 // mittig – genau das, was hier gebraucht wird. Das Fenster ist etwas groesser
 // als die Karte, damit deren Schatten Platz hat.
-Variants {
-    model: Quickshell.screens
+//
+// Gebaut wird es erst beim Oeffnen und nur auf dem Ziel-Monitor (LazyLoader) –
+// frueher lebte es je Monitor versteckt mit, samt Gruppenleiste und Zeilen.
+LazyLoader {
+    active: SettingsState.open && SettingsState.screen !== null
 
     PanelWindow {
         id: win
 
-        required property ShellScreen modelData
+        readonly property ShellScreen modelData: SettingsState.screen
 
         // Suchtext; leert sich beim Oeffnen
         property string filter: ""
@@ -78,6 +81,8 @@ Variants {
                 search.forceActiveFocus();
             }
         }
+        // Entsteht bereits sichtbar – dann kommt kein Wechsel-Signal
+        Component.onCompleted: if (visible) Qt.callLater(win.visibleChanged)
 
         // ---- Die Karte ----
         Surface {

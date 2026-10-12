@@ -43,8 +43,16 @@ Surface {
     property bool wifiOpen: false
     property bool bluetoothOpen: false
     property bool audioOpen: false
-    readonly property bool typingPassword: wifiOpen && wifi.passwordSsid !== ""
-    readonly property bool typingPin: bluetoothOpen && bluetooth.pairingInputOpen
+    readonly property bool typingPassword: wifiOpen && (wifi?.passwordSsid ?? "") !== ""
+    readonly property bool typingPin: bluetoothOpen && (bluetooth?.pairingInputOpen ?? false)
+
+    // Unterseiten: in der Pille erst beim Oeffnen gebaut (und nach dem
+    // Ausblenden wieder weg). Eingebettet (Steuerungs-Untermenue) leben sie
+    // mit, weil die Notch dort immer die groesste Ansicht reserviert –
+    // das Untermenue selbst entsteht ohnehin erst beim Oeffnen.
+    readonly property Item wifi: wifiLoader.item
+    readonly property Item bluetooth: bluetoothLoader.item
+    readonly property Item audio: audioLoader.item
 
     function closeWifi(): void {
         settings.wifiOpen = false;
@@ -86,9 +94,9 @@ Surface {
     // Kachelreihen + Raender (kein Kreis-Vorlauf mehr, die Tiles stehen oben).
     readonly property real collapsedSize: parent.height - verticalMargin
     readonly property real expandedWidth: 520
-    readonly property real expandedHeight: 10 + (wifiOpen ? wifi.implicitHeight
-                                               : bluetoothOpen ? bluetooth.implicitHeight
-                                               : audioOpen ? audio.implicitHeight
+    readonly property real expandedHeight: 10 + (wifiOpen ? wifiLoader.implicitHeight
+                                               : bluetoothOpen ? bluetoothLoader.implicitHeight
+                                               : audioOpen ? audioLoader.implicitHeight
                                                : tiles.implicitHeight) + 10
 
     // Groesster Fall der WLAN-Ansicht – so viel muss sich das Bar-Fenster nach
@@ -127,8 +135,8 @@ Surface {
     // Eingebettet (Steuerungs-Untermenue) immer gleich hoch: die groesste
     // Ansicht (Kacheln bzw. WLAN/BT/Audio). Unterseiten und Dropdowns lassen
     // die Notch so nicht springen.
-    readonly property real embeddedHeight: 20 + Math.max(tiles.implicitHeight, wifi.implicitHeight,
-                                                        bluetooth.implicitHeight, audio.implicitHeight)
+    readonly property real embeddedHeight: 20 + Math.max(tiles.implicitHeight, wifiLoader.implicitHeight,
+                                                        bluetoothLoader.implicitHeight, audioLoader.implicitHeight)
     height: settings.embedded ? settings.embeddedHeight
           : expanded || wifiOpen || bluetoothOpen || audioOpen ? expandedHeight : collapsedSize
 
@@ -380,8 +388,8 @@ Surface {
         }
     }
 
-    WifiPanel {
-        id: wifi
+    Loader {
+        id: wifiLoader
 
         anchors {
             top: parent.top
@@ -389,19 +397,23 @@ Surface {
             right: parent.right
             margins: 10
         }
-        active: settings.wifiOpen
+        active: settings.embedded || settings.wifiOpen || opacity > 0
         opacity: settings.wifiOpen ? 1 : 0
         visible: opacity > 0
 
-        onClosed: settings.wifiOpen = false
+        sourceComponent: WifiPanel {
+            active: settings.wifiOpen
+
+            onClosed: settings.wifiOpen = false
+        }
 
         Behavior on opacity {
             NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
         }
     }
 
-    BluetoothPanel {
-        id: bluetooth
+    Loader {
+        id: bluetoothLoader
 
         anchors {
             top: parent.top
@@ -409,19 +421,23 @@ Surface {
             right: parent.right
             margins: 10
         }
-        active: settings.bluetoothOpen
+        active: settings.embedded || settings.bluetoothOpen || opacity > 0
         opacity: settings.bluetoothOpen ? 1 : 0
         visible: opacity > 0
 
-        onClosed: settings.bluetoothOpen = false
+        sourceComponent: BluetoothPanel {
+            active: settings.bluetoothOpen
+
+            onClosed: settings.bluetoothOpen = false
+        }
 
         Behavior on opacity {
             NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
         }
     }
 
-    AudioPanel {
-        id: audio
+    Loader {
+        id: audioLoader
 
         anchors {
             top: parent.top
@@ -429,11 +445,15 @@ Surface {
             right: parent.right
             margins: 10
         }
-        active: settings.audioOpen
+        active: settings.embedded || settings.audioOpen || opacity > 0
         opacity: settings.audioOpen ? 1 : 0
         visible: opacity > 0
 
-        onClosed: settings.audioOpen = false
+        sourceComponent: AudioPanel {
+            active: settings.audioOpen
+
+            onClosed: settings.audioOpen = false
+        }
 
         Behavior on opacity {
             NumberAnimation { duration: 160; easing.type: Easing.OutCubic }

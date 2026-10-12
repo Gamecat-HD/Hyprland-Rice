@@ -19,6 +19,10 @@ Item {
 
     implicitHeight: header.height + 6 + listWrapper.height
 
+    // In der Pille entsteht die Seite erst beim Oeffnen, also bereits aktiv –
+    // dann gibt es kein Wechsel-Signal, die Startarbeit wird nachgeholt
+    Component.onCompleted: if (panel.active) Qt.callLater(panel.activeChanged)
+
     onActiveChanged: {
         if (!active) {
             panel.menuAddress = "";
@@ -201,7 +205,7 @@ Item {
                     to: 360
                     duration: 900
                     loops: Animation.Infinite
-                    running: BluetoothService.discovering
+                    running: BluetoothService.discovering && scanIcon.visible
                     onRunningChanged: if (!running)
                         scanIcon.rotation = 0
                 }

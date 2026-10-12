@@ -67,7 +67,11 @@ Item {
             readonly property real idle: root.positions > 1
                 ? 0.5 - 0.28 * bar.pos / (root.positions - 1)
                 : 0.4
-            readonly property real value: root.active ? root.level(bar.pos) : bar.idle
+            // Nur sichtbare Balken folgen cava: `visible` ist die effektive
+            // Sichtbarkeit (auch versteckte Eltern zaehlen). Versteckte
+            // Visualiser (Pille im Notch-Layout, zugeklappte Uebersicht)
+            // rechnen und animieren sonst 30x pro Sekunde fuer niemanden.
+            readonly property real value: root.active && root.visible ? root.level(bar.pos) : bar.idle
 
             x: bar.index * (root.barWidth + root.spacing)
             y: (root.height - height) / 2
@@ -78,6 +82,7 @@ Item {
             opacity: root.active ? 1 : 0.4
 
             Behavior on height {
+                enabled: root.visible
                 NumberAnimation { duration: root.active ? 90 : Appearance.morphDuration; easing.type: Easing.OutCubic }
             }
             Behavior on opacity {

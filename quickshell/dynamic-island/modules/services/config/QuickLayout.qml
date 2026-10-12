@@ -65,13 +65,24 @@ Singleton {
         function onRowsChanged(): void {
             if (saveGuard.running)
                 return;
-            root.rows = root.parse(Config.quick.rows);
+            root.reparse();
         }
 
         // Weniger Spalten: Reihen neu aufteilen (parse macht das)
         function onColumnsChanged(): void {
-            root.rows = root.parse(Config.quick.rows);
+            root.reparse();
         }
+    }
+
+    // Reihen und Spalten aendern sich beim Laden oft zugleich – einmal
+    // gesammelt neu aufbauen statt je Signal (jede Zuweisung baut alle
+    // Kachel-Repeater neu)
+    function reparse(): void {
+        Qt.callLater(root.applyParsed);
+    }
+
+    function applyParsed(): void {
+        root.rows = root.parse(Config.quick.rows);
     }
 
     function kind(id: string): string {

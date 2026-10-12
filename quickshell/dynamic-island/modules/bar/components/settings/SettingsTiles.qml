@@ -2,12 +2,13 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import Quickshell.Services.UPower
 
 import qs.modules.services.audio
 import qs.modules.services.bluetooth
 import qs.modules.services.brightness
+import qs.modules.services.core
+import qs.modules.services.network
 import qs.modules.services.record
 import qs.modules.services.system
 import qs.modules.services.vpn
@@ -30,12 +31,9 @@ import qs.modules.services.config
 // der Eingabe-Maske offen und Settings zaehlt seinen Hover zur Karte dazu.
 //
 // Hintergruenge zu den Aktionen:
-//   - WLAN/Bluetooth: nmcli bzw. bluetoothctl, Status per Polling
+//   - WLAN/Bluetooth: WifiStatus (nmcli monitor) bzw. BluetoothService
 //   - VPN: der Vpn-Service mit NordVPN oder Cloudflare WARP
-//   - No-Sleep: ein systemd-inhibit-Prozess (logind-Lock), der waehrend der
-//     Aktivitaet am Leben gehalten wird
-//   - Game-Mode: hyprctl eval 'hl.config{...}' (keyword ist im Lua-Parser
-//     tot), Rueckweg ueber hyprctl reload
+//   - No-Sleep/Game-Mode: SessionModes (systemd-inhibit bzw. hyprctl eval)
 //   - DND: laeuft hier kein Notification-Daemon (mako/dunst/hypridle: nein),
 //     ist der Kippschalter vorerst rein visuell
 ColumnLayout {
@@ -60,18 +58,24 @@ ColumnLayout {
     signal openAudio()
 
     // ---------- Zustaende ----------
-    property bool wifiOn: true
-    property string wifiStatus: "…"
+    // WLAN-Status, No-Sleep und Game-Mode liegen in Singletons – diese
+    // Kacheln gibt es je Monitor und Einbauort (Pille + Steuerung), alle
+    // sollen dasselbe zeigen und nicht je eigene Poller/Inhibitoren starten.
+    readonly property bool wifiOn: WifiStatus.radioOn
+    readonly property string wifiStatus: !WifiStatus.loaded ? "…"
+        : !WifiStatus.radioOn ? "Aus"
+        : !WifiStatus.connected ? "Getrennt"
+        : WifiStatus.ssid + " · " + WifiStatus.signal + "%"
 
     readonly property bool btOn: BluetoothService.enabled
 
-    property bool gameMode: false
-    property bool noSleep: false
+    readonly property bool gameMode: SessionModes.gameMode
+    readonly property bool noSleep: SessionModes.noSleep
 
     // Gewaehlte Dauer in Sekunden; -1 = nichts gewaehlt (Standard),
     // 0 = unbegrenzt. sleepRemaining ist die Restlaufzeit in Sekunden.
-    property int sleepDurationSec: -1
-    property int sleepRemaining: 0
+    readonly property int sleepDurationSec: SessionModes.sleepDurationSec
+    readonly property int sleepRemaining: SessionModes.sleepRemaining
 
     // Dropdown-Zustand der No-Sleep-Pille (das Menue haengt aus der Karte
     // heraus und wird ueber Settings/Bar in die Eingabe-Maske gehaengt)
@@ -102,15 +106,23 @@ ColumnLayout {
         "brightness": brightnessComponent
     })
 
-    Component.onCompleted: {
-        wifiPoll.running = true;
+    // Status nur lesen lassen, solange die Kacheln zu sehen sind
+    DemandRequest {
+        demand: WifiStatus.demand
+        active: root.visible
+    }
+    DemandRequest {
+        demand: Brightness.demand
+        active: root.visible
+    }
+    DemandRequest {
+        demand: Vpn.demand
+        active: root.visible
     }
 
     // ---------- Aktionen ----------
     function toggleWifi(): void {
-        Quickshell.execDetached(["nmcli", "radio", "wifi", root.wifiOn ? "off" : "on"]);
-        root.wifiOn = !root.wifiOn;   // optimistisch, der Poll korrigiert
-        wifiPoll.running = true;
+        WifiStatus.setRadio(!root.wifiOn);
     }
 
     function toggleBt(): void {
@@ -118,26 +130,12 @@ ColumnLayout {
     }
 
     function toggleNoSleep(): void {
-        root.noSleep = !root.noSleep;
-        if (root.noSleep) {
-            root.sleepRemaining = Math.max(0, root.sleepDurationSec);
-            inhibitProc.running = true;
-        } else {
-            root.sleepRemaining = 0;
-            inhibitProc.running = false;
-        }
+        SessionModes.toggleNoSleep();
     }
 
     function pickDuration(sec: int): void {
-        root.sleepDurationSec = sec;
         root.sleepMenuOpen = false;
-        if (!root.noSleep) {
-            root.noSleep = true;   // Auswahl aktiviert direkt mit
-            root.sleepRemaining = Math.max(0, sec);
-            inhibitProc.running = true;
-        } else if (sec > 0) {
-            root.sleepRemaining = sec;   // laufende Session umstellen
-        }
+        SessionModes.pickDuration(sec);
     }
 
     function durationLabel(sec: int): string {
@@ -153,21 +151,7 @@ ColumnLayout {
     }
 
     function toggleGameMode(): void {
-        root.gameMode = !root.gameMode;
-        if (root.gameMode) {
-            hyprEval('hl.config({ animations = { enabled = false } })');
-            hyprEval('hl.config({ decoration = { shadow = { enabled = false } } })');
-            hyprEval('hl.config({ decoration = { blur = { enabled = false } } })');
-        } else {
-            // Reload setzt alles aus dem Profil zurueck (caelestia macht es
-            // genauso wie "message reload")
-            Quickshell.execDetached(["hyprctl", "reload"]);
-        }
-    }
-
-    function hyprEval(code: string): void {
-        evalRunner.command = ["hyprctl", "eval", code];
-        evalRunner.running = true;
+        SessionModes.toggleGameMode();
     }
 
     function fmtRemaining(sec: int): string {
@@ -177,77 +161,6 @@ ColumnLayout {
             return m > 0 ? h + " h " + m + " min" : h + " h";
         }
         return Math.max(1, Math.round(sec / 60)) + " min";
-    }
-
-    // ---------- Prozesse ----------
-    Process {
-        id: evalRunner
-    }
-
-    // WLAN-Funk + Verbindung + Empfang in einem Rutsch
-    Process {
-        id: wifiPoll
-
-        // LC_ALL=C fuer den GANZEN Aufruf: nmcli uebersetzt das Feld ACTIVE
-        // (auf Deutsch "ja"/"nein"), der Vergleich unten auf "yes" ging sonst
-        // nie auf – die Kachel schrieb immer "Getrennt".
-        command: ["sh", "-c",
-            "export LC_ALL=C; if nmcli -t radio wifi | grep -q enabled; then " +
-            "nmcli -t -f ACTIVE,SSID,SIGNAL dev wifi list --rescan no; " +
-            "else echo OFF; fi"]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const text = this.text.trim();
-                if (text === "OFF") {
-                    root.wifiOn = false;
-                    root.wifiStatus = "Aus";
-                    return;
-                }
-                root.wifiOn = true;
-                let connected = false;
-                for (const line of text.split("\n")) {
-                    const f = line.split(":");
-                    if (f[0] === "yes") {
-                        connected = true;
-                        root.wifiStatus = f[1] + " · " + (f[2] ?? "0") + "%";
-                        break;
-                    }
-                }
-                if (!connected)
-                    root.wifiStatus = "Getrennt";
-            }
-        }
-    }
-
-    // Haltet den Schlaf wach: solange dieser Prozess laeuft, haelt er einen
-    // logind-Inhibitor gegen idle/suspend
-    Process {
-        id: inhibitProc
-
-        command: ["systemd-inhibit", "--what=idle:sleep", "--who=dynamic-island",
-                  "--mode=block", "sleep", "infinity"]
-    }
-
-    // Countdown: bei Ablauf No-Sleep sauber abschalten (ohne Dauer keiner)
-    Timer {
-        interval: 1000
-        running: root.noSleep && root.sleepDurationSec > 0
-        repeat: true
-        onTriggered: {
-            root.sleepRemaining = root.sleepRemaining - 1;
-            if (root.sleepRemaining <= 0) {
-                root.noSleep = false;
-                inhibitProc.running = false;
-            }
-        }
-    }
-
-    Timer {
-        interval: 5000
-        running: true
-        repeat: true
-        onTriggered: wifiPoll.running = true
     }
 
     // ---------- Kacheln ----------

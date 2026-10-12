@@ -38,6 +38,7 @@ Item {
     property real maxCoverSize: Infinity
     readonly property real coverSize: Math.min(panel.maxCoverSize,
         Math.max(48, panel.ringBox - (panel.ringGap + panel.ringMax) * 2))
+    readonly property int coverDecode: Number.isFinite(panel.maxCoverSize) ? panel.maxCoverSize * 2 : 380
     // Innenkante des Rings – die Balken wachsen von hier nach aussen
     readonly property real ringRadius: panel.coverSize / 2 + panel.ringGap
 
@@ -224,7 +225,10 @@ Item {
                     required property int index
 
                     readonly property real angle: (spike.index / Cava.bars) * 2 * Math.PI
-                    readonly property real len: 3 + (Cava.values[spike.index] ?? 0) * panel.ringMax
+                    // Versteckt (Pille im Notch-Layout, zugeklapptes
+                    // Untermenue) liegt der Ring still, statt fuer niemanden
+                    // 30x pro Sekunde zu rechnen
+                    readonly property real len: 3 + (panel.visible ? Cava.values[spike.index] ?? 0 : 0) * panel.ringMax
                     readonly property real dist: panel.ringRadius + len / 2
 
                     width: 2.5
@@ -238,6 +242,7 @@ Item {
                     rotation: (spike.index / Cava.bars) * 360
 
                     Behavior on height {
+                        enabled: panel.visible
                         NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
                     }
                     Behavior on opacity {
@@ -264,8 +269,11 @@ Item {
                     source: Media.art
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
-                    sourceSize.width: panel.coverSize * 2
-                    sourceSize.height: panel.coverSize * 2
+                    // Feste Decodiergroesse: haengt sie an coverSize (= an der
+                    // Kartenbreite), decodiert jede Morph-Animation das Cover
+                    // pro Frame neu
+                    sourceSize.width: panel.coverDecode
+                    sourceSize.height: panel.coverDecode
                     // Wird nur als Quelle fuer den Effekt gebraucht
                     visible: false
                 }

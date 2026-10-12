@@ -4,6 +4,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+import qs.modules.services.core
+
 // Helligkeitssteuerung:
 //   1. Internes Laptop-Panel ueber brightnessctl/sysfs (ein Wert fuer alles)
 //   2. Ohne Backlight-Geraet alle per DDC erkannten Monitore – JEDER EINZELN.
@@ -37,6 +39,15 @@ Singleton {
     property int backlightActive: -1
 
     readonly property int percent: Math.round(value * 100)
+
+    // Nachlesen (fuer Aenderungen ueber die Monitor-Tasten) nur, solange
+    // eine Anzeige offen ist – OSD oder Kacheln, je per DemandRequest.
+    // Jeder Lauf kostet zwei ddcutil-Aufrufe ueber I2C (~0,1 s CPU).
+    readonly property Demand demand: Demand {}
+    readonly property bool watching: root.demand.active
+
+    onWatchingChanged: if (root.watching && !writeProcess.running && !writeTimer.running && !settleTimer.running)
+        root.startQuery()
 
     // ---- je Monitor ----
     function valueFor(name: string): real {
@@ -274,7 +285,7 @@ Singleton {
 
     Timer {
         interval: 8000
-        running: true
+        running: root.watching
         repeat: true
         onTriggered: if (!writeProcess.running && !writeTimer.running && !settleTimer.running)
             root.startQuery()

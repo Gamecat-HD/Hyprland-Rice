@@ -7,6 +7,7 @@ import Quickshell.Wayland
 import qs.modules.services.audio
 import qs.modules.services.brightness
 import qs.modules.services.config
+import qs.modules.services.core
 import qs.modules.widgets
 
 import qs
@@ -81,6 +82,12 @@ Variants {
             y: 0
             width: win.shown ? win.width : 4
             height: win.height
+        }
+
+        // Helligkeit nachlesen, solange das OSD offen ist
+        DemandRequest {
+            demand: Brightness.demand
+            active: win.shown
         }
 
         Timer {

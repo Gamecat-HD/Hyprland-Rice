@@ -7,6 +7,8 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 
+import qs.modules.services.core
+
 // Medien-Service: eine einzige Quelle fuer alles, was die Leiste ueber die
 // laufende Wiedergabe wissen muss.
 //
@@ -170,9 +172,10 @@ Singleton {
     //
     // MPRIS schickt die Position nicht von sich aus – sie muss abgefragt
     // werden. Das laeuft deshalb nur, wenn es jemand einschaltet:
-    //   Component.onCompleted: Media.trackPosition = true
+    //   DemandRequest { demand: Media.positionDemand; active: shown }
     // und auch dann nur, solange wirklich abgespielt wird.
-    property bool trackPosition: false
+    readonly property Demand positionDemand: Demand {}
+    readonly property bool trackPosition: root.positionDemand.active
 
     readonly property real position: root.active?.position ?? 0
     readonly property real length: root.active?.length ?? 0

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import qs.modules.services.network
+import qs.modules.services.core
 
 import qs
 import qs.modules.services.config
@@ -27,10 +28,19 @@ Item {
 
     implicitHeight: header.height + 6 + listWrapper.height + (statusText.visible ? statusText.height + 6 : 0)
 
+    // Netzliste regelmaessig neu lesen, solange das Panel offen ist
+    DemandRequest {
+        demand: Network.demand
+        active: panel.active
+    }
+
+    // In der Pille entsteht die Seite erst beim Oeffnen, also bereits aktiv –
+    // dann gibt es kein Wechsel-Signal, die Startarbeit wird nachgeholt
+    Component.onCompleted: if (panel.active) Qt.callLater(panel.activeChanged)
+
     onActiveChanged: {
         panel.menuSsid = "";
         panel.passwordSsid = "";
-        Network.watching = active;
         list.contentY = 0;   // oben anfangen – das verbundene Netz steht vorn
         if (active)
             Network.refresh(true);
@@ -197,7 +207,7 @@ Item {
                     to: 360
                     duration: 900
                     loops: Animation.Infinite
-                    running: Network.busy || Network.scanning
+                    running: (Network.busy || Network.scanning) && rescanIcon.visible
                     onRunningChanged: if (!running)
                         rescanIcon.rotation = 0
                 }

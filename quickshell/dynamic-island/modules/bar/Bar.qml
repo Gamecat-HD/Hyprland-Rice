@@ -18,6 +18,7 @@ import qs.modules.services.bluetooth
 import qs.modules.services.media
 import qs.modules.services.audio
 import qs.modules.services.system
+import qs.modules.services.core
 
 import qs
 
@@ -38,12 +39,15 @@ Variants {
             function onPairingActiveChanged(): void {
                 if (!BluetoothService.pairingActive || Hyprland.focusedMonitor?.name !== bar.modelData.name)
                     return;
-                // Notch-Layout: die Settings-Karte lebt im Steuerungs-Untermenue
-                const target = bar.notchMode ? notch.controlView.settings : settings;
+                // Notch-Layout: die Settings-Karte lebt im Steuerungs-Untermenue.
+                // Erst oeffnen – das Untermenue wird erst dabei gebaut.
                 if (bar.notchMode)
                     LauncherState.showMode(bar.modelData, "control");
-                else
-                    settings.expanded = true;
+                const target = bar.notchMode ? notch.controlView?.settings : bar.pillSettings;
+                if (!target)
+                    return;
+                if (!bar.notchMode)
+                    target.expanded = true;
                 target.wifiOpen = false;
                 target.audioOpen = false;
                 target.bluetoothOpen = true;
@@ -78,33 +82,34 @@ Variants {
         // Benachrichtigungen, System), aufrufbar per Kuerzel, Launcher-Befehl
         // oder Blaettern.
         readonly property bool notchMode: Config.appearance.layout === "notch"
+        // Settings-Pille (nur im Insel-Layout gebaut, sonst null)
+        readonly property Item pillSettings: pills.item?.settings ?? null
 
-        // Geteilte Dienste mit genau EINEM Binding je Property – zwei Bindings
-        // auf dieselbe Property ueberschreiben sich gegenseitig.
+        // Geteilte Dienste: jede Leiste (je Monitor eine) meldet ihren Wunsch
+        // per DemandRequest an, der Dienst laeuft, solange irgendeine will.
+        // Ein Binding je Leiste ging nicht – die Leiste des einen Monitors
+        // ueberschrieb die des anderen.
         //
         // Visualiser (eigener Prozess): nur, solange etwas spielt UND jemand
         // die Pegel zeigt – Medien-Pille, eingeklappte Notch (notch.visualizer),
         // Uebersicht oder Medien-Untermenue.
-        Binding {
-            target: Cava
-            property: "enabled"
-            value: Media.playing && (bar.notchMode
+        DemandRequest {
+            demand: Cava.demand
+            active: Media.playing && (bar.notchMode
                 ? Config.notch.visualizer || notch.wantsVisualizer
                 : Config.bar.media || notch.mediaOpen)
         }
 
         // Systemwerte: System-Pille offen, Uebersicht oder System-Untermenue
-        Binding {
-            target: SystemStats
-            property: "watching"
-            value: stats.open || notch.wantsStats
+        DemandRequest {
+            demand: SystemStats.demand
+            active: (pills.item?.stats.open ?? false) || notch.wantsStats
         }
 
         // Abgelaufene Zeit pollen: Medien-Pille sichtbar oder Medien-Untermenue
-        Binding {
-            target: Media
-            property: "trackPosition"
-            value: media.visible || notch.wantsMediaPosition
+        DemandRequest {
+            demand: Media.positionDemand
+            active: (pills.item?.media.visible ?? false) || notch.wantsMediaPosition
         }
 
         screen: bar.modelData
@@ -124,7 +129,8 @@ Variants {
         WlrLayershell.keyboardFocus: notch.authOpen
                                      || notch.appsOpen || notch.wallpaperOpen || notch.themeOpen || notch.powerOpen
                                      || notch.controlTyping
-                                     || settings.typingPassword || settings.typingPin
+                                     || (bar.pillSettings?.typingPassword ?? false)
+                                     || (bar.pillSettings?.typingPin ?? false)
                                      ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         anchors {
             top: true
@@ -153,22 +159,22 @@ Variants {
             // Ohne die eigene Region kaemen Klicks in der ausgeklappten
             // Medien-Karte nicht an – die Maske ist die Eingabeflaeche.
             Region {
-                item: media
+                item: pills.item?.media ?? null
             }
             Region {
-                item: settings   // aufgeklappte Settings-Karte klickbar halten
+                item: bar.pillSettings   // aufgeklappte Settings-Karte klickbar halten
             }
             Region {
-                item: settings.sleepMenu   // No-Sleep-Dropdown, solange offen
+                item: bar.pillSettings?.sleepMenu ?? null   // No-Sleep-Dropdown, solange offen
             }
             Region {
-                item: settings.vpnMenu     // VPN-Anbieter-Dropdown
+                item: bar.pillSettings?.vpnMenu ?? null     // VPN-Anbieter-Dropdown
             }
             Region {
-                item: notifications        // aufgeklappte Benachrichtigungs-Karte
+                item: pills.item?.notifications ?? null   // aufgeklappte Benachrichtigungs-Karte
             }
             Region {
-                item: stats                // aufgeklappte System-Karte
+                item: pills.item?.stats ?? null           // aufgeklappte System-Karte
             }
         }
 
@@ -192,105 +198,114 @@ Variants {
             height: bar.barHeight
 
 
-            // Alle Pillen ausser der Notch leben in diesem Wrapper. Er ist es,
-            // der im Notch-Layout als Ganzes in den Hub der Notch umzieht –
-            // so bleiben die Pillen immer Geschwister und ihre Anker
-            // untereinander (stats -> workspaces, notifications -> media)
-            // reissen beim Umparken nicht ab. Er fuellt seinen Elter (Leiste
-            // bzw. Hub, beide 40 px hoch), die Pillen merken keinen Unterschied.
-            Item {
+            // Alle Pillen ausser der Notch leben in diesem Wrapper – so bleiben
+            // sie Geschwister und ihre Anker untereinander (stats -> workspaces,
+            // notifications -> media) haengen an einer Stelle.
+            Loader {
                 id: pills
 
                 anchors.fill: parent
                 // Im Notch-Layout gibt es nur die Notch; die Inhalte der
-                // Pillen stehen dort als Untermenues
-                visible: !bar.notchMode
+                // Pillen stehen dort als Untermenues. Dann werden die Pillen
+                // gar nicht erst gebaut – frueher lebten sie unsichtbar mit
+                // (je Monitor eine komplette Settings-Karte samt Pollern,
+                // Medien-Karte mit Visualiser-Ring, Tray-Menue, ...).
+                active: !bar.notchMode
 
-                /* Workspace Selektor */
-                WorkspaceSelector {
-                    id: workspaces
-                    visible: Config.bar.workspaces
-                    anchors.leftMargin: HyprGaps.left
-                    verticalMargin: bar.verticalMargin
-                    borderWidth: bar.borderWidth
-                    borderColor: bar.borderColor
-                    cardRadius: bar.cardRadius
-                }
+                sourceComponent: Item {
+                    // Fuer Maske, Tastaturfokus und Dienst-Anforderungen der Leiste
+                    readonly property alias settings: settings
+                    readonly property alias media: media
+                    readonly property alias stats: stats
+                    readonly property alias notifications: notifications
 
-
-                /* System-Pille – haengt rechts am Selektor und wandert mit, wenn
-                   der breiter wird (Special-Workspaces). Anker deshalb hier und
-                   nicht in der Komponente. */
-                StatsPill {
-                    id: stats
-                    visible: Config.bar.stats
-                    // Ohne Workspace-Punkte rueckt sie an den linken Rand
-                    anchors {
-                        left: Config.bar.workspaces ? workspaces.right : parent.left
-                        leftMargin: Config.bar.workspaces ? 10 : HyprGaps.left
+                    /* Workspace Selektor */
+                    WorkspaceSelector {
+                        id: workspaces
+                        visible: Config.bar.workspaces
+                        anchors.leftMargin: HyprGaps.left
+                        verticalMargin: bar.verticalMargin
+                        borderWidth: bar.borderWidth
+                        borderColor: bar.borderColor
+                        cardRadius: bar.cardRadius
                     }
-                    verticalMargin: bar.verticalMargin
-                    borderWidth: bar.borderWidth
-                    borderColor: bar.borderColor
-                    cardRadius: bar.cardRadius
-                }
 
 
-                /* Mittlere Notch */
-                StatusBar {
-                    id: statusBar
-                    visible: Config.bar.tray
-                    // Links der Notch
-                    anchors {
-                        right: parent.horizontalCenter
-                        rightMargin: notch.width / 2 + 15
+                    /* System-Pille – haengt rechts am Selektor und wandert mit, wenn
+                       der breiter wird (Special-Workspaces). Anker deshalb hier und
+                       nicht in der Komponente. */
+                    StatsPill {
+                        id: stats
+                        visible: Config.bar.stats
+                        // Ohne Workspace-Punkte rueckt sie an den linken Rand
+                        anchors {
+                            left: Config.bar.workspaces ? workspaces.right : parent.left
+                            leftMargin: Config.bar.workspaces ? 10 : HyprGaps.left
+                        }
+                        verticalMargin: bar.verticalMargin
+                        borderWidth: bar.borderWidth
+                        borderColor: bar.borderColor
+                        cardRadius: bar.cardRadius
                     }
-                    verticalMargin: bar.verticalMargin
-                    borderWidth: bar.borderWidth
-                }
 
-                Settings {
-                    id: settings
-                    visible: Config.bar.settings
-                    // Rechts der Notch
-                    anchors {
-                        left: parent.horizontalCenter
-                        leftMargin: notch.width / 2 + 15
+
+                    /* Mittlere Notch */
+                    StatusBar {
+                        id: statusBar
+                        visible: Config.bar.tray
+                        // Links der Notch
+                        anchors {
+                            right: parent.horizontalCenter
+                            rightMargin: notch.width / 2 + 15
+                        }
+                        verticalMargin: bar.verticalMargin
+                        borderWidth: bar.borderWidth
                     }
-                    verticalMargin: bar.verticalMargin
-                    borderWidth: bar.borderWidth
-                    cardRadius: bar.cardRadius
-                }
 
-                MediaPlayer {
-                    id: media
-                    visible: Config.bar.media
-                    anchors.rightMargin: HyprGaps.right
-                    verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
-                    borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
-                    borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
-                    cardRadius: bar.cardRadius     // dito - teilt sich den Wert mit Notch und Selektor
-                }
-
-
-                /* Benachrichtigungen – haengen links an der Medien-Karte und
-                   wachsen in die freie Luecke daneben hinein. Die Anker stehen
-                   hier und nicht in der Komponente, damit sie der Medien-Karte
-                   folgen, wenn die ihre Breite aendert. */
-                NotificationPill {
-                    id: notifications
-                    visible: Config.bar.notifications
-                    // Ohne Medien-Karte rueckt sie an den rechten Rand
-                    anchors {
-                        right: Config.bar.media ? media.left : parent.right
-                        rightMargin: Config.bar.media ? 10 : HyprGaps.right
+                    Settings {
+                        id: settings
+                        visible: Config.bar.settings
+                        // Rechts der Notch
+                        anchors {
+                            left: parent.horizontalCenter
+                            leftMargin: notch.width / 2 + 15
+                        }
+                        verticalMargin: bar.verticalMargin
+                        borderWidth: bar.borderWidth
+                        cardRadius: bar.cardRadius
                     }
-                    verticalMargin: bar.verticalMargin
-                    borderWidth: bar.borderWidth
-                    borderColor: bar.borderColor
-                    cardRadius: bar.cardRadius
+
+                    MediaPlayer {
+                        id: media
+                        visible: Config.bar.media
+                        anchors.rightMargin: HyprGaps.right
+                        verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
+                        borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
+                        borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
+                        cardRadius: bar.cardRadius     // dito - teilt sich den Wert mit Notch und Selektor
+                    }
+
+
+                    /* Benachrichtigungen – haengen links an der Medien-Karte und
+                       wachsen in die freie Luecke daneben hinein. Die Anker stehen
+                       hier und nicht in der Komponente, damit sie der Medien-Karte
+                       folgen, wenn die ihre Breite aendert. */
+                    NotificationPill {
+                        id: notifications
+                        visible: Config.bar.notifications
+                        // Ohne Medien-Karte rueckt sie an den rechten Rand
+                        anchors {
+                            right: Config.bar.media ? media.left : parent.right
+                            rightMargin: Config.bar.media ? 10 : HyprGaps.right
+                        }
+                        verticalMargin: bar.verticalMargin
+                        borderWidth: bar.borderWidth
+                        borderColor: bar.borderColor
+                        cardRadius: bar.cardRadius
+                    }
                 }
             }
+
 
             Notch {
                 id: notch
