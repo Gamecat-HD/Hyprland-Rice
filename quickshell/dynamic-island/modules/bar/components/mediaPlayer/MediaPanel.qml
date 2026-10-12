@@ -34,7 +34,11 @@ Item {
     readonly property real ringGap: 8       // Luft zwischen Bild und Balken
     readonly property real ringInset: 10    // Luft zwischen Ring und Kartenrand
     readonly property real ringBox: panel.width - panel.padding * 2 - panel.ringInset * 2
-    readonly property real coverSize: Math.max(48, panel.ringBox - (panel.ringGap + panel.ringMax) * 2)
+    // Obergrenze fuer das Cover – das Medien-Untermenue der Notch ist breit,
+    // dort sollen nur die Zeilen die Breite nutzen, nicht das Bild
+    property real maxCoverSize: Infinity
+    readonly property real coverSize: Math.min(panel.maxCoverSize,
+        Math.max(48, panel.ringBox - (panel.ringGap + panel.ringMax) * 2))
     // Innenkante des Rings – die Balken wachsen von hier nach aussen
     readonly property real ringRadius: panel.coverSize / 2 + panel.ringGap
 

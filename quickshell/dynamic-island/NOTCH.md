@@ -387,3 +387,9 @@ stehen und sind klickbar), Mitte Uhr bzw. Titel, rechts Seiten-Punkte + Glocke. 
 Specials wie bei Caelestia: ist einer offen, legt sich ueber die Staebchen eine kleine Pille mit allen Specials (aktiver
 tertiaer, Klick toggelt). Blaettern: Schwelle halbe Rastung (60) bzw. 50 px, feste Sperre 350 ms (`flipCooldown`), Zaehler
 verfaellt nach 500 ms Pause (`accumDecay`). Medien-Untermenue: `MediaPanel` in fester 320-px-Spalte.
+
+**Feinschliff:** Kein Leerraum auf den Seiten – Datums-Karussell angedockt mit 15 sichtbaren Tagen (`visibleColumns`,
+`columnWidth` jetzt von aussen setzbar), Medien-Zeilen ueber die volle Breite mit gedeckeltem Cover
+(`MediaPanel.maxCoverSize`), leere Benachrichtigungsliste ohne Listenflaeche. Blaettern laeuft ueber den Rand
+(`LauncherState.step` mit Modulo), Schwelle Viertel-Rastung (30) bzw. 30 px, Sperre 300 ms. Special-Overlay exakt so breit
+wie die Staebchen-Reihe, die Specials teilen sich die Breite.

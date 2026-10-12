@@ -50,12 +50,10 @@ Item {
         .filter(w => w.name.startsWith("special:"))
         .sort((a, b) => a.name.localeCompare(b.name))
 
-    // Platz fuer das Breitere von beidem – die eingeklappte Notch misst sich
-    // daran (compactSide), das Overlay darf nicht ueber die Uhr ragen
-    implicitWidth: root.onSpecial ? Math.max(bars.implicitWidth, overlay.implicitWidth) : bars.implicitWidth
-    implicitHeight: Math.max(root.activeHeight, overlay.implicitHeight)
-
-    Morph on implicitWidth {}
+    // Das Overlay ist genau so breit wie die Staebchen-Reihe – die Anzeige
+    // behaelt ihre Groesse, egal ob ein Special offen ist
+    implicitWidth: bars.implicitWidth
+    implicitHeight: Math.max(root.activeHeight, overlay.height)
 
     // ---- Staebchen ----
     Row {
@@ -127,14 +125,17 @@ Item {
     }
 
     // ---- Special-Overlay ----
+    // Exakt ueber den Staebchen: gleiche Breite, die Specials teilen sie sich
+    // zu gleichen Teilen. Der offene bekommt eine tertiaere Pille.
     Rectangle {
         id: overlay
 
+        readonly property real slot: root.specials.length > 0
+            ? (overlay.width - 4) / root.specials.length : overlay.width
+
         anchors.centerIn: parent
-        implicitWidth: specialRow.implicitWidth + 6
-        implicitHeight: 22
-        width: implicitWidth
-        height: implicitHeight
+        width: bars.implicitWidth
+        height: 18
         radius: height / 2
         color: Colors.surfaceContainer
         border.width: 1
@@ -147,10 +148,7 @@ Item {
         Morph on scale {}
 
         Row {
-            id: specialRow
-
             anchors.centerIn: parent
-            spacing: 1
 
             Repeater {
                 model: root.specials
@@ -162,12 +160,8 @@ Item {
                     readonly property string key: special.modelData.name.slice("special:".length)
                     readonly property bool active: root.activeSpecial === special.modelData.name
 
-                    width: special.active ? 26 : 20
-                    height: 16
-
-                    Behavior on width {
-                        NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
-                    }
+                    width: overlay.slot
+                    height: overlay.height - 4
 
                     Rectangle {
                         anchors.fill: parent
@@ -175,6 +169,10 @@ Item {
                         color: special.active ? Colors.tertiary
                              : specialHover.hovered ? Colors.alpha(Colors.fgBackground, 0.14)
                              : "transparent"
+
+                        Behavior on color {
+                            ColorAnimation { duration: Appearance.fadeDuration }
+                        }
                     }
 
                     Text {
@@ -182,7 +180,8 @@ Item {
                         text: SpecialIcons.iconFor(special.key)
                         color: special.active ? Colors.fgTertiary : Colors.fgSurfaceVariant
                         font.family: "Material Symbols Outlined"
-                        font.pixelSize: 12
+                        // Passt sich der Slotbreite an, bei vielen Specials kleiner
+                        font.pixelSize: Math.max(8, Math.min(11, Math.floor(overlay.slot - 3)))
                         font.variableAxes: ({ FILL: special.active ? 1 : 0 })
                     }
 

@@ -737,8 +737,8 @@ Item {
                     || Math.abs(event.pixelDelta.x) > Math.abs(event.pixelDelta.y);
                 const angle = horizontal ? event.angleDelta.x : event.angleDelta.y;
                 const pixels = horizontal ? event.pixelDelta.x : event.pixelDelta.y;
-                // Schritte: halbe Rastung (60) bzw. 50 px Touchpad = 1
-                const delta = pixels !== 0 ? pixels / 50 : angle / 60;
+                // Schritte: Viertel-Rastung (30) bzw. 30 px Touchpad = 1
+                const delta = pixels !== 0 ? pixels / 30 : angle / 30;
 
                 // Richtungswechsel verwirft den Rest der alten Richtung
                 if (flipWheel.accum !== 0 && Math.sign(delta) !== Math.sign(flipWheel.accum))
@@ -767,7 +767,7 @@ Item {
         Timer {
             id: flipCooldown
 
-            interval: 350
+            interval: 300
         }
 
         // Angefangener Zug verfaellt erst nach einer echten Pause
@@ -992,6 +992,10 @@ Item {
             // Streifen selbst – sonst blaettert das Rad die Ansichten
             gestureArea: notch.docked ? panel : pill
             fadeColor: pill.baseColor
+            // Angedockt ist die Karte so breit wie alle Blaetter-Seiten – das
+            // Karussell fuellt sie mit mehr Tagen, statt mittig zu stehen
+            visibleColumns: notch.docked ? 15 : 7
+            columnWidth: notch.docked ? 30 : 26
             dragEnabled: !launcherDrag.active
             opacity: notch.cardShown ? 1 : 0
             // Beim Wechsel zum Launcher (oder zur Steuerungs-Seite) sofort aus

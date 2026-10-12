@@ -35,8 +35,10 @@ Singleton {
     // Blaettern um `dir` (+1/-1). Liefert die neue Ansicht zurueck, damit die
     // Notch beim Ruecksprung auf die Uebersicht wieder aufklappen kann.
     function step(target: ShellScreen, dir: int): string {
+        // Ueber den Rand hinaus: von der ersten auf die letzte und zurueck
+        const n = root.views.length;
         const from = Math.max(0, root.viewIndex);
-        const next = Math.max(0, Math.min(root.views.length - 1, from + dir));
+        const next = ((from + dir) % n + n) % n;
         const view = root.views[next];
         if (view === "overview")
             root.close();

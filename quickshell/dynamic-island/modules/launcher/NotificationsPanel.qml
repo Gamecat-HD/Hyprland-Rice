@@ -25,7 +25,9 @@ ViewPanel {
         }
         return h;
     }
-    readonly property real listHeight: Math.max(70, Math.min(root.maxListHeight, root.listBody))
+    // Leer keine Liste – die Werkzeugleiste sagt schon "Keine Nachrichten"
+    readonly property real listHeight: Notifications.count === 0 ? 0
+        : Math.max(70, Math.min(root.maxListHeight, root.listBody))
 
     title: "Benachrichtigungen"
     icon: "notifications"

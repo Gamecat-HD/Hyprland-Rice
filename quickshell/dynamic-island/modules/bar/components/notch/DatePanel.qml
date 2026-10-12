@@ -46,11 +46,13 @@ Item {
     readonly property date today: dateSource.date
     readonly property date focusDay: panel.addDays(today, dayOffset)
 
-    readonly property real columnWidth: 26
+    // Von aussen einstellbar: die angedockte Notch ist breiter und zeigt mehr Tage
+    property real columnWidth: 26
     readonly property real columnSpacing: 2
     readonly property real step: columnWidth + columnSpacing
-    readonly property int visibleColumns: 7
-    readonly property int sideColumns: 4      // gerendert wird -4..+4, außen frisst die Vignette
+    property int visibleColumns: 7
+    // gerendert wird -n..+n (eine mehr als sichtbar), außen frisst die Vignette
+    property int sideColumns: Math.ceil(visibleColumns / 2)
     readonly property real topPadding: 8
 
     // Pixel-Versatz für die Einschub-Animation (siehe onDayOffsetChanged)
