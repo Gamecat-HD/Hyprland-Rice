@@ -18,6 +18,7 @@ import qs.modules.services.hypr
 import qs.modules.services.bluetooth
 import qs.modules.services.media
 import qs.modules.services.audio
+import qs.modules.services.system
 
 import qs
 
@@ -36,12 +37,17 @@ Variants {
             target: BluetoothService
 
             function onPairingActiveChanged(): void {
-                if (BluetoothService.pairingActive && Hyprland.focusedMonitor?.name === bar.modelData.name) {
+                if (!BluetoothService.pairingActive || Hyprland.focusedMonitor?.name !== bar.modelData.name)
+                    return;
+                // Notch-Layout: die Settings-Karte lebt im Steuerungs-Untermenue
+                const target = bar.notchMode ? notch.controlView.settings : settings;
+                if (bar.notchMode)
+                    LauncherState.showMode(bar.modelData, "control");
+                else
                     settings.expanded = true;
-                    settings.wifiOpen = false;
-                    settings.audioOpen = false;
-                    settings.bluetoothOpen = true;
-                }
+                target.wifiOpen = false;
+                target.audioOpen = false;
+                target.bluetoothOpen = true;
             }
         }
 
@@ -67,26 +73,39 @@ Variants {
         // Fenster, das beides nachweislich bekommt.
         readonly property bool catching: notch.launcherOpen
 
-        // Notch-Layout (Config.appearance.layout, umschaltbar im Menue): die
-        // anderen Pillen parken im Hub der Notch (`parent: notch.hub`) und
-        // erscheinen dort, wenn sie aufklappt. Es sind dieselben Instanzen –
-        // alle Referenzen unten (Maske, Tastaturfokus) gelten weiter.
+        // Notch-Layout (Config.appearance.layout, umschaltbar im Menue): nur
+        // die Notch ist zu sehen. Die Pillen der Leiste sind dann ganz aus –
+        // ihre Inhalte stehen als Untermenues in der Notch (Medien, Steuerung,
+        // Benachrichtigungen, System), aufrufbar per Kuerzel, Launcher-Befehl
+        // oder Blaettern.
         readonly property bool notchMode: Config.appearance.layout === "notch"
-        // Wo der Pillen-Wrapper haengt: in der Leiste oder im Hub der Notch
-        readonly property Item pillParent: bar.notchMode ? notch.hub : row
-        // Linkes Ende der Kette im Hub, an das Tray und Settings anschliessen
-        readonly property Item hubChainLeft: Config.bar.stats ? stats
-                                           : Config.bar.workspaces ? workspaces
-                                           : null
 
-        // Der Visualiser ist ein eigener Prozess – er laeuft nur, solange
-        // wirklich etwas spielt UND jemand die Pegel zeigt: die Medien-Karte
-        // oder die Live-Activity der Notch. Ein Binding fuer beide, sonst
-        // wuerden sich zwei Bindings an Cava.enabled gegenseitig ueberschreiben.
+        // Geteilte Dienste mit genau EINEM Binding je Property – zwei Bindings
+        // auf dieselbe Property ueberschreiben sich gegenseitig.
+        //
+        // Visualiser (eigener Prozess): nur, solange etwas spielt UND jemand
+        // die Pegel zeigt – Medien-Pille, eingeklappte Notch (notch.visualizer),
+        // Uebersicht oder Medien-Untermenue.
         Binding {
             target: Cava
             property: "enabled"
-            value: Media.playing && (Config.bar.media || (bar.notchMode && Config.notch.media))
+            value: Media.playing && (bar.notchMode
+                ? Config.notch.visualizer || notch.wantsVisualizer
+                : Config.bar.media || notch.mediaOpen)
+        }
+
+        // Systemwerte: System-Pille offen, Uebersicht oder System-Untermenue
+        Binding {
+            target: SystemStats
+            property: "watching"
+            value: stats.open || notch.wantsStats
+        }
+
+        // Abgelaufene Zeit pollen: Medien-Pille sichtbar oder Medien-Untermenue
+        Binding {
+            target: Media
+            property: "trackPosition"
+            value: media.visible || notch.wantsMediaPosition
         }
 
         screen: bar.modelData
@@ -100,8 +119,11 @@ Variants {
         // Das Power-Menue braucht keinen Tastaturfokus. Exclusive wuerde den
         // gesamten Wayland-Seat binden und damit Klicks auf anderen Monitoren
         // blockieren, bis das Menue wieder geschlossen wird.
+        // Die Untermenues (Medien, Steuerung, ...) ebenfalls nicht – ausser es
+        // wird in der Steuerung ein WLAN-Passwort oder eine PIN getippt.
         WlrLayershell.keyboardFocus: notch.authOpen
-                                     || (notch.launcherOpen && !notch.powerOpen)
+                                     || notch.appsOpen || notch.wallpaperOpen || notch.themeOpen
+                                     || notch.controlTyping
                                      || settings.typingPassword || settings.typingPin
                                      ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         anchors {
@@ -179,14 +201,16 @@ Variants {
             Item {
                 id: pills
 
-                parent: bar.pillParent
                 anchors.fill: parent
+                // Im Notch-Layout gibt es nur die Notch; die Inhalte der
+                // Pillen stehen dort als Untermenues
+                visible: !bar.notchMode
 
                 /* Workspace Selektor */
                 WorkspaceSelector {
                     id: workspaces
                     visible: Config.bar.workspaces
-                    anchors.leftMargin: bar.notchMode ? 12 : HyprGaps.left
+                    anchors.leftMargin: HyprGaps.left
                     verticalMargin: bar.verticalMargin
                     borderWidth: bar.borderWidth
                     borderColor: bar.borderColor
@@ -216,13 +240,10 @@ Variants {
                 StatusBar {
                     id: statusBar
                     visible: Config.bar.tray
-                    // Leiste: links der Notch. Hub: rechts an der Kette.
+                    // Links der Notch
                     anchors {
-                        right: bar.notchMode ? undefined : parent.horizontalCenter
+                        right: parent.horizontalCenter
                         rightMargin: notch.width / 2 + 15
-                        left: !bar.notchMode ? undefined
-                            : bar.hubChainLeft ? bar.hubChainLeft.right : parent.left
-                        leftMargin: bar.hubChainLeft ? 10 : 12
                     }
                     verticalMargin: bar.verticalMargin
                     borderWidth: bar.borderWidth
@@ -231,15 +252,10 @@ Variants {
                 Settings {
                     id: settings
                     visible: Config.bar.settings
-                    // Aufgeklappt ueber den Nachbarn im Hub liegen
-                    z: settings.expanded ? 2 : 0
+                    // Rechts der Notch
                     anchors {
-                        left: !bar.notchMode ? parent.horizontalCenter
-                            : Config.bar.tray ? statusBar.right
-                            : bar.hubChainLeft ? bar.hubChainLeft.right
-                            : parent.left
-                        leftMargin: !bar.notchMode ? notch.width / 2 + 15
-                                  : Config.bar.tray || bar.hubChainLeft ? 10 : 12
+                        left: parent.horizontalCenter
+                        leftMargin: notch.width / 2 + 15
                     }
                     verticalMargin: bar.verticalMargin
                     borderWidth: bar.borderWidth
@@ -249,7 +265,7 @@ Variants {
                 MediaPlayer {
                     id: media
                     visible: Config.bar.media
-                    anchors.rightMargin: bar.notchMode ? 12 : HyprGaps.right
+                    anchors.rightMargin: HyprGaps.right
                     verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
                     borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
                     borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert
@@ -278,9 +294,6 @@ Variants {
 
             Notch {
                 id: notch
-                // Im Hub darf die Settings-Karte (520 px) rechts herausragen:
-                // dann wird der Hub – und damit die Notch – so breit
-                hubContentWidth: bar.notchMode && Config.bar.settings ? settings.x + settings.width + 12 : 0
                 verticalMargin: bar.verticalMargin    // Gesamt-Rand oben+unten; durchs Zentrieren je 10
                 borderWidth: bar.borderWidth   // `this` gibt es in QML-Bindings nicht
                 borderColor: bar.borderColor   // Quelle: eine Ebene weiter oben definiert

@@ -367,6 +367,14 @@ hl.bind(
 	{ release = true }
 )
 hl.bind("SUPER + Space", hl.dsp.exec_cmd(cfg.launcher))
+-- Untermenues der Notch (Quickshell-IPC), nochmal druecken = zu.
+-- Dieselben Ansichten erreicht man im Launcher mit >medien, >steuerung,
+-- >benachrichtigungen, >system, >power oder durch Blaettern in der Notch.
+hl.bind("SUPER + ALT + M", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher media"))
+hl.bind("SUPER + A", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher control"))
+hl.bind("SUPER + N", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher notifications"))
+hl.bind("SUPER + I", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher system"))
+hl.bind("SUPER + X", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher power"))
 hl.bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd))
 hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), { locked = true })
 

@@ -49,6 +49,42 @@ Singleton {
             keepOpen: true,
             run: () => LauncherState.mode = "theme"
         },
+        // Untermenues der Notch – dieselben Ansichten wie per Tastenkuerzel
+        {
+            name: "Medien",
+            desc: "Player, Cover und Steuerung",
+            icon: "music_note",
+            keepOpen: true,
+            run: () => LauncherState.mode = "media"
+        },
+        {
+            name: "Steuerung",
+            desc: "WLAN, Bluetooth, Audio, Helligkeit und Tray",
+            icon: "toggle_on",
+            keepOpen: true,
+            run: () => LauncherState.mode = "control"
+        },
+        {
+            name: "Benachrichtigungen",
+            desc: "Alle Nachrichten, Nicht stören",
+            icon: "notifications",
+            keepOpen: true,
+            run: () => LauncherState.mode = "notifications"
+        },
+        {
+            name: "System",
+            desc: "Auslastung, Speicher und Temperaturen",
+            icon: "monitoring",
+            keepOpen: true,
+            run: () => LauncherState.mode = "system"
+        },
+        {
+            name: "Power",
+            desc: "Sperren, Abmelden, Neustart, Ausschalten",
+            icon: "power_settings_new",
+            keepOpen: true,
+            run: () => LauncherState.mode = "power"
+        },
         {
             name: "Einstellungen",
             desc: "Fenster mit den Schaltern der Shell",

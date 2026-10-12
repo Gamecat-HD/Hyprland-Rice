@@ -54,8 +54,7 @@ Singleton {
         "bar.media": { title: "Medien-Karte", desc: "Titel, Cover und Steuerung rechts aussen" },
         "bar.notifications": { title: "Benachrichtigungen", desc: "Die Glocke mit Zaehler in der Leiste" },
         "bar.battery": { title: "Akkuanzeige", desc: "Ring um die Uhr und Akkustand in der Settings-Pille" },
-        // Anzeigen in der eingeklappten Notch (nur Notch-Layout). Die Schalter
-        // sitzen auch direkt in der aufgeklappten Notch neben der Uhr.
+        // Anzeigen in der eingeklappten Notch (nur Notch-Layout)
         "notch.workspaces": {
             title: "Workspaces in der Notch", desc: "Kleine Staebchen links neben der Uhr, solange die Notch zu ist",
             requires: { "appearance.layout": "notch" }
@@ -65,7 +64,11 @@ Singleton {
             requires: { "appearance.layout": "notch" }
         },
         "notch.media": {
-            title: "Musik in der Notch", desc: "Cover und Pegel neben der Uhr, solange etwas spielt",
+            title: "Cover in der Notch", desc: "Albumcover links neben der Uhr, solange etwas spielt",
+            requires: { "appearance.layout": "notch" }
+        },
+        "notch.visualizer": {
+            title: "Visualiser in der Notch", desc: "Pegel rechts neben der Uhr, solange etwas spielt (statt des Datums)",
             requires: { "appearance.layout": "notch" }
         },
         "notch.messages": {
@@ -316,6 +319,7 @@ Singleton {
                 property bool workspaces: true
                 property bool date: true
                 property bool media: true
+                property bool visualizer: true
                 property bool messages: true
             }
         }

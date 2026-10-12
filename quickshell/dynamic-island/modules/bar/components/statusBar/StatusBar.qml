@@ -49,7 +49,9 @@ Surface {
 
     // Pille bleibt während der Schonfrist offen, damit sie beim Verlassen des
     // Menüs nicht vorzeitig zuschnappt.
-    readonly property bool expanded: hover.hovered || menuHover.hovered || closeGrace.running
+    // Eingebettet (Steuerungs-Untermenue der Notch) ist die Reihe immer offen
+    property bool embedded: false
+    readonly property bool expanded: embedded || hover.hovered || menuHover.hovered || closeGrace.running
     property var currentMenu: null         // QsMenuHandle des offenen Menüs
 
     anchors {

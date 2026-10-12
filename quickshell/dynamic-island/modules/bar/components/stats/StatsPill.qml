@@ -42,12 +42,9 @@ Item {
     // Reserve fuer das Bar-Fenster – immer der groesste Fall
     readonly property real maxDrop: Math.max(0, root.verticalMargin / 2 + root.cardHeight - parent.height)
 
-    // Der Dienst misst nur, solange die Karte offen ist
-    Binding {
-        target: SystemStats
-        property: "watching"
-        value: root.open
-    }
+    // Der Dienst misst nur, solange die Karte offen ist. Das Binding dafuer
+    // steht zentral in Bar.qml (die Notch misst auch), sonst ueberschrieben
+    // sich zwei Bindings gegenseitig.
 
     y: root.verticalMargin / 2
     width: root.open ? Math.max(root.cardWidth, root.headWidth)
@@ -207,7 +204,7 @@ Item {
         }
 
         // ---- Karte: Auslastung und Temperaturen ----
-        Column {
+        StatsCard {
             id: card
 
             anchors {
@@ -218,118 +215,11 @@ Item {
                 leftMargin: 14
                 rightMargin: 14
             }
-            spacing: 2
             opacity: root.open ? 1 : 0
             visible: opacity > 0
 
             Behavior on opacity {
-                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
-            }
-
-            Text {
-                font.family: Config.font
-                width: parent.width
-                text: SystemStats.cpuName !== "" ? SystemStats.cpuName : "System"
-                color: Colors.fgSurfaceVariant
-                font.pixelSize: 10
-                font.weight: Font.Medium
-                elide: Text.ElideRight
-                bottomPadding: 4
-            }
-
-            StatRow {
-                width: parent.width
-                icon: "developer_board"
-                label: "CPU"
-                value: SystemStats.cpuUsage
-                warn: SystemStats.cpuTemp >= 80 || SystemStats.cpuUsage >= 0.9
-                detail: `${Math.round(SystemStats.cpuUsage * 100)} %` +
-                        (SystemStats.cpuTemp > 0 ? ` · ${SystemStats.formatTemp(SystemStats.cpuTemp)}` : "")
-            }
-
-            StatRow {
-                width: parent.width
-                visible: SystemStats.hasGpu
-                icon: "monitoring"
-                label: "GPU"
-                value: SystemStats.gpuUsage
-                warn: SystemStats.gpuTemp >= 85 || SystemStats.gpuUsage >= 0.9
-                detail: `${Math.round(SystemStats.gpuUsage * 100)} %` +
-                        (SystemStats.gpuTemp > 0 ? ` · ${SystemStats.formatTemp(SystemStats.gpuTemp)}` : "")
-            }
-
-            StatRow {
-                width: parent.width
-                visible: SystemStats.vramTotal > 0
-                icon: "memory"
-                label: "VRAM"
-                value: SystemStats.vramTotal > 0 ? SystemStats.vramUsed / SystemStats.vramTotal : 0
-                detail: `${SystemStats.formatBytes(SystemStats.vramUsed)} / ${SystemStats.formatBytes(SystemStats.vramTotal)}`
-            }
-
-            StatRow {
-                width: parent.width
-                icon: "memory"
-                label: "RAM"
-                value: SystemStats.memTotal > 0 ? SystemStats.memUsed / SystemStats.memTotal : 0
-                warn: SystemStats.memTotal > 0 && SystemStats.memUsed / SystemStats.memTotal >= 0.9
-                detail: `${SystemStats.formatBytes(SystemStats.memUsed)} / ${SystemStats.formatBytes(SystemStats.memTotal)}`
-            }
-
-            StatRow {
-                width: parent.width
-                visible: SystemStats.diskTotal > 0
-                icon: "hard_drive"
-                label: "Platte"
-                value: SystemStats.diskTotal > 0 ? SystemStats.diskUsed / SystemStats.diskTotal : 0
-                detail: `${SystemStats.formatBytes(SystemStats.diskFree)} frei`
-            }
-
-            // Was sonst noch Temperatur hat, in einer Zeile
-            Text {
-                font.family: Config.font
-                width: parent.width
-                topPadding: 4
-                visible: text !== ""
-                text: {
-                    const parts = [];
-                    for (const t of SystemStats.nvmeTemps)
-                        parts.push(`SSD ${Math.round(t)} °C`);
-                    if (SystemStats.waterTemp > 0)
-                        parts.push(`Wasser ${Math.round(SystemStats.waterTemp)} °C`);
-                    return parts.join("  ·  ");
-                }
-                color: Colors.fgSurfaceVariant
-                font.pixelSize: 10
-                elide: Text.ElideRight
-            }
-
-            // Geraete-Akkus: am Desktop steht der erste schon in der Pille,
-            // hier stehen sie mit Namen
-            Text {
-                font.family: Config.font
-                width: parent.width
-                visible: text !== ""
-                text: {
-                    const parts = [];
-                    for (const d of Power.deviceBatteries)
-                        parts.push(`${Power.deviceName(d)} ${Math.round(d.percentage * 100)} %`);
-                    return parts.join("  ·  ");
-                }
-                color: Colors.fgSurfaceVariant
-                font.pixelSize: 10
-                elide: Text.ElideRight
-            }
-
-            Text {
-                font.family: Config.font
-                width: parent.width
-                topPadding: 2
-                visible: Power.degraded
-                text: `Leistung gedrosselt: ${Power.degradedReason}`
-                color: Colors.error
-                font.pixelSize: 10
-                elide: Text.ElideRight
+                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
             }
         }
     }

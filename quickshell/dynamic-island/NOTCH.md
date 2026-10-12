@@ -326,7 +326,7 @@ oder die Live-Activity der Notch an ist – ein einziges Binding, damit sich nic
 | Wert | Was die Leiste zeigt |
 |---|---|
 | `insel` | Alle Pillen (Standard). Cover/Pegel in der Notch nur mit `bar.notchMedia`. |
-| `notch` | Nur die Notch, angedockt an der Oberkante, im Stil von saneAspect: **schwarz** (`Appearance.notchColor`), ohne Rand und Verlauf, mit gewoelbten **Schultern** (`NotchShoulder.qml`, links/rechts *ausserhalb* der Notch-Breite, Radius 10 zu / 16 auf). Schatten erst aufgeklappt (`Surface.shadowStrength`). Eingeklappt 32 px hoch, eine breite Leiste: links Workspace-Staebchen (`NotchWorkspaces.qml`, `notch.workspaces`), mittig die Uhr, rechts Aufnahme-Punkt, Nachrichten-Zaehler (`notch.messages`) und Datum (`notch.date`). Laeuft Musik (`notch.media`), ersetzt das Cover die Workspaces und die Cava-Pegel das Datum. Beide Seiten sind gleich breit (`compactSide`), die Uhr bleibt mittig. Hover: waechst um `Appearance.notchHoverLift` nach unten und doppelt zur Seite (`growth`) statt zu skalieren. Aufgeklappt wird die Uhr 1.3x zur Ueberschrift; die Pillen im Hub sind flache Chips ohne Schatten (`Surface.nested`). Aufgeklappt: Kopfzeile mit runden Knoepfen (`NotchButton`, inline in Notch.qml: Wallpaper + Musik-Schalter links, Nachrichten-Schalter + Power rechts; aktiv = Akzent-Fuellung, Power-Hover rot), Trennlinie zwischen Datum und Hub (`panelBottom`, `hubGap`). An Fables erweiterte Einstellungen angebunden: Animationsdauern ueber `Appearance.morphDuration`/`fadeDuration` (appearance.speed), Schulter-Radius aufgeklappt = 0.8 x appearance.radius, Workspace-Staebchen = bar.workspaceCount, Uhr 12h/24h, Schatten-Schalter; notch.workspaces/notch.date nur aktiv im Notch-Layout (`requires`). Seit 2026-10-12 abends: die Pillen sind ein **eigenes Menue** (`notch.page`: `date` | `hub`) – aufgeklappt zeigt die Notch nur Kopfzeile + Datum (schmale Karte, `headerMinWidth`), der Chip `pageSwitch` unten ("Steuerung" / "Kalender") wechselt die Seite, die Karte morpht auf deren Groesse; beim Zuklappen zurueck auf `date`. Visualiser: gemeinsamer Baustein `modules/widgets/Visualizer.qml` (Medien-Pille + Notch), gespiegelt mit Bass in der Mitte, nur die unteren 70 % der Cava-Baender, Hoehen verstaerkt (`tilt`), pausiert ein gedimmter Ruhebogen statt Punkten. |
+| `notch` | Nur die Notch, angedockt an der Oberkante, im Stil von saneAspect: **schwarz** (`Appearance.notchColor`), ohne Rand und Verlauf, mit gewoelbten **Schultern** (`NotchShoulder.qml`, links/rechts *ausserhalb* der Notch-Breite, Radius 10 zu / 16 auf). Schatten erst aufgeklappt (`Surface.shadowStrength`). Eingeklappt 32 px hoch, eine breite Leiste: links Workspace-Staebchen (`NotchWorkspaces.qml`, `notch.workspaces`), mittig die Uhr, rechts Aufnahme-Punkt, Nachrichten-Zaehler (`notch.messages`) und Datum (`notch.date`). Laeuft Musik (`notch.media`), ersetzt das Cover die Workspaces und die Cava-Pegel das Datum. Beide Seiten sind gleich breit (`compactSide`), die Uhr bleibt mittig. Hover: waechst um `Appearance.notchHoverLift` nach unten und doppelt zur Seite (`growth`) statt zu skalieren. Aufgeklappt wird die Uhr 1.3x zur Ueberschrift; die Pillen im Hub sind flache Chips ohne Schatten (`Surface.nested`). Aufgeklappt: Kopfzeile mit runden Knoepfen (`NotchButton`, inline in Notch.qml: Wallpaper + Musik-Schalter links, Nachrichten-Schalter + Power rechts; aktiv = Akzent-Fuellung, Power-Hover rot), Trennlinie zwischen Datum und Hub (`panelBottom`, `hubGap`). An Fables erweiterte Einstellungen angebunden: Animationsdauern ueber `Appearance.morphDuration`/`fadeDuration` (appearance.speed), Schulter-Radius aufgeklappt = 0.8 x appearance.radius, Workspace-Staebchen = bar.workspaceCount, Uhr 12h/24h, Schatten-Schalter; notch.workspaces/notch.date nur aktiv im Notch-Layout (`requires`). |
 
 **Der Hub.** Im Notch-Layout verschwinden die anderen Pillen nicht, sie ziehen um: Bar.qml haelt sie in einem
 Wrapper-Item `pills`, dessen `parent` im Notch-Layout `notch.hub` ist (ein 40 px hohes Item unter dem
@@ -340,3 +340,28 @@ sibling") und die Settings-Pille blieb verschwunden.
 Die Anker der Pillen schalten per `bar.notchMode` um: in der Leiste haengen Tray und Settings an der
 Bildschirmmitte +/- `notch.width / 2`, im Hub bilden sie links eine Kette (Workspaces -> System -> Tray ->
 Settings), Medien und Glocke haengen rechts.
+
+
+### Uebersicht + Untermenues (Notch-Layout, Stand 2026-10-12 abends)
+
+Der Hub ist weg. Im Notch-Layout sind die Pillen der Leiste ganz aus (`pills.visible: !notchMode` in Bar.qml);
+ihre Inhalte stehen als **Untermenues** in der Notch. Das sind Launcher-Modi wie Apps/Power (`LauncherState.views`):
+
+| Ansicht | Datei | Kuerzel | Launcher |
+|---|---|---|---|
+| Uebersicht (Hover) | Notch.qml: Uhr + Glocke (Indikator), DatePanel, `NowPlayingRow`, `SystemGlance` | – | – |
+| Medien | `launcher/MediaViewPanel.qml` (MediaPanel: Player-Auswahl, Ring-Visualiser, Fortschritt) | SUPER+ALT+M | `>medien` |
+| Steuerung | `launcher/ControlPanel.qml` (Tray + `Settings { embedded: true }`) | SUPER+A | `>steuerung` |
+| Benachrichtigungen | `launcher/NotificationsPanel.qml` (Liste, Nicht stoeren, Alle loeschen) | SUPER+N | `>benachrichtigungen` |
+| System | `launcher/SystemPanel.qml` (`stats/StatsCard.qml`, auch von der StatsPill genutzt) | SUPER+I | `>system` |
+| Power | `launcher/PowerPanel.qml` | SUPER+X | `>power` |
+
+- Gemeinsame Basis `launcher/ViewPanel.qml` (Titelzeile + Inhalt, Schnittstelle wie PowerPanel).
+- **Blaettern:** `flipWheel` auf der Karte (Mausrad bzw. Kippen/Wischen, Hi-Res-Akkumulation, 280 ms Sperre).
+  Datums-Karussell und Listen nehmen ihr Rad selbst (`DatePanel.gestureArea` angedockt = Panel).
+  `LauncherState.step()` blaettert; zurueck auf die Uebersicht schliesst den Launcher und setzt `expanded`.
+- Seiten-Indikator `pager` (Punkte) unten in Uebersicht und Untermenues.
+- Kuerzel rufen `LauncherState.toggleMode()` (nochmal = zu). Untermenues nehmen keinen Exclusive-Fokus,
+  ausser beim WLAN-Passwort/BT-PIN in der Steuerung (`notch.controlTyping`).
+- Geteilte Dienste mit genau einem Binding in Bar.qml: `Cava.enabled`, `SystemStats.watching`, `Media.trackPosition`.
+- Eingeklappt: `notch.media` = Cover, neu `notch.visualizer` = Pegel (statt Datum).

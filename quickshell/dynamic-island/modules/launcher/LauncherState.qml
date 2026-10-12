@@ -20,7 +20,38 @@ Singleton {
     //   "wallpaper"  eigenes Suchfeld + Bild-Karussell (WallpaperPanel)
     //   "theme"      eigenes Suchfeld + Farb-Karussell (ThemePanel)
     //   "power"      Sitzungs- und Energieaktionen (PowerPanel)
+    //   "media"      Medien: Player-Auswahl, Cover mit Ring, Steuerung
+    //   "control"    Steuerung: Kacheln, WLAN/BT/Audio, Tray
+    //   "notifications"  Benachrichtigungsliste
+    //   "system"     Auslastung und Temperaturen
     property string mode: "apps"
+
+    // Die Ansichten, durch die man in der Notch blaettert (Mausrad kippen,
+    // Touchpad wischen). "overview" ist keine Launcher-Ansicht, sondern die
+    // Hover-Karte der Notch selbst – Blaettern dorthin schliesst den Launcher.
+    readonly property var views: ["overview", "media", "control", "notifications", "system"]
+    readonly property int viewIndex: root.open ? root.views.indexOf(root.mode) : 0
+
+    // Blaettern um `dir` (+1/-1). Liefert die neue Ansicht zurueck, damit die
+    // Notch beim Ruecksprung auf die Uebersicht wieder aufklappen kann.
+    function step(target: ShellScreen, dir: int): string {
+        const from = Math.max(0, root.viewIndex);
+        const next = Math.max(0, Math.min(root.views.length - 1, from + dir));
+        const view = root.views[next];
+        if (view === "overview")
+            root.close();
+        else
+            root.showMode(target, view);
+        return view;
+    }
+
+    // Fuer Tastenkuerzel: dieselbe Ansicht nochmal = zu
+    function toggleMode(target: ShellScreen, mode: string): void {
+        if (root.open && root.mode === mode)
+            root.close();
+        else
+            root.showMode(target, mode);
+    }
 
     function show(target: ShellScreen): void {
         root.showMode(target, "apps");
@@ -171,7 +202,24 @@ Singleton {
         }
 
         function power(): void {
-            root.showPower(root.focusedScreen());
+            root.toggleMode(root.focusedScreen(), "power");
+        }
+
+        // Untermenues der Notch (Tastenkuerzel in hypr/profiles/simple.lua)
+        function media(): void {
+            root.toggleMode(root.focusedScreen(), "media");
+        }
+
+        function control(): void {
+            root.toggleMode(root.focusedScreen(), "control");
+        }
+
+        function notifications(): void {
+            root.toggleMode(root.focusedScreen(), "notifications");
+        }
+
+        function system(): void {
+            root.toggleMode(root.focusedScreen(), "system");
         }
     }
 }

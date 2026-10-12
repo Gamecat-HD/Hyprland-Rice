@@ -28,6 +28,10 @@ Surface {
     // offen; beim Verlassen greift weiterhin der kurze Schliess-Nachlauf.
     readonly property bool containsMouse: hoverSensor.hovered || tiles.sleepMenuHovered || tiles.vpnMenuHovered
     property bool expanded: false
+    // Eingebettet in das Steuerungs-Untermenue der Notch (ControlPanel): immer
+    // aufgeklappt, ohne eigene Flaeche, kein Peek und kein Zuklappen – die
+    // Notch ist Hintergrund und entscheidet, wann die Ansicht geht.
+    property bool embedded: false
     property bool showBrightness: false
     // Hovern zieht die Pille seitlich auf und zeigt die Statuszeile
     property bool peek: false
@@ -47,6 +51,8 @@ Surface {
     }
 
     onContainsMouseChanged: {
+        if (settings.embedded)
+            return;
         if (containsMouse) {
             closeTimer.stop();
             peekClose.stop();
@@ -94,6 +100,11 @@ Surface {
     // in die Fenster-Maske, damit man die Eintraege klicken kann
     readonly property alias sleepMenu: tiles.sleepMenu
     readonly property alias vpnMenu: tiles.vpnMenu
+    // Platz, den ein offenes Dropdown unter der Karte braucht – die Notch
+    // clippt ihren Inhalt, eingebettet muss die Ansicht dafuer wachsen
+    readonly property real dropdownReserve: tiles.sleepMenuOpen ? tiles.sleepMenu.height
+                                          : tiles.vpnMenuOpen ? tiles.vpnMenu.height
+                                          : 0
 
     anchors {
         top: parent.top
@@ -122,6 +133,10 @@ Surface {
     // Eingeklappt greift die halbe Breite (Kreis), aufgeklappt cardRadius
     maxRadius: cardRadius
     clipContent: false   // muss offen sein: das Dropdown haengt unten raus
+    // Eingebettet: keine eigene Karte, die Notch ist die Flaeche
+    baseColor: settings.embedded ? "transparent" : Colors.background
+    lift: settings.embedded ? 0 : Appearance.lift
+    shadow: !settings.embedded && Appearance.shadow && !settings.nested
 
     Morph on width {}
     Morph on height {}
@@ -415,7 +430,7 @@ Surface {
 
         interval: 700
         // Waehrend eines Passworts darf die Maus rausrutschen
-        onTriggered: if (!settings.typingPassword && !BluetoothService.pairingActive)
+        onTriggered: if (!settings.embedded && !settings.typingPassword && !BluetoothService.pairingActive)
             settings.expanded = false
     }
 

@@ -63,44 +63,37 @@ Item {
     // Seitenelemente bleiben darin mittig
     readonly property real bandHeight: collapsedHeight + growth
 
-    // Der Hub: im Notch-Layout parkt Bar.qml die anderen Pillen (Workspaces,
-    // Tray, Settings, Medien, Benachrichtigungen, System) hier um – sie
-    // erscheinen, sobald die Notch aufklappt, unter dem Datumsstreifen. Es
-    // sind dieselben Instanzen wie in der Leiste, nur mit anderem `parent`;
-    // deshalb funktionieren WLAN-Passwort, Tray-Menues und Tastaturfokus
-    // weiter ueber die Referenzen in Bar.qml.
-    //
-    // Der Hub selbst bleibt immer 40 px hoch (= Leistenhoehe, die Pillen
-    // rechnen ihre Kreisgroesse aus parent.height). Klappt eine Pille darin
-    // auf, ragt sie nach unten heraus – die Karte waechst mit (hubBottom).
-    readonly property alias hub: hub
-    // Die Pillen sind ein eigenes Menue ("Steuerung"): aufgeklappt zeigt die
-    // Notch zuerst nur Kopfzeile und Datum, der Umschalter unten wechselt
-    // zwischen den Seiten. Beim Zuklappen geht es zurueck auf "date".
-    property string page: "date"
-    readonly property bool hubPage: docked && page === "hub"
+    // ---- Aufgeklappt: Uebersicht + Untermenues (Notch-Layout) ----
+    // Beim Hover zeigt die Notch nur das Wichtigste (Uebersicht): Uhr mit
+    // Glocke, Datum, "Jetzt laeuft" und kurze Systemwerte. Alles Weitere sind
+    // Untermenues – Launcher-Modi wie Apps oder Power (LauncherState.views):
+    // Medien, Steuerung, Benachrichtigungen, System. Aufruf per Tastenkuerzel
+    // (simple.lua), Launcher-Befehl (`>medien` ...) oder Blaettern mit dem
+    // Mausrad bzw. Wischen; der Seiten-Indikator unten zeigt die Position.
     readonly property bool cardShown: expanded && !launcherOpen && !authOpen
-    readonly property bool hubShown: docked && hubPage && cardShown
-    readonly property bool dateShown: cardShown && !hubPage
-    readonly property real hubMinWidth: 600
-    readonly property real hubHeight: 40
-    // Rechter Rand des breitesten Elements, setzt Bar.qml (Settings-Karte)
-    property real hubContentWidth: 0
-    readonly property real hubWidth: Math.max(hubMinWidth, hubContentWidth)
-    readonly property real hubBottom: hub.childrenRect.y + hub.childrenRect.height
-    // Unterkante der aktiven Seite, darunter sitzt der Seiten-Umschalter
+    readonly property bool overviewShown: docked && cardShown
+    readonly property real overviewInset: 14
+    readonly property real overviewWidth: Math.max(collapsedWidth, 400, panel.outerWidth + 2 * overviewInset)
     readonly property real panelBottom: collapsedHeight + clockDropMax + panel.outerHeight
-    readonly property real pageBottom: hubPage ? hub.y + hubBottom : panelBottom
-    readonly property real pageSwitchGap: 8
+    readonly property bool showNowPlaying: Media.available
+    readonly property real overviewBottom: systemGlance.y + systemGlance.height
+    // Seiten-Indikator: Punkte fuer Uebersicht + Untermenues
+    readonly property bool pagerShown: docked && (overviewShown || viewOpen)
+    readonly property real pagerSpace: 18
+
+    // Was die Bar zentral einschaltet (Bar.qml): Visualiser, Systemwerte,
+    // Medien-Position, Tastaturfokus fuers WLAN-Passwort in der Steuerung
+    readonly property bool wantsVisualizer: (overviewShown && Media.available) || mediaOpen
+    readonly property bool wantsStats: overviewShown || systemOpen
+    readonly property bool wantsMediaPosition: mediaOpen
+    readonly property bool controlTyping: controlOpen && controlView.typing
+    readonly property alias controlView: controlView
 
     // Kopfzeile der aufgeklappten Karte: runde Knoepfe links und rechts der Uhr
+    // (nur Insel-Layout; angedockt steht dort nur die Glocke)
     readonly property real headerButtonSize: 30
     readonly property real headerInset: docked ? 12 : 8
     readonly property real headerSpacing: 6
-    // Die Kopfzeile braucht Platz fuer je zwei Knoepfe links und rechts der
-    // (aufgeklappt 1.3x grossen) Uhr
-    readonly property real headerMinWidth: clock.implicitWidth * 1.3
-        + 2 * (headerInset + 2 * headerButtonSize + headerSpacing + 18)
 
     // Datums-Ansicht (per Hover) und Launcher (per Zug nach unten) teilen sich
     // dieselbe Karte – der Launcher hat Vorrang.
@@ -111,7 +104,13 @@ Item {
     readonly property bool wallpaperOpen: launcherOpen && LauncherState.mode === "wallpaper"
     readonly property bool themeOpen: launcherOpen && LauncherState.mode === "theme"
     readonly property bool powerOpen: launcherOpen && LauncherState.mode === "power"
-    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen
+    // Untermenues (siehe oben)
+    readonly property bool mediaOpen: launcherOpen && LauncherState.mode === "media"
+    readonly property bool controlOpen: launcherOpen && LauncherState.mode === "control"
+    readonly property bool notificationsOpen: launcherOpen && LauncherState.mode === "notifications"
+    readonly property bool systemOpen: launcherOpen && LauncherState.mode === "system"
+    readonly property bool viewOpen: mediaOpen || controlOpen || notificationsOpen || systemOpen
+    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen && !viewOpen
     readonly property bool authOpen: Auth.active && Auth.screen === hostScreen
     readonly property bool open: expanded || launcherOpen || authOpen
 
@@ -134,6 +133,8 @@ Item {
     // Karte aufklappt, dort sitzen dann die Knoepfe. Die Pille wird dafuer
     // auf beiden Seiten gleich breiter, die Uhr bleibt also mittig.
     readonly property bool showMedia: docked && Config.notch.media && Media.playing
+    // Pegel rechts – eigene Einstellung, unabhaengig vom Cover
+    readonly property bool showVisualizer: docked && Config.notch.visualizer && Media.playing
     readonly property real mediaArtSize: 20
     readonly property real mediaEdge: 8
 
@@ -153,27 +154,38 @@ Item {
     readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth
                                         : themeOpen ? themes.outerWidth
                                         : powerOpen ? powerMenu.outerWidth
+                                        : mediaOpen ? mediaView.outerWidth
+                                        : controlOpen ? controlView.outerWidth
+                                        : notificationsOpen ? notificationsView.outerWidth
+                                        : systemOpen ? systemView.outerWidth
                                         : launcher.outerWidth
     readonly property real launcherHeight: wallpaperOpen ? wallpapers.outerHeight
                                          : themeOpen ? themes.outerHeight
                                          : powerOpen ? powerMenu.outerHeight
+                                         : mediaOpen ? mediaView.outerHeight
+                                         : controlOpen ? controlView.outerHeight
+                                         : notificationsOpen ? notificationsView.outerHeight
+                                         : systemOpen ? systemView.outerHeight
                                          : launcher.outerHeight
 
     readonly property real expandedWidth: authOpen ? Math.max(collapsedWidth, authPanel.outerWidth)
                                                    : launcherOpen ? Math.max(collapsedWidth, launcherWidth)
-                                                   : hubPage ? Math.max(collapsedWidth, hubWidth)
-                                                   : docked ? Math.max(collapsedWidth, panel.outerWidth + 2 * headerInset, headerMinWidth)
+                                                   : docked ? overviewWidth
                                                             : Math.max(collapsedWidth, panel.outerWidth)
     readonly property real expandedHeight: authOpen ? launcherTop + authPanel.outerHeight
-                                                    : launcherOpen ? launcherTop + launcherHeight
-                                                    : docked ? pageSwitch.y + pageSwitch.height + 10
+                                                    : launcherOpen ? launcherTop + launcherHeight + (pagerShown ? pagerSpace : 0)
+                                                    : docked ? pager.y + pager.height + 10
                                                              : collapsedHeight + clockDropMax + panel.outerHeight
     // Reserve, die sich das Bar-Fenster nach unten nehmen muss (größter Fall)
-    readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight,
+    readonly property real maxDrop: Math.max(clockDropMax + panel.outerHeight + 120,
                                              launcherTop + launcher.maxOuterHeight,
                                               launcherTop + wallpapers.maxOuterHeight,
                                               launcherTop + themes.maxOuterHeight,
                                               launcherTop + powerMenu.maxOuterHeight,
+                                              launcherTop + mediaView.maxOuterHeight + pagerSpace,
+                                              launcherTop + controlView.maxOuterHeight + pagerSpace,
+                                              launcherTop + notificationsView.maxOuterHeight + pagerSpace,
+                                              launcherTop + systemView.maxOuterHeight + pagerSpace,
                                               launcherTop + authPanel.maxOuterHeight) + verticalMargin
 
     anchors.horizontalCenter: parent.horizontalCenter
@@ -199,12 +211,7 @@ Item {
     }
 
     // Beim Zuklappen wieder auf heute zurückspringen
-    onExpandedChanged: {
-        if (!expanded) {
-            panel.dayOffset = 0;
-            page = "date";
-        }
-    }
+    onExpandedChanged: if (!expanded) panel.dayOffset = 0
     // Der Launcher übernimmt die Karte: Datums-Ansicht dabei einklappen
     onLauncherOpenChanged: if (launcherOpen) expanded = false
     onAuthOpenChanged: {
@@ -376,7 +383,7 @@ Item {
 
             anchors {
                 right: parent.right
-                rightMargin: (notch.showMedia ? notch.mediaEdge + 3 : notch.compactEdge) + notch.growth
+                rightMargin: (notch.showVisualizer ? notch.mediaEdge + 3 : notch.compactEdge) + notch.growth
                 verticalCenter: clock.verticalCenter
             }
             spacing: 8
@@ -429,7 +436,7 @@ Item {
             // Wochentag und Tag, gedaempft – die Uhr bleibt der Blickfang
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: Config.notch.date && !notch.showMedia
+                visible: Config.notch.date && !notch.showVisualizer
                 text: Qt.formatDate(clock.date, "ddd d")
                 color: Colors.alpha(Colors.fgBackground, 0.55)
                 font.family: Config.font
@@ -442,7 +449,7 @@ Item {
                 id: mediaBars
 
                 anchors.verticalCenter: parent.verticalCenter
-                visible: notch.showMedia
+                visible: notch.showVisualizer
                 height: notch.mediaArtSize - 4
                 count: 5
                 barWidth: 3
@@ -521,7 +528,9 @@ Item {
         }
 
         // Wallpaper: oeffnet den Launcher direkt in der Wallpaper-Auswahl –
-        // derselbe Weg wie `>wallpaper` im Suchfeld
+        // derselbe Weg wie `>wallpaper` im Suchfeld. Nur im Insel-Layout:
+        // angedockt sind Wallpaper und Power per Kuerzel/Befehl erreichbar
+        // (nicht alles braucht einen Knopf).
         NotchButton {
             id: wallpaperButton
 
@@ -530,20 +539,9 @@ Item {
                 leftMargin: notch.headerInset
                 verticalCenter: clock.verticalCenter
             }
+            available: !notch.docked
             icon: "wallpaper_slideshow"
             onClicked: LauncherState.showWallpapers(notch.QsWindow.window.screen)
-        }
-
-        NotchButton {
-            anchors {
-                left: wallpaperButton.right
-                leftMargin: notch.headerSpacing
-                verticalCenter: clock.verticalCenter
-            }
-            available: notch.docked
-            icon: "music_note"
-            active: Config.notch.media
-            onClicked: Config.set("notch", "media", !Config.notch.media)
         }
 
         NotchButton {
@@ -554,109 +552,169 @@ Item {
                 rightMargin: notch.headerInset
                 verticalCenter: clock.verticalCenter
             }
+            available: !notch.docked
             icon: "power_settings_new"
             danger: true
             onClicked: LauncherState.showPower(notch.QsWindow.window.screen)
         }
 
-        NotchButton {
+        // ---- Uebersicht: Glocke oben rechts ----
+        // Reiner Hinweis, kein Knopf: Glocke mit Zaehler. Die Liste ist das
+        // Untermenue "Benachrichtigungen" (SUPER+N bzw. blaettern).
+        Item {
+            id: bell
+
             anchors {
-                right: powerButton.left
-                rightMargin: notch.headerSpacing
+                right: parent.right
+                rightMargin: notch.overviewInset + 4
                 verticalCenter: clock.verticalCenter
             }
-            available: notch.docked
-            icon: "notifications"
-            active: Config.notch.messages
-            onClicked: Config.set("notch", "messages", !Config.notch.messages)
-        }
-
-        // ---- Seiten-Umschalter (Notch-Layout) ----
-        // Kleiner Chip unten mittig: "Steuerung" oeffnet die Pillen-Seite,
-        // dort fuehrt "Kalender" zurueck. Die Karte morpht dabei auf die
-        // Groesse der jeweiligen Seite.
-        Item {
-            id: pageSwitch
-
-            x: (parent.width - width) / 2
-            y: notch.pageBottom + notch.pageSwitchGap
-            width: switchRow.implicitWidth + 24
-            height: 26
-            opacity: notch.docked && notch.cardShown ? 1 : 0
+            width: 22
+            height: 22
+            opacity: notch.overviewShown ? 1 : 0
             visible: opacity > 0
-            scale: switchHover.hovered ? 1.05 : 1
 
             Fade on opacity {}
-            Morph on scale {}
+
+            Text {
+                anchors.centerIn: parent
+                text: Notifications.dnd ? "notifications_off" : "notifications"
+                color: Notifications.count > 0 ? Colors.fgBackground : Colors.alpha(Colors.fgSurfaceVariant, 0.6)
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 17
+                font.variableAxes: ({ FILL: Notifications.count > 0 ? 1 : 0 })
+            }
 
             Rectangle {
-                anchors.fill: parent
+                visible: Notifications.count > 0
+                x: parent.width - width / 2 - 3
+                y: -3
+                width: Math.max(15, bellCount.implicitWidth + 7)
+                height: 15
                 radius: height / 2
-                color: switchHover.hovered ? Colors.alpha(Colors.primary, 0.2)
-                                           : Colors.alpha(Colors.fgBackground, 0.07)
-
-                Behavior on color {
-                    ColorAnimation { duration: Appearance.fadeDuration }
-                }
-            }
-
-            Row {
-                id: switchRow
-
-                anchors.centerIn: parent
-                spacing: 6
+                color: Colors.primary
 
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: notch.hubPage ? "calendar_month" : "tune"
-                    color: switchHover.hovered ? Colors.primary : Colors.fgSurfaceVariant
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 14
-                    font.variableAxes: ({ wght: 600 })
-                }
+                    id: bellCount
 
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: notch.hubPage ? "Kalender" : "Steuerung"
-                    color: switchHover.hovered ? Colors.primary : Colors.fgSurfaceVariant
+                    anchors.centerIn: parent
+                    text: Notifications.count > 9 ? "9+" : Notifications.count
+                    color: Colors.fgPrimary
                     font.family: Config.font
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
+                    font.pixelSize: 9
+                    font.weight: Font.Bold
                 }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: notch.hubPage ? "expand_less" : "expand_more"
-                    color: Colors.alpha(Colors.fgSurfaceVariant, 0.6)
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 14
-                }
-            }
-
-            HoverHandler {
-                id: switchHover
-
-                cursorShape: Qt.PointingHandCursor
-            }
-
-            TapHandler {
-                onTapped: notch.page = notch.hubPage ? "date" : "hub"
             }
         }
 
-        // ---- Hub: die umgeparkten Pillen (Notch-Layout) ----
-        Item {
-            id: hub
+        // ---- Uebersicht: Jetzt laeuft ----
+        NowPlayingRow {
+            id: nowPlaying
 
-            x: (parent.width - width) / 2
-            // Auf der Steuerungs-Seite direkt unter der Kopfzeile
-            y: notch.collapsedHeight + notch.clockDropMax + 6
-            width: notch.hubWidth
-            height: notch.hubHeight
-            opacity: notch.hubShown ? 1 : 0
+            x: notch.overviewInset
+            y: notch.panelBottom + 8
+            width: parent.width - 2 * notch.overviewInset
+            height: notch.showNowPlaying ? implicitHeight : 0
+            opacity: notch.overviewShown && notch.showNowPlaying ? 1 : 0
             visible: opacity > 0
 
             Fade on opacity {}
+        }
+
+        // ---- Uebersicht: Systemwerte ----
+        SystemGlance {
+            id: systemGlance
+
+            x: notch.overviewInset
+            y: notch.showNowPlaying ? nowPlaying.y + nowPlaying.height + 8 : notch.panelBottom + 8
+            width: parent.width - 2 * notch.overviewInset
+            opacity: notch.overviewShown ? 1 : 0
+            visible: opacity > 0
+
+            Fade on opacity {}
+        }
+
+        // ---- Seiten-Indikator ----
+        // Ein Punkt je Ansicht (LauncherState.views), der aktive breit in der
+        // Akzentfarbe. Kein Knopf – blaettern geht mit Mausrad bzw. Wischen.
+        Row {
+            id: pager
+
+            x: (parent.width - width) / 2
+            y: notch.launcherOpen ? notch.launcherTop + notch.launcherHeight + 4
+                                  : notch.overviewBottom + 12
+            height: 6
+            spacing: 5
+            opacity: notch.pagerShown ? 1 : 0
+            visible: opacity > 0
+
+            Fade on opacity {}
+
+            Repeater {
+                model: LauncherState.views.length
+
+                Rectangle {
+                    id: dot
+
+                    required property int index
+                    readonly property bool current: dot.index === LauncherState.viewIndex
+
+                    width: dot.current ? 16 : 6
+                    height: 6
+                    radius: 3
+                    color: dot.current ? Colors.primary : Colors.alpha(Colors.fgBackground, 0.22)
+
+                    Behavior on width {
+                        NumberAnimation { duration: Appearance.fadeDuration * 1.5; easing.type: Easing.OutCubic }
+                    }
+                    Behavior on color {
+                        ColorAnimation { duration: Appearance.fadeDuration }
+                    }
+                }
+            }
+        }
+
+        // ---- Blaettern: Mausrad / Wischen ----
+        // Liegt auf der ganzen Karte. Das Datums-Karussell und scrollbare
+        // Listen haben eigene WheelHandler und nehmen ihre Events selbst –
+        // hier landet nur, was sonst niemand will: senkrecht ueber Kopfzeile,
+        // Jetzt-laeuft, Systemwerten, Indikator, waagerecht fast ueberall.
+        // Hi-Res-Raeder (G502) liefern Bruchteile – aufsummieren, und nach
+        // einem Wechsel kurz sperren, damit ein Touchpad-Wisch nicht gleich
+        // mehrere Seiten weiterspringt.
+        WheelHandler {
+            id: flipWheel
+
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            enabled: notch.pagerShown
+
+            property real accum: 0
+
+            onWheel: event => {
+                event.accepted = true;
+                if (flipCooldown.running)
+                    return;
+                const angle = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y)
+                    ? event.angleDelta.x : event.angleDelta.y;
+                const pixels = Math.abs(event.pixelDelta.x) > Math.abs(event.pixelDelta.y)
+                    ? event.pixelDelta.x : event.pixelDelta.y;
+                flipWheel.accum += angle !== 0 ? angle / 120 : pixels / 60;
+                if (Math.abs(flipWheel.accum) < 1)
+                    return;
+                // Rad nach unten bzw. nach rechts wischen = naechste Ansicht
+                const dir = flipWheel.accum < 0 ? 1 : -1;
+                flipWheel.accum = 0;
+                flipCooldown.restart();
+                const view = LauncherState.step(notch.QsWindow.window.screen, dir);
+                if (view === "overview")
+                    notch.expanded = true;
+            }
+        }
+
+        Timer {
+            id: flipCooldown
+
+            interval: 280
         }
 
         // ---- Live-Activity: Cover links ----
@@ -858,14 +916,16 @@ Item {
 
             topOffset: notch.collapsedHeight + notch.clockDrop
             cardRadius: notch.cardRadius
-            gestureArea: pill                 // Mausrad gilt auf der ganzen Karte
+            // Insel: Mausrad gilt auf der ganzen Karte. Angedockt nur auf dem
+            // Streifen selbst – sonst blaettert das Rad die Ansichten
+            gestureArea: notch.docked ? panel : pill
             fadeColor: pill.baseColor
             dragEnabled: !launcherDrag.active
-            opacity: notch.dateShown ? 1 : 0
+            opacity: notch.cardShown ? 1 : 0
             // Beim Wechsel zum Launcher (oder zur Steuerungs-Seite) sofort aus
             // dem Renderpfad nehmen. So wird der Datumsstreifen nicht auf die
             // neue Kartenbreite mitanimiert.
-            visible: notch.dateShown
+            visible: notch.cardShown
 
             Behavior on opacity {
                 NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
@@ -926,6 +986,55 @@ Item {
             Behavior on opacity {
                 NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
             }
+        }
+
+        // ---- Untermenues (Notch-Layout und Insel) ----
+        MediaViewPanel {
+            id: mediaView
+
+            topOffset: notch.launcherTop
+            cardRadius: notch.cardRadius
+            active: notch.mediaOpen
+            opacity: notch.mediaOpen ? 1 : 0
+            visible: notch.mediaOpen
+
+            Fade on opacity {}
+        }
+
+        ControlPanel {
+            id: controlView
+
+            topOffset: notch.launcherTop
+            cardRadius: notch.cardRadius
+            active: notch.controlOpen
+            opacity: notch.controlOpen ? 1 : 0
+            visible: notch.controlOpen
+
+            Fade on opacity {}
+        }
+
+        NotificationsPanel {
+            id: notificationsView
+
+            topOffset: notch.launcherTop
+            cardRadius: notch.cardRadius
+            active: notch.notificationsOpen
+            opacity: notch.notificationsOpen ? 1 : 0
+            visible: notch.notificationsOpen
+
+            Fade on opacity {}
+        }
+
+        SystemPanel {
+            id: systemView
+
+            topOffset: notch.launcherTop
+            cardRadius: notch.cardRadius
+            active: notch.systemOpen
+            opacity: notch.systemOpen ? 1 : 0
+            visible: notch.systemOpen
+
+            Fade on opacity {}
         }
 
         AuthPanel {

@@ -104,12 +104,8 @@ Item {
     // auch, deshalb haengt das nicht mehr an dieser Karte allein.
 
     // Die abgelaufene Zeit muss gepollt werden (MPRIS schickt sie nicht von
-    // selbst). Auch das nur, solange die Pille da ist.
-    Binding {
-        target: Media
-        property: "trackPosition"
-        value: root.visible
-    }
+    // selbst). Das schaltet Bar.qml zentral: diese Pille ODER das
+    // Medien-Untermenue der Notch.
 
     Surface {
         id: pill
