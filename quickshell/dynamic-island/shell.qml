@@ -5,6 +5,7 @@ import QtQuick
 import Quickshell
 
 import "modules/bar"
+import "modules/osd"
 import "modules/settings"
 import "modules/window"
 
@@ -19,5 +20,6 @@ ShellRoot {
 
     Wallpaper {}
     Bar {}
+    Osd {}
     SettingsWindow {}
 }

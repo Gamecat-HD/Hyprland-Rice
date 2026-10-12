@@ -4,59 +4,135 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Automatische Helligkeitssteuerung:
-//   1. Internes Laptop-Panel ueber brightnessctl/sysfs
-//   2. Ohne Backlight-Geraet alle dynamisch erkannten DDC-Monitore
+// Helligkeitssteuerung:
+//   1. Internes Laptop-Panel ueber brightnessctl/sysfs (ein Wert fuer alles)
+//   2. Ohne Backlight-Geraet alle per DDC erkannten Monitore – JEDER EINZELN.
+//      `ddcutil detect` liefert je Display den I2C-Bus und den DRM-Connector
+//      (card1-HDMI-A-1); ueber den Connector-Namen findet das OSD den
+//      Monitor, auf dem es gerade sitzt.
+//
+// Zwei Schnittstellen:
+//   global      value / ready / setValue(v)        – alle Monitore zusammen
+//               (Settings-Karte, Helligkeitsring); `value` ist der Wert des
+//               ersten Monitors
+//   je Monitor  valueFor(name) / readyFor(name) / setValueFor(name, v)
+//               `monitors` ist { name: { bus, value, ready } } und wird bei
+//               jeder Aenderung als neues Objekt gesetzt (sonst merkt QML
+//               nichts).
 Singleton {
     id: root
 
     property real value: 1
     property bool ready: false
-    property int pendingPercent: 100
-    property int activePercent: -1
     property string backend: ""
     property string backlightDevice: ""
+    // Busnummern nur aus ddcutil, beim Parsen auf Ziffern reduziert
     property var ddcBuses: []
+    // Connector-Name -> { bus, value, ready }
+    property var monitors: ({})
+
+    // Ausstehende Schreibwerte je Bus (Prozent), gesammelt und gebuendelt
+    property var pending: ({})
+    property int backlightPending: 100
+    property int backlightActive: -1
 
     readonly property int percent: Math.round(value * 100)
 
+    // ---- je Monitor ----
+    function valueFor(name: string): real {
+        return root.monitors[name]?.value ?? root.value;
+    }
+
+    function readyFor(name: string): bool {
+        return root.monitors[name]?.ready ?? root.ready;
+    }
+
+    function setValueFor(name: string, newValue: real): void {
+        const clamped = Math.max(0, Math.min(1, newValue));
+        if (root.backend !== "ddc" || !root.monitors[name]) {
+            root.setValue(clamped);
+            return;
+        }
+        const next = Object.assign({}, root.monitors);
+        next[name] = Object.assign({}, next[name], { value: clamped });
+        root.monitors = next;
+        root.queueWrite(next[name].bus, Math.round(clamped * 100));
+        root.syncGlobal();
+    }
+
+    // ---- global ----
     function setValue(newValue: real): void {
         if (!root.ready)
             return;
         const clamped = Math.max(0, Math.min(1, newValue));
         root.value = clamped;
-        root.pendingPercent = Math.round(clamped * 100);
+        if (root.backend === "backlight") {
+            root.backlightPending = Math.round(clamped * 100);
+            writeTimer.restart();
+            return;
+        }
+        const next = {};
+        for (const name in root.monitors) {
+            next[name] = Object.assign({}, root.monitors[name], { value: clamped });
+            root.queueWrite(next[name].bus, Math.round(clamped * 100));
+        }
+        root.monitors = next;
+    }
+
+    function syncGlobal(): void {
+        const names = Object.keys(root.monitors);
+        if (names.length === 0)
+            return;
+        const first = root.monitors[names[0]];
+        if (first.ready) {
+            root.value = first.value;
+            root.ready = true;
+        }
+    }
+
+    function queueWrite(bus: string, percent: int): void {
+        const next = Object.assign({}, root.pending);
+        next[bus] = percent;
+        root.pending = next;
         writeTimer.restart();
     }
 
     function startQuery(): void {
         if (queryProcess.running || root.backend === "")
             return;
-        if (root.backend === "backlight")
+        if (root.backend === "backlight") {
             queryProcess.command = ["brightnessctl", "--device", root.backlightDevice,
                                     "--machine-readable", "info"];
-        else
-            queryProcess.command = ["ddcutil", "--bus", root.ddcBuses[0],
-                                    "getvcp", "10", "--brief"];
+        } else {
+            // Alle Busse in einem Rutsch, je Bus eine Kopfzeile zum Zuordnen
+            const script = root.ddcBuses.map(bus =>
+                `echo "BUS ${bus}"; ddcutil --bus ${bus} getvcp 10 --brief 2>/dev/null`).join("; ");
+            queryProcess.command = ["sh", "-c", script];
+        }
         queryProcess.running = true;
     }
 
     function flushWrite(): void {
-        if (writeProcess.running || !root.ready)
+        if (writeProcess.running)
             return;
 
-        root.activePercent = root.pendingPercent;
-        const percent = root.activePercent.toString() + "%";
         if (root.backend === "backlight") {
+            if (!root.ready)
+                return;
+            root.backlightActive = root.backlightPending;
             writeProcess.command = ["brightnessctl", "--device", root.backlightDevice,
-                                    "set", percent];
-        } else {
-            // Die Busnummern stammen ausschliesslich aus ddcutil und werden
-            // beim Parsen auf Ziffern reduziert.
-            const commands = root.ddcBuses.map(bus =>
-                `ddcutil --bus ${bus} setvcp 10 ${root.activePercent} --noverify`).join(" & ");
-            writeProcess.command = ["sh", "-c", commands + " & wait"];
+                                    "set", root.backlightActive + "%"];
+            writeProcess.running = true;
+            return;
         }
+
+        const buses = Object.keys(root.pending);
+        if (buses.length === 0)
+            return;
+        const commands = buses.map(bus =>
+            `ddcutil --bus ${bus} setvcp 10 ${root.pending[bus]} --noverify`).join(" & ");
+        root.pending = ({});
+        writeProcess.command = ["sh", "-c", commands + " & wait"];
         writeProcess.running = true;
     }
 
@@ -98,13 +174,25 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 const buses = [];
-                const pattern = /\/dev\/i2c-(\d+)/g;
+                const found = {};
+                // Je Display: erst der Bus, dann der Connector (card1-HDMI-A-1)
+                const pattern = /I2C bus:\s+\/dev\/i2c-(\d+)[\s\S]*?DRM connector:\s+card\d+-([A-Za-z0-9-]+)/g;
                 let match;
                 while ((match = pattern.exec(this.text)) !== null) {
+                    const bus = match[1];
+                    const name = match[2];
+                    if (!buses.includes(bus))
+                        buses.push(bus);
+                    found[name] = { bus, value: 1, ready: false };
+                }
+                // Busse ohne Connector-Zeile (aeltere ddcutil-Ausgabe) trotzdem mitnehmen
+                const loose = /\/dev\/i2c-(\d+)/g;
+                while ((match = loose.exec(this.text)) !== null) {
                     if (!buses.includes(match[1]))
                         buses.push(match[1]);
                 }
                 root.ddcBuses = buses;
+                root.monitors = found;
             }
         }
 
@@ -121,27 +209,48 @@ Singleton {
 
         stdout: StdioCollector {
             onStreamFinished: {
-                let current = -1;
-                let maximum = 100;
-
                 if (root.backend === "backlight") {
                     const fields = this.text.trim().split(",");
                     const percentField = fields.find(field => field.endsWith("%"));
-                    if (percentField)
-                        current = parseInt(percentField);
-                } else {
-                    const match = this.text.match(/VCP 10 C (\d+) (\d+)/);
-                    if (match) {
-                        current = parseInt(match[1]);
-                        maximum = parseInt(match[2]);
-                    }
+                    const current = percentField ? parseInt(percentField) : -1;
+                    if (current < 0)
+                        return;
+                    root.value = current / 100;
+                    root.backlightPending = root.percent;
+                    root.ready = true;
+                    return;
                 }
 
-                if (current < 0 || maximum <= 0)
-                    return;
-                root.value = root.backend === "backlight" ? current / 100 : current / maximum;
-                root.pendingPercent = root.percent;
-                root.ready = true;
+                // Bloecke "BUS n" + "VCP 10 C cur max"
+                const next = Object.assign({}, root.monitors);
+                let bus = "";
+                for (const line of this.text.split("\n")) {
+                    const head = line.match(/^BUS (\d+)/);
+                    if (head) {
+                        bus = head[1];
+                        continue;
+                    }
+                    const vcp = line.match(/VCP 10 C (\d+) (\d+)/);
+                    if (!vcp || bus === "")
+                        continue;
+                    const current = parseInt(vcp[1]);
+                    const maximum = parseInt(vcp[2]);
+                    if (maximum <= 0)
+                        continue;
+                    // Monitor zu diesem Bus; gibt es keinen bekannten, unter dem Bus fuehren
+                    let name = Object.keys(next).find(n => next[n].bus === bus);
+                    if (!name) {
+                        name = "bus-" + bus;
+                        next[name] = { bus, value: 1, ready: false };
+                    }
+                    // Waehrend ein Schreibvorgang aussteht, den Lesewert nicht
+                    // drueberbuegeln – der Regler wuerde sonst springen
+                    if (root.pending[bus] !== undefined || writeProcess.running)
+                        continue;
+                    next[name] = Object.assign({}, next[name], { value: current / maximum, ready: true });
+                }
+                root.monitors = next;
+                root.syncGlobal();
             }
         }
     }
@@ -150,15 +259,21 @@ Singleton {
         id: writeProcess
 
         onExited: {
-            if (root.pendingPercent !== root.activePercent)
+            if (root.backend === "backlight") {
+                if (root.backlightPending !== root.backlightActive)
+                    writeTimer.restart();
+                else
+                    settleTimer.restart();
+            } else if (Object.keys(root.pending).length > 0) {
                 writeTimer.restart();
-            else
+            } else {
                 settleTimer.restart();
+            }
         }
     }
 
     Timer {
-        interval: 5000
+        interval: 8000
         running: true
         repeat: true
         onTriggered: if (!writeProcess.running && !writeTimer.running && !settleTimer.running)

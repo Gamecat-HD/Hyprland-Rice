@@ -54,5 +54,15 @@ Singleton {
         function close(): void {
             root.close();
         }
+
+        // Fuer SUPER + C (profiles/simple.lua): war das Fenster offen, wird es
+        // geschlossen und "true" gemeldet – sonst "false", und die Taste
+        // schliesst wie gewohnt das aktive Fenster.
+        function dismiss(): bool {
+            if (!root.open)
+                return false;
+            root.close();
+            return true;
+        }
     }
 }

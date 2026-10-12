@@ -28,6 +28,8 @@ Singleton {
     readonly property alias appearance: adapter.appearance
     readonly property alias vpn: adapter.vpn
     readonly property alias notch: adapter.notch
+    readonly property alias quick: adapter.quick
+    readonly property alias osd: adapter.osd
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -118,14 +120,37 @@ Singleton {
             min: 8, max: 28, step: 1, unit: "px"
         },
         "appearance.shadow": { title: "Schatten", desc: "Weicher Schatten unter Pillen und Karten" },
-        "appearance.clock": { title: "Uhrzeit", desc: "Anzeigeformat der Uhr in der Notch", options: ["24h", "12h"] }
+        "appearance.clock": { title: "Uhrzeit", desc: "Anzeigeformat der Uhr in der Notch", options: ["24h", "12h"] },
+        // `editor` statt Bedienelement: das Menue laedt dafuer einen eigenen
+        // Editor (modules/settings/QuickLayoutEditor.qml)
+        // Regler am rechten Rand (modules/osd)
+        "osd.enabled": { title: "Regler am rechten Rand", desc: "Lautstärke und Helligkeit, mittig an der rechten Bildschirmkante" },
+        "osd.hover": { title: "Beim Hovern zeigen", desc: "Maus an den rechten Rand in der Bildschirmmitte", requires: "osd.enabled" },
+        "osd.brightness": { title: "Helligkeitsregler", desc: "Zweiter Regler unter der Lautstärke", requires: "osd.enabled" },
+        "osd.hideDelay": {
+            title: "Einblenddauer",
+            desc: "Wie lange die Regler nach einer Änderung sichtbar bleiben",
+            min: 1, max: 10, step: 1, unit: "s", requires: "osd.enabled"
+        },
+        "quick.columns": {
+            title: "Raster",
+            desc: "Spalten des Kachel-Rasters; eine Kachel kann mehrere belegen",
+            min: 2, max: 6, step: 1
+        },
+        "quick.rows": {
+            title: "Aufbau der Karte",
+            desc: "Kacheln ziehen: umsortieren, neue Reihe, ausblenden. Am rechten Rand ziehen: breiter oder schmaler",
+            editor: "quick"
+        }
     })
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "notch", "appearance", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
+        "quick": "dashboard_customize",
+        "osd": "volume_up",
         "notch": "web_asset",
         "appearance": "palette",
         "notifications": "notifications",
@@ -134,6 +159,8 @@ Singleton {
 
     readonly property var sectionMeta: ({
         "bar": "Leiste",
+        "quick": "Schnelleinstellungen",
+        "osd": "Regler am Rand",
         "notifications": "Benachrichtigungen",
         "vpn": "VPN",
         "appearance": "Darstellung",
@@ -159,8 +186,14 @@ Singleton {
             out[section] = {};
             for (const key in group) {
                 const v = group[key];
-                if (key === "objectName" || typeof v === "function" || (typeof v === "object" && v !== null))
+                if (key === "objectName" || typeof v === "function")
                     continue;
+                // Listen (list<string>) kopieren, andere Objekte ueberspringen
+                if (typeof v === "object" && v !== null) {
+                    if (v.length !== undefined)
+                        out[section][key] = Array.prototype.slice.call(v);
+                    continue;
+                }
                 out[section][key] = v;
             }
         }
@@ -169,7 +202,11 @@ Singleton {
 
     function isDefault(section: string, key: string): bool {
         const d = root.defaults[section]?.[key];
-        return d === undefined || d === root.raw[section]?.[key];
+        if (d === undefined)
+            return true;
+        const v = root.raw[section]?.[key];
+        // Listen inhaltlich vergleichen
+        return typeof d === "object" ? JSON.stringify(d) === JSON.stringify(v) : d === v;
     }
 
     function reset(section: string, key: string): void {
@@ -321,6 +358,34 @@ Singleton {
                 property bool media: true
                 property bool visualizer: true
                 property bool messages: true
+            }
+
+            // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine
+            // Reihe, Kachel-IDs mit Komma getrennt (siehe QuickLayout.qml).
+            // Was hier fehlt, ist ausgeblendet.
+            // Regler am rechten Bildschirmrand (modules/osd/Osd.qml)
+            property JsonObject osd: JsonObject {
+                property bool enabled: true
+                property bool hover: true
+                property bool brightness: true
+                // Sekunden nach einer Aenderung
+                property int hideDelay: 2
+            }
+
+            // Aufbau der Schnelleinstellungen: ein Raster mit `columns` Spalten,
+            // je Eintrag eine Reihe, Kacheln als "id:breite" (Breite in
+            // Spalten). Was fehlt, ist ausgeblendet. Siehe QuickLayout.qml.
+            property JsonObject quick: JsonObject {
+                property int columns: 4
+                property list<string> rows: [
+                    "wifi:2,bluetooth:2",
+                    "vpn:2,nosleep:2",
+                    "gamemode:2,settings:2",
+                    "record:4",
+                    "volume:4",
+                    "mic:4",
+                    "brightness:4"
+                ]
             }
         }
     }

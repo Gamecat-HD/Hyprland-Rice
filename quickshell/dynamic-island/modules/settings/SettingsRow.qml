@@ -28,6 +28,8 @@ Item {
     readonly property bool isNumber: typeof row.entry?.value === "number"
                                      && row.entry?.min !== undefined && row.entry?.max !== undefined
     readonly property bool isChoice: !row.isBool && !row.isNumber && Array.isArray(row.entry?.options)
+    // Eigener Editor statt Bedienelement (meta.editor), z.B. der Kachel-Aufbau
+    readonly property bool isEditor: (row.entry?.editor ?? "") !== ""
     // Schrift-Auswahl: jede Option in ihrer eigenen Schrift zeigen und nur
     // anbieten, was auch installiert ist
     readonly property bool isFont: row.isChoice && String(row.entry?.key ?? "").toLowerCase().includes("font")
@@ -89,6 +91,7 @@ Item {
 
     implicitHeight: (row.section !== "" ? row.headerHeight : 0) + 52
                     + (row.expanded ? choiceFlow.implicitHeight + 12 : 0)
+                    + (row.isEditor ? editorLoader.implicitHeight + 14 : 0)
 
     Behavior on implicitHeight {
         NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -281,7 +284,7 @@ Item {
                     rightMargin: 14
                     verticalCenter: parent.verticalCenter
                 }
-                width: row.isBool ? 40 : row.isNumber ? numberControl.width : valueRow.width
+                width: row.isBool ? 40 : row.isNumber ? numberControl.width : row.isEditor ? 0 : valueRow.width
                 height: 28
 
                 // Schalter fuer Wahrheitswerte
@@ -414,7 +417,8 @@ Item {
                     id: valueRow
 
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: !row.isBool && !row.isNumber
+                    // Ein Editor zeigt den Rohwert nicht – der steht in ihm selbst
+                    visible: !row.isBool && !row.isNumber && !row.isEditor
                     spacing: 4
 
                     Text {
@@ -440,6 +444,27 @@ Item {
                     }
                 }
             }
+        }
+
+        // Eigener Editor unter der Zeile (meta.editor)
+        Loader {
+            id: editorLoader
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: line.bottom
+                leftMargin: 14
+                rightMargin: 14
+            }
+            active: row.isEditor
+            sourceComponent: row.entry?.editor === "quick" ? quickEditor : null
+        }
+
+        Component {
+            id: quickEditor
+
+            QuickLayoutEditor {}
         }
 
         // Die Optionen einer Auswahl als Chips

@@ -68,7 +68,7 @@ Variants {
         exclusionMode: ExclusionMode.Ignore
         color: "transparent"
 
-        implicitWidth: 820 + inset * 2
+        implicitWidth: 880 + inset * 2
         implicitHeight: 580 + inset * 2
 
         onVisibleChanged: {
@@ -107,7 +107,7 @@ Variants {
                     top: parent.top
                     bottom: parent.bottom
                 }
-                width: 200
+                width: 236
 
                 Rectangle {
                     anchors.fill: parent
@@ -588,6 +588,9 @@ Variants {
                     clip: true
                     spacing: 2
                     boundsBehavior: Flickable.StopAtBounds
+                    // Nicht per Ziehen scrollen: sonst klaut die Liste den
+                    // Drag-and-Drop-Editoren ihre Geste. Das Mausrad reicht.
+                    interactive: false
 
                     model: ScriptModel {
                         values: {
@@ -626,7 +629,8 @@ Variants {
                                         max: meta?.max,
                                         step: meta?.step,
                                         unit: meta?.unit ?? "",
-                                        requires: meta?.requires ?? null
+                                        requires: meta?.requires ?? null,
+                                        editor: meta?.editor ?? ""
                                     };
 
                                     if (needle === ""

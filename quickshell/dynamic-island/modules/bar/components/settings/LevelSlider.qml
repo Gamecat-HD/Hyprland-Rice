@@ -4,6 +4,17 @@ import QtQuick
 import qs
 import qs.modules.services.config
 
+// Regler-Kachel im Android-Stil: die ganze Kachel ist die Spur. Von links
+// fuellt sie sich in der Akzentfarbe, darueber liegen Symbol, Titel und
+// Prozentzahl – auf der Fuellung in der Akzent-Vordergrundfarbe, daneben in
+// Neutral (zwei Textlagen, die obere auf die Fuellbreite geclippt).
+//
+//   Ziehen / Klicken   setzt den Wert (Signal `adjusted`)
+//   Mausrad            5 % rauf oder runter
+//   Pfeil rechts       `detailsRequested` (z.B. Audio-Panel), wenn
+//                      detailsAvailable
+//   Symbol links       `iconClicked` (z.B. stummschalten), wenn
+//                      iconClickable – die Zone setzt dann keinen Wert
 Rectangle {
     id: root
 
@@ -13,80 +24,215 @@ Rectangle {
     property color accent: Colors.primary
     property color foreground: Colors.fgPrimary
     property bool detailsAvailable: false
+    property bool iconClickable: false
 
     signal adjusted(real value)
     signal detailsRequested()
+    signal iconClicked()
 
-    implicitHeight: 58
-    radius: 14
-    color: cardHover.hovered ? Colors.shade(Colors.background, 0.075)
-                             : Colors.shade(Colors.background, 0.05)
-    border.width: 1
-    border.color: cardHover.hovered ? Colors.alpha(root.accent, 0.45)
-                                    : Colors.alpha(Colors.outlineVariant, 0.55)
+    readonly property real fillWidth: width * Math.max(0, Math.min(1, root.value))
+    readonly property real detailsReserve: root.detailsAvailable ? 40 : 0
+    readonly property real iconReserve: root.iconClickable ? 50 : 0
 
-    Behavior on color {
-        ColorAnimation { duration: 120 }
-    }
-
-    Behavior on border.color {
-        ColorAnimation { duration: 120 }
-    }
+    implicitHeight: 54
+    radius: height / 2
+    color: Colors.alpha(Colors.fgSurface, 0.08)
+    clip: true
 
     function adjustAt(x: real): void {
-        root.adjusted(Math.max(0, Math.min(1, x / sliderArea.width)));
+        root.adjusted(Math.max(0, Math.min(1, x / root.width)));
     }
 
-    HoverHandler {
-        id: cardHover
+    // ---- Fuellung ----
+    Rectangle {
+        width: root.fillWidth
+        height: parent.height
+        radius: root.radius
+        color: root.accent
+
+        Behavior on width {
+            enabled: !inputArea.pressed
+            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+        }
+        Behavior on color {
+            ColorAnimation { duration: 140 }
+        }
     }
 
-    Text {
-        font.family: Config.font
+    // Hover-Schleier
+    Rectangle {
+        anchors.fill: parent
+        radius: root.radius
+        color: Colors.alpha(Colors.fgSurface, inputArea.containsMouse ? 0.05 : 0)
+
+        Behavior on color {
+            ColorAnimation { duration: 120 }
+        }
+    }
+
+    // ---- Beschriftung, Lage 1: neutral ----
+    component Label: Item {
+        id: label
+
+        property color fg: Colors.fgBackground
+        property color fgDim: Colors.fgSurfaceVariant
+
+        // Immer so gross wie die ganze Kachel – auch in der geclippten Lage,
+        // sonst rutscht die Prozentzahl an die Fuellkante und steht doppelt da
+        width: root.width
+        height: root.height
+
+        Text {
+            id: labelIcon
+
+            anchors {
+                left: parent.left
+                leftMargin: 16
+                verticalCenter: parent.verticalCenter
+            }
+            text: root.icon
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 22
+            color: label.fg
+        }
+
+        Text {
+            font.family: Config.font
+            anchors {
+                left: labelIcon.right
+                leftMargin: 12
+                verticalCenter: parent.verticalCenter
+            }
+            text: root.title
+            font.pixelSize: 13
+            font.weight: Font.DemiBold
+            color: label.fg
+        }
+
+        Text {
+            font.family: Config.font
+            anchors {
+                right: parent.right
+                rightMargin: 16 + root.detailsReserve
+                verticalCenter: parent.verticalCenter
+            }
+            // Anzeige immer 0-100, egal was der Dienst gerade liefert
+            text: `${Math.round(Math.max(0, Math.min(1, root.value)) * 100)} %`
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            color: label.fgDim
+        }
+    }
+
+    Label {}
+
+    // ---- Beschriftung, Lage 2: auf der Fuellung, geclippt ----
+    Item {
+        width: root.fillWidth
+        height: parent.height
+        clip: true
+
+        Behavior on width {
+            enabled: !inputArea.pressed
+            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+        }
+
+        Label {
+            fg: root.foreground
+            fgDim: Colors.alpha(root.foreground, 0.8)
+        }
+    }
+
+    MouseArea {
+        id: inputArea
+
         anchors {
-            top: parent.top
-            topMargin: 7
             left: parent.left
-            leftMargin: 12
+            right: parent.right
+            top: parent.top
+            bottom: parent.bottom
+            rightMargin: root.detailsReserve
+            leftMargin: root.iconReserve
         }
-        text: root.title
-        font.pixelSize: 12
-        font.weight: Font.DemiBold
-        color: Colors.fgBackground
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        preventStealing: true
+        onPressed: mouse => root.adjustAt(mouse.x)
+        onPositionChanged: mouse => {
+            if (pressed)
+                root.adjustAt(mouse.x);
+        }
     }
 
-    Text {
-        id: percentText
-        font.family: Config.font
+    // Eigene Klickflaeche fuer das Symbol, ueber beiden Beschriftungslagen
+    MouseArea {
+        id: iconArea
 
         anchors {
+            left: parent.left
             top: parent.top
-            topMargin: 7
-            right: parent.right
-            rightMargin: root.detailsAvailable ? 36 : 12
+            bottom: parent.bottom
         }
-        text: `${Math.round(root.value * 100)}%`
-        font.pixelSize: 11
-        color: Colors.fgSurfaceVariant
+        width: root.iconReserve
+        visible: root.iconClickable
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.iconClicked()
+
+        Rectangle {
+            anchors.centerIn: parent
+            anchors.horizontalCenterOffset: 3
+            width: 36
+            height: 36
+            radius: height / 2
+            color: Colors.alpha(Colors.fgSurface, iconArea.containsMouse ? 0.12 : 0)
+
+            Behavior on color {
+                ColorAnimation { duration: 120 }
+            }
+        }
     }
 
+    WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+        property real acc: 0
+
+        onWheel: event => {
+            acc += event.angleDelta.y;
+            if (Math.abs(acc) >= 120) {
+                const base = Math.max(0, Math.min(1, root.value));
+                root.adjusted(Math.max(0, Math.min(1, base + (acc > 0 ? 0.05 : -0.05))));
+                acc = 0;
+            }
+            event.accepted = true;
+        }
+    }
+
+    // ---- Pfeil zu den Details (Audio-Panel) ----
     Rectangle {
         anchors {
             right: parent.right
-            rightMargin: 6
-            top: parent.top
-            topMargin: 3
+            rightMargin: 10
+            verticalCenter: parent.verticalCenter
         }
-        width: 26
-        height: 26
-        radius: 13
+        width: 34
+        height: 34
+        radius: 17
         visible: root.detailsAvailable
-        color: detailsArea.containsMouse ? Colors.alpha(root.accent, 0.16) : "transparent"
+        // Liegt der Pfeil schon auf der Fuellung, Knopf in der Vordergrundfarbe
+        readonly property bool onFill: root.fillWidth > root.width - 44
+        color: detailsArea.containsMouse ? Colors.alpha(onFill ? root.foreground : Colors.fgSurface, 0.3)
+                                         : Colors.alpha(onFill ? root.foreground : Colors.fgSurface, 0.14)
+
+        Behavior on color {
+            ColorAnimation { duration: 120 }
+        }
 
         Text {
             anchors.centerIn: parent
             text: "chevron_right"
-            color: detailsArea.containsMouse ? root.accent : Colors.fgSurfaceVariant
+            color: parent.onFill ? root.foreground : Colors.fgBackground
             font.family: "Material Symbols Outlined"
             font.pixelSize: 18
         }
@@ -98,74 +244,6 @@ Rectangle {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: root.detailsRequested()
-        }
-    }
-
-    Item {
-        id: sliderArea
-
-        anchors {
-            left: parent.left
-            leftMargin: 10
-            right: parent.right
-            rightMargin: 10
-            bottom: parent.bottom
-            bottomMargin: 7
-        }
-        height: 18
-
-        Rectangle {
-            id: track
-
-            anchors {
-                left: parent.left
-                right: parent.right
-                verticalCenter: parent.verticalCenter
-            }
-            height: 16
-            radius: height / 2
-            color: Colors.alpha(Colors.fgSurface, 0.16)
-
-            Rectangle {
-                width: parent.width * Math.max(0, Math.min(1, root.value))
-                height: parent.height
-                radius: parent.radius
-                color: root.accent
-            }
-
-            Text {
-                anchors {
-                    left: parent.left
-                    leftMargin: 7
-                    verticalCenter: parent.verticalCenter
-                }
-                text: root.icon
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 12
-                color: root.value >= 0.08 ? root.foreground : Colors.fgSurfaceVariant
-            }
-        }
-
-        MouseArea {
-            id: inputArea
-
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onPressed: mouse => root.adjustAt(mouse.x)
-            onPositionChanged: mouse => {
-                if (pressed)
-                    root.adjustAt(mouse.x);
-            }
-        }
-
-        WheelHandler {
-            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-            onWheel: event => {
-                root.adjusted(Math.max(0, Math.min(1,
-                    root.value + (event.angleDelta.y >= 0 ? 0.05 : -0.05))));
-                event.accepted = true;
-            }
         }
     }
 }

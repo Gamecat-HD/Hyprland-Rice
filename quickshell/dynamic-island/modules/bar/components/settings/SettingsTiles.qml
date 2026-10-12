@@ -3,11 +3,13 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.UPower
 
 import qs.modules.services.audio
 import qs.modules.services.bluetooth
 import qs.modules.services.brightness
 import qs.modules.services.record
+import qs.modules.services.system
 import qs.modules.services.vpn
 
 import qs.modules.settings
@@ -16,11 +18,16 @@ import qs
 import qs.modules.services.config
 
 // Kacheln fuer das aufgeklappte Settings-Feld (Vorlage: Control-Center).
-// Zwei Reihen: [Wi-Fi, Bluetooth] / [VPN, No-Sleep] als Pillen, rechts
-// daneben Game-Mode und Nicht-stoeren als Kreise. Die No-Sleep-Pille traegt
-// einen Dauer-Dropdown (Standard: nichts gewaehlt = unbegrenzt); das Menue
-// haengt aus der Karte heraus, Bar.qml haelt es in der Eingabe-Maske offen
-// und Settings.zaehlt seinen Hover zur Karte dazu.
+//
+// WELCHE Kacheln in WELCHER Reihe stehen, sagt QuickLayout.rows (aus
+// Config.quick.rows, im Einstellungs-Menue per Drag and Drop zusammen-
+// gestellt). Jede Kachel ist hier eine Component; ein Loader je Platz baut
+// sie nach der Reihenfolge auf. Pillen teilen sich die Reihe, Kreise sind
+// 54 px, breite Kacheln (Aufnahme, Regler) stehen allein.
+//
+// Die No-Sleep-Pille traegt einen Dauer-Dropdown (Standard: nichts gewaehlt
+// = unbegrenzt); das Menue haengt aus der Karte heraus, Bar.qml haelt es in
+// der Eingabe-Maske offen und Settings zaehlt seinen Hover zur Karte dazu.
 //
 // Hintergruenge zu den Aktionen:
 //   - WLAN/Bluetooth: nmcli bzw. bluetoothctl, Status per Polling
@@ -35,6 +42,16 @@ ColumnLayout {
     id: root
 
     spacing: 10
+
+    // Raster: `unit` ist eine Spalte breit, eine Kachel belegt `span` davon
+    // (plus die Luecken dazwischen). Reihen mit weniger belegten Spalten
+    // bleiben rechts frei – so sieht man im Editor, wo noch Platz ist.
+    readonly property real gridSpacing: 10
+    readonly property real unit: (root.width - root.gridSpacing * (QuickLayout.columns - 1)) / QuickLayout.columns
+
+    function cellWidth(span: int): real {
+        return root.unit * span + root.gridSpacing * (span - 1);
+    }
 
     // Der Pfeil auf der Wi-Fi-Pille fuehrt in die Netzliste; die Karte
     // (Settings.qml) schaltet daraufhin ihre Ansicht um.
@@ -58,15 +75,32 @@ ColumnLayout {
 
     // Dropdown-Zustand der No-Sleep-Pille (das Menue haengt aus der Karte
     // heraus und wird ueber Settings/Bar in die Eingabe-Maske gehaengt)
+    // Die Menue-Panels leben in den Kachel-Components; die Kacheln melden sie
+    // beim Aufbau hier an (null, solange die Kachel ausgeblendet ist).
     property bool sleepMenuOpen: false
-    readonly property alias sleepMenu: sleepMenuPanel
+    property Item sleepMenu: null
     // Maus ueber dem herausragenden Menue – Settings muss das kennen, sonst
     // klappt die Karte unter der Maus zu, sobald man ins Menue faehrt
-    readonly property alias sleepMenuHovered: sleepMenuHover.hovered
+    property bool sleepMenuHovered: false
 
     property bool vpnMenuOpen: false
-    readonly property alias vpnMenu: vpnMenuPanel
-    readonly property alias vpnMenuHovered: vpnMenuHover.hovered
+    property Item vpnMenu: null
+    property bool vpnMenuHovered: false
+
+    // Kachel-ID -> Component (siehe QuickLayout.tiles fuer die IDs)
+    readonly property var tileComponents: ({
+        "wifi": wifiComponent,
+        "bluetooth": bluetoothComponent,
+        "vpn": vpnComponent,
+        "nosleep": noSleepComponent,
+        "gamemode": gameModeComponent,
+        "settings": settingsComponent,
+        "record": recordComponent,
+        "volume": volumeComponent,
+        "mic": micComponent,
+        "power": powerComponent,
+        "brightness": brightnessComponent
+    })
 
     Component.onCompleted: {
         wifiPoll.running = true;
@@ -235,44 +269,70 @@ ColumnLayout {
         property bool tapEnabled: true
         signal toggled()
 
-        Layout.fillWidth: true
+        // Schmale Zelle (eine Rasterspalte): nur das Symbol, mittig; Texte,
+        // Pfeile und Zusatzknoepfe sind dann weg – wie im Android-Tray
+        readonly property bool compact: width < 150
+
+        // Android-Tray: aktiv = die ganze Kachel in der Akzentfarbe, inaktiv
+        // = neutrale Flaeche. Alles darauf (Texte, Pfeile, Knoepfe) nimmt die
+        // passende Vordergrundfarbe – die Zusatzknoepfe holen sie sich hier.
+        readonly property color fg: tile.active ? tile.onAccent : Colors.fgBackground
+        readonly property color fgDim: tile.active ? Colors.alpha(tile.onAccent, 0.78) : Colors.fgSurfaceVariant
+        readonly property color controlColor: tile.active ? Colors.alpha(tile.onAccent, 0.18) : Colors.alpha(Colors.fgSurface, 0.1)
+        readonly property color controlHover: tile.active ? Colors.alpha(tile.onAccent, 0.3) : Colors.alpha(Colors.fgSurface, 0.18)
+
         implicitHeight: 54
         radius: height / 2
-        color: Colors.shade(Colors.background, 0.05)
+        color: tile.active ? tile.accent : Colors.alpha(Colors.fgSurface, 0.08)
+
+        Behavior on color {
+            ColorAnimation { duration: 140 }
+        }
+
+        // Hover-Schleier
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Colors.alpha(tile.fg, tileHover.hovered ? 0.06 : 0)
+
+            Behavior on color {
+                ColorAnimation { duration: 120 }
+            }
+        }
 
         RowLayout {
             anchors.fill: parent
             anchors.margins: 10
+            anchors.leftMargin: tile.compact ? (tile.width - 28) / 2 : 16
             spacing: 12
 
-            Rectangle {
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
-                radius: 18
-                color: tile.active ? tile.accent : Colors.alpha(Colors.fgSurface, 0.08)
-
-                Behavior on color {
-                    ColorAnimation { duration: 140 }
-                }
+            Item {
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
 
                 Text {
                     anchors.centerIn: parent
 
                     text: tile.icon
                     font.family: "Material Symbols Outlined"
-                    font.pixelSize: 19
+                    font.pixelSize: 22
                     color: tile.active ? tile.onAccent : Colors.fgSurfaceVariant
+
+                    Behavior on color {
+                        ColorAnimation { duration: 140 }
+                    }
                 }
             }
 
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 1
+                visible: !tile.compact
 
                 Text {
                     font.family: Config.font
                     text: tile.title
-                    color: Colors.fgBackground
+                    color: tile.fg
                     font.pixelSize: 13
                     font.weight: Font.DemiBold
                     elide: Text.ElideRight
@@ -282,10 +342,11 @@ ColumnLayout {
                 Text {
                     font.family: Config.font
                     text: tile.subtitle
-                    color: Colors.fgSurfaceVariant
+                    color: tile.fgDim
                     font.pixelSize: 11
                     elide: Text.ElideRight
                     Layout.fillWidth: true
+                    visible: text !== ""
                 }
             }
         }
@@ -296,6 +357,8 @@ ColumnLayout {
         }
 
         HoverHandler {
+            id: tileHover
+
             cursorShape: Qt.PointingHandCursor
         }
     }
@@ -307,14 +370,17 @@ ColumnLayout {
         id: mini
 
         property string icon
+        // Farben der Kachel, auf der der Knopf sitzt (tile.controlColor usw.)
+        property color bg: Colors.alpha(Colors.fgSurface, 0.1)
+        property color bgHover: Colors.alpha(Colors.fgSurface, 0.18)
+        property color fg: Colors.fgBackground
         signal tapped()
 
         implicitWidth: 34
         implicitHeight: 34
         radius: height / 2
         opacity: enabled ? 1 : 0.4
-        color: miniHover.hovered ? Colors.alpha(Colors.fgSurface, 0.16)
-                                 : Colors.alpha(Colors.fgSurface, 0.08)
+        color: miniHover.hovered ? mini.bgHover : mini.bg
 
         Behavior on color {
             ColorAnimation { duration: 120 }
@@ -330,7 +396,7 @@ ColumnLayout {
             text: mini.icon
             font.family: "Material Symbols Outlined"
             font.pixelSize: 18
-            color: Colors.fgBackground
+            color: mini.fg
         }
 
         HoverHandler {
@@ -352,10 +418,10 @@ ColumnLayout {
         property bool active
         signal toggled()
 
-        Layout.preferredWidth: 54
-        Layout.preferredHeight: 54
+        implicitWidth: 54
+        implicitHeight: 54
         radius: 27
-        color: circle.active ? Colors.primary : Colors.shade(Colors.background, 0.05)
+        color: circle.active ? Colors.primary : Colors.alpha(Colors.fgSurface, 0.08)
 
         Behavior on color {
             ColorAnimation { duration: 140 }
@@ -366,8 +432,12 @@ ColumnLayout {
 
             text: circle.icon
             font.family: "Material Symbols Outlined"
-            font.pixelSize: 24
+            font.pixelSize: 22
             color: circle.active ? Colors.fgPrimary : Colors.fgSurfaceVariant
+
+            Behavior on color {
+                ColorAnimation { duration: 140 }
+            }
         }
 
         TapHandler {
@@ -379,9 +449,12 @@ ColumnLayout {
         }
     }
 
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: 10
+    // ---------- Die Kacheln als Components ----------
+    // Der Loader im Platz unten setzt Breite und Hoehe; Layout-Attached-
+    // Properties am Kachel-Root greifen deshalb nicht mehr.
+
+    Component {
+        id: wifiComponent
 
         Tile {
             id: wifiTile
@@ -400,7 +473,7 @@ ColumnLayout {
                 id: wifiTap
 
                 onTapped: {
-                    if (wifiTap.point.position.x < wifiTile.width - 46)
+                    if (wifiTile.compact || wifiTap.point.position.x < wifiTile.width - 46)
                         root.toggleWifi();
                 }
             }
@@ -411,11 +484,12 @@ ColumnLayout {
                     rightMargin: 8
                     verticalCenter: parent.verticalCenter
                 }
+                visible: !wifiTile.compact
                 width: 34
                 height: 34
                 radius: height / 2
-                color: wifiMore.containsMouse ? Colors.alpha(Colors.fgSurface, 0.16)
-                                              : Colors.alpha(Colors.fgSurface, 0.08)
+                color: wifiMore.containsMouse ? wifiTile.controlHover
+                                              : wifiTile.controlColor
 
                 Behavior on color {
                     ColorAnimation { duration: 120 }
@@ -427,7 +501,7 @@ ColumnLayout {
                     text: "chevron_right"
                     font.family: "Material Symbols Outlined"
                     font.pixelSize: 18
-                    color: Colors.fgBackground
+                    color: wifiTile.fg
                 }
 
                 MouseArea {
@@ -440,6 +514,10 @@ ColumnLayout {
                 }
             }
         }
+    }
+
+    Component {
+        id: bluetoothComponent
 
         Tile {
             id: bluetoothTile
@@ -457,7 +535,7 @@ ColumnLayout {
                 id: bluetoothTap
 
                 onTapped: {
-                    if (bluetoothTap.point.position.x < bluetoothTile.width - 46)
+                    if (bluetoothTile.compact || bluetoothTap.point.position.x < bluetoothTile.width - 46)
                         root.toggleBt();
                 }
             }
@@ -468,18 +546,19 @@ ColumnLayout {
                     rightMargin: 8
                     verticalCenter: parent.verticalCenter
                 }
+                visible: !bluetoothTile.compact
                 width: 34
                 height: 34
                 radius: 17
-                color: bluetoothMore.containsMouse ? Colors.alpha(Colors.fgSurface, 0.16)
-                                                    : Colors.alpha(Colors.fgSurface, 0.08)
+                color: bluetoothMore.containsMouse ? bluetoothTile.controlHover
+                                                    : bluetoothTile.controlColor
 
                 Text {
                     anchors.centerIn: parent
                     text: "chevron_right"
                     font.family: "Material Symbols Outlined"
                     font.pixelSize: 18
-                    color: Colors.fgBackground
+                    color: bluetoothTile.fg
                 }
 
                 MouseArea {
@@ -492,6 +571,10 @@ ColumnLayout {
                 }
             }
         }
+    }
+
+    Component {
+        id: gameModeComponent
 
         CircleToggle {
             icon: "sports_esports"
@@ -500,12 +583,8 @@ ColumnLayout {
         }
     }
 
-    RowLayout {
-        id: lowerTileRow
-
-        Layout.fillWidth: true
-        spacing: 10
-        z: root.sleepMenuOpen || root.vpnMenuOpen ? 100 : 0
+    Component {
+        id: vpnComponent
 
         Tile {
             id: vpnTile
@@ -521,7 +600,7 @@ ColumnLayout {
                 id: vpnTap
 
                 onTapped: {
-                    if (vpnTap.point.position.x < vpnTile.width - 46)
+                    if (vpnTile.compact || vpnTap.point.position.x < vpnTile.width - 46)
                         Vpn.toggle();
                 }
             }
@@ -532,18 +611,19 @@ ColumnLayout {
                     rightMargin: 8
                     verticalCenter: parent.verticalCenter
                 }
+                visible: !vpnTile.compact
                 width: 34
                 height: 34
                 radius: 17
-                color: root.vpnMenuOpen ? Colors.alpha(Colors.fgSurface, 0.16)
-                                        : Colors.alpha(Colors.fgSurface, 0.08)
+                color: root.vpnMenuOpen ? vpnTile.controlHover
+                                        : vpnTile.controlColor
 
                 Text {
                     anchors.centerIn: parent
                     text: root.vpnMenuOpen ? "expand_less" : "expand_more"
                     font.family: "Material Symbols Outlined"
                     font.pixelSize: 18
-                    color: Colors.fgBackground
+                    color: vpnTile.fg
                 }
 
                 TapHandler {
@@ -558,6 +638,13 @@ ColumnLayout {
 
             Rectangle {
                 id: vpnMenuPanel
+
+                Component.onCompleted: root.vpnMenu = vpnMenuPanel
+                Component.onDestruction: {
+                    if (root.vpnMenu === vpnMenuPanel)
+                        root.vpnMenu = null;
+                    root.vpnMenuHovered = false;
+                }
 
                 visible: root.vpnMenuOpen
                 anchors {
@@ -581,7 +668,7 @@ ColumnLayout {
                 }
 
                 HoverHandler {
-                    id: vpnMenuHover
+                    onHoveredChanged: root.vpnMenuHovered = hovered
                 }
 
                 ColumnLayout {
@@ -600,8 +687,7 @@ ColumnLayout {
 
                             required property var modelData
 
-                            Layout.fillWidth: true
-                            implicitHeight: 30
+                                            implicitHeight: 30
                             radius: 15
                             color: Vpn.provider === providerOption.modelData.id ? Colors.primary : "transparent"
 
@@ -616,8 +702,7 @@ ColumnLayout {
                                     text: providerOption.modelData.label
                                     font.pixelSize: 12
                                     color: Vpn.provider === providerOption.modelData.id ? Colors.fgPrimary : Colors.fgBackground
-                                    Layout.fillWidth: true
-                                }
+                                                        }
 
                                 Text {
                                     text: "check"
@@ -644,10 +729,11 @@ ColumnLayout {
                 }
             }
         }
+    }
 
-        // No-Sleep mit integriertem Dauer-Dropdown. Der Klick auf die Pille
-        // toggelt; ohne gewaehlte Dauer laeuft sie unbegrenzt. Taps auf den
-        // Dropdown selbst feuern NICHT den Pillen-Toggle (x-Grenze unten).
+    Component {
+        id: noSleepComponent
+
         Tile {
             id: noSleepTile
 
@@ -667,7 +753,7 @@ ColumnLayout {
 
                 // Taps im Dropdown-Bereich (rechts) gehoeren dem Dropdown
                 onTapped: {
-                    if (pillTap.point.position.x < noSleepTile.width - 96)
+                    if (noSleepTile.compact || pillTap.point.position.x < noSleepTile.width - 96)
                         root.toggleNoSleep();
                 }
             }
@@ -679,10 +765,11 @@ ColumnLayout {
                     rightMargin: 10
                     verticalCenter: parent.verticalCenter
                 }
+                visible: !noSleepTile.compact
                 implicitWidth: dropdownLabel.implicitWidth + arrow.implicitWidth + 22
                 implicitHeight: 34
                 radius: 17
-                color: root.sleepMenuOpen ? Colors.alpha(Colors.fgSurface, 0.12) : Colors.alpha(Colors.fgSurface, 0.08)
+                color: root.sleepMenuOpen ? noSleepTile.controlHover : noSleepTile.controlColor
 
                 Behavior on color {
                     ColorAnimation { duration: 140 }
@@ -699,7 +786,7 @@ ColumnLayout {
                         text: root.durationLabel(root.sleepDurationSec)
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
-                        color: Colors.fgBackground
+                        color: noSleepTile.fg
                     }
 
                     Text {
@@ -708,7 +795,7 @@ ColumnLayout {
                         text: root.sleepMenuOpen ? "expand_less" : "expand_more"
                         font.family: "Material Symbols Outlined"
                         font.pixelSize: 16
-                        color: Colors.fgSurfaceVariant
+                        color: noSleepTile.fgDim
                     }
                 }
 
@@ -727,6 +814,13 @@ ColumnLayout {
             Rectangle {
                 id: sleepMenuPanel
 
+                Component.onCompleted: root.sleepMenu = sleepMenuPanel
+                Component.onDestruction: {
+                    if (root.sleepMenu === sleepMenuPanel)
+                        root.sleepMenu = null;
+                    root.sleepMenuHovered = false;
+                }
+
                 visible: root.sleepMenuOpen
                 anchors {
                     top: parent.bottom
@@ -742,7 +836,7 @@ ColumnLayout {
                 border.color: Colors.outlineVariant
 
                 HoverHandler {
-                    id: sleepMenuHover
+                    onHoveredChanged: root.sleepMenuHovered = hovered
                 }
 
                 ColumnLayout {
@@ -763,8 +857,7 @@ ColumnLayout {
 
                             required property var modelData
 
-                            Layout.fillWidth: true
-                            implicitHeight: 30
+                                            implicitHeight: 30
                             radius: 15
                             color: root.sleepDurationSec === option.modelData.sec ? Colors.primary : "transparent"
                             border.width: 1
@@ -791,8 +884,7 @@ ColumnLayout {
                                     text: option.modelData.label
                                     font.pixelSize: 12
                                     color: root.sleepDurationSec === option.modelData.sec ? Colors.fgPrimary : Colors.fgBackground
-                                    Layout.fillWidth: true
-                                }
+                                                        }
 
                                 Text {
                                     text: "check"
@@ -815,10 +907,11 @@ ColumnLayout {
                 }
             }
         }
+    }
 
-        // Frueher "Nicht stoeren" (rein visuell, es gab keinen Daemon).
-        // Der Schalter steht jetzt im Einstellungs-Fenster, das dieser Kreis
-        // oeffnet – dort wirkt er auch wirklich.
+    Component {
+        id: settingsComponent
+
         CircleToggle {
             icon: "tune"
             active: SettingsState.open
@@ -826,69 +919,75 @@ ColumnLayout {
         }
     }
 
-    // Bildschirmaufnahme. Start und Stopp macht die CLI (Recorder-Service),
-    // laeuft eine Aufnahme, sitzt ein roter Punkt neben der Uhr (Notch.qml).
-    // Volle Breite statt Pille + Kreis: die beiden Reihen darueber sind voll.
-    Tile {
-        id: recordTile
+    Component {
+        id: recordComponent
 
-        tapEnabled: false   // Toggle macht der bewachte TapHandler unten
+        Tile {
+            id: recordTile
 
-        icon: Recorder.active ? "stop_circle" : "screen_record"
-        title: "Aufnahme"
-        subtitle: Recorder.active
-                  ? "Läuft · " + Recorder.elapsedLabel
-                  : (Recorder.region ? "Bereich" : "Vollbild")
-                    + (Recorder.sound ? " · mit Ton" : " · ohne Ton")
-        active: Recorder.active
-        accent: Colors.record
-        onAccent: Colors.fgRecord
-        onToggled: Recorder.toggle()
+            tapEnabled: false   // Toggle macht der bewachte TapHandler unten
 
-        // Links schaltet die Aufnahme, rechts sitzen die beiden Schalter
-        // (dasselbe Muster wie bei der Wi-Fi-Pille)
-        TapHandler {
-            id: recordTap
+            icon: Recorder.active ? "stop_circle" : "screen_record"
+            title: "Aufnahme"
+            subtitle: Recorder.active
+                      ? "Läuft · " + Recorder.elapsedLabel
+                      : (Recorder.region ? "Bereich" : "Vollbild")
+                        + (Recorder.sound ? " · mit Ton" : " · ohne Ton")
+            active: Recorder.active
+            accent: Colors.record
+            onAccent: Colors.fgRecord
+            onToggled: Recorder.toggle()
 
-            onTapped: {
-                if (recordTap.point.position.x < recordTile.width - 90)
-                    Recorder.toggle();
-            }
-        }
+            // Links schaltet die Aufnahme, rechts sitzen die beiden Schalter
+            // (dasselbe Muster wie bei der Wi-Fi-Pille)
+            TapHandler {
+                id: recordTap
 
-        // Modus und Ton. Beide gelten ab der naechsten Aufnahme – waehrend
-        // einer laufenden bekommt gpu-screen-recorder nichts mehr gesagt,
-        // deshalb sind sie dann ausgegraut.
-        Row {
-            anchors {
-                right: parent.right
-                rightMargin: 8
-                verticalCenter: parent.verticalCenter
-            }
-            spacing: 6
-
-            MiniButton {
-                // Vollbild = fokussierter Monitor, Bereich = Rahmen mit slurp
-                enabled: !Recorder.active
-                icon: Recorder.region ? "screenshot_region" : "fullscreen"
-                onTapped: Recorder.region = !Recorder.region
+                onTapped: {
+                    if (recordTile.compact || recordTap.point.position.x < recordTile.width - 90)
+                        Recorder.toggle();
+                }
             }
 
-            MiniButton {
-                // Desktop-Ton (default_output), nicht das Mikrofon
-                enabled: !Recorder.active
-                icon: Recorder.sound ? "volume_up" : "volume_off"
-                onTapped: Recorder.sound = !Recorder.sound
+            // Modus und Ton. Beide gelten ab der naechsten Aufnahme – waehrend
+            // einer laufenden bekommt gpu-screen-recorder nichts mehr gesagt,
+            // deshalb sind sie dann ausgegraut.
+            Row {
+                anchors {
+                    right: parent.right
+                    rightMargin: 8
+                    verticalCenter: parent.verticalCenter
+                }
+                visible: !recordTile.compact
+                spacing: 6
+
+                MiniButton {
+                bg: recordTile.controlColor
+                bgHover: recordTile.controlHover
+                fg: recordTile.fg
+                    // Vollbild = fokussierter Monitor, Bereich = Rahmen mit slurp
+                    enabled: !Recorder.active
+                    icon: Recorder.region ? "screenshot_region" : "fullscreen"
+                    onTapped: Recorder.region = !Recorder.region
+                }
+
+                MiniButton {
+                bg: recordTile.controlColor
+                bgHover: recordTile.controlHover
+                fg: recordTile.fg
+                    // Desktop-Ton (default_output), nicht das Mikrofon
+                    enabled: !Recorder.active
+                    icon: Recorder.sound ? "volume_up" : "volume_off"
+                    onTapped: Recorder.sound = !Recorder.sound
+                }
             }
         }
     }
 
-    ColumnLayout {
-        Layout.fillWidth: true
-        spacing: 6
+    Component {
+        id: volumeComponent
 
         LevelSlider {
-            Layout.fillWidth: true
             title: "Lautstärke"
             icon: Audio.muted ? "volume_off"
                                : Audio.volume >= 0.5 ? "volume_up" : "volume_down"
@@ -896,12 +995,63 @@ ColumnLayout {
             accent: Audio.muted ? Colors.error : Colors.primary
             foreground: Audio.muted ? Colors.fgError : Colors.fgPrimary
             detailsAvailable: true
+            iconClickable: true
             onAdjusted: value => Audio.setVolume(value)
             onDetailsRequested: root.openAudio()
+            onIconClicked: Audio.toggleMute()
         }
+    }
+
+    // Mikrofon: Eingangspegel des gewaehlten Eingabegeraets. Klick aufs
+    // Symbol schaltet stumm, der Pfeil oeffnet die Geraeteauswahl.
+    Component {
+        id: micComponent
 
         LevelSlider {
-            Layout.fillWidth: true
+            title: "Mikrofon"
+            icon: Audio.sourceMuted ? "mic_off" : "mic"
+            value: Audio.sourceVolume
+            accent: Audio.sourceMuted ? Colors.error : Colors.secondary
+            foreground: Audio.sourceMuted ? Colors.fgError : Colors.fgSecondary
+            detailsAvailable: true
+            iconClickable: true
+            onAdjusted: value => Audio.setSourceVolume(value)
+            onDetailsRequested: root.openAudio()
+            onIconClicked: Audio.toggleSourceMute()
+        }
+    }
+
+    // Energieprofil (power-profiles-daemon): Klick schaltet weiter
+    // Sparen -> Ausgewogen -> Leistung -> Sparen. Aktiv (Akzentflaeche)
+    // ausser im Standardprofil "Ausgewogen".
+    Component {
+        id: powerComponent
+
+        // Nur mit Systemakku waehlbar (Laptop) – am Desktop gesperrt und
+        // gedimmt, mit Hinweis statt Profilname
+        Tile {
+            readonly property var current: Power.profiles.find(p => p.value === Power.profile) ?? Power.profiles[1]
+            readonly property bool usable: Power.hasSystemBattery
+
+            icon: current.icon
+            title: "Energie"
+            subtitle: usable ? current.label : "Nur mit Akku"
+            active: usable && Power.profile !== PowerProfile.Balanced
+            tapEnabled: usable
+            opacity: usable ? 1 : 0.45
+            onToggled: {
+                const list = Power.hasPerformance ? Power.profiles
+                           : Power.profiles.filter(p => p.value !== PowerProfile.Performance);
+                const at = list.findIndex(p => p.value === Power.profile);
+                Power.setProfile(list[(at + 1) % list.length].value);
+            }
+        }
+    }
+
+    Component {
+        id: brightnessComponent
+
+        LevelSlider {
             title: "Helligkeit"
             icon: "brightness_6"
             value: Brightness.value
@@ -911,6 +1061,45 @@ ColumnLayout {
             enabled: Brightness.ready
             opacity: enabled ? 1 : 0.5
             onAdjusted: value => Brightness.setValue(value)
+        }
+    }
+
+    // ---------- Die Reihen aus QuickLayout.rows ----------
+    Repeater {
+        model: QuickLayout.rows
+
+        RowLayout {
+            id: tileRow
+
+            required property var modelData     // Array von Kachel-IDs
+            required property int index
+
+            Layout.fillWidth: true
+            spacing: 10
+            readonly property var ids: tileRow.modelData.map(t => t.id)
+            // Reihe mit offenem Dropdown ueber die darunter liegenden heben
+            z: (root.sleepMenuOpen && tileRow.ids.includes("nosleep"))
+               || (root.vpnMenuOpen && tileRow.ids.includes("vpn")) ? 100 : 0
+
+            Repeater {
+                model: tileRow.modelData
+
+                Loader {
+                    id: slot
+
+                    required property var modelData     // { id, span }
+
+                    Layout.fillWidth: false
+                    Layout.preferredWidth: root.cellWidth(slot.modelData.span)
+                    Layout.preferredHeight: slot.item?.implicitHeight ?? 54
+                    sourceComponent: root.tileComponents[slot.modelData.id] ?? null
+                }
+            }
+
+            // Rest der Reihe bleibt frei
+            Item {
+                Layout.fillWidth: true
+            }
         }
     }
 }
