@@ -393,3 +393,8 @@ verfaellt nach 500 ms Pause (`accumDecay`). Medien-Untermenue: `MediaPanel` in f
 (`MediaPanel.maxCoverSize`), leere Benachrichtigungsliste ohne Listenflaeche. Blaettern laeuft ueber den Rand
 (`LauncherState.step` mit Modulo), Schwelle Viertel-Rastung (30) bzw. 30 px, Sperre 300 ms. Special-Overlay exakt so breit
 wie die Staebchen-Reihe, die Specials teilen sich die Breite.
+
+**Specials als Staebchen:** Statt Symbol-Overlay stehen offene Specials im Stil der Workspace-Anzeige da: die
+Workspace-Staebchen blenden fast aus (0.12), an ihrer Stelle die Specials als Staebchen, jeder in eigener Farbe
+(`specialColor`: Musik gruen, Kommunikation blau, Sysmon orange, Stern violett, Helligkeit am Theme), der offene hoch.
+`SpecialIcons.js` entfernt.

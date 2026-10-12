@@ -6,17 +6,16 @@ import Quickshell.Hyprland
 import qs
 import qs.modules.services.config
 import qs.modules.widgets
-import "SpecialIcons.js" as SpecialIcons
 
 // Workspace-Anzeige der Notch: senkrechte Staebchen, der aktive ist hoeher.
 // Steht links neben der Uhr – eingeklappt wie aufgeklappt (Kopfzeile der
 // Uebersicht und der Untermenues), ein Klick wechselt den Workspace.
 //
-// Special-Workspaces wie bei Caelestia: ist auf DIESEM Monitor einer offen,
-// treten die Staebchen zurueck (gedimmt, kleiner, nicht klickbar) und eine
-// kleine Pille legt sich darueber – mit den Symbolen aller vorhandenen
-// Specials, der offene hervorgehoben, Klick toggelt. Sonst sind Specials
-// nicht zu sehen.
+// Special-Workspaces: ist auf DIESEM Monitor einer offen, treten die
+// Workspace-Staebchen fast ganz zurueck und an ihrer Stelle stehen die
+// vorhandenen Specials – ebenfalls als Staebchen, jeder in seiner eigenen
+// Farbe (specialColor), der offene hoch wie der aktive Workspace. Klick
+// toggelt. Ohne offenen Special sind Specials nicht zu sehen.
 //
 // Dieselbe Gruppenlogik wie WorkspaceSelector.qml: jede Leiste zeigt die
 // Workspaces ihres eigenen Monitors (je `perMonitor` am Stueck). Dessen
@@ -53,7 +52,24 @@ Item {
     // Das Overlay ist genau so breit wie die Staebchen-Reihe – die Anzeige
     // behaelt ihre Groesse, egal ob ein Special offen ist
     implicitWidth: bars.implicitWidth
-    implicitHeight: Math.max(root.activeHeight, overlay.height)
+    implicitHeight: root.activeHeight
+
+    // Feste, gut unterscheidbare Farbe je Special: eigener Farbton, Helligkeit
+    // und Saettigung am Theme ausgerichtet (die Theme-Rollen selbst liegen in
+    // vielen Schemata zu nah beieinander). Unbekannte Specials reihum.
+    function specialColor(key: string, index: int): color {
+        const hues = {
+            "music": 0.38,          // gruen
+            "communication": 0.58,  // blau
+            "sysmon": 0.07,         // orange
+            "special": 0.78,        // violett
+            "todo": 0.15            // gelb
+        };
+        const cycle = [0.38, 0.58, 0.07, 0.78, 0.15, 0.95];
+        const hue = hues[key] ?? cycle[index % cycle.length];
+        const light = Math.max(0.62, Math.min(0.75, Colors.primary.hslLightness));
+        return Qt.hsla(hue, 0.7, light, 1);
+    }
 
     // ---- Staebchen ----
     Row {
@@ -62,8 +78,8 @@ Item {
         anchors.centerIn: parent
         spacing: 4
         height: root.activeHeight
-        opacity: root.onSpecial ? 0.25 : 1
-        scale: root.onSpecial ? 0.85 : 1
+        opacity: root.onSpecial ? 0.12 : 1
+        scale: root.onSpecial ? 0.9 : 1
         // Im Special-Modus gehoeren die Klicks dem Overlay
         enabled: !root.onSpecial
 
@@ -124,22 +140,14 @@ Item {
         }
     }
 
-    // ---- Special-Overlay ----
-    // Exakt ueber den Staebchen: gleiche Breite, die Specials teilen sie sich
-    // zu gleichen Teilen. Der offene bekommt eine tertiaere Pille.
-    Rectangle {
-        id: overlay
-
-        readonly property real slot: root.specials.length > 0
-            ? (overlay.width - 4) / root.specials.length : overlay.width
+    // ---- Specials als farbige Staebchen ----
+    // Liegen mittig ueber der Workspace-Reihe, gleiche Masse und Bewegung.
+    Row {
+        id: specialBars
 
         anchors.centerIn: parent
-        width: bars.implicitWidth
-        height: 18
-        radius: height / 2
-        color: Colors.surfaceContainer
-        border.width: 1
-        border.color: Colors.alpha(Colors.tertiary, 0.35)
+        spacing: bars.spacing
+        height: root.activeHeight
         opacity: root.onSpecial ? 1 : 0
         scale: root.onSpecial ? 1 : 0.6
         visible: opacity > 0
@@ -147,43 +155,40 @@ Item {
         Fade on opacity {}
         Morph on scale {}
 
-        Row {
-            anchors.centerIn: parent
+        Repeater {
+            model: root.specials
 
-            Repeater {
-                model: root.specials
+            Item {
+                id: special
+
+                required property var modelData   // HyprlandWorkspace
+                required property int index
+                readonly property string key: special.modelData.name.slice("special:".length)
+                readonly property bool active: root.activeSpecial === special.modelData.name
+
+                width: root.barWidth
+                height: root.activeHeight
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: root.barWidth
+                    height: special.active ? root.activeHeight : root.idleHeight
+                    radius: width / 2
+                    color: root.specialColor(special.key, special.index)
+                    opacity: special.active ? 1 : specialHover.hovered ? 0.8 : 0.5
+
+                    Behavior on height {
+                        NumberAnimation { duration: Appearance.morphDuration * 0.6; easing.type: Easing.OutBack; easing.overshoot: 2 }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+                    }
+                }
 
                 Item {
-                    id: special
-
-                    required property var modelData   // HyprlandWorkspace
-                    readonly property string key: special.modelData.name.slice("special:".length)
-                    readonly property bool active: root.activeSpecial === special.modelData.name
-
-                    width: overlay.slot
-                    height: overlay.height - 4
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: height / 2
-                        color: special.active ? Colors.tertiary
-                             : specialHover.hovered ? Colors.alpha(Colors.fgBackground, 0.14)
-                             : "transparent"
-
-                        Behavior on color {
-                            ColorAnimation { duration: Appearance.fadeDuration }
-                        }
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: SpecialIcons.iconFor(special.key)
-                        color: special.active ? Colors.fgTertiary : Colors.fgSurfaceVariant
-                        font.family: "Material Symbols Outlined"
-                        // Passt sich der Slotbreite an, bei vielen Specials kleiner
-                        font.pixelSize: Math.max(8, Math.min(11, Math.floor(overlay.slot - 3)))
-                        font.variableAxes: ({ FILL: special.active ? 1 : 0 })
-                    }
+                    anchors.centerIn: parent
+                    width: root.barWidth + specialBars.spacing
+                    height: root.activeHeight + 10
 
                     HoverHandler {
                         id: specialHover
