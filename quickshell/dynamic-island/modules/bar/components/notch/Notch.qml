@@ -73,12 +73,11 @@ Item {
     readonly property bool cardShown: expanded && !launcherOpen && !authOpen
     readonly property bool overviewShown: docked && cardShown
     readonly property real overviewInset: 14
-    readonly property real overviewWidth: Math.max(collapsedWidth, 400, panel.outerWidth + 2 * overviewInset)
-    // Workspace-Leiste direkt unter der Uhr (nur angedockt), das Datum ruckt
-    // um ihren Platz nach unten
-    readonly property real stripTop: collapsedHeight + clockDropMax + 4
-    readonly property real stripSpace: docked ? workspaceStrip.implicitHeight + 10 : 0
-    readonly property real panelBottom: collapsedHeight + clockDropMax + stripSpace + panel.outerHeight
+    // Alle Blaetter-Seiten (Uebersicht + Untermenues) sind gleich breit:
+    // die Steuerung (Settings-Karte 520) plus Rand. So verschiebt sich beim
+    // Blaettern seitlich nichts, nur die Hoehe aendert sich nach unten.
+    readonly property real pageWidth: 548
+    readonly property real panelBottom: collapsedHeight + clockDropMax + panel.outerHeight
     readonly property bool showNowPlaying: Media.available
     readonly property real overviewBottom: systemGlance.y + systemGlance.height
     // Seiten-Indikator: Punkte fuer Uebersicht + Untermenues
@@ -88,7 +87,7 @@ Item {
     readonly property real headerCenter: collapsedHeight / 2 + clockDropMax
     // Blaetter-Zone: die Kopfzeile. Die Karte haengt oben am Bildschirmrand,
     // deshalb bleibt dieser Streifen fest, egal wie hoch die Seiten sind.
-    readonly property real flipZoneHeight: stripTop
+    readonly property real flipZoneHeight: collapsedHeight + clockDropMax
 
     // Blaettern: Inhalt gleitet in Scrollrichtung herein (siehe flipWheel)
     property real slide: 0
@@ -181,8 +180,9 @@ Item {
                                          : launcher.outerHeight
 
     readonly property real expandedWidth: authOpen ? Math.max(collapsedWidth, authPanel.outerWidth)
-                                                   : launcherOpen ? Math.max(collapsedWidth, launcherWidth)
-                                                   : docked ? overviewWidth
+                                                   : launcherOpen ? (docked && viewOpen ? pageWidth
+                                                                                        : Math.max(collapsedWidth, launcherWidth))
+                                                   : docked ? pageWidth
                                                             : Math.max(collapsedWidth, panel.outerWidth)
     readonly property real expandedHeight: authOpen ? launcherTop + authPanel.outerHeight
                                                     : launcherOpen ? launcherTop + launcherHeight
@@ -368,22 +368,29 @@ Item {
             }
         }
 
-        // ---- Eingeklappt, links: Workspaces (Notch-Layout) ----
-        // Die grosse Workspace-Pille parkt im Hub; das hier ist ihre
-        // Kurzfassung, solange die Notch zu ist. Laeuft Musik, nimmt das
-        // Cover (mediaArt) diesen Platz ein.
+        // ---- Links: Workspaces (Notch-Layout) ----
+        // Die Staebchen bleiben beim Aufklappen stehen und wandern nur an den
+        // Kartenrand – in der Kopfzeile der Uebersicht und der Untermenues
+        // (wie der Visualiser: eine Anzeige, die mit der Notch mitgeht).
+        // Eingeklappt nimmt bei laufender Musik das Cover (mediaArt) ihren
+        // Platz ein. Specials zeigt sie als kleines Overlay (NotchWorkspaces).
         NotchWorkspaces {
             id: compactWorkspaces
 
             anchors {
                 left: parent.left
-                leftMargin: notch.compactEdge + notch.growth
+                leftMargin: notch.open ? notch.overviewInset + 2 : notch.compactEdge + notch.growth
                 verticalCenter: clock.verticalCenter
             }
-            opacity: notch.showWorkspaces && !notch.showMedia && !notch.open ? 1 : 0
+            opacity: !notch.showWorkspaces ? 0
+                   : notch.open ? (notch.overviewShown || notch.docked && notch.viewOpen ? 1 : 0)
+                   : notch.showMedia ? 0 : 1
             visible: opacity > 0
 
             Fade on opacity {}
+            Behavior on anchors.leftMargin {
+                NumberAnimation { duration: Appearance.morphDuration; easing.type: Easing.OutCubic }
+            }
         }
 
         // ---- Eingeklappt, rechts: Hinweise + Datum bzw. Pegel ----
@@ -583,7 +590,7 @@ Item {
             }
             width: 22
             height: 22
-            opacity: notch.overviewShown ? 1 : 0
+            opacity: notch.overviewShown || notch.docked && notch.viewOpen ? 1 : 0
             visible: opacity > 0
 
             Fade on opacity {}
@@ -619,20 +626,6 @@ Item {
             }
         }
 
-        // ---- Uebersicht: Workspaces + Specials zum Anklicken ----
-        WorkspaceStrip {
-            id: workspaceStrip
-
-            x: (parent.width - width) / 2
-            y: notch.stripTop
-            width: Math.min(parent.width - 2 * notch.overviewInset, implicitWidth)
-            opacity: notch.overviewShown ? 1 : 0
-            visible: opacity > 0
-            transform: Translate { x: notch.slide }
-
-            Fade on opacity {}
-        }
-
         // ---- Uebersicht: Jetzt laeuft ----
         NowPlayingRow {
             id: nowPlaying
@@ -665,12 +658,16 @@ Item {
         // ---- Seiten-Indikator ----
         // Ein Punkt je Ansicht (LauncherState.views), der aktive breit in der
         // Akzentfarbe. Kein Knopf – blaettern geht mit dem Mausrad bzw.
-        // Wischen ueber der Kopfzeile (flipZone). Sitzt oben links, damit er
-        // nicht mit der Hoehe der Seiten wandert.
+        // Wischen ueber der Kopfzeile (flipZone). Sitzt rechts oben neben der
+        // Glocke – alle Blaetter-Seiten sind gleich breit (pageWidth) und
+        // haengen oben fest, also steht er immer an derselben Stelle.
         Row {
             id: pager
 
-            x: notch.overviewInset + 4
+            anchors {
+                right: bell.left
+                rightMargin: 12
+            }
             y: notch.headerCenter - height / 2
             height: 6
             spacing: 5
@@ -704,16 +701,16 @@ Item {
         }
 
         // ---- Blaettern: Mausrad / Wischen ----
-        // Liegt auf der ganzen Karte. Das Datums-Karussell und scrollbare
-        // Listen haben eigene WheelHandler und nehmen ihre Events selbst –
-        // hier landet nur, was sonst niemand will: senkrecht ueber Kopfzeile,
-        // Jetzt-laeuft, Systemwerten, Indikator, waagerecht fast ueberall.
-        // Hi-Res-Raeder (G502) liefern Bruchteile – aufsummieren, und nach
-        // einem Wechsel kurz sperren, damit ein Touchpad-Wisch nicht gleich
-        // mehrere Seiten weiterspringt.
         // Nur die Kopfzeile blaettert. Darunter gehoert das Rad dem Inhalt
-        // (Datum, Listen) – vorher blaetterte es "ueberall, wo sonst niemand
-        // will", und je nach Stelle passierte etwas anderes.
+        // (Datum, Listen), damit es an jeder Stelle immer dasselbe tut.
+        //
+        // Hi-Res-Raeder (G502) liefern ~15 Einheiten je Event statt 120 je
+        // Rastung. Deshalb: aufsummieren, ab einer halben Rastung blaettern,
+        // danach eine FESTE Sperre (weitere Events verlaengern sie nicht).
+        // Langsames Drehen kommt so zuverlaessig an, ein Freilauf-Dreh
+        // blaettert hoechstens ~3 Seiten pro Sekunde. Fruehere Fassung setzte
+        // den Zaehler bei jeder kurzen Pause zurueck – langsam gedreht kam
+        // man nie ueber die Schwelle.
         Item {
             id: flipZone
 
@@ -729,23 +726,19 @@ Item {
             enabled: notch.pagerShown
 
             property real accum: 0
-            // Nach einem Wechsel ist die Geste "verbraucht", bis das Rad bzw.
-            // das Touchpad kurz Ruhe gibt – ein Freilauf-Dreh am G502 oder ein
-            // Wisch mit Nachlauf blaettert so genau EINE Seite.
-            property bool spent: false
 
             onWheel: event => {
                 event.accepted = true;
-                gestureEnd.restart();
-                if (flipWheel.spent)
+                accumDecay.restart();
+                if (flipCooldown.running)
                     return;
 
                 const horizontal = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y)
                     || Math.abs(event.pixelDelta.x) > Math.abs(event.pixelDelta.y);
                 const angle = horizontal ? event.angleDelta.x : event.angleDelta.y;
                 const pixels = horizontal ? event.pixelDelta.x : event.pixelDelta.y;
-                // Touchpad braucht einen deutlichen Zug, eine Rastung reicht
-                const delta = pixels !== 0 ? pixels / 70 : angle / 120;
+                // Schritte: halbe Rastung (60) bzw. 50 px Touchpad = 1
+                const delta = pixels !== 0 ? pixels / 50 : angle / 60;
 
                 // Richtungswechsel verwirft den Rest der alten Richtung
                 if (flipWheel.accum !== 0 && Math.sign(delta) !== Math.sign(flipWheel.accum))
@@ -757,7 +750,7 @@ Item {
                 // Rad nach unten bzw. nach links wischen = naechste Ansicht
                 const dir = flipWheel.accum < 0 ? 1 : -1;
                 flipWheel.accum = 0;
-                flipWheel.spent = true;
+                flipCooldown.restart();
 
                 const before = LauncherState.viewIndex;
                 const view = LauncherState.step(notch.QsWindow.window.screen, dir);
@@ -770,15 +763,19 @@ Item {
             }
         }
 
-        // Ruhe auf dem Rad -> naechste Geste darf wieder blaettern
+        // Feste Sperre nach einem Wechsel
         Timer {
-            id: gestureEnd
+            id: flipCooldown
 
-            interval: 220
-            onTriggered: {
-                flipWheel.spent = false;
-                flipWheel.accum = 0;
-            }
+            interval: 350
+        }
+
+        // Angefangener Zug verfaellt erst nach einer echten Pause
+        Timer {
+            id: accumDecay
+
+            interval: 500
+            onTriggered: flipWheel.accum = 0
         }
 
         NumberAnimation {
@@ -989,7 +986,7 @@ Item {
             id: panel
             transform: Translate { x: notch.slide }
 
-            topOffset: notch.collapsedHeight + notch.clockDrop + notch.stripSpace
+            topOffset: notch.collapsedHeight + notch.clockDrop
             cardRadius: notch.cardRadius
             // Insel: Mausrad gilt auf der ganzen Karte. Angedockt nur auf dem
             // Streifen selbst – sonst blaettert das Rad die Ansichten

@@ -366,7 +366,7 @@ ihre Inhalte stehen als **Untermenues** in der Notch. Das sind Launcher-Modi wie
 - Geteilte Dienste mit genau einem Binding in Bar.qml: `Cava.enabled`, `SystemStats.watching`, `Media.trackPosition`.
 - Eingeklappt: `notch.media` = Cover, neu `notch.visualizer` = Pegel (statt Datum).
 
-**Workspaces per Maus (2026-10-12):** `WorkspaceStrip.qml` direkt unter der Uhr in der Uebersicht: Nummern der Workspaces
+**(ersetzt, siehe unten)** ~~`WorkspaceStrip.qml` direkt unter der Uhr in der Uebersicht: Nummern der Workspaces
 dieses Monitors (Klick = wechseln, schliesst einen offenen Special vorher) und die existierenden Special-Workspaces als
 Symbole (Klick = toggeln, aktiver = tertiaere Pille). Symbole aus `SpecialIcons.js` (geteilt mit `NotchWorkspaces.qml`,
 das eingeklappt ein offenes Special als Symbol hinter den Staebchen zeigt).
@@ -380,3 +380,10 @@ in der Reihe). Blaettern nur noch ueber der Kopfzeile (`flipZone`, Hoehe bis zur
 fest, die Seiten sind unterschiedlich hoch – unten springt alles, oben nie. Seiten-Punkte oben links auf Uhr-Hoehe
 (`headerCenter`), Untermenue-Titel mittig. Benachrichtigungsliste scrollt animiert (`scrollAnim`). Kein Kuerzel fuer
 Medien mehr (SUPER+M gehoert dem Music-Workspace).
+
+**Stand 2026-10-12 spaet:** Alle Blaetter-Seiten haben dieselbe Breite (`pageWidth` 548 = Steuerung), nichts verschiebt sich
+seitlich. Kopfzeile auf allen Seiten gleich: links die Workspace-Staebchen (`NotchWorkspaces`, bleiben beim Aufklappen
+stehen und sind klickbar), Mitte Uhr bzw. Titel, rechts Seiten-Punkte + Glocke. `WorkspaceStrip.qml` ist wieder weg.
+Specials wie bei Caelestia: ist einer offen, legt sich ueber die Staebchen eine kleine Pille mit allen Specials (aktiver
+tertiaer, Klick toggelt). Blaettern: Schwelle halbe Rastung (60) bzw. 50 px, feste Sperre 350 ms (`flipCooldown`), Zaehler
+verfaellt nach 500 ms Pause (`accumDecay`). Medien-Untermenue: `MediaPanel` in fester 320-px-Spalte.

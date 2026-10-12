@@ -14,18 +14,29 @@ ViewPanel {
 
     title: "Medien"
     icon: "music_note"
-    // Schmal halten: das Cover rechnet sich aus der Breite, breiter = hoeher
-    contentWidth: 300
+    // Breite der Medien-Spalte: das Cover rechnet sich daraus, breiter = hoeher
+    readonly property real columnWidth: 320
+
+    contentWidth: root.columnWidth
     contentHeight: Media.available ? media.outerHeight : 60
     maxContentHeight: Math.max(60, media.outerHeight)
 
-    MediaPanel {
-        id: media
-
-        topOffset: 0
-        padding: 0
-        tint: Appearance.notchLayout ? Appearance.notchColor : Colors.background
+    // Im Notch-Layout ist die Karte so breit wie alle Blaetter-Seiten (548).
+    // MediaPanel rechnet sein Cover aus der Breite – deshalb eine feste,
+    // mittige Spalte, sonst wuerde das Cover riesig.
+    Item {
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Math.min(parent.width, root.columnWidth)
+        height: media.outerHeight
         visible: Media.available
+
+        MediaPanel {
+            id: media
+
+            topOffset: 0
+            padding: 0
+            tint: Appearance.notchLayout ? Appearance.notchColor : Colors.background
+        }
     }
 
     Text {
