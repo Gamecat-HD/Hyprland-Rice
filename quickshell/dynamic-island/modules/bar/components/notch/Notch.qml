@@ -579,9 +579,10 @@ Item {
             onClicked: LauncherState.showPower(notch.QsWindow.window.screen)
         }
 
-        // ---- Uebersicht: Glocke oben rechts ----
-        // Reiner Hinweis, kein Knopf: Glocke mit Zaehler. Die Liste ist das
-        // Untermenue "Benachrichtigungen" (SUPER+N bzw. blaettern).
+        // ---- Glocke oben rechts ----
+        // Glocke mit Zaehler. Ein Klick oeffnet das Untermenue
+        // "Benachrichtigungen" (wie SUPER+N), steht man schon darin, geht es
+        // zurueck zur Uebersicht.
         Item {
             id: bell
 
@@ -594,8 +595,34 @@ Item {
             height: 22
             opacity: notch.overviewShown || notch.docked && notch.viewOpen ? 1 : 0
             visible: opacity > 0
+            scale: bellHover.hovered ? 1.12 : 1
 
             Fade on opacity {}
+            Morph on scale {}
+
+            // Trefferflaeche etwas groesser als das Symbol
+            Item {
+                anchors.centerIn: parent
+                width: 34
+                height: 34
+
+                HoverHandler {
+                    id: bellHover
+
+                    cursorShape: Qt.PointingHandCursor
+                }
+
+                TapHandler {
+                    onTapped: {
+                        if (notch.notificationsOpen) {
+                            LauncherState.close();
+                            notch.expanded = true;
+                        } else {
+                            LauncherState.showMode(notch.QsWindow.window.screen, "notifications");
+                        }
+                    }
+                }
+            }
 
             Text {
                 anchors.centerIn: parent

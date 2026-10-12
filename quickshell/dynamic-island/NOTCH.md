@@ -423,3 +423,6 @@ APPS mit Lautstaerke je App (Symbol = stumm). Neue Kacheln `mic` (Mikrofon-Regle
 (Energieprofil zyklisch) in QuickLayout/SettingsTiles. **WLAN schneller:** `Network.refresh()` liest sofort den Cache
 (`--rescan no`, ~60 ms statt 6 s) und stoesst die Suche separat an (`nmcli device wifi rescan`, kehrt sofort zurueck),
 danach zweimal nachlesen; `scanning` dreht den Aktualisieren-Knopf. Die Steuerung laedt die Liste schon beim Oeffnen vor.
+
+**Glocke anklickbar:** Klick auf die Glocke oben rechts oeffnet das Untermenue Benachrichtigungen, aus diesem heraus geht
+es per Klick zurueck zur Uebersicht.
