@@ -44,9 +44,33 @@ Item {
     }
     y: panel.topOffset
 
-    onActiveChanged: if (active) panel.forceActiveFocus()
+    // Markierte Aktion – Pfeiltasten/Tab wandern, Maus-Hover setzt sie mit,
+    // damit nie zwei Kacheln gleichzeitig leuchten. Startet auf "Sperren",
+    // damit ein versehentliches Enter nichts Endgueltiges ausloest.
+    property int current: 0
+
+    onActiveChanged: {
+        if (active) {
+            panel.current = 0;
+            panel.forceActiveFocus();
+        }
+    }
+
+    function move(dir: int): void {
+        const n = panel.actions.length;
+        panel.current = ((panel.current + dir) % n + n) % n;
+    }
 
     Keys.onEscapePressed: LauncherState.close()
+    Keys.onLeftPressed: panel.move(-1)
+    Keys.onRightPressed: panel.move(1)
+    Keys.onUpPressed: panel.move(-1)
+    Keys.onDownPressed: panel.move(1)
+    Keys.onTabPressed: panel.move(1)
+    Keys.onBacktabPressed: panel.move(-1)
+    Keys.onReturnPressed: panel.run(panel.actions[panel.current].command)
+    Keys.onEnterPressed: panel.run(panel.actions[panel.current].command)
+    Keys.onSpacePressed: panel.run(panel.actions[panel.current].command)
 
     function run(command: var): void {
         LauncherState.close();
@@ -75,8 +99,9 @@ Item {
                     id: action
 
                     required property var modelData
+                    required property int index
 
-                    readonly property bool hovered: actionMouse.containsMouse
+                    readonly property bool hovered: panel.current === action.index
 
                     width: (actionArea.width - 20 - 8 * 4) / 5
                     height: actionArea.height - 20
@@ -133,6 +158,7 @@ Item {
 
                         anchors.fill: parent
                         hoverEnabled: true
+                        onContainsMouseChanged: if (containsMouse) panel.current = action.index
                         cursorShape: Qt.PointingHandCursor
                         onClicked: panel.run(action.modelData.command)
                     }

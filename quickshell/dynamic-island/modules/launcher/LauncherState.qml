@@ -108,6 +108,19 @@ Singleton {
         root.toggle(root.focusedScreen());
     }
 
+    // Das Power-Menue haelt den Tastaturfokus exklusiv (Pfeiltasten), und
+    // der blockiert Klicks auf dem anderen Monitor. Wechselt der Fokus
+    // dorthin, geht es deshalb zu.
+    Connections {
+        target: Hyprland
+
+        function onFocusedMonitorChanged(): void {
+            const name = Hyprland.focusedMonitor?.name ?? "";
+            if (root.open && root.mode === "power" && name && name !== root.screen?.name)
+                root.close();
+        }
+    }
+
     // ---- Fullscreen-Sperre ----------------------------------------------
     // simple.lua bindet SUPER allein (beim Loslassen) auf
     // `ipc call launcher toggle`. Ein Fullscreen-Fenster – typisch ein Spiel –

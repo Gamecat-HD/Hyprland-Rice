@@ -116,13 +116,14 @@ Variants {
         // Launcher-Suchfeld oder WLAN-Passwort. Exclusive statt OnDemand, weil
         // der Launcher per Tastenkuerzel aufgeht – da ist kein Klick, der ihm
         // den Fokus geben koennte.
-        // Das Power-Menue braucht keinen Tastaturfokus. Exclusive wuerde den
-        // gesamten Wayland-Seat binden und damit Klicks auf anderen Monitoren
-        // blockieren, bis das Menue wieder geschlossen wird.
+        // Das Power-Menue bekommt ihn fuer die Pfeiltasten auch. Exclusive
+        // bindet den gesamten Wayland-Seat und blockierte so Klicks auf dem
+        // anderen Monitor – deshalb geht es zu, sobald der Fokus dorthin
+        // wechselt (LauncherState).
         // Die Untermenues (Medien, Steuerung, ...) ebenfalls nicht – ausser es
         // wird in der Steuerung ein WLAN-Passwort oder eine PIN getippt.
         WlrLayershell.keyboardFocus: notch.authOpen
-                                     || notch.appsOpen || notch.wallpaperOpen || notch.themeOpen
+                                     || notch.appsOpen || notch.wallpaperOpen || notch.themeOpen || notch.powerOpen
                                      || notch.controlTyping
                                      || settings.typingPassword || settings.typingPin
                                      ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
