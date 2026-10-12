@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-import qs
 import qs.modules.bar.components.stats
 
 // Untermenue "System" der Notch: dieselbe Karte wie die System-Pille.

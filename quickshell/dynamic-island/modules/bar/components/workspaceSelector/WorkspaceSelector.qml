@@ -3,13 +3,10 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Wayland
-import Quickshell.Io
 import QtQuick.Layouts
 import qs.modules.services.hypr
 import qs.modules.services.config
 
-import qs
 import qs.modules.widgets
 
 // Karte links in der Leiste. Rundung, Randstärke und Randfarbe kommen aus

@@ -3,7 +3,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
-import Quickshell.Io
 
 import "components/notch"
 import "components/notifications"

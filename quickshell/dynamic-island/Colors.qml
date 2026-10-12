@@ -35,7 +35,7 @@ Singleton {
     // nicht in scheme.json – nichts davon wird gespeichert.
     property var previewScheme: ({})
     property bool showPreview: false
-    readonly property bool dynamicActive: useDynamic && scheme.name !== undefined
+    readonly property bool dynamicActive: root.useDynamic && root.scheme.name !== undefined
 
     // ---- Dynamische Quelle: scheme.json (wallpaper-basiert) ----
     FileView {
@@ -130,38 +130,38 @@ Singleton {
     }
 
     // ---- Öffentliche Rollen (dynamisch bevorzugt, Theme als Fallback) ----
-    readonly property string name: dynamicActive ? (scheme.name ?? t.name) : t.name
-    readonly property var palette: dynamicActive ? [
-        pick("primaryPaletteKeyColor", t.palette[0]),
-        pick("secondaryPaletteKeyColor", t.palette[1]),
-        pick("tertiaryPaletteKeyColor", t.palette[2]),
-        pick("errorPaletteKeyColor", t.palette[3]),
-        pick("neutralPaletteKeyColor", t.palette[4])
+    readonly property string name: root.dynamicActive ? (root.scheme.name ?? t.name) : t.name
+    readonly property var palette: root.dynamicActive ? [
+        root.pick("primaryPaletteKeyColor", t.palette[0]),
+        root.pick("secondaryPaletteKeyColor", t.palette[1]),
+        root.pick("tertiaryPaletteKeyColor", t.palette[2]),
+        root.pick("errorPaletteKeyColor", t.palette[3]),
+        root.pick("neutralPaletteKeyColor", t.palette[4])
     ] : t.palette   // 5 Basisfarben, z.B. für Verläufe
 
-    readonly property color background: pick("background", t.background)
-    readonly property color surface: pick("surface", t.surface)
-    readonly property color surfaceContainer: pick("surfaceContainer", t.surfaceContainer)
-    readonly property color surfaceBright: pick("surfaceBright", t.surfaceBright)
-    readonly property color outline: pick("outline", t.outline)
-    readonly property color outlineVariant: pick("outlineVariant", t.outline)   // dezente Border-Neutralfarbe (M3)
+    readonly property color background: root.pick("background", t.background)
+    readonly property color surface: root.pick("surface", t.surface)
+    readonly property color surfaceContainer: root.pick("surfaceContainer", t.surfaceContainer)
+    readonly property color surfaceBright: root.pick("surfaceBright", t.surfaceBright)
+    readonly property color outline: root.pick("outline", t.outline)
+    readonly property color outlineVariant: root.pick("outlineVariant", t.outline)   // dezente Border-Neutralfarbe (M3)
 
-    readonly property color fgBackground: pick("onBackground", t.fgBackground)
-    readonly property color fgSurface: pick("onSurface", t.fgBackground)
-    readonly property color fgSurfaceVariant: pick("onSurfaceVariant", t.fgSurfaceVariant)
+    readonly property color fgBackground: root.pick("onBackground", t.fgBackground)
+    readonly property color fgSurface: root.pick("onSurface", t.fgBackground)
+    readonly property color fgSurfaceVariant: root.pick("onSurfaceVariant", t.fgSurfaceVariant)
 
-    readonly property color primary: pick("primary", t.primary)
-    readonly property color fgPrimary: pick("onPrimary", t.fgPrimary)
-    readonly property color primaryDim: pick("primaryDim", t.primaryDim)
+    readonly property color primary: root.pick("primary", t.primary)
+    readonly property color fgPrimary: root.pick("onPrimary", t.fgPrimary)
+    readonly property color primaryDim: root.pick("primaryDim", t.primaryDim)
 
-    readonly property color secondary: pick("secondary", t.secondary)
-    readonly property color fgSecondary: pick("onSecondary", t.fgSecondary)
+    readonly property color secondary: root.pick("secondary", t.secondary)
+    readonly property color fgSecondary: root.pick("onSecondary", t.fgSecondary)
 
-    readonly property color tertiary: pick("tertiary", t.tertiary)
-    readonly property color fgTertiary: pick("onTertiary", t.fgTertiary)
+    readonly property color tertiary: root.pick("tertiary", t.tertiary)
+    readonly property color fgTertiary: root.pick("onTertiary", t.fgTertiary)
 
-    readonly property color error: pick("error", t.error)
-    readonly property color fgError: pick("onError", t.fgError)
+    readonly property color error: root.pick("error", t.error)
+    readonly property color fgError: root.pick("onError", t.fgError)
 
     // Aufnahme-Rot. Bewusst fest und nicht aus dem Schema: der Punkt an der
     // Uhr soll in jedem Theme als "es laeuft eine Aufnahme" lesbar sein, und

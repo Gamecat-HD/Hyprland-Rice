@@ -1,7 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import Quickshell
-import Quickshell.Bluetooth as QB
 
 import qs.modules.services.bluetooth
 

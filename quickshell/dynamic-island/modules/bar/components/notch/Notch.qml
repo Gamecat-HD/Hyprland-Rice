@@ -2,15 +2,12 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import Quickshell
-import Quickshell.Wayland
-import Quickshell.Io
 
 import qs.modules.services.config
 import qs.modules.services.auth
 import qs.modules.services.record
 import qs.modules.services.system
 import qs.modules.services.media
-import qs.modules.services.audio
 import qs.modules.services.notifications
 
 import qs

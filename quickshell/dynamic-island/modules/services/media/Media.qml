@@ -343,7 +343,7 @@ Singleton {
 
         // YouTube liefert kein Cover ueber MPRIS, aber das Thumbnail laesst
         // sich aus der Video-ID bauen.
-        const url = player.metadata?.["xesam:url"] ?? "";
+        const url = player.metadata["xesam:url"] ?? "";
         const id = url.startsWith("https://www.youtube.com/watch") ? url.match(/[?&]v=([\w-]{11})/)?.[1] : "";
         return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
     }

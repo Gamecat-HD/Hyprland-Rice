@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Services.SystemTray
 
-import qs
 import qs.modules.bar.components.settings
 import qs.modules.bar.components.statusBar
 import qs.modules.services.network

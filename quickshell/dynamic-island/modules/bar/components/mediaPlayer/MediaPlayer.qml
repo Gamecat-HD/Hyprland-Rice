@@ -2,11 +2,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
-import Quickshell
-import Quickshell.Hyprland
 import qs.modules.services.hypr
 import qs.modules.services.media
-import qs.modules.services.audio
 
 import qs
 import qs.modules.services.config

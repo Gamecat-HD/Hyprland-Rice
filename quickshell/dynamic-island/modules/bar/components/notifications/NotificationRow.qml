@@ -239,8 +239,11 @@ Item {
                 font.family: Config.font
                 anchors.verticalCenter: parent.verticalCenter
 
-                // `tick` haengt nur mit drin, damit sich die Angabe auffrischt
-                text: Notifications.tick, Notifications.formatAge(row.entry?.time ?? null)
+                text: {
+                    // `tick` haengt nur mit drin, damit sich die Angabe auffrischt
+                    void Notifications.tick;
+                    return Notifications.formatAge(row.entry?.time ?? null);
+                }
                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
                 font.pixelSize: 10
             }
