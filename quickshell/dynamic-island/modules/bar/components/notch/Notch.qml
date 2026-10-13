@@ -89,6 +89,23 @@ Item {
     // Blaettern: Inhalt gleitet in Scrollrichtung herein (siehe flipWheel)
     property real slide: 0
 
+    // Direkt auf eine Seite springen (Klick auf einen Seiten-Punkt). Gleitet
+    // aus der Richtung herein, in der die Seite im Pager liegt.
+    function showView(index: int): void {
+        const before = LauncherState.viewIndex;
+        if (index === before)
+            return;
+        const view = LauncherState.views[index];
+        if (view === "overview") {
+            LauncherState.close();
+            notch.expanded = true;
+        } else {
+            LauncherState.showMode(notch.QsWindow.window.screen, view);
+        }
+        slideIn.from = (index > before ? 1 : -1) * 36;
+        slideIn.restart();
+    }
+
     // Was die Bar zentral einschaltet (Bar.qml): Visualiser, Systemwerte,
     // Medien-Position, Tastaturfokus fuers WLAN-Passwort in der Steuerung
     readonly property bool wantsVisualizer: (overviewShown && Media.available) || mediaOpen
@@ -712,8 +729,9 @@ Item {
 
         // ---- Seiten-Indikator ----
         // Ein Punkt je Ansicht (LauncherState.views), der aktive breit in der
-        // Akzentfarbe. Kein Knopf – blaettern geht mit dem Mausrad bzw.
-        // Wischen ueber der Kopfzeile (flipZone). Sitzt rechts oben neben der
+        // Akzentfarbe. Klick springt direkt auf die Seite; blaettern geht
+        // ausserdem mit dem Mausrad bzw. Wischen ueber der Kopfzeile
+        // (flipZone). Sitzt rechts oben neben der
         // Glocke – alle Blaetter-Seiten sind gleich breit (pageWidth) und
         // haengen oben fest, also steht er immer an derselben Stelle.
         Row {
@@ -743,13 +761,32 @@ Item {
                     width: dot.current ? 16 : 6
                     height: 6
                     radius: 3
-                    color: dot.current ? Colors.primary : Colors.alpha(Colors.fgBackground, 0.22)
+                    color: dot.current ? Colors.primary
+                         : Colors.alpha(Colors.fgBackground, dotHover.hovered ? 0.5 : 0.22)
 
                     Behavior on width {
                         NumberAnimation { duration: Appearance.fadeDuration * 1.5; easing.type: Easing.OutCubic }
                     }
                     Behavior on color {
                         ColorAnimation { duration: Appearance.fadeDuration }
+                    }
+
+                    // Trefferflaeche deutlich groesser als der 6-px-Punkt,
+                    // ohne Luecke zum Nachbarn
+                    Item {
+                        anchors.centerIn: parent
+                        width: dot.width + pager.spacing
+                        height: 22
+
+                        HoverHandler {
+                            id: dotHover
+
+                            cursorShape: Qt.PointingHandCursor
+                        }
+
+                        TapHandler {
+                            onTapped: notch.showView(dot.index)
+                        }
                     }
                 }
             }
