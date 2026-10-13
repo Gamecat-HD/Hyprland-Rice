@@ -88,13 +88,13 @@ Item {
 
     // Blaettern: Inhalt gleitet in Scrollrichtung herein (siehe flipWheel)
     property real slide: 0
-    // Song-Wechsel per Wischen: nur der Hintergrund der Jetzt-laeuft-Zeile
-    // folgt dem Zeiger (Cover und Text bleiben stehen), dazu blendet dort
-    // ein Skip-Symbol ein. songPull = Fortschritt bis zur Schwelle, -1..1
-    // (negativ = nach links = naechster Titel), aus songSlide abgeleitet,
-    // damit Zurueckschnappen und Einblenden dieselbe Animation nutzen.
+    // Song-Wechsel per Wischen: die Jetzt-laeuft-Karte folgt dem Zeiger 1:1,
+    // daneben kommt eine Dummy-Karte (NowPlayingRow) mit herein. songPull =
+    // Fortschritt bis zur Schwelle, -1..1 (negativ = nach links = naechster
+    // Titel), aus songSlide abgeleitet, damit Zurueckschnappen und Einblenden
+    // dieselbe Animation nutzen.
     property real songSlide: 0
-    readonly property real songPull: Math.max(-1, Math.min(1, songSlide / (swipe.threshold * swipe.follow)))
+    readonly property real songPull: Math.max(-1, Math.min(1, songSlide / swipe.threshold))
 
     // Eine Seite weiter (dir = +1) oder zurueck (-1) – Mausrad und Wischen
     // landen beide hier. Die neue Seite gleitet aus der Zugrichtung herein.
@@ -113,9 +113,10 @@ Item {
         }
     }
 
-    // Song vor (dir = +1) oder zurueck (-1). Der neue Titel gleitet aus der
-    // Richtung herein, in die gezogen wurde; geht es nicht, schnappt das
-    // Element nur zurueck.
+    // Song vor (dir = +1) oder zurueck (-1). Die Dummy-Karte faehrt ganz
+    // herein (songFlip), der Player wechselt derweil; am Ende springt der
+    // Versatz auf 0 und die echte Karte zeigt den neuen Titel an derselben
+    // Stelle. Geht es nicht, schnappt die Karte nur zurueck.
     function skipSong(dir: int): void {
         const can = dir > 0 ? Media.canNext : Media.canPrevious;
         if (can) {
@@ -123,11 +124,12 @@ Item {
                 Media.next();
             else
                 Media.previous();
-            songSlideIn.from = dir * 28;
+            songFlip.to = -dir * nowPlaying.flipDistance;
+            songFlip.restart();
         } else {
             songSlideIn.from = notch.songSlide;
+            songSlideIn.restart();
         }
-        songSlideIn.restart();
     }
 
     // Direkt auf eine Seite springen (Klick auf einen Seiten-Punkt). Gleitet
@@ -368,8 +370,10 @@ Item {
             enabled: !Auth.active && (notch.pagerShown || (notch.showMedia && !notch.open))
 
             readonly property real threshold: 60
-            readonly property real follow: 0.4     // Daempfung waehrend des Zugs
+            readonly property real follow: 0.4     // Daempfung beim Blaettern
             readonly property real followMax: 48
+            // Beim Song folgt die Karte 1:1, hoechstens bis die Dummy-Karte steht
+            readonly property real songFollowMax: nowPlaying.flipDistance
             // "song", "tabs" oder "" (nichts zu tun)
             property string kind: ""
             // Letzte Zugstrecke – beim Loslassen ist activeTranslation ggf. schon weg
@@ -389,6 +393,7 @@ Item {
                     swipe.kind = swipe.kindAt(swipe.centroid.pressPosition);
                     slideIn.stop();
                     songSlideIn.stop();
+                    songFlip.stop();
                     return;
                 }
                 const dir = swipe.lastX < 0 ? 1 : -1;
@@ -415,11 +420,10 @@ Item {
                 if (!swipe.active || swipe.kind === "")
                     return;
                 swipe.lastX = swipe.activeTranslation.x;
-                const offset = Math.max(-swipe.followMax, Math.min(swipe.followMax, swipe.lastX * swipe.follow));
                 if (swipe.kind === "song")
-                    notch.songSlide = offset;
+                    notch.songSlide = Math.max(-swipe.songFollowMax, Math.min(swipe.songFollowMax, swipe.lastX));
                 else
-                    notch.slide = offset;
+                    notch.slide = Math.max(-swipe.followMax, Math.min(swipe.followMax, swipe.lastX * swipe.follow));
             }
         }
 
@@ -997,6 +1001,17 @@ Item {
             to: 0
             duration: Appearance.morphDuration
             easing.type: Easing.OutCubic
+        }
+
+        // Wechsel: Dummy-Karte ganz herein, dann ohne Animation zurueck auf 0
+        NumberAnimation {
+            id: songFlip
+
+            target: notch
+            property: "songSlide"
+            duration: Appearance.morphDuration
+            easing.type: Easing.OutCubic
+            onFinished: notch.songSlide = 0
         }
 
         // ---- Live-Activity: Cover links ----
