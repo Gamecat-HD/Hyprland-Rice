@@ -88,9 +88,13 @@ Item {
 
     // Blaettern: Inhalt gleitet in Scrollrichtung herein (siehe flipWheel)
     property real slide: 0
-    // Song-Wechsel per Wischen: das Medien-Element folgt dem Zeiger und
-    // schnappt beim Loslassen zurueck bzw. der neue Titel gleitet herein
+    // Song-Wechsel per Wischen: nur der Hintergrund der Jetzt-laeuft-Zeile
+    // folgt dem Zeiger (Cover und Text bleiben stehen), dazu blendet dort
+    // ein Skip-Symbol ein. songPull = Fortschritt bis zur Schwelle, -1..1
+    // (negativ = nach links = naechster Titel), aus songSlide abgeleitet,
+    // damit Zurueckschnappen und Einblenden dieselbe Animation nutzen.
     property real songSlide: 0
+    readonly property real songPull: Math.max(-1, Math.min(1, songSlide / (swipe.threshold * swipe.follow)))
 
     // Eine Seite weiter (dir = +1) oder zurueck (-1) – Mausrad und Wischen
     // landen beide hier. Die neue Seite gleitet aus der Zugrichtung herein.
@@ -342,13 +346,14 @@ Item {
             }
         }
 
-        // Seitlich ziehen: auf dem Medien-Element (Jetzt-laeuft-Zeile der
-        // Uebersicht, Medien-Untermenue unter der Kopfzeile, eingeklappt die
-        // ganze Notch mit Cover) wechselt es den Song, ueberall sonst
-        // blaettert es die Seiten wie das Mausrad. Welche Geste es wird,
+        // Seitlich ziehen: auf der Jetzt-laeuft-Zeile der Uebersicht (und
+        // eingeklappt auf der Notch mit Cover) wechselt es den Song, ueberall
+        // sonst blaettert es die Seiten wie das Mausrad – auch im Medien-
+        // Untermenue, das hat eigene Skip-Knoepfe. Welche Geste es wird,
         // entscheidet der Druckpunkt. Links ziehen = naechster Song bzw.
-        // naechste Seite. Waehrend des Zugs folgt der Inhalt gedaempft dem
-        // Zeiger; beim Loslassen zaehlt nur die Strecke, nicht die Zeit.
+        // naechste Seite. Waehrend des Zugs folgt der Inhalt (bzw. beim Song
+        // nur der Zeilen-Hintergrund) gedaempft dem Zeiger; beim Loslassen
+        // zaehlt nur die Strecke, nicht die Zeit.
         //
         // Datumsstreifen und Fortschrittsbalken haben eigene seitliche
         // Zuege – deren Handler liegen tiefer im Baum und greifen zuerst zu,
@@ -360,7 +365,7 @@ Item {
 
             target: null
             yAxis.enabled: false
-            enabled: !Auth.active && (notch.pagerShown || notch.mediaOpen || (notch.showMedia && !notch.open))
+            enabled: !Auth.active && (notch.pagerShown || (notch.showMedia && !notch.open))
 
             readonly property real threshold: 60
             readonly property real follow: 0.4     // Daempfung waehrend des Zugs
@@ -372,8 +377,6 @@ Item {
 
             function kindAt(p: point): string {
                 if (nowPlaying.visible && nowPlaying.contains(nowPlaying.mapFromItem(pill, p)))
-                    return "song";
-                if (notch.mediaOpen && p.y > notch.flipZoneHeight)
                     return "song";
                 if (notch.showMedia && !notch.open)
                     return "song";
@@ -816,7 +819,10 @@ Item {
         // ---- Uebersicht: Jetzt laeuft ----
         NowPlayingRow {
             id: nowPlaying
-            transform: Translate { x: notch.slide + notch.songSlide }
+            transform: Translate { x: notch.slide }
+
+            shift: notch.songSlide
+            pull: notch.songPull
 
             x: notch.overviewInset
             y: notch.panelBottom + 8
@@ -1264,7 +1270,7 @@ Item {
         // ---- Untermenues (Notch-Layout und Insel) ----
         LazyPanel {
             id: mediaView
-            transform: Translate { x: notch.slide + notch.songSlide }
+            transform: Translate { x: notch.slide }
 
             open: notch.mediaOpen
 

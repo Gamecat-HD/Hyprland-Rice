@@ -16,12 +16,67 @@ Item {
 
     readonly property real artSize: 36
 
+    // Wisch-Geste der Notch (swipe in Notch.qml): nur der Hintergrund
+    // gleitet mit (`shift`), Cover und Text bleiben stehen. `pull` ist der
+    // Fortschritt bis zur Schwelle, -1..1 (negativ = nach links = naechster
+    // Titel): der Text rueckt beiseite und ein Skip-Symbol blendet dort ein.
+    // Welcher Titel kommt, verraet MPRIS nicht – deshalb nur das Symbol.
+    property real shift: 0
+    property real pull: 0
+    readonly property real pullNext: Math.max(0, -pull)
+    readonly property real pullPrev: Math.max(0, pull)
+    readonly property real skipRoom: 26
+
     implicitHeight: 52
 
     Rectangle {
         anchors.fill: parent
+        transform: Translate { x: root.shift }
         radius: 16
         color: Colors.alpha(Colors.fgBackground, 0.05)
+
+        // Leicht in Akzentfarbe, je weiter gezogen wird
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Colors.primary
+            opacity: 0.1 * Math.abs(root.pull)
+        }
+    }
+
+    // ---- Skip-Symbole (hinter dem Inhalt) ----
+    // Zurueck: zwischen Cover und Text, der Text rueckt nach rechts.
+    // Weiter: zwischen Text und Visualiser, der Text rueckt nach links.
+    Text {
+        anchors {
+            left: art.right
+            leftMargin: 10 + (root.skipRoom - width) / 2
+            verticalCenter: parent.verticalCenter
+        }
+        text: "skip_previous"
+        color: Media.canPrevious ? Colors.primary : Colors.fgSurfaceVariant
+        font.family: "Material Symbols Outlined"
+        font.pixelSize: 20
+        font.variableAxes: ({ FILL: 1, wght: 600 })
+        opacity: root.pullPrev
+        scale: 0.6 + 0.4 * root.pullPrev
+        visible: opacity > 0
+    }
+
+    Text {
+        anchors {
+            right: wave.left
+            rightMargin: 12 + (root.skipRoom - width) / 2
+            verticalCenter: parent.verticalCenter
+        }
+        text: "skip_next"
+        color: Media.canNext ? Colors.primary : Colors.fgSurfaceVariant
+        font.family: "Material Symbols Outlined"
+        font.pixelSize: 20
+        font.variableAxes: ({ FILL: 1, wght: 600 })
+        opacity: root.pullNext
+        scale: 0.6 + 0.4 * root.pullNext
+        visible: opacity > 0
     }
 
     // ---- Cover, rund maskiert ----
@@ -86,9 +141,9 @@ Item {
     Column {
         anchors {
             left: art.right
-            leftMargin: 10
+            leftMargin: 10 + root.skipRoom * root.pullPrev
             right: wave.left
-            rightMargin: 10
+            rightMargin: 10 + root.skipRoom * root.pullNext
             verticalCenter: parent.verticalCenter
         }
         spacing: 2

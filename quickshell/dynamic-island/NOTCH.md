@@ -442,14 +442,17 @@ eingeklappt Symbol + Prozent in `compactRight`, in der Uebersicht ein Chip in `S
 Beides haengt an `Power.hasSystemBattery && Config.bar.battery`.
 
 **Seitlich wischen (2026-10-13):** `swipe` (DragHandler auf `pill`, nur X-Achse, `target: null`). Der Druckpunkt
-entscheidet (`swipe.kindAt`): auf der Jetzt-laeuft-Zeile, im Medien-Untermenue unter der Kopfzeile oder auf der
-eingeklappten Notch mit Cover wechselt die Geste den **Song** (`notch.skipSong`, links = naechster), ueberall sonst
-blaettert sie die **Seiten** wie das Mausrad (`notch.flip`, gemeinsamer Pfad mit `flipWheel`). Waehrend des Zugs folgt
-der Inhalt gedaempft (`slide` bzw. `songSlide`, Faktor 0.4, max. 48 px); Schwelle beim Loslassen 60 px, darunter schnappt
-er zurueck (`slideIn`/`songSlideIn` mit `from` = aktueller Versatz). Datumsstreifen und Fortschrittsbalken behalten ihre
-eigenen seitlichen Zuege: ihre Handler liegen tiefer im Baum und greifen zuerst zu, DragHandler nehmen sich gegenseitig
-nichts weg. Der Launcher-Zug (nur Y) stoert nicht – die Achse, die zuerst die Schwelle reisst, gewinnt. `closeTimer`
-wartet auch auf `swipe.active`.
+entscheidet (`swipe.kindAt`): auf der Jetzt-laeuft-Zeile der Uebersicht oder auf der eingeklappten Notch mit Cover
+wechselt die Geste den **Song** (`notch.skipSong`, links = naechster), ueberall sonst – auch im Medien-Untermenue, das hat
+eigene Skip-Knoepfe – blaettert sie die **Seiten** wie das Mausrad (`notch.flip`, gemeinsamer Pfad mit `flipWheel`).
+Beim Blaettern folgt der Inhalt gedaempft (`slide`, Faktor 0.4, max. 48 px); beim Song gleitet nur der Hintergrund der
+Zeile mit (`NowPlayingRow.shift` = `songSlide`), Cover und Text bleiben stehen, der Text rueckt beiseite und ein
+Skip-Symbol blendet ein (`pull` = `songPull`, -1..1, Fortschritt bis zur Schwelle; grau statt Akzent, wenn der Player
+nicht kann). Welcher Titel folgt, verraet MPRIS nicht (Spotify/Firefox: `HasTrackList` false), deshalb nur das Symbol.
+Schwelle beim Loslassen 60 px, darunter schnappt alles zurueck (`slideIn`/`songSlideIn` mit `from` = aktueller Versatz).
+Datumsstreifen und Fortschrittsbalken behalten ihre eigenen seitlichen Zuege: ihre Handler liegen tiefer im Baum und
+greifen zuerst zu, DragHandler nehmen sich gegenseitig nichts weg. Der Launcher-Zug (nur Y) stoert nicht – die Achse, die
+zuerst die Schwelle reisst, gewinnt. `closeTimer` wartet auch auf `swipe.active`.
 
 ## 7. Performance-Regeln (seit 2026-10-12)
 
