@@ -88,6 +88,43 @@ Item {
 
     // Blaettern: Inhalt gleitet in Scrollrichtung herein (siehe flipWheel)
     property real slide: 0
+    // Song-Wechsel per Wischen: das Medien-Element folgt dem Zeiger und
+    // schnappt beim Loslassen zurueck bzw. der neue Titel gleitet herein
+    property real songSlide: 0
+
+    // Eine Seite weiter (dir = +1) oder zurueck (-1) – Mausrad und Wischen
+    // landen beide hier. Die neue Seite gleitet aus der Zugrichtung herein.
+    function flip(dir: int): void {
+        const before = LauncherState.viewIndex;
+        const view = LauncherState.step(notch.QsWindow.window.screen, dir);
+        if (view === "overview")
+            notch.expanded = true;
+        if (LauncherState.viewIndex !== before || view === "overview" && before !== 0) {
+            slideIn.from = dir * 36;
+            slideIn.restart();
+        } else {
+            // Nichts passiert (z.B. nur eine Seite): zurueckschnappen
+            slideIn.from = notch.slide;
+            slideIn.restart();
+        }
+    }
+
+    // Song vor (dir = +1) oder zurueck (-1). Der neue Titel gleitet aus der
+    // Richtung herein, in die gezogen wurde; geht es nicht, schnappt das
+    // Element nur zurueck.
+    function skipSong(dir: int): void {
+        const can = dir > 0 ? Media.canNext : Media.canPrevious;
+        if (can) {
+            if (dir > 0)
+                Media.next();
+            else
+                Media.previous();
+            songSlideIn.from = dir * 28;
+        } else {
+            songSlideIn.from = notch.songSlide;
+        }
+        songSlideIn.restart();
+    }
 
     // Direkt auf eine Seite springen (Klick auf einen Seiten-Punkt). Gleitet
     // aus der Richtung herein, in der die Seite im Pager liegt.
@@ -248,7 +285,7 @@ Item {
         id: closeTimer
         interval: 250
         onTriggered: {
-            if (panel.dragging)   // beim Ziehen darf die Maus rausrutschen
+            if (panel.dragging || swipe.active)   // beim Ziehen darf die Maus rausrutschen
                 closeTimer.restart();
             else
                 notch.expanded = false;
@@ -302,6 +339,84 @@ Item {
                     launcherDrag.triggered = true;
                     LauncherState.show(notch.QsWindow.window.screen);
                 }
+            }
+        }
+
+        // Seitlich ziehen: auf dem Medien-Element (Jetzt-laeuft-Zeile der
+        // Uebersicht, Medien-Untermenue unter der Kopfzeile, eingeklappt die
+        // ganze Notch mit Cover) wechselt es den Song, ueberall sonst
+        // blaettert es die Seiten wie das Mausrad. Welche Geste es wird,
+        // entscheidet der Druckpunkt. Links ziehen = naechster Song bzw.
+        // naechste Seite. Waehrend des Zugs folgt der Inhalt gedaempft dem
+        // Zeiger; beim Loslassen zaehlt nur die Strecke, nicht die Zeit.
+        //
+        // Datumsstreifen und Fortschrittsbalken haben eigene seitliche
+        // Zuege – deren Handler liegen tiefer im Baum und greifen zuerst zu,
+        // dieser hier bekommt den Zeiger dann nicht (gleicher Typ darf
+        // sich nichts wegnehmen). Zum Launcher-Zug (nur senkrecht) gibt es
+        // keinen Konflikt: die Achse, die zuerst die Schwelle reisst, gewinnt.
+        DragHandler {
+            id: swipe
+
+            target: null
+            yAxis.enabled: false
+            enabled: !Auth.active && (notch.pagerShown || notch.mediaOpen || (notch.showMedia && !notch.open))
+
+            readonly property real threshold: 60
+            readonly property real follow: 0.4     // Daempfung waehrend des Zugs
+            readonly property real followMax: 48
+            // "song", "tabs" oder "" (nichts zu tun)
+            property string kind: ""
+            // Letzte Zugstrecke – beim Loslassen ist activeTranslation ggf. schon weg
+            property real lastX: 0
+
+            function kindAt(p: point): string {
+                if (nowPlaying.visible && nowPlaying.contains(nowPlaying.mapFromItem(pill, p)))
+                    return "song";
+                if (notch.mediaOpen && p.y > notch.flipZoneHeight)
+                    return "song";
+                if (notch.showMedia && !notch.open)
+                    return "song";
+                return notch.pagerShown ? "tabs" : "";
+            }
+
+            onActiveChanged: {
+                if (swipe.active) {
+                    swipe.lastX = 0;
+                    swipe.kind = swipe.kindAt(swipe.centroid.pressPosition);
+                    slideIn.stop();
+                    songSlideIn.stop();
+                    return;
+                }
+                const dir = swipe.lastX < 0 ? 1 : -1;
+                const far = Math.abs(swipe.lastX) >= swipe.threshold;
+                if (swipe.kind === "song") {
+                    if (far)
+                        notch.skipSong(dir);
+                    else {
+                        songSlideIn.from = notch.songSlide;
+                        songSlideIn.restart();
+                    }
+                } else if (swipe.kind === "tabs") {
+                    if (far)
+                        notch.flip(dir);
+                    else {
+                        slideIn.from = notch.slide;
+                        slideIn.restart();
+                    }
+                }
+                swipe.kind = "";
+            }
+
+            onTranslationChanged: {
+                if (!swipe.active || swipe.kind === "")
+                    return;
+                swipe.lastX = swipe.activeTranslation.x;
+                const offset = Math.max(-swipe.followMax, Math.min(swipe.followMax, swipe.lastX * swipe.follow));
+                if (swipe.kind === "song")
+                    notch.songSlide = offset;
+                else
+                    notch.slide = offset;
             }
         }
 
@@ -701,7 +816,7 @@ Item {
         // ---- Uebersicht: Jetzt laeuft ----
         NowPlayingRow {
             id: nowPlaying
-            transform: Translate { x: notch.slide }
+            transform: Translate { x: notch.slide + notch.songSlide }
 
             x: notch.overviewInset
             y: notch.panelBottom + 8
@@ -845,14 +960,7 @@ Item {
                 const dir = flipWheel.accum < 0 ? 1 : -1;
                 flipWheel.accum = 0;
 
-                const before = LauncherState.viewIndex;
-                const view = LauncherState.step(notch.QsWindow.window.screen, dir);
-                if (view === "overview")
-                    notch.expanded = true;
-                if (LauncherState.viewIndex !== before || view === "overview" && before !== 0) {
-                    slideIn.from = dir * 36;
-                    slideIn.restart();
-                }
+                notch.flip(dir);
             }
         }
 
@@ -874,9 +982,20 @@ Item {
             easing.type: Easing.OutCubic
         }
 
+        NumberAnimation {
+            id: songSlideIn
+
+            target: notch
+            property: "songSlide"
+            to: 0
+            duration: Appearance.morphDuration
+            easing.type: Easing.OutCubic
+        }
+
         // ---- Live-Activity: Cover links ----
         Item {
             id: mediaArt
+            transform: Translate { x: notch.songSlide }
 
             anchors {
                 left: parent.left
@@ -1145,7 +1264,7 @@ Item {
         // ---- Untermenues (Notch-Layout und Insel) ----
         LazyPanel {
             id: mediaView
-            transform: Translate { x: notch.slide }
+            transform: Translate { x: notch.slide + notch.songSlide }
 
             open: notch.mediaOpen
 
