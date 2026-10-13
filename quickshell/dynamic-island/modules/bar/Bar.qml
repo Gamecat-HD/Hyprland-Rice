@@ -171,6 +171,9 @@ Variants {
                 item: bar.pillSettings?.vpnMenu ?? null     // VPN-Anbieter-Dropdown
             }
             Region {
+                item: bar.pillSettings?.powerMenu ?? null   // Energieprofil-Dropdown
+            }
+            Region {
                 item: pills.item?.notifications ?? null   // aufgeklappte Benachrichtigungs-Karte
             }
             Region {

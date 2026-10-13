@@ -91,6 +91,10 @@ ColumnLayout {
     property Item vpnMenu: null
     property bool vpnMenuHovered: false
 
+    property bool powerMenuOpen: false
+    property Item powerMenu: null
+    property bool powerMenuHovered: false
+
     // Kachel-ID -> Component (siehe QuickLayout.tiles fuer die IDs)
     readonly property var tileComponents: ({
         "wifi": wifiComponent,
@@ -543,8 +547,10 @@ ColumnLayout {
                     gesturePolicy: TapHandler.ReleaseWithinBounds
                     onTapped: {
                         root.vpnMenuOpen = !root.vpnMenuOpen;
-                        if (root.vpnMenuOpen)
+                        if (root.vpnMenuOpen) {
                             root.sleepMenuOpen = false;
+                            root.powerMenuOpen = false;
+                        }
                     }
                 }
             }
@@ -600,7 +606,8 @@ ColumnLayout {
 
                             required property var modelData
 
-                                            implicitHeight: 30
+                            Layout.fillWidth: true
+                            implicitHeight: 30
                             radius: 15
                             color: Vpn.provider === providerOption.modelData.id ? Colors.primary : "transparent"
 
@@ -615,7 +622,7 @@ ColumnLayout {
                                     text: providerOption.modelData.label
                                     font.pixelSize: 12
                                     color: Vpn.provider === providerOption.modelData.id ? Colors.fgPrimary : Colors.fgBackground
-                                                        }
+                                }
 
                                 Text {
                                     text: "check"
@@ -716,8 +723,10 @@ ColumnLayout {
                     gesturePolicy: TapHandler.ReleaseWithinBounds   // exklusiv: kein Pillen-Toggle
                     onTapped: {
                         root.sleepMenuOpen = !root.sleepMenuOpen;
-                        if (root.sleepMenuOpen)
+                        if (root.sleepMenuOpen) {
                             root.vpnMenuOpen = false;
+                            root.powerMenuOpen = false;
+                        }
                     }
                 }
             }
@@ -770,7 +779,8 @@ ColumnLayout {
 
                             required property var modelData
 
-                                            implicitHeight: 30
+                            Layout.fillWidth: true
+                            implicitHeight: 30
                             radius: 15
                             color: root.sleepDurationSec === option.modelData.sec ? Colors.primary : "transparent"
                             border.width: 1
@@ -797,7 +807,7 @@ ColumnLayout {
                                     text: option.modelData.label
                                     font.pixelSize: 12
                                     color: root.sleepDurationSec === option.modelData.sec ? Colors.fgPrimary : Colors.fgBackground
-                                                        }
+                                }
 
                                 Text {
                                     text: "check"
@@ -934,17 +944,22 @@ ColumnLayout {
         }
     }
 
-    // Energieprofil (power-profiles-daemon): Klick schaltet weiter
-    // Sparen -> Ausgewogen -> Leistung -> Sparen. Aktiv (Akzentflaeche)
-    // ausser im Standardprofil "Ausgewogen".
+    // Energieprofil (power-profiles-daemon): Klick oeffnet ein Dropdown mit
+    // Sparen / Ausgewogen / Leistung. Aktiv (Akzentflaeche) ausser im
+    // Standardprofil "Ausgewogen".
     Component {
         id: powerComponent
 
         // Nur mit Systemakku waehlbar (Laptop) – am Desktop gesperrt und
         // gedimmt, mit Hinweis statt Profilname
         Tile {
+            id: powerTile
+
             readonly property var current: Power.profiles.find(p => p.value === Power.profile) ?? Power.profiles[1]
             readonly property bool usable: Power.hasSystemBattery
+            // Ohne Leistungsprofil (Treiber bietet keins) nur die beiden anderen
+            readonly property var choices: Power.hasPerformance ? Power.profiles
+                : Power.profiles.filter(p => p.value !== PowerProfile.Performance)
 
             icon: current.icon
             title: "Energie"
@@ -953,10 +968,145 @@ ColumnLayout {
             tapEnabled: usable
             opacity: usable ? 1 : 0.45
             onToggled: {
-                const list = Power.hasPerformance ? Power.profiles
-                           : Power.profiles.filter(p => p.value !== PowerProfile.Performance);
-                const at = list.findIndex(p => p.value === Power.profile);
-                Power.setProfile(list[(at + 1) % list.length].value);
+                root.powerMenuOpen = !root.powerMenuOpen;
+                if (root.powerMenuOpen) {
+                    root.sleepMenuOpen = false;
+                    root.vpnMenuOpen = false;
+                }
+            }
+
+            // Pfeil als Hinweis aufs Dropdown – die ganze Kachel oeffnet es
+            Rectangle {
+                anchors {
+                    right: parent.right
+                    rightMargin: 8
+                    verticalCenter: parent.verticalCenter
+                }
+                visible: !powerTile.compact && powerTile.usable
+                width: 34
+                height: 34
+                radius: 17
+                color: root.powerMenuOpen ? powerTile.controlHover : powerTile.controlColor
+
+                Behavior on color {
+                    ColorAnimation { duration: 140 }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.powerMenuOpen ? "expand_less" : "expand_more"
+                    font.family: "Material Symbols Outlined"
+                    font.pixelSize: 18
+                    color: powerTile.fg
+                }
+            }
+
+            Rectangle {
+                id: powerMenuPanel
+
+                Component.onCompleted: root.powerMenu = powerMenuPanel
+                Component.onDestruction: {
+                    if (root.powerMenu === powerMenuPanel)
+                        root.powerMenu = null;
+                    root.powerMenuHovered = false;
+                }
+
+                visible: root.powerMenuOpen
+                anchors {
+                    top: parent.bottom
+                    topMargin: 4
+                    right: parent.right
+                    rightMargin: 10
+                }
+                width: 170
+                height: powerTile.choices.length * 32 + 8
+                z: 200
+                radius: 16
+                color: Colors.shade(Colors.background, 0.08)
+                border.width: 1
+                border.color: Colors.outlineVariant
+
+                // Eigene Trefferflaeche, damit Klicks nicht zu den darunter
+                // liegenden Reglern durchfallen
+                MouseArea {
+                    anchors.fill: parent
+                }
+
+                HoverHandler {
+                    onHoveredChanged: root.powerMenuHovered = hovered
+                }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    spacing: 2
+
+                    Repeater {
+                        model: powerTile.choices
+
+                        Rectangle {
+                            id: profileOption
+
+                            required property var modelData
+                            readonly property bool chosen: Power.profile === profileOption.modelData.value
+
+                            Layout.fillWidth: true
+                            implicitHeight: 30
+                            radius: 15
+                            color: profileOption.chosen ? Colors.primary : "transparent"
+                            border.width: 1
+                            border.color: profileMouse.containsMouse && !profileOption.chosen
+                                          ? Colors.alpha(Colors.fgSurfaceVariant, 0.55)
+                                          : "transparent"
+
+                            Behavior on color {
+                                ColorAnimation { duration: 140 }
+                            }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 12
+                                spacing: 8
+
+                                Text {
+                                    text: profileOption.modelData.icon
+                                    font.family: "Material Symbols Outlined"
+                                    font.pixelSize: 16
+                                    color: profileOption.chosen ? Colors.fgPrimary : Colors.fgSurfaceVariant
+                                }
+
+                                Text {
+                                    font.family: Config.font
+                                    text: profileOption.modelData.label
+                                    font.pixelSize: 12
+                                    color: profileOption.chosen ? Colors.fgPrimary : Colors.fgBackground
+                                    Layout.fillWidth: true
+                                }
+
+                                Text {
+                                    text: "check"
+                                    font.family: "Material Symbols Outlined"
+                                    font.pixelSize: 16
+                                    visible: profileOption.chosen
+                                    color: Colors.fgPrimary
+                                }
+                            }
+
+                            MouseArea {
+                                id: profileMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    Power.setProfile(profileOption.modelData.value);
+                                    root.powerMenuOpen = false;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -992,7 +1142,8 @@ ColumnLayout {
             readonly property var ids: tileRow.modelData.map(t => t.id)
             // Reihe mit offenem Dropdown ueber die darunter liegenden heben
             z: (root.sleepMenuOpen && tileRow.ids.includes("nosleep"))
-               || (root.vpnMenuOpen && tileRow.ids.includes("vpn")) ? 100 : 0
+               || (root.vpnMenuOpen && tileRow.ids.includes("vpn"))
+               || (root.powerMenuOpen && tileRow.ids.includes("power")) ? 100 : 0
 
             Repeater {
                 model: tileRow.modelData

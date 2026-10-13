@@ -26,7 +26,7 @@ Surface {
 
     // Ein Klick oeffnet die Karte. Hover haelt eine geoeffnete Karte nur noch
     // offen; beim Verlassen greift weiterhin der kurze Schliess-Nachlauf.
-    readonly property bool containsMouse: hoverSensor.hovered || tiles.sleepMenuHovered || tiles.vpnMenuHovered
+    readonly property bool containsMouse: hoverSensor.hovered || tiles.sleepMenuHovered || tiles.vpnMenuHovered || tiles.powerMenuHovered
     property bool expanded: false
     // Eingebettet in das Steuerungs-Untermenue der Notch (ControlPanel): immer
     // aufgeklappt, ohne eigene Flaeche, kein Peek und kein Zuklappen – die
@@ -108,6 +108,7 @@ Surface {
     // in die Fenster-Maske, damit man die Eintraege klicken kann
     readonly property alias sleepMenu: tiles.sleepMenu
     readonly property alias vpnMenu: tiles.vpnMenu
+    readonly property alias powerMenu: tiles.powerMenu
     // Platz, den ein offenes Dropdown UNTER der Karte braucht – die Notch
     // clippt ihren Inhalt, eingebettet muss die Ansicht dafuer wachsen. Nur
     // der Teil, der wirklich unten herausragt: liegt das Dropdown innerhalb
@@ -115,6 +116,7 @@ Surface {
     readonly property real dropdownReserve: {
         const menu = tiles.sleepMenuOpen ? tiles.sleepMenu
                    : tiles.vpnMenuOpen ? tiles.vpnMenu
+                   : tiles.powerMenuOpen ? tiles.powerMenu
                    : null;
         if (!menu || !menu.visible)
             return 0;
@@ -147,6 +149,7 @@ Surface {
         settings.audioOpen = false;
         tiles.sleepMenuOpen = false;
         tiles.vpnMenuOpen = false;
+        tiles.powerMenuOpen = false;
     } else {
         settings.showBrightness = false;
         settings.peek = false;          // die Karte loest die Statuszeile ab
