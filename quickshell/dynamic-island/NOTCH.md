@@ -455,6 +455,10 @@ Gemessen mit laufender Musik, zwei Monitore, Notch-Layout: qs-CPU 12,7 % → 6 %
   irgendeiner will. Nie mehr ein `Binding` je Monitor auf eine Singleton-Property – der zuletzt
   geänderte Monitor gewann. Dienste mit Demand: Cava, SystemStats, Media (`positionDemand`), Network,
   WifiStatus, Brightness, Vpn.
+- **Wer etwas aktuell hält, darf nicht an einer Ansicht hängen.** `lastIpcObject` (offener Special,
+  Fensterzahl) hält `services/hypr/HyprIpc.qml` frisch; gelesen wird über `HyprIpc.specialOn()` /
+  `windowsOn()`. Bis 2026-10-13 hing das in `WorkspaceSelector.qml` – der lief seit dem Loader im
+  Notch-Layout nicht mehr, und die Specials in der Notch blieben unsichtbar.
 - **Nicht pollen, was ein Ereignis hat.** WLAN-Kurzstatus kommt aus `services/network/WifiStatus.qml`
   (`nmcli monitor`, Signal alle 15 s nur bei Bedarf). No-Sleep/Game-Mode leben in
   `services/system/SessionModes.qml` (ein Zustand für alle Kachel-Instanzen).

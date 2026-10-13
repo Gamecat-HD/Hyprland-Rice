@@ -5,6 +5,7 @@ import Quickshell.Hyprland
 
 import qs
 import qs.modules.services.config
+import qs.modules.services.hypr
 import qs.modules.widgets
 
 // Workspace-Anzeige der Notch: senkrechte Staebchen, der aktive ist hoeher.
@@ -18,8 +19,8 @@ import qs.modules.widgets
 // toggelt. Ohne offenen Special sind Specials nicht zu sehen.
 //
 // Dieselbe Gruppenlogik wie WorkspaceSelector.qml: jede Leiste zeigt die
-// Workspaces ihres eigenen Monitors (je `perMonitor` am Stueck). Dessen
-// Connections halten die Hyprland-Listen frisch (refreshWorkspaces/-Monitors).
+// Workspaces ihres eigenen Monitors (je `perMonitor` am Stueck). Frisch
+// gehalten werden die Hyprland-Listen von HyprIpc.
 Item {
     id: root
 
@@ -34,14 +35,14 @@ Item {
     readonly property int activeId: root.hyprMonitor?.activeWorkspace?.id ?? 1
     readonly property int groupOffset: Math.floor((root.activeId - 1) / root.perMonitor) * root.perMonitor
     // Offener Special-Workspace auf DIESEM Monitor ("" = keiner)
-    readonly property string activeSpecial: root.hyprMonitor?.lastIpcObject.specialWorkspace?.name ?? ""
+    readonly property string activeSpecial: HyprIpc.specialOn(root.hyprMonitor)
     readonly property bool onSpecial: root.activeSpecial !== ""
 
     // { wsId: hatFenster }
     readonly property var occupied: {
         const occ = {};
         for (const ws of Hyprland.workspaces.values)
-            occ[ws.id] = ws.lastIpcObject.windows > 0;
+            occ[ws.id] = HyprIpc.windowsOn(ws) > 0;
         return occ;
     }
     // Alle vorhandenen Specials (fuer das Overlay)

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell.Hyprland
 
 import qs
+import qs.modules.services.hypr
 
 // Special-Overlay im Selektor – dieselbe Idee wie
 // caelestia/modules/bar/components/workspaces/SpecialWorkspaces.qml, nur
@@ -47,7 +48,7 @@ RowLayout {
             // bleibt der Key nie leer und bekommt den Star wie in caelestia.
             readonly property string key: ws.modelData.name.slice("special:".length)
             readonly property bool isActive: root.activeSpecial === ws.modelData.name
-            readonly property bool hasWindows: ws.modelData.lastIpcObject.windows > 0
+            readonly property bool hasWindows: HyprIpc.windowsOn(ws.modelData) > 0
 
             // Gleiche Größenphilosophie wie die Punktreihe: deutliche
             // Trefferfläche (hitPadding), das Sichtbare sitzt zentriert.

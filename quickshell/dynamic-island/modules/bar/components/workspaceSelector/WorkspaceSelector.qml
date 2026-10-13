@@ -39,36 +39,14 @@ Item {
 
     // Ist auf DIESEM Monitor ein Special offen? Nur dann zeigt DIESE Leiste
     // das Overlay – der andere Bildschirm behaelt seine normalen Punkte.
-    // (Die activespecial-Events weiter unten halten die Monitor-JSON frisch,
-    // sodass der Eintritt sofort passiert.)
-    readonly property bool onSpecial: (root.hyprMonitor?.lastIpcObject.specialWorkspace?.name ?? "") !== ""
+    // (HyprIpc haelt die Monitor-JSON frisch, sodass der Eintritt sofort
+    // passiert.)
+    readonly property bool onSpecial: root.activeSpecialWs !== ""
 
     // Welcher Special ist hier offen – er bestimmt, welches Icon die Pille
     // traegt. Die ICON-LISTE im Overlay ist trotzdem global (alle Specials
     // aller Monitore), nur die Anzeige selbst ist monitoregebunden.
-    readonly property string activeSpecialWs: root.hyprMonitor?.lastIpcObject.specialWorkspace?.name ?? ""
-
-    // Quickshell zieht die IPC-Objekte nicht bei jedem Event nach –
-    // specialWorkspace an den Monitoren und die Fensterzaehlen in den
-    // Workspaces bleiben sonst ewig stehen (die Overlay-Erkennung lief also
-    // leer). Caelestia loest es identisch: bei den relevanten Events die
-    // Listen neu ziehen, dann laufen alle Bindings hier mit echten Daten.
-    Connections {
-        target: Hyprland
-
-        function onRawEvent(event: HyprlandEvent): void {
-            const n = event.name;
-
-            // Special rein/raus -> Monitor-JSON (specialWorkspace) neu laden
-            if (n === "activespecial" || n === "activespecialv2") {
-                Hyprland.refreshMonitors();
-                Hyprland.refreshWorkspaces();
-            // Fenster oeffnen/schliessen/umziehen -> Punkt-Belegung frisch halten
-            } else if (n === "openwindow" || n === "closewindow" || n === "movewindow") {
-                Hyprland.refreshWorkspaces();
-            }
-        }
-    }
+    readonly property string activeSpecialWs: HyprIpc.specialOn(root.hyprMonitor)
 
     // Blur der Punkte, solange ein Special offen ist. Eigene Property, weil
     // der Layer-Effekt am Wrapper haengt und beide animiert mitgehen sollen
@@ -86,7 +64,7 @@ Item {
     readonly property var occupied: {
         const occ = {};
         for (const ws of Hyprland.workspaces.values)
-            occ[ws.id] = ws.lastIpcObject.windows > 0;
+            occ[ws.id] = HyprIpc.windowsOn(ws) > 0;
         return occ;
     }
 
