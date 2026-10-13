@@ -445,14 +445,14 @@ Beides haengt an `Power.hasSystemBattery && Config.bar.battery`.
 entscheidet (`swipe.kindAt`): auf der Jetzt-laeuft-Zeile der Uebersicht oder auf der eingeklappten Notch mit Cover
 wechselt die Geste den **Song** (`notch.skipSong`, links = naechster), ueberall sonst – auch im Medien-Untermenue, das hat
 eigene Skip-Knoepfe – blaettert sie die **Seiten** wie das Mausrad (`notch.flip`, gemeinsamer Pfad mit `flipWheel`).
-Beim Blaettern folgt der Inhalt gedaempft (`slide`, Faktor 0.4, max. 48 px). Beim Song folgt die Jetzt-laeuft-Karte
-dem Zeiger 1:1 (`NowPlayingRow.shift` = `songSlide`, bis `flipDistance` = Zeilenbreite + 16) und zieht eine
-**Dummy-Karte** mit herein (`ghost`: gleicher Cover-Blend, Skip-Symbol + "Naechster/Voriger Titel", Beschriftung an der
-vorlaufenden Kante; `pull` = `songPull` -1..1 steuert Sichtbarkeit und Deckkraft, grau mit "Kein ... Titel", wenn der
-Player nicht kann). Welcher Titel folgt, verraet MPRIS nicht (Spotify/Firefox: `HasTrackList` false). Beim Wechsel
-faehrt `songFlip` den Versatz bis `flipDistance`, der Player wechselt derweil, `onFinished` springt auf 0 – die echte
-Karte steht dann mit neuem Titel an der Stelle der Dummy-Karte. Hintergrund der Karten (`CardBackground`): Cover 48 px
-decodiert, per MultiEffect verwaschen, nach rechts in `fadeColor` = Kartenfarbe ausgeblendet.
+Beim Blaettern folgt der Inhalt gedaempft (`slide`, Faktor 0.4, max. 48 px). Beim Song gleitet nur der **Hintergrund**
+der Jetzt-laeuft-Zeile 1:1 mit dem Zeiger (`NowPlayingRow.shift` = `songSlide`, bis `flipDistance` = Zeilenbreite + 16),
+Cover, Text und Knopf bleiben stehen; daneben haengt eine leere Dummy-Flaeche (`ghost`, gleicher Cover-Blend, bewusst
+ohne Text – MPRIS kennt den naechsten Titel nicht, Spotify/Firefox: `HasTrackList` false), die mit hereinkommt (`pull` =
+`songPull` -1..1 steuert Sichtbarkeit/Deckkraft). Beim Wechsel faehrt `songFlip` den Versatz bis `flipDistance`, der
+Player wechselt derweil, `onFinished` springt auf 0 – beide Flaechen sehen gleich aus, der Sprung faellt nicht auf.
+Hintergrund (`CardBackground`): Cover 48 px decodiert, per MultiEffect verwaschen, nach rechts in `fadeColor` =
+Kartenfarbe ausgeblendet.
 Schwelle beim Loslassen 60 px, darunter schnappt alles zurueck (`slideIn`/`songSlideIn` mit `from` = aktueller Versatz).
 Datumsstreifen und Fortschrittsbalken behalten ihre eigenen seitlichen Zuege: ihre Handler liegen tiefer im Baum und
 greifen zuerst zu, DragHandler nehmen sich gegenseitig nichts weg. Der Launcher-Zug (nur Y) stoert nicht – die Achse, die

@@ -12,13 +12,14 @@ import qs.modules.widgets
 // alles Weitere (Player-Auswahl, Fortschritt, Vor/Zurueck) steht im
 // Medien-Untermenue (SUPER+M bzw. blaettern).
 //
-// Wisch-Geste der Notch (swipe in Notch.qml): die Karte folgt dem Zeiger
-// (`shift`), daneben haengt eine Dummy-Karte fuer den naechsten bzw. vorigen
-// Titel, die mit hereingezogen wird. `pull` ist der Fortschritt bis zur
-// Schwelle, -1..1 (negativ = nach links = naechster Titel). Welcher Titel
-// kommt, verraet MPRIS nicht – die Dummy-Karte zeigt nur Richtung und
-// denselben Cover-Blend. Beim Wechsel faehrt sie ganz herein, dann springt
-// alles auf 0 zurueck und die echte Karte zeigt den neuen Titel.
+// Wisch-Geste der Notch (swipe in Notch.qml): nur der Hintergrund folgt
+// dem Zeiger (`shift`), Cover, Text und Knopf bleiben stehen. Neben dem
+// Hintergrund haengt eine leere Dummy-Flaeche mit demselben Cover-Blend,
+// die mit hereingezogen wird – welcher Titel kommt, verraet MPRIS nicht,
+// deshalb steht dort nichts. `pull` ist der Fortschritt bis zur Schwelle,
+// -1..1 (negativ = nach links = naechster Titel). Beim Wechsel faehrt die
+// Dummy-Flaeche ganz herein, dann springt alles auf 0 zurueck; da beide
+// Flaechen gleich aussehen, faellt der Sprung nicht auf.
 Item {
     id: root
 
@@ -31,9 +32,8 @@ Item {
     // Abstand zur Dummy-Karte; so weit muss `shift` beim Wechsel laufen
     readonly property real gap: 16
     readonly property real flipDistance: root.width + root.gap
-    // Dummy-Karte rechts (naechster) oder links (voriger)
+    // Dummy-Flaeche rechts (naechster) oder links (voriger)
     readonly property real ghostSide: root.pull < 0 ? 1 : -1
-    readonly property bool ghostCan: root.pull < 0 ? Media.canNext : Media.canPrevious
 
     implicitHeight: 52
 
@@ -99,10 +99,11 @@ Item {
         }
     }
 
-    // ---- Dummy-Karte: naechster / voriger Titel ----
-    // Haengt neben der echten Karte und faehrt mit `shift` herein. Solange
-    // nichts gezogen wird, liegt sie ausserhalb der Notch-Karte (die clippt).
-    Item {
+    // ---- Dummy-Flaeche: naechster / voriger Titel ----
+    // Haengt neben dem echten Hintergrund und faehrt mit `shift` herein.
+    // Solange nichts gezogen wird, liegt sie ausserhalb der Notch-Karte
+    // (die clippt). Bewusst leer – nur der Blend.
+    CardBackground {
         id: ghost
 
         x: root.ghostSide * root.flipDistance
@@ -111,53 +112,17 @@ Item {
         transform: Translate { x: root.shift }
         visible: root.pull !== 0
         opacity: 0.45 + 0.55 * Math.abs(root.pull)
-
-        CardBackground {
-            anchors.fill: parent
-            strength: 0.4
-        }
-
-        // Beschriftung an der Kante, die zuerst hereinkommt – so ist sie
-        // schon beim Anziehen zu sehen, nicht erst wenn die Karte halb steht
-        Row {
-            anchors {
-                left: root.ghostSide > 0 ? parent.left : undefined
-                right: root.ghostSide < 0 ? parent.right : undefined
-                margins: 18
-                verticalCenter: parent.verticalCenter
-            }
-            spacing: 8
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.pull < 0 ? "skip_next" : "skip_previous"
-                color: root.ghostCan ? Colors.primary : Colors.fgSurfaceVariant
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 20
-                font.variableAxes: ({ FILL: 1, wght: 600 })
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.ghostCan ? (root.pull < 0 ? "Nächster Titel" : "Voriger Titel")
-                                    : (root.pull < 0 ? "Kein nächster Titel" : "Kein voriger Titel")
-                color: root.ghostCan ? Colors.fgBackground : Colors.fgSurfaceVariant
-                font.family: Config.font
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
-            }
-        }
     }
 
-    // ---- Echte Karte ----
+    // ---- Echte Karte: Hintergrund gleitet, Inhalt steht ----
     Item {
         id: card
 
         anchors.fill: parent
-        transform: Translate { x: root.shift }
 
         CardBackground {
             anchors.fill: parent
+            transform: Translate { x: root.shift }
         }
 
         // ---- Cover, rund maskiert ----
