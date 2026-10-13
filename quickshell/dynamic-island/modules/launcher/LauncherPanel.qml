@@ -233,7 +233,7 @@ Item {
             anchors {
                 left: searchIcon.right
                 leftMargin: 12
-                right: favoriteButton.left
+                right: actionsButton.left
                 rightMargin: 12
                 verticalCenter: parent.verticalCenter
             }
@@ -260,8 +260,28 @@ Item {
             }
         }
 
+        // Aktionen-Menue: dieselbe Liste wie mit `>` getippt, nur per Klick
+        SearchButton {
+            id: actionsButton
+
+            anchors {
+                right: favoriteButton.left
+                rightMargin: 4
+                verticalCenter: parent.verticalCenter
+            }
+            checked: panel.actionMode
+            glyph: "tune"
+            glyphFamily: "Material Symbols Outlined"
+            glyphSize: 19
+            onClicked: {
+                panel.favoritesOnly = false;
+                search.text = panel.actionMode ? "" : panel.prefix;
+                search.forceActiveFocus();
+            }
+        }
+
         // Favoriten-Filter
-        Rectangle {
+        SearchButton {
             id: favoriteButton
 
             anchors {
@@ -269,38 +289,17 @@ Item {
                 rightMargin: 10
                 verticalCenter: parent.verticalCenter
             }
-            width: 32
-            height: 32
-            radius: height / 2
-            color: panel.favoritesOnly ? Colors.alpha(Colors.primary, 0.18)
-                 : favoriteArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08)
-                 : "transparent"
-
-            Behavior on color {
-                ColorAnimation { duration: 90 }
-            }
-
-            MouseArea {
-                id: favoriteArea
-
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    panel.favoritesOnly = !panel.favoritesOnly;
-                    search.forceActiveFocus();
-                }
-            }
-
-            Text {
-                font.family: Config.font
-                anchors.centerIn: parent
-                // Unicode statt Material Symbols: die gefüllte Variante gibt es
-                // dort nur über die FILL-Achse, und die greift mit dieser
-                // Schriftdatei nicht (fontconfig meldet sie als nicht-variabel).
-                text: panel.favoritesOnly ? "★" : "☆"
-                font.pixelSize: 17
-                color: panel.favoritesOnly ? Colors.primary : Colors.fgSurfaceVariant
+            checked: panel.favoritesOnly
+            // Unicode statt Material Symbols: die gefüllte Variante gibt es
+            // dort nur über die FILL-Achse, und die greift mit dieser
+            // Schriftdatei nicht (fontconfig meldet sie als nicht-variabel).
+            glyph: panel.favoritesOnly ? "★" : "☆"
+            onClicked: {
+                // Favoriten filtern nur Apps – aus den Aktionen geht es zurück
+                if (panel.actionMode)
+                    search.text = "";
+                panel.favoritesOnly = !panel.favoritesOnly;
+                search.forceActiveFocus();
             }
         }
     }
@@ -410,6 +409,46 @@ Item {
             text: panel.favoritesOnly ? "Noch keine Favoriten" : "Keine Treffer"
             color: Colors.fgSurfaceVariant
             font.pixelSize: 12
+        }
+    }
+
+    // Runder Knopf in der Suchzeile (Aktionen, Favoriten)
+    component SearchButton: Rectangle {
+        id: button
+
+        property bool checked: false
+        property string glyph: ""
+        property string glyphFamily: Config.font
+        property int glyphSize: 17
+
+        signal clicked()
+
+        width: 32
+        height: 32
+        radius: height / 2
+        color: button.checked ? Colors.alpha(Colors.primary, 0.18)
+             : buttonArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08)
+             : "transparent"
+
+        Behavior on color {
+            ColorAnimation { duration: 90 }
+        }
+
+        MouseArea {
+            id: buttonArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: button.clicked()
+        }
+
+        Text {
+            anchors.centerIn: parent
+            text: button.glyph
+            font.family: button.glyphFamily
+            font.pixelSize: button.glyphSize
+            color: button.checked ? Colors.primary : Colors.fgSurfaceVariant
         }
     }
 }
