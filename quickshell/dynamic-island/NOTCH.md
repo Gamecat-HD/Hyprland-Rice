@@ -446,7 +446,8 @@ entscheidet (`swipe.kindAt`): auf der Jetzt-laeuft-Zeile der Uebersicht oder auf
 wechselt die Geste den **Song** (`notch.skipSong`, links = naechster), ueberall sonst – auch im Medien-Untermenue, das hat
 eigene Skip-Knoepfe – blaettert sie die **Seiten** wie das Mausrad (`notch.flip`, gemeinsamer Pfad mit `flipWheel`).
 Beim Blaettern folgt der Inhalt gedaempft (`slide`, Faktor 0.4, max. 48 px); beim Song gleitet nur der Hintergrund der
-Zeile mit (`NowPlayingRow.shift` = `songSlide`), Cover und Text bleiben stehen, der Text rueckt beiseite und ein
+Zeile mit (`NowPlayingRow.shift` = `songSlide`; der Hintergrund ist das Cover selbst, 48 px decodiert und per
+MultiEffect verwaschen, nach rechts in `fadeColor` = Kartenfarbe ausgeblendet), Cover und Text bleiben stehen, der Text rueckt beiseite und ein
 Skip-Symbol blendet ein (`pull` = `songPull`, -1..1, Fortschritt bis zur Schwelle; grau statt Akzent, wenn der Player
 nicht kann). Welcher Titel folgt, verraet MPRIS nicht (Spotify/Firefox: `HasTrackList` false), deshalb nur das Symbol.
 Schwelle beim Loslassen 60 px, darunter schnappt alles zurueck (`slideIn`/`songSlideIn` mit `from` = aktueller Versatz).

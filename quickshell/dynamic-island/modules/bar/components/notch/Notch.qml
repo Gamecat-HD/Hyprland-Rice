@@ -823,6 +823,7 @@ Item {
 
             shift: notch.songSlide
             pull: notch.songPull
+            fadeColor: pill.baseColor
 
             x: notch.overviewInset
             y: notch.panelBottom + 8

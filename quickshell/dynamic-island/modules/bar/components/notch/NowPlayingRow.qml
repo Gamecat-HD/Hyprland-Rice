@@ -23,6 +23,8 @@ Item {
     // Welcher Titel kommt, verraet MPRIS nicht – deshalb nur das Symbol.
     property real shift: 0
     property real pull: 0
+    // Kartenfarbe, in die der Cover-Hintergrund nach rechts ausblendet
+    property color fadeColor: Appearance.notchColor
     readonly property real pullNext: Math.max(0, -pull)
     readonly property real pullPrev: Math.max(0, pull)
     readonly property real skipRoom: 26
@@ -34,6 +36,61 @@ Item {
         transform: Translate { x: root.shift }
         radius: 16
         color: Colors.alpha(Colors.fgBackground, 0.05)
+
+        // ---- Cover als Hintergrund ----
+        // Das Cover, stark verwaschen ueber die ganze Zeile gezogen und nach
+        // rechts in die Kartenfarbe ausgeblendet – so bleibt der Text lesbar.
+        // Winzige Decodegroesse: der Weichzeichner macht ohnehin alles glatt.
+        Item {
+            id: blend
+
+            anchors.fill: parent
+            visible: blendSource.status === Image.Ready
+
+            Image {
+                id: blendSource
+
+                anchors.fill: parent
+                source: Media.art
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                sourceSize.width: 48
+                sourceSize.height: 48
+                visible: false
+            }
+
+            Rectangle {
+                id: blendMask
+
+                anchors.fill: parent
+                radius: 16
+                color: "black"
+                layer.enabled: true
+                visible: false
+            }
+
+            MultiEffect {
+                anchors.fill: parent
+                source: blendSource
+                blurEnabled: true
+                blur: 1
+                blurMax: 32
+                maskEnabled: true
+                maskSource: blendMask
+                opacity: 0.45
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 16
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: Colors.alpha(root.fadeColor, 0.15) }
+                    GradientStop { position: 0.55; color: Colors.alpha(root.fadeColor, 0.6) }
+                    GradientStop { position: 1.0; color: Colors.alpha(root.fadeColor, 0.85) }
+                }
+            }
+        }
 
         // Leicht in Akzentfarbe, je weiter gezogen wird
         Rectangle {
