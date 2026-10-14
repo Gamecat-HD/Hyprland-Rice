@@ -63,6 +63,9 @@ def get_thumb(wall: Path, cache: Path) -> Path:
 
     if not thumb.exists():
         with Image.open(wall) as img:
+            # JPEGs gleich verkleinert dekodieren (libjpeg kann 1/2..1/8):
+            # ein 4K-Bild braucht so einen Bruchteil der Zeit
+            img.draft("RGB", (256, 256))
             img = img.convert("RGB")
             img.thumbnail((128, 128), Image.Resampling.NEAREST)
             thumb.parent.mkdir(parents=True, exist_ok=True)
@@ -174,14 +177,17 @@ def set_wallpaper(wall: Path, no_smart: bool) -> None:
 
     scheme = get_scheme()
 
-    # Change mode and variant based on wallpaper colour
-    if scheme.name == "dynamic" and not no_smart:
-        smart_opts = get_smart_opts(wall_cache, cache)
-        scheme.mode = smart_opts["mode"]
-        scheme.variant = smart_opts["variant"]
+    # Change mode and variant based on wallpaper colour. Im Batch, damit
+    # scheme.json nur einmal mit dem fertigen Stand geschrieben wird statt bis
+    # zu dreimal (Modus, Variante, Farben) - jedes Mal faerbt sich die Shell um.
+    with scheme.batch():
+        if scheme.name == "dynamic" and not no_smart:
+            smart_opts = get_smart_opts(wall_cache, cache)
+            scheme.mode = smart_opts["mode"]
+            scheme.variant = smart_opts["variant"]
 
-    # Update colours
-    scheme.update_colours()
+        # Update colours
+        scheme.update_colours()
     apply_colours(scheme.colours, scheme.mode)
 
     # Run custom post-hook if configured

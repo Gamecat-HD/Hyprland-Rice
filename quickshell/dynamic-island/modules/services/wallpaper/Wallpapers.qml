@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.modules.services.config
 import qs.modules.services.theme
 
 import qs
@@ -12,9 +13,14 @@ import qs
 //
 // Vorbild ist caelestia/services/Wallpapers.qml – nur ohne dessen
 // Caelestia.Models-Plugin (FileSystemModel gibt es hier nicht). Die Liste
-// kommt stattdessen einmalig aus einem `find`; gescannt wird erst, wenn sie
-// zum ersten Mal gebraucht wird (`ensureLoaded`), damit der Start der Shell
-// nichts davon merkt.
+// kommt stattdessen aus einem `find`; gescannt wird erst, wenn sie gebraucht
+// wird (`ensureLoaded`, bei jedem Oeffnen der Auswahl - neue Bilder tauchen so
+// ohne Neustart auf), damit der Start der Shell nichts davon merkt.
+//
+// Das Karussell zeigt nie die Originale, sondern kleine Vorschaubilder aus
+// ~/.cache/dynamic-island/thumbs (thumbs.sh). Qt dekodiert alle Bilder der
+// Shell in einem einzigen Thread; die Originale (bis 40 MB PNG) stauten
+// dort alles, auch den Hintergrund – der hing dann auf dem alten Bild.
 //
 // Gesetzt wird ueber die CLI, nicht selbst: `dynamic-island wallpaper -f`
 // schreibt den Pfad in den State, erzeugt die Material-You-Palette und legt
@@ -33,11 +39,18 @@ Singleton {
     // Shell-Prozesses auf, und ob ~/.local/bin da drin steht, haengt an der
     // Session – hier nicht.
     readonly property string cli: Quickshell.env("HOME") + "/.local/bin/dynamic-island"
+    readonly property string thumbsDir: Quickshell.env("HOME") + "/.cache/dynamic-island/thumbs"
 
     // [{ path, name }] – name ist der Pfad relativ zum Wallpaper-Ordner
     property var list: []
     property bool loaded: false
     property bool loading: false
+
+    // Namen mit fertigem Vorschaubild ({ name: true }). Wird gesammelt neu
+    // zugewiesen (siehe thumbFlush), damit nicht jede Zeile von thumbs.sh
+    // alle Kacheln neu auswerten laesst.
+    property var thumbs: ({})
+    property var pendingThumbs: []
 
     // Tatsaechlich gesetzt (aus dem State) bzw. nur vorgeschaut (Auswahl im
     // Launcher). `current` ist das, was der Hintergrund anzeigen soll.
@@ -47,15 +60,54 @@ Singleton {
     readonly property string current: root.showPreview && root.previewPath !== "" ? root.previewPath
                                                                                   : root.actualCurrent
 
+    // ---- Uebergang ----
+    // Welche Animation der Hintergrund beim Wechsel spielt (Config
+    // wallpaper.transition). "zufall" wuerfelt – aber je Bild fest, damit
+    // beide Monitore dieselbe zeigen, ohne sich abzusprechen.
+    readonly property var transitions: ["blende", "wischen", "schieben", "kreis", "zoom"]
+
+    // Den Uebergang einmal auf dem aktuellen Bild vorfuehren (WallpaperStage)
+    signal replayRequested
+
+    function replay(): void {
+        root.replayRequested();
+    }
+
+    function transitionFor(path: string): string {
+        const chosen = Config.wallpaper.transition;
+        if (chosen !== "zufall")
+            return chosen;
+        let h = 0;
+        for (let i = 0; i < path.length; i++)
+            h = (h * 31 + path.charCodeAt(i)) | 0;
+        return root.transitions[Math.abs(h) % root.transitions.length];
+    }
+
     // ---- Liste ----
     function ensureLoaded(): void {
-        if (!root.loaded && !root.loading)
+        if (!root.loading)
             root.reload();
     }
 
     function reload(): void {
         root.loading = true;
         scan.running = true;
+        thumbGen.running = true;
+    }
+
+    // Vorschaubild zu einem Eintrag – leer, solange es noch nicht fertig ist.
+    // Bewusst kein Rueckfall aufs Original, das wuerde den Stau zurueckholen.
+    function thumbFor(name: string): string {
+        return root.thumbs[name] ? `file://${root.thumbsDir}/${name}.jpg` : "";
+    }
+
+    // Dasselbe als Dateipfad fuer ein beliebiges Wallpaper (Helligkeitsmessung
+    // in Appearance). Liegt das Bild ausserhalb des Ordners: das Original.
+    function thumbPathFor(path: string): string {
+        const prefix = root.wallsDir + "/";
+        if (path.startsWith(prefix))
+            return `${root.thumbsDir}/${path.slice(prefix.length)}.jpg`;
+        return "";
     }
 
     function search(needle: string): var {
@@ -67,8 +119,11 @@ Singleton {
 
     // ---- Setzen ----
     function set(path: string): void {
-        root.stopPreview();
+        // Erst das neue Bild eintragen, dann die Vorschau beenden: andersherum
+        // sprang `current` kurz aufs alte Bild zurueck, und der Hintergrund
+        // blendete erst dorthin und dann wieder zum neuen.
         root.actualCurrent = path;          // sofort, der State zieht gleich nach
+        root.stopPreview();
         Quickshell.execDetached([root.cli, "wallpaper", "-f", path]);
     }
 
@@ -114,8 +169,9 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 // Wer inzwischen weitergeblaettert oder zugemacht hat, soll
-                // nicht die Farben von vorhin bekommen
-                if (root.showPreview && colourPreview.wall === root.previewPath)
+                // nicht die Farben von vorhin bekommen. Leer = der Prozess
+                // wurde fuer das naechste Bild abgebrochen.
+                if (text.trim() !== "" && root.showPreview && colourPreview.wall === root.previewPath)
                     Colors.loadPreview(text);
             }
         }
@@ -142,10 +198,46 @@ Singleton {
                         name
                     }));
 
-                root.list = entries;
+                // Nur bei echter Aenderung neu zuweisen: das Karussell
+                // springt bei jedem Modellwechsel zurueck auf das aktuelle Bild
+                // – auch wenn man gleich nach dem Oeffnen schon blaettert.
+                if (entries.map(e => e.name).join("\n") !== root.list.map(e => e.name).join("\n"))
+                    root.list = entries;
                 root.loaded = true;
                 root.loading = false;
             }
+        }
+    }
+
+    // Vorschaubilder anlegen bzw. melden (siehe thumbs.sh). Laeuft bei jedem
+    // Oeffnen; ohne neue Bilder ist es nach ~20 ms durch.
+    Process {
+        id: thumbGen
+
+        command: ["bash", Quickshell.shellPath("modules/services/wallpaper/thumbs.sh"),
+            root.wallsDir, root.thumbsDir]
+
+        stdout: SplitParser {
+            onRead: line => {
+                if (line === "" || root.thumbs[line])
+                    return;
+                root.pendingThumbs.push(line);
+                if (!thumbFlush.running)
+                    thumbFlush.start();
+            }
+        }
+    }
+
+    Timer {
+        id: thumbFlush
+
+        interval: 120
+        onTriggered: {
+            const next = Object.assign({}, root.thumbs);
+            for (const name of root.pendingThumbs)
+                next[name] = true;
+            root.pendingThumbs = [];
+            root.thumbs = next;
         }
     }
 

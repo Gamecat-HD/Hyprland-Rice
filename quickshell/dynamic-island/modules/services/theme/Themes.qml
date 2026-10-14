@@ -77,6 +77,12 @@ Singleton {
     function apply(entry: var): void {
         if (!entry)
             return;
+        // Sofort eintragen: die Markierung im Karussell springt so gleich um,
+        // statt auf die CLI und den Dateiwaechter zu warten. scheme.json
+        // bestaetigt bzw. korrigiert es kurz danach.
+        root.currentName = entry.name;
+        root.currentFlavour = entry.flavour;
+        root.currentMode = entry.mode;
         Quickshell.execDetached([root.cli, "scheme", "set",
             "--name", entry.name, "--flavour", entry.flavour, "--mode", entry.mode]);
     }
@@ -100,7 +106,8 @@ Singleton {
     Process {
         id: scan
 
-        command: ["sh", "-lc",
+        // `sh -c`, nicht `-lc`: eine Login-Shell liest erst das ganze Profil
+        command: ["sh", "-c",
             'dir="$(dirname "$(readlink -f "$HOME/.local/bin/dynamic-island")")/../src/dynamic_island/data/schemes";'
             + ' grep -H -E "^(background|primary|secondary|tertiary) " "$dir"/*/*/*.txt']
 

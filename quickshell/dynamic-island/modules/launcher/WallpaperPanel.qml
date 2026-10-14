@@ -38,7 +38,30 @@ Item {
     implicitWidth: 1000
     // Kachelbreite; die Hoehe darunter haengt daran (16:9 + Beschriftung)
     readonly property real imageWidth: 175
-    implicitHeight: searchRow.height + 1 + listWrapper.implicitHeight
+    implicitHeight: searchRow.height + 1 + listWrapper.implicitHeight + 1 + transitionRow.height
+
+    // Die Uebergaenge der Chip-Reihe unten (Werte wie Config.wallpaper.transition)
+    readonly property var transitions: [
+        { id: "blende", label: "Blende", icon: "transition_fade" },
+        { id: "wischen", label: "Wischen", icon: "swipe_right" },
+        { id: "schieben", label: "Schieben", icon: "transition_push" },
+        { id: "kreis", label: "Kreis", icon: "trip_origin" },
+        { id: "zoom", label: "Zoom", icon: "zoom_in" },
+        { id: "aus", label: "Aus", icon: "motion_photos_off" },
+        { id: "zufall", label: "Zufall", icon: "casino" }
+    ]
+
+    // Uebergang waehlen und gleich einmal vorfuehren
+    function pickTransition(id: string): void {
+        Config.set("wallpaper", "transition", id);
+        Wallpapers.replay();
+    }
+
+    function cycleTransition(delta: int): void {
+        const ids = panel.transitions.map(t => t.id);
+        const at = Math.max(0, ids.indexOf(Config.wallpaper.transition));
+        panel.pickTransition(ids[(at + delta + ids.length) % ids.length]);
+    }
 
     anchors {
         left: parent.left
@@ -106,8 +129,19 @@ Item {
             Keys.onEnterPressed: walls.item?.apply()
             // Die Pfeile blaettern hier im Karussell statt den Textcursor zu
             // bewegen – im Suchfeld steht ohnehin nur ein Filterwort.
-            Keys.onLeftPressed: walls.item?.moveBy(-1)
-            Keys.onRightPressed: walls.item?.moveBy(1)
+            // Mit Strg waehlen sie den Uebergang.
+            Keys.onLeftPressed: event => {
+                if (event.modifiers & Qt.ControlModifier)
+                    panel.cycleTransition(-1);
+                else
+                    walls.item?.moveBy(-1);
+            }
+            Keys.onRightPressed: event => {
+                if (event.modifiers & Qt.ControlModifier)
+                    panel.cycleTransition(1);
+                else
+                    walls.item?.moveBy(1);
+            }
             Keys.onUpPressed: walls.item?.moveBy(-1)
             Keys.onDownPressed: walls.item?.moveBy(1)
             Keys.onTabPressed: walls.item?.moveBy(1)
@@ -223,6 +257,138 @@ Item {
             implicitWidth: 56
             mirrored: true
             cornerRadius: panel.cardRadius - panel.inset
+        }
+    }
+
+    Rectangle {
+        id: separator2
+
+        anchors {
+            top: listWrapper.bottom
+            left: parent.left
+            right: parent.right
+        }
+        height: 1
+        color: Colors.alpha(Colors.outline, 0.35)
+    }
+
+    // ---- Uebergang ----
+    // Wie das naechste Wallpaper erscheint. Ein Klick waehlt und fuehrt den
+    // Uebergang gleich auf dem aktuellen Bild vor; Strg+Pfeile im Suchfeld
+    // schalten durch. Dieselbe Einstellung steht auch im Menue.
+    Item {
+        id: transitionRow
+
+        anchors {
+            top: separator2.bottom
+            left: parent.left
+            right: parent.right
+        }
+        height: 46
+
+        Text {
+            id: transitionIcon
+
+            anchors {
+                left: parent.left
+                leftMargin: 16
+                verticalCenter: parent.verticalCenter
+            }
+            text: "transition_slide"
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 19
+            color: Colors.primary
+        }
+
+        Text {
+            id: transitionLabel
+
+            anchors {
+                left: transitionIcon.right
+                leftMargin: 12
+                verticalCenter: parent.verticalCenter
+            }
+            text: "Übergang"
+            color: Colors.fgSurfaceVariant
+            font.family: Config.font
+            font.pixelSize: 13
+        }
+
+        Row {
+            anchors {
+                left: transitionLabel.right
+                leftMargin: 18
+                verticalCenter: parent.verticalCenter
+            }
+            spacing: 6
+
+            Repeater {
+                model: panel.transitions
+
+                delegate: Rectangle {
+                    id: chip
+
+                    required property var modelData
+                    readonly property bool selected: Config.wallpaper.transition === chip.modelData.id
+
+                    width: chipContent.implicitWidth + 24
+                    height: 30
+                    radius: height / 2
+                    color: chip.selected ? Colors.primary
+                        : chipArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08)
+                        : Colors.alpha(Colors.fgSurface, 0.04)
+
+                    Behavior on color {
+                        ColorAnimation { duration: 120 }
+                    }
+
+                    Row {
+                        id: chipContent
+
+                        anchors.centerIn: parent
+                        spacing: 6
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: chip.modelData.icon
+                            font.family: "Material Symbols Outlined"
+                            font.pixelSize: 16
+                            color: chip.selected ? Colors.fgPrimary : Colors.fgSurfaceVariant
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: chip.modelData.label
+                            font.family: Config.font
+                            font.pixelSize: 12
+                            color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
+                        }
+                    }
+
+                    MouseArea {
+                        id: chipArea
+
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: panel.pickTransition(chip.modelData.id)
+                    }
+                }
+            }
+        }
+
+        // Dauer zum Nachsehen; eingestellt wird sie im Menue
+        Text {
+            anchors {
+                right: parent.right
+                rightMargin: 18
+                verticalCenter: parent.verticalCenter
+            }
+            visible: Config.wallpaper.transition !== "aus"
+            text: `${Config.wallpaper.duration} ms`
+            color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
+            font.family: Config.font
+            font.pixelSize: 11
         }
     }
 }

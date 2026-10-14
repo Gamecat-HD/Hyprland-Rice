@@ -1,5 +1,6 @@
 import json
 import random
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,8 @@ class Scheme:
             self._variant = scheme_json["variant"]
             self._colours = scheme_json["colours"]
         self.notify = False
+        self._batch_depth = 0
+        self._dirty = False
 
     @property
     def name(self) -> str:
@@ -120,7 +123,28 @@ class Scheme:
     def get_colours_path(self) -> Path:
         return (scheme_data_dir / self.name / self.flavour / self.mode).with_suffix(".txt")
 
+    @contextmanager
+    def batch(self):
+        """Mehrere Aenderungen, ein einziges Schreiben von scheme.json.
+
+        Jeder Setter speichert sonst fuer sich. `scheme set --name x --mode y`
+        schrieb die Datei so bis zu dreimal hintereinander, und die Shell
+        faerbte sich durch jeden Zwischenstand einmal um.
+        """
+        self._batch_depth += 1
+        try:
+            yield self
+        finally:
+            self._batch_depth -= 1
+            if self._batch_depth == 0 and self._dirty:
+                self._dirty = False
+                self.save()
+
     def save(self) -> None:
+        if self._batch_depth > 0:
+            self._dirty = True
+            return
+
         scheme_path.parent.mkdir(parents=True, exist_ok=True)
         atomic_dump(
             scheme_path,

@@ -30,6 +30,7 @@ Singleton {
     readonly property alias notch: adapter.notch
     readonly property alias quick: adapter.quick
     readonly property alias osd: adapter.osd
+    readonly property alias wallpaper: adapter.wallpaper
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -121,6 +122,18 @@ Singleton {
         },
         "appearance.shadow": { title: "Schatten", desc: "Weicher Schatten unter Pillen und Karten" },
         "appearance.clock": { title: "Uhrzeit", desc: "Anzeigeformat der Uhr in der Notch", options: ["24h", "12h"] },
+        // Uebergang beim Wallpaperwechsel (modules/window/WallpaperStage.qml);
+        // dieselbe Auswahl steht als Chip-Reihe in der Wallpaper-Auswahl
+        "wallpaper.transition": {
+            title: "Übergang",
+            desc: "Wie das neue Wallpaper erscheint. Zufall würfelt je Bild",
+            options: ["blende", "wischen", "schieben", "kreis", "zoom", "aus", "zufall"]
+        },
+        "wallpaper.duration": {
+            title: "Dauer",
+            desc: "Länge des Übergangs. Beim Durchblättern in der Auswahl läuft er schneller",
+            min: 200, max: 2000, step: 100, unit: "ms"
+        },
         // `editor` statt Bedienelement: das Menue laedt dafuer einen eigenen
         // Editor (modules/settings/QuickLayoutEditor.qml)
         // Regler am rechten Rand (modules/osd)
@@ -146,13 +159,14 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
         "osd": "volume_up",
         "notch": "web_asset",
         "appearance": "palette",
+        "wallpaper": "wallpaper_slideshow",
         "notifications": "notifications",
         "vpn": "vpn_key"
     })
@@ -164,6 +178,7 @@ Singleton {
         "notifications": "Benachrichtigungen",
         "vpn": "VPN",
         "appearance": "Darstellung",
+        "wallpaper": "Wallpaper",
         "notch": "Notch-Layout"
     })
 
@@ -354,6 +369,12 @@ Singleton {
 
             property JsonObject vpn: JsonObject {
                 property string provider: "nordvpn"
+            }
+
+            // Wallpaperwechsel: Animation und ihre Dauer in ms
+            property JsonObject wallpaper: JsonObject {
+                property string transition: "kreis"
+                property int duration: 800
             }
 
             property JsonObject bar: JsonObject {

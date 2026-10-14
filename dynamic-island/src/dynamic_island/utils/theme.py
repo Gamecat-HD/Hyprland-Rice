@@ -16,6 +16,7 @@ from dynamic_island.utils.paths import (
     config_dir,
     data_dir,
     get_config,
+    scheme_path,
     templates_dir,
     theme_dir,
     user_templates_dir,
@@ -193,8 +194,8 @@ def apply_fuzzel(colours: dict[str, str]) -> None:
 @log_exception
 def apply_btop(colours: dict[str, str]) -> None:
     template = gen_replace(colours, templates_dir / "btop.theme", hash=True)
-    atomic_write(config_dir / "btop/themes/dynamic-island.theme", template)
-    subprocess.run(["killall", "-USR2", "btop"], stderr=subprocess.DEVNULL)
+    if atomic_write(config_dir / "btop/themes/dynamic-island.theme", template):
+        subprocess.run(["killall", "-USR2", "btop"], stderr=subprocess.DEVNULL)
 
 
 @log_exception
@@ -206,8 +207,8 @@ def apply_nvtop(colours: dict[str, str]) -> None:
 @log_exception
 def apply_htop(colours: dict[str, str]) -> None:
     template = gen_replace(colours, templates_dir / "htop.theme", hash=True)
-    atomic_write(config_dir / "htop/htoprc", template)
-    subprocess.run(["killall", "-USR2", "htop"], stderr=subprocess.DEVNULL)
+    if atomic_write(config_dir / "htop/htoprc", template):
+        subprocess.run(["killall", "-USR2", "htop"], stderr=subprocess.DEVNULL)
 
 
 def sync_papirus_colors(hex_color: str) -> None:
@@ -402,8 +403,8 @@ def apply_zed(colours: dict[str, str], mode: str) -> None:
 @log_exception
 def apply_cava(colours: dict[str, str]) -> None:
     template = gen_replace(colours, templates_dir / "cava.conf", hash=True)
-    atomic_write(config_dir / "cava/config", template)
-    subprocess.run(["killall", "-USR2", "cava"], stderr=subprocess.DEVNULL)
+    if atomic_write(config_dir / "cava/config", template):
+        subprocess.run(["killall", "-USR2", "cava"], stderr=subprocess.DEVNULL)
 
 
 @log_exception
@@ -417,76 +418,86 @@ def apply_user_templates(colours: dict[str, str], mode: str) -> None:
             atomic_write(theme_dir / file.name, content)
 
 
+def _latest_scheme(colours: dict[str, str], mode: str) -> tuple[dict[str, str], str]:
+    """Farben und Modus so, wie sie jetzt in scheme.json stehen.
+
+    Zwei schnelle Wechsel hintereinander (Theme-Karussell, Shuffle) laufen als
+    zwei Prozesse. Wer den Lock als Zweiter bekommt, ist nicht unbedingt der
+    Neuere - deshalb gilt nach dem Warten der Stand auf der Platte, nicht der
+    beim Start mitgegebene. So gewinnt immer der letzte Wechsel.
+    """
+    try:
+        data = json.loads(scheme_path.read_text())
+        return data["colours"], data["mode"]
+    except (OSError, ValueError, KeyError):
+        return colours, mode
+
+
 def apply_colours(colours: dict[str, str], mode: str) -> None:
-    # Use file-based lock to prevent concurrent theme changes
+    # Ein Lock serialisiert parallele Laeufe. Frueher brach der zweite einfach
+    # ab (und loeschte dabei die Lock-Datei des ersten) - bei schnellen
+    # Wechseln blieben GTK, Hyprland & Co. dann auf einem alten Schema haengen.
+    # Jetzt wartet er und wendet danach den neuesten Stand an. Die Datei bleibt
+    # liegen: eine geloeschte Lock-Datei sperrt den naechsten Prozess nicht mehr.
     lock_file = c_state_dir / "theme.lock"
     c_state_dir.mkdir(parents=True, exist_ok=True)
 
-    try:
-        with open(lock_file, "w") as lock_fd:
-            try:
-                fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                return
+    with open(lock_file, "a") as lock_fd:
+        fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX)
+        colours, mode = _latest_scheme(colours, mode)
 
-            cfg = get_config().get("theme", {})
+        cfg = get_config().get("theme", {})
 
-            def check(key: str) -> bool:
-                return cfg[key] if key in cfg else True
+        def check(key: str) -> bool:
+            return cfg[key] if key in cfg else True
 
-            if check("enableTerm"):
-                apply_terms(gen_sequences(colours))
-            if check("enableHypr"):
-                apply_hypr(gen_lua(colours) if is_lua_config() else gen_conf(colours))
-            if check("enableHyprlock"):
-                apply_hyprlock(colours)
-            if check("enableDiscord"):
-                apply_discord(gen_scss(colours))
-            if check("enableSpicetify"):
-                apply_spicetify(colours, mode)
-            if check("enablePandora"):
-                apply_pandora(colours, mode)
-            if check("enableFuzzel"):
-                apply_fuzzel(colours)
-            if check("enableBtop"):
-                apply_btop(colours)
-            if check("enableNvtop"):
-                apply_nvtop(colours)
-            if check("enableHtop"):
-                apply_htop(colours)
-            icon_theme = cfg.get(f"iconTheme{mode.capitalize()}") or cfg.get("iconTheme")
-            if check("enableGtk"):
-                apply_gtk(colours, mode, icon_theme)
-            if check("enableQt"):
-                apply_qt(colours, mode, icon_theme)
-            if check("enableWarp"):
-                apply_warp(colours, mode)
-            if check("enableChromium"):
-                apply_chromium(colours)
-            if check("enableZed"):
-                apply_zed(colours, mode)
-            if check("enableCava"):
-                apply_cava(colours)
-            apply_user_templates(colours, mode)
+        if check("enableTerm"):
+            apply_terms(gen_sequences(colours))
+        if check("enableHypr"):
+            apply_hypr(gen_lua(colours) if is_lua_config() else gen_conf(colours))
+        if check("enableHyprlock"):
+            apply_hyprlock(colours)
+        if check("enableDiscord"):
+            apply_discord(gen_scss(colours))
+        if check("enableSpicetify"):
+            apply_spicetify(colours, mode)
+        if check("enablePandora"):
+            apply_pandora(colours, mode)
+        if check("enableFuzzel"):
+            apply_fuzzel(colours)
+        if check("enableBtop"):
+            apply_btop(colours)
+        if check("enableNvtop"):
+            apply_nvtop(colours)
+        if check("enableHtop"):
+            apply_htop(colours)
+        icon_theme = cfg.get(f"iconTheme{mode.capitalize()}") or cfg.get("iconTheme")
+        if check("enableGtk"):
+            apply_gtk(colours, mode, icon_theme)
+        if check("enableQt"):
+            apply_qt(colours, mode, icon_theme)
+        if check("enableWarp"):
+            apply_warp(colours, mode)
+        if check("enableChromium"):
+            apply_chromium(colours)
+        if check("enableZed"):
+            apply_zed(colours, mode)
+        if check("enableCava"):
+            apply_cava(colours)
+        apply_user_templates(colours, mode)
 
-            if post_hook := cfg.get("postHook"):
-                scheme = get_scheme()
-                subprocess.run(
-                    post_hook,
-                    shell=True,
-                    env={
-                        **os.environ,
-                        "SCHEME_NAME": scheme.name,
-                        "SCHEME_FLAVOUR": scheme.flavour,
-                        "SCHEME_MODE": scheme.mode,
-                        "SCHEME_VARIANT": scheme.variant,
-                        "SCHEME_COLOURS": json.dumps(scheme.colours),
-                    },
-                    stderr=subprocess.DEVNULL,
-                )
-
-    finally:
-        try:
-            lock_file.unlink()
-        except FileNotFoundError:
-            pass
+        if post_hook := cfg.get("postHook"):
+            scheme = get_scheme()
+            subprocess.run(
+                post_hook,
+                shell=True,
+                env={
+                    **os.environ,
+                    "SCHEME_NAME": scheme.name,
+                    "SCHEME_FLAVOUR": scheme.flavour,
+                    "SCHEME_MODE": scheme.mode,
+                    "SCHEME_VARIANT": scheme.variant,
+                    "SCHEME_COLOURS": json.dumps(scheme.colours),
+                },
+                stderr=subprocess.DEVNULL,
+            )

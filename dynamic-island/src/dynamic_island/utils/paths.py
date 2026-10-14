@@ -54,7 +54,20 @@ def compute_hash(path: Path | str) -> str:
     return sha.hexdigest()
 
 
-def atomic_write(path: Path, content: str) -> None:
+def atomic_write(path: Path, content: str) -> bool:
+    """Schreibt nur, wenn sich der Inhalt aendert; True = geschrieben.
+
+    Gleicher Inhalt bleibt unangetastet: jede geschriebene Datei weckt ihre
+    Watcher (Hyprland laedt bei scheme/current.lua die ganze Config neu,
+    Quickshell faerbt bei scheme.json alles um) - bei einem Wallpaperwechsel
+    mit festem Schema wuerde das sonst ohne jede Farbaenderung passieren.
+    """
+    try:
+        if path.read_text() == content:
+            return False
+    except (OSError, UnicodeDecodeError):
+        pass
+
     path.parent.mkdir(parents=True, exist_ok=True)
     f = tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False)
     try:
@@ -66,10 +79,11 @@ def atomic_write(path: Path, content: str) -> None:
     except BaseException:
         os.unlink(f.name)
         raise
+    return True
 
 
-def atomic_dump(path: Path, content: dict[str, Any]) -> None:
-    atomic_write(path, json.dumps(content))
+def atomic_dump(path: Path, content: dict[str, Any]) -> bool:
+    return atomic_write(path, json.dumps(content))
 
 
 def get_config() -> dict[str, Any]:

@@ -109,9 +109,13 @@ Singleton {
     Process {
         id: lumaProc
 
-        command: ["magick", root.wallpaper + "[0]", "-resize", "480x", "-gravity", "North",
-                  "-crop", "34%x7%+0+0", "+repage", "-colorspace", "Gray",
-                  "-format", "%[fx:mean]", "info:"]
+        // Vom Vorschaubild der Wallpaper-Auswahl, wenn es eins gibt: das
+        // Original kostete bei grossen PNGs (7500x5000) ~3 s CPU je Messung,
+        // und gemessen wird bei jedem Vorschau-Schritt. Das Vorschaubild ist
+        // mittig auf 16:9 zugeschnitten, also genau der sichtbare Ausschnitt.
+        command: ["sh", "-c", 'f="$1[0]"; [ -s "$2" ] && f="$2"; exec magick "$f" -resize 480x -gravity North '
+                  + '-crop 34%x7%+0+0 +repage -colorspace Gray -format "%[fx:mean]" info:',
+                  "sh", root.wallpaper, Wallpapers.thumbPathFor(root.wallpaper)]
 
         stdout: StdioCollector {
             onStreamFinished: {

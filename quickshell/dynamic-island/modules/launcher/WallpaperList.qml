@@ -14,7 +14,7 @@ import qs.modules.services.config
 //
 // Waehrend man sich durchbewegt, zeigt der Hintergrund das markierte Bild
 // schon an (Vorschau) – aber erst nach kurzem Verweilen, sonst dekodiert Qt
-// bei jedem Tastendruck ein 2560x1440-Bild.
+// bei jedem Tastendruck ein Bild in voller Bildschirmgroesse.
 Carousel {
     id: view
 
@@ -68,7 +68,7 @@ Carousel {
     Timer {
         id: previewTimer
 
-        interval: 220
+        interval: 160
         onTriggered: if (view.currentPath !== "")
             Wallpapers.preview(view.currentPath)
     }
@@ -148,14 +148,16 @@ Carousel {
                 anchors.fill: parent
                 anchors.margins: frame.border.width
 
-                source: `file://${item.modelData.path}`
+                // Immer das kleine Vorschaubild (480x270 aus thumbs.sh), nie
+                // das Original: Qt dekodiert alle Bilder in einem Thread, und
+                // ein 40-MB-PNG je Kachel staute dort auch den Hintergrund.
+                // Fehlt es noch, bleibt der Platzhalter stehen.
+                source: Wallpapers.thumbFor(item.modelData.name)
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
-                cache: false
-                // Vorschaugroesse statt Originalaufloesung: sonst haelt Qt je
-                // Kachel ein 2560x1440-Bild im Speicher.
-                sourceSize.width: view.imageWidth * 2
-                sourceSize.height: view.imageHeight * 2
+                // Klein genug, um im Cache zu bleiben: zurueckblaettern zeigt
+                // die Kachel sofort statt neu zu laden
+                cache: true
                 smooth: !view.moving
                 visible: false          // nur Quelle fuer die Maske
             }

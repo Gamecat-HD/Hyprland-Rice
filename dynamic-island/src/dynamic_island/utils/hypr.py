@@ -12,6 +12,9 @@ _lua_config_cache: bool | None = None
 
 def message(msg: str, is_json: bool = True) -> str | dict[str, Any]:
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+        # Ohne Timeout blieb die CLI beim Theme-Wechsel stehen, solange
+        # Hyprland nicht antwortete (z. B. mitten in einem Config-Reload)
+        sock.settimeout(3)
         sock.connect(socket_path)
 
         if is_json:
