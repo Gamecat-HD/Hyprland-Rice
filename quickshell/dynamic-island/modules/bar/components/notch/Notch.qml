@@ -317,6 +317,8 @@ Item {
         borderWidth: notch.docked ? (Appearance.notchBorder ? 1 : 0) : notch.borderWidth
         borderColor: notch.docked ? Appearance.notchBorderColor : notch.borderColor
         docked: notch.docked
+        // Die Kontur der Seiten setzt unter der (animierten) Schulter an
+        shoulder: shoulderLeft.size
         // Eingeklappt ist sie Rahmen, kein Objekt – Schatten erst, wenn sie
         // als Karte ueber den Fenstern liegt
         shadowStrength: !notch.docked || notch.open ? 1 : 0
@@ -1359,6 +1361,8 @@ Item {
     // (Maske, Anker, Innenmasse). Nach der Karte deklariert, damit sie ueber
     // deren Schatten liegen und die Kante sauber schliessen.
     NotchShoulder {
+        id: shoulderLeft
+
         x: -width
         y: 0
         size: notch.shoulder

@@ -63,13 +63,15 @@ Shape {
         fillColor: "transparent"
         capStyle: ShapePath.FlatCap
 
-        startX: root.mirrored ? root.strokeWidth / 2 : root.size - root.strokeWidth / 2
+        // Endet genau auf der Kontur der Notch-Seite (Surface zeichnet sie
+        // um die halbe Breite nach innen versetzt, also schon in der Notch)
+        startX: root.mirrored ? -root.strokeWidth / 2 : root.size + root.strokeWidth / 2
         startY: root.size
 
         PathQuad {
             x: root.mirrored ? root.size : 0
             y: root.strokeWidth / 2
-            controlX: root.mirrored ? root.strokeWidth / 2 : root.size - root.strokeWidth / 2
+            controlX: root.mirrored ? -root.strokeWidth / 2 : root.size + root.strokeWidth / 2
             controlY: root.strokeWidth / 2
         }
     }

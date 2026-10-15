@@ -53,6 +53,14 @@ Item {
     // der Bildschirmkante herauswaechst (Reverse-Rundung wie bei einer Notch).
     property bool dockedRight: false
     property real earRadius: Appearance.radius
+    // Angedockt wuerde der Rechteck-Rand auch die Seite an der
+    // Bildschirmkante nachzeichnen und quer ueber die Ansaetze von Ohren und
+    // Schultern laufen – dort stand er als harte Kante. Darum zeichnet dann
+    // eine Kontur nur die freien Seiten (beim OSD samt Ohren).
+    readonly property bool outlined: surface.docked || surface.dockedRight
+    // docked: Hoehe der Schultern (NotchShoulder, ausserhalb der Karte). Ihre
+    // Kurve zeichnen sie selbst, die Kontur der Seiten beginnt erst darunter.
+    property real shoulder: 0
 
     // Die tatsaechliche Rundung – fuer Masken und Vignetten, die ihr folgen
     readonly property alias radius: card.radius
@@ -165,7 +173,7 @@ Item {
         topLeftRadius: surface.docked ? 0 : radius
         topRightRadius: surface.docked || surface.dockedRight ? 0 : radius
         bottomRightRadius: surface.dockedRight ? 0 : radius
-        border.width: surface.borderWidth
+        border.width: surface.outlined ? 0 : surface.borderWidth
         border.color: surface.borderColor
         clip: surface.clipContent
 
@@ -177,6 +185,102 @@ Item {
             GradientStop {
                 position: 1
                 color: surface.baseColor
+            }
+        }
+    }
+    // ---- Kontur beim Andocken ----
+    // Ueber der Karte, damit sie wie der Rand die Kante sauber schliesst. Die
+    // Linie liegt um die halbe Breite nach innen versetzt, genau wie ein
+    // Rectangle-Rand.
+    Shape {
+        id: outlineTop
+
+        readonly property real half: surface.borderWidth / 2
+        readonly property real corner: card.radius
+        readonly property real sideStart: Math.min(surface.shoulder, height - corner)
+
+        anchors.fill: card
+        visible: surface.docked && surface.borderWidth > 0
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+            strokeWidth: surface.borderWidth
+            strokeColor: surface.borderColor
+            fillColor: "transparent"
+            capStyle: ShapePath.FlatCap
+
+            // linke Seite ab der Schulter hinunter, unten herum, rechts hinauf
+            startX: outlineTop.half
+            startY: outlineTop.sideStart
+            PathLine { x: outlineTop.half; y: outlineTop.height - outlineTop.corner }
+            PathArc {
+                x: outlineTop.corner
+                y: outlineTop.height - outlineTop.half
+                radiusX: Math.max(0, outlineTop.corner - outlineTop.half)
+                radiusY: radiusX
+                direction: PathArc.Counterclockwise
+            }
+            PathLine { x: outlineTop.width - outlineTop.corner; y: outlineTop.height - outlineTop.half }
+            PathArc {
+                x: outlineTop.width - outlineTop.half
+                y: outlineTop.height - outlineTop.corner
+                radiusX: Math.max(0, outlineTop.corner - outlineTop.half)
+                radiusY: radiusX
+                direction: PathArc.Counterclockwise
+            }
+            PathLine { x: outlineTop.width - outlineTop.half; y: outlineTop.sideStart }
+        }
+    }
+
+    Shape {
+        id: outlineRight
+
+        readonly property real half: surface.borderWidth / 2
+        readonly property real corner: card.radius
+        readonly property real ear: surface.earRadius
+
+        anchors.fill: card
+        visible: surface.dockedRight && surface.borderWidth > 0
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+            strokeWidth: surface.borderWidth
+            strokeColor: surface.borderColor
+            fillColor: "transparent"
+            capStyle: ShapePath.FlatCap
+
+            // von der Kante das obere Ohr hinunter, links um die Karte, das
+            // untere Ohr zurueck an die Kante
+            startX: outlineRight.width
+            startY: -outlineRight.ear
+            PathQuad {
+                x: outlineRight.width - outlineRight.ear
+                y: outlineRight.half
+                controlX: outlineRight.width
+                controlY: outlineRight.half
+            }
+            PathLine { x: outlineRight.corner; y: outlineRight.half }
+            PathArc {
+                x: outlineRight.half
+                y: outlineRight.corner
+                radiusX: Math.max(0, outlineRight.corner - outlineRight.half)
+                radiusY: radiusX
+                direction: PathArc.Counterclockwise
+            }
+            PathLine { x: outlineRight.half; y: outlineRight.height - outlineRight.corner }
+            PathArc {
+                x: outlineRight.corner
+                y: outlineRight.height - outlineRight.half
+                radiusX: Math.max(0, outlineRight.corner - outlineRight.half)
+                radiusY: radiusX
+                direction: PathArc.Counterclockwise
+            }
+            PathLine { x: outlineRight.width - outlineRight.ear; y: outlineRight.height - outlineRight.half }
+            PathQuad {
+                x: outlineRight.width
+                y: outlineRight.height + outlineRight.ear
+                controlX: outlineRight.width
+                controlY: outlineRight.height - outlineRight.half
             }
         }
     }
