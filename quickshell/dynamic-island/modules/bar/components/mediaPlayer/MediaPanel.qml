@@ -241,10 +241,9 @@ Item {
                     y: parent.height / 2 - Math.cos(spike.angle) * spike.dist - height / 2
                     rotation: (spike.index / Cava.bars) * 360
 
-                    Behavior on height {
-                        enabled: panel.visible
-                        NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
-                    }
+                    // Kein Behavior auf height: die Spitzen folgen cava
+                    // direkt (siehe widgets/Visualizer.qml – sonst zeichnet
+                    // die Leiste dauerhaft mit Monitorrate)
                     Behavior on opacity {
                         NumberAnimation { duration: 200 }
                     }

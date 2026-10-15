@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Qt.labs.folderlistmodel
 import Quickshell
 import Quickshell.Io
 
@@ -80,9 +81,22 @@ Singleton {
         onExited: code => root.active = code === 0
     }
 
-    // Ruhiger Grundtakt – fängt Starts von außerhalb der Shell ein
+    // Die CLI schreibt während der Aufnahme nach record/recording.mp4 und
+    // schiebt die Datei beim Stoppen weg. Jede Änderung im Ordner (inotify,
+    // kein Polling) stößt das engmaschige Nachsehen an – so springt der
+    // Punkt auch bei Starts per Tastenkürzel oder Terminal sofort um.
+    FolderListModel {
+        folder: "file://" + Quickshell.env("HOME") + "/.local/state/dynamic-island/record"
+        nameFilters: ["recording.mp4"]
+        showDirs: false
+        onCountChanged: settle.restart()
+    }
+
+    // Ruhiger Grundtakt – nur noch Rückfallebene für Recorder, die ganz an
+    // der CLI vorbei gestartet wurden, und für einen abgestürzten Recorder.
+    // Vorher alle 2 s: ~30 pidof-Starts pro Minute, dauerhaft.
     Timer {
-        interval: 2000
+        interval: 10000
         running: true
         repeat: true
         triggeredOnStart: true

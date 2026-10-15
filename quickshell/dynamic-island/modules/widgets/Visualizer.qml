@@ -81,9 +81,14 @@ Item {
             color: root.color
             opacity: root.active ? 1 : 0.4
 
+            // Nur der Wechsel in den Ruhebogen wird animiert. Beim Spielen
+            // folgen die Balken cava direkt: eine 90-ms-Animation je Frame
+            // lief bei 30 cava-Frames/s ohne Pause und liess das ganze
+            // Leistenfenster mit der Monitorrate (180 Hz) neu zeichnen statt
+            // mit 30 Hz.
             Behavior on height {
-                enabled: root.visible
-                NumberAnimation { duration: root.active ? 90 : Appearance.morphDuration; easing.type: Easing.OutCubic }
+                enabled: root.visible && !root.active
+                NumberAnimation { duration: Appearance.morphDuration; easing.type: Easing.OutCubic }
             }
             Behavior on opacity {
                 NumberAnimation { duration: Appearance.fadeDuration }

@@ -120,17 +120,38 @@ Singleton {
         root.sinks = nextSinks.sort(byName);
         root.sources = nextSources.sort(byName);
         root.streams = nextStreams.sort((a, b) => root.streamLabel(a).localeCompare(root.streamLabel(b)));
+        root.refreshTracked();
     }
+
+    // Beobachtete Knoten fuer den PwObjectTracker. Bewusst KEIN Binding:
+    // valuesChanged/defaultAudioSinkChanged feuern auch aus ~QObject eines
+    // sterbenden PwNode heraus. Ein synchrones Neusetzen von objects laesst
+    // den Tracker den halb zerstoerten Knoten anfassen -> SIGSEGV
+    // (Crash 2026-10-15, Firefox-Stream beim Shorts-Wechsel).
+    property list<PwNode> tracked: []
+
+    function refreshTracked(): void {
+        root.tracked = [root.sink, root.source, ...root.sinks, ...root.sources, ...root.streams].filter(n => n);
+    }
+
+    // Erst nach der laufenden Zerstoerung neu aufbauen; callLater fasst
+    // mehrere Signale einer Runde (z. B. PipeWire-Neustart) zusammen.
+    function scheduleRefresh(): void {
+        Qt.callLater(root.refreshNodes);
+    }
+
+    onSinkChanged: Qt.callLater(root.refreshTracked)
+    onSourceChanged: Qt.callLater(root.refreshTracked)
 
     Component.onCompleted: root.refreshNodes()
 
     Connections {
         target: Pipewire.nodes
-        function onValuesChanged(): void { root.refreshNodes(); }
+        function onValuesChanged(): void { root.scheduleRefresh(); }
     }
 
     // Macht die PipeWire-Objekt-Properties live beobachtbar
     PwObjectTracker {
-        objects: [root.sink, root.source, ...root.sinks, ...root.sources, ...root.streams].filter(n => n)
+        objects: root.tracked
     }
 }

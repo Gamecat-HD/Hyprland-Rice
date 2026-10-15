@@ -42,8 +42,20 @@ Singleton {
 
     onEnabledChanged: {
         root.lastFrame = "";
-        if (!root.enabled)
+        if (!root.enabled) {
             root.values = Array(root.bars).fill(0);
+            linger.restart();
+        }
+    }
+
+    // Nachlauf: cava bleibt nach dem Abschalten noch kurz am Leben. Kurze
+    // Pausen (YouTube-Shorts melden bei jedem Loop Paused/Playing, Titel-
+    // wechsel) starteten sonst jedes Mal Prozess UND PipeWire-Stream neu –
+    // ein sterbender Stream-Knoten war am 2026-10-15 der Crash-Ausloeser.
+    Timer {
+        id: linger
+
+        interval: 5000
     }
 
     // Mittelwert der i-ten von n Gruppen – damit eine Anzeige mit weniger
@@ -66,7 +78,7 @@ Singleton {
     Process {
         id: proc
 
-        running: root.enabled
+        running: root.enabled || linger.running
         command: ["sh", "-c",
             `printf '%s' "[general]
 framerate=${root.framerate}
@@ -83,7 +95,7 @@ noise_reduction=30
         stdout: SplitParser {
             // cava schreibt eine Zeile pro Frame: "12;40;33;7;"
             onRead: data => {
-                if (data === root.lastFrame)
+                if (!root.enabled || data === root.lastFrame)
                     return;
                 root.lastFrame = data;
                 const parts = data.split(";").filter(v => v !== "");
