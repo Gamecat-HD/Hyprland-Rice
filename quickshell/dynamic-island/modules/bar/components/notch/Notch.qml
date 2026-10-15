@@ -357,16 +357,20 @@ Item {
         // nur der Zeilen-Hintergrund) gedaempft dem Zeiger; beim Loslassen
         // zaehlt nur die Strecke, nicht die Zeit.
         //
-        // Datumsstreifen und Fortschrittsbalken haben eigene seitliche
-        // Zuege – deren Handler liegen tiefer im Baum und greifen zuerst zu,
-        // dieser hier bekommt den Zeiger dann nicht (gleicher Typ darf
-        // sich nichts wegnehmen). Zum Launcher-Zug (nur senkrecht) gibt es
-        // keinen Konflikt: die Achse, die zuerst die Schwelle reisst, gewinnt.
+        // Datumsstreifen, Fortschrittsbalken und Benachrichtigungs-Zeilen
+        // haben eigene seitliche Zuege – deren Handler liegen tiefer im Baum
+        // und greifen zuerst zu. Wegnehmen darf dieser hier ihnen den Zeiger
+        // nicht: Handler mit eigenen Properties sind fuer Qt jeweils ein
+        // eigener Typ, und das Standardrecht CanTakeOverFromHandlersOf-
+        // DifferentType liesse ihn sonst mitten im Zug uebernehmen (so war
+        // das Wegwischen von Nachrichten kaputt). Zum Launcher-Zug (nur
+        // senkrecht) gibt es keinen Konflikt: die Achse, die zuerst die Schwelle reisst, gewinnt.
         DragHandler {
             id: swipe
 
             target: null
             yAxis.enabled: false
+            grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.ApprovesTakeOverByAnything
             enabled: !Auth.active && (notch.pagerShown || (notch.showMedia && !notch.open))
 
             readonly property real threshold: 60
