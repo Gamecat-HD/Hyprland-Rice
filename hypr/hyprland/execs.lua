@@ -2,6 +2,9 @@ local vars = require("variables")
 local fn   = require("hyprland.functions")
 
 hl.on("hyprland.start", function()
+    -- systemd graphical session (portals, deckhand.service & other user services)
+    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE && systemctl --user start hyprland-session.target")
+
     -- Keyring and auth
     hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
     hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
