@@ -99,6 +99,12 @@ local function load_profile(name)
     return pcall(require, "profiles." .. name)
 end
 
+-- systemd graphical session (Portale, deckhand.service & andere User-Services) fuer
+-- jedes Profil; ohne das startet nichts mit WantedBy=graphical-session.target.
+hl.on("hyprland.start", function()
+    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE && systemctl --user start hyprland-session.target")
+end)
+
 local profile = read_profile()
 local ok, err = load_profile(profile)
 
