@@ -32,7 +32,7 @@ hl.monitor({
 })
 
 hl.monitor({
-    output   = "DP-1",
+    output   = "DP-2",
     mode     = "2560x1440@180",
     position = "2560x0",
     scale    = 1,
@@ -127,3 +127,8 @@ end
 -- Profil-Umschalter (nach dem Profil gesetzt, damit er immer gewinnt)
 --------------------------------------------------------------------------------
 hl.bind(switchBind, hl.dsp.exec_cmd(home .. "/.local/bin/hypr-profile toggle"), { release = true })
+
+-- Profiluebergreifendes Idle-Management; nur einmal beim Sessionstart starten.
+hl.on("hyprland.start", function()
+    hl.exec_cmd("hypridle")
+end)

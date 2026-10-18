@@ -102,7 +102,7 @@ local cfg = {
 	-- Workspaces: jeder Monitor hat seine eigene 10er-Gruppe (Anzeige jeweils 1-10)
 	wsMonitorOffset = {
 		["HDMI-A-1"] = 0, -- links:  Workspaces 1-10
-		["DP-1"] = 10, -- rechts: Workspaces 11-20
+		["DP-2"] = 10, -- rechts: Workspaces 11-20
 	},
 }
 
@@ -379,7 +379,12 @@ hl.bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd))
 hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), { locked = true })
 
 -- Fenster
-hl.bind("SUPER + C", hl.dsp.window.close())
+-- SUPER + C: ist das Einstellungs-Fenster der Shell offen, schliesst es das
+-- (die Shell meldet "true"), sonst wie gewohnt das aktive Fenster.
+hl.bind("SUPER + C", hl.dsp.exec_cmd(
+	"sh -c '[ \"$(qs -c dynamic-island ipc call settings dismiss 2>/dev/null)\" = true ] "
+	.. "|| hyprctl dispatch \"hl.dsp.window.close()\"'"
+))
 hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
 hl.bind("SUPER + ALT + F", hl.dsp.window.fullscreen({ mode = "maximized" }))
 hl.bind("SUPER + ALT + space", hl.dsp.window.float())
