@@ -33,6 +33,145 @@ dynamic-island shell -d   # Shell starten
 Wo der Klon liegt, ist egal. Wer den Klon lieber *als* `~/.config` haben will,
 kann das auch — dann faellt das Verteilen weg.
 
+## Erste Schritte nach der Installation
+
+Die Config ist auf meinen Rechner zugeschnitten. Ein paar Stellen musst du
+fast sicher anpassen. Durch die Symlinks ist `~/.config/hypr` derselbe Ordner
+wie `hypr/` im Klon — egal wo du bearbeitest, es ist dieselbe Datei.
+Nach jeder Aenderung: `hyprctl reload`. Tippfehler meldet Hyprland oben als
+rote Leiste.
+
+### 1. Monitore (wichtigster Punkt)
+
+Erst nachschauen, wie deine Bildschirme heissen:
+
+```sh
+hyprctl monitors    # Namen wie HDMI-A-1, DP-1, eDP-1 + moegliche Aufloesungen
+```
+
+In `hypr/hyprland.lua` stehen oben meine drei (`HDMI-A-1` links, `DP-2`
+rechts, `eDP-1` = Laptop). Trag dort deine Namen, Aufloesung, Hz-Zahl und
+Position ein, ueberzaehlige Bloecke loeschen. Beispiel fuer einen Monitor:
+
+```lua
+hl.monitor({
+    output   = "DP-1",            -- Name aus `hyprctl monitors`
+    mode     = "1920x1080@144",   -- oder "preferred"
+    position = "0x0",
+    scale    = 1,
+})
+```
+
+Dann in `hypr/profiles/simple.lua` bei `wsMonitorOffset` dieselben Namen
+eintragen. Jeder Monitor bekommt seine eigenen Workspaces 1–10; der erste
+hat Offset `0`, ein zweiter `10`. Bei nur einem Monitor:
+
+```lua
+wsMonitorOffset = {
+    ["DP-1"] = 0,
+},
+```
+
+### 2. Tastatur
+
+`kbLayout = "de"` in `hypr/profiles/simple.lua` — fuer US-Tastatur `"us"`.
+
+### 3. Programme
+
+Ganz oben in `hypr/profiles/simple.lua` (Block `cfg`) steht, welche Apps die
+Tastenkuerzel starten: `kitty` (Terminal), `zen-browser`, `codium` (Editor),
+`dolphin` (Dateien), `pavucontrol` (Audio), `fuzzel` (Launcher). Was du nicht
+installiert hast, entweder installieren oder durch dein Programm ersetzen —
+sonst passiert beim Kuerzel einfach nichts.
+
+## Tastenkuerzel
+
+`SUPER` ist die Windows-Taste. Gilt fuer das Profil `simple`.
+
+| Kuerzel | Was passiert |
+| --- | --- |
+| `SUPER` (allein) | App-Menue der Shell |
+| `SUPER + Space` | fuzzel-Launcher |
+| `SUPER + Q` | Terminal |
+| `SUPER + W` | Browser |
+| `SUPER + E` | Dateimanager |
+| `SUPER + P` | Editor |
+| `SUPER + C` | Fenster schliessen |
+| `SUPER + F` / `SUPER + ALT + F` | Vollbild / maximieren |
+| `SUPER + ALT + Space` | Fenster schwebend (floating) |
+| `SUPER + Pfeiltasten` | Fokus wechseln |
+| `SUPER + SHIFT + Pfeiltasten` | Fenster verschieben |
+| `SUPER + linke Maustaste` / `rechte` | Fenster ziehen / Groesse aendern |
+| `SUPER + 1…0` | Workspace 1–10 (des Monitors unter dem Fokus) |
+| `SUPER + ALT + 1…0` | Fenster auf Workspace 1–10 schieben |
+| `CTRL + SUPER + ←/→` | vorheriger / naechster Workspace |
+| `SUPER + S` | Scratchpad-Workspace ein/aus |
+| `SUPER + M` | Spotify-Workspace |
+| `SUPER + D` | Discord-Workspace |
+| `CTRL + SHIFT + Esc` | Systemmonitor |
+| `SUPER + A` / `N` / `I` / `X` | Steuerung / Benachrichtigungen / System / Power |
+| `SUPER + L` | Bildschirm sperren |
+| `SUPER + V` | Zwischenablage-Verlauf |
+| `SUPER + .` | Emoji-Picker |
+| `Druck` / `SUPER + SHIFT + S` | Screenshot ganzer Bildschirm / Bereich |
+| `SUPER + SHIFT + C` | Farbpipette |
+| `CTRL + ALT + R` | Bildschirmaufnahme starten/stoppen |
+| `SUPER + SHIFT + W` | zufaelliges Wallpaper |
+| `CTRL + SUPER + ALT + R` | Shell (Leiste) neu starten |
+
+Alle Kuerzel stehen unten in `hypr/profiles/simple.lua` unter `Keybinds` —
+dort kannst du sie auch aendern.
+
+## Updates holen
+
+```sh
+cd Hyprland-Rice   # dein Klon
+git pull
+hyprctl reload
+```
+
+Hast du selbst Dateien geaendert (z. B. die Monitore), kann `git pull`
+meckern. Dann so:
+
+```sh
+git stash && git pull && git stash pop
+```
+
+Pushen geht nicht, das Repo ist fuer andere nur lesbar. Wenn du deine
+Aenderungen selbst auf GitHub sichern willst: oben rechts auf **Fork**, dann
+deinen Fork klonen.
+
+## Wenn was nicht geht
+
+* **Keine Leiste / kein Wallpaper:** `hypr-profile status` zeigt, was laeuft.
+  Meistens hilft `hypr-profile simple` oder `CTRL + SUPER + ALT + R`.
+* **Profil-Umschalter:** `CTRL + SUPER + SHIFT + P` schaltet zwischen
+  `caelestia`, `simple` und `shell2` durch. Die anderen beiden sind meine
+  Bastel-Profile und brauchen Shells, die nicht im Repo sind — fuer dich ist
+  nur `simple` sinnvoll. Aus Versehen gewechselt? `hypr-profile simple`.
+* **Fehler in `simple.lua`:** Dann springt Hyprland automatisch auf das
+  Profil `caelestia` zurueck (Fenster gehen, Leiste fehlt). Fehler beheben,
+  danach `hypr-profile simple`.
+* **Bildschirm teilen (Discord, OBS) geht nicht:** Hyprland startet beim
+  Login `hyprland-session.target`. Die Datei fehlt bei dir noch, einmal
+  anlegen:
+
+  ```sh
+  mkdir -p ~/.config/systemd/user
+  cat > ~/.config/systemd/user/hyprland-session.target <<'EOF'
+  [Unit]
+  Description=Hyprland session
+  BindsTo=graphical-session.target
+  Before=graphical-session.target
+  Wants=graphical-session-pre.target
+  After=graphical-session-pre.target
+  EOF
+  systemctl --user daemon-reload
+  ```
+
+  Danach einmal ab- und wieder anmelden.
+* **Was fehlt sonst?** `./dynamic-island/install.sh --check`
+
 ### Optionen
 
 | Option | Wirkung |
@@ -69,6 +208,7 @@ swaync) muss aus sein, sonst belegt er den DBus-Namen.
 * `simple` — diese Rice mit der dynamic-island-Shell
 * `caelestia` — die volle Config mit der Caelestia-Shell (die liegt nicht in
   diesem Repo)
+* `shell2` — Testprofil fuer eine neue Shell (liegt ebenfalls nicht hier)
 
 Umschalten: `hypr-profile toggle` oder `CTRL + SUPER + SHIFT + P`.
 
