@@ -173,13 +173,14 @@ Item {
     readonly property bool wallpaperOpen: launcherOpen && LauncherState.mode === "wallpaper"
     readonly property bool themeOpen: launcherOpen && LauncherState.mode === "theme"
     readonly property bool powerOpen: launcherOpen && LauncherState.mode === "power"
+    readonly property bool keysOpen: launcherOpen && LauncherState.mode === "keys"
     // Untermenues (siehe oben)
     readonly property bool mediaOpen: launcherOpen && LauncherState.mode === "media"
     readonly property bool controlOpen: launcherOpen && LauncherState.mode === "control"
     readonly property bool notificationsOpen: launcherOpen && LauncherState.mode === "notifications"
     readonly property bool systemOpen: launcherOpen && LauncherState.mode === "system"
     readonly property bool viewOpen: mediaOpen || controlOpen || notificationsOpen || systemOpen
-    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen && !viewOpen
+    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen && !keysOpen && !viewOpen
     readonly property bool authOpen: Auth.active && Auth.screen === hostScreen
     readonly property bool open: expanded || launcherOpen || authOpen
 
@@ -223,6 +224,7 @@ Item {
     readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth
                                         : themeOpen ? themes.outerWidth
                                         : powerOpen ? powerMenu.outerWidth
+                                        : keysOpen ? keysView.outerWidth
                                         : mediaOpen ? mediaView.outerWidth
                                         : controlOpen ? controlLoader.outerWidth
                                         : notificationsOpen ? notificationsView.outerWidth
@@ -231,6 +233,7 @@ Item {
     readonly property real launcherHeight: wallpaperOpen ? wallpapers.outerHeight
                                          : themeOpen ? themes.outerHeight
                                          : powerOpen ? powerMenu.outerHeight
+                                         : keysOpen ? keysView.outerHeight
                                          : mediaOpen ? mediaView.outerHeight
                                          : controlOpen ? controlLoader.outerHeight
                                          : notificationsOpen ? notificationsView.outerHeight
@@ -1283,6 +1286,18 @@ Item {
             open: notch.powerOpen
 
             sourceComponent: PowerPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
+            }
+        }
+
+        LazyPanel {
+            id: keysView
+
+            open: notch.keysOpen
+
+            sourceComponent: KeybindsPanel {
                 topOffset: notch.launcherTop
                 cardRadius: notch.cardRadius
                 active: true

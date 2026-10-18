@@ -86,6 +86,13 @@ Singleton {
             run: () => LauncherState.mode = "power"
         },
         {
+            name: "Tastenkürzel",
+            desc: "Alle Keybinds im Überblick (SUPER+K)",
+            icon: "keyboard",
+            keepOpen: true,
+            run: () => LauncherState.mode = "keys"
+        },
+        {
             name: "Einstellungen",
             desc: "Fenster mit den Schaltern der Shell",
             icon: "tune",

@@ -126,7 +126,9 @@ end
 --------------------------------------------------------------------------------
 -- Profil-Umschalter (nach dem Profil gesetzt, damit er immer gewinnt)
 --------------------------------------------------------------------------------
-hl.bind(switchBind, hl.dsp.exec_cmd(home .. "/.local/bin/hypr-profile toggle"), { release = true })
+-- description: Zeile in der Tastenkuerzel-Uebersicht der Shell ("Gruppe|Text")
+hl.bind(switchBind, hl.dsp.exec_cmd(home .. "/.local/bin/hypr-profile toggle"),
+    { release = true, description = "Shell|Hypr-Profil wechseln" })
 
 -- Profiluebergreifendes Idle-Management; nur einmal beim Sessionstart starten.
 hl.on("hyprland.start", function()

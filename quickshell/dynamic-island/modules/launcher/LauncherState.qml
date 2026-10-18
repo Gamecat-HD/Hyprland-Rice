@@ -20,6 +20,7 @@ Singleton {
     //   "wallpaper"  eigenes Suchfeld + Bild-Karussell (WallpaperPanel)
     //   "theme"      eigenes Suchfeld + Farb-Karussell (ThemePanel)
     //   "power"      Sitzungs- und Energieaktionen (PowerPanel)
+    //   "keys"       Tastenkuerzel-Uebersicht aus Hyprland (KeybindsPanel)
     //   "media"      Medien: Player-Auswahl, Cover mit Ring, Steuerung
     //   "control"    Steuerung: Kacheln, WLAN/BT/Audio, Tray
     //   "notifications"  Benachrichtigungsliste
@@ -108,15 +109,15 @@ Singleton {
         root.toggle(root.focusedScreen());
     }
 
-    // Das Power-Menue haelt den Tastaturfokus exklusiv (Pfeiltasten), und
-    // der blockiert Klicks auf dem anderen Monitor. Wechselt der Fokus
-    // dorthin, geht es deshalb zu.
+    // Das Power-Menue und die Tastenkuerzel halten den Tastaturfokus
+    // exklusiv, und der blockiert Klicks auf dem anderen Monitor. Wechselt
+    // der Fokus dorthin, gehen sie deshalb zu.
     Connections {
         target: Hyprland
 
         function onFocusedMonitorChanged(): void {
             const name = Hyprland.focusedMonitor?.name ?? "";
-            if (root.open && root.mode === "power" && name && name !== root.screen?.name)
+            if (root.open && (root.mode === "power" || root.mode === "keys") && name && name !== root.screen?.name)
                 root.close();
         }
     }
@@ -218,6 +219,11 @@ Singleton {
 
         function power(): void {
             root.toggleMode(root.focusedScreen(), "power");
+        }
+
+        // Tastenkuerzel-Uebersicht (SUPER+K)
+        function keys(): void {
+            root.toggleMode(root.focusedScreen(), "keys");
         }
 
         // Untermenues der Notch (Tastenkuerzel in hypr/profiles/simple.lua)
