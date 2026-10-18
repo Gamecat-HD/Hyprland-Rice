@@ -64,6 +64,8 @@ ColumnLayout {
     readonly property bool wifiOn: WifiStatus.radioOn
     readonly property string wifiStatus: !WifiStatus.loaded ? "…"
         : !WifiStatus.radioOn ? "Aus"
+        : WifiStatus.connecting ? (WifiStatus.connectingSsid !== ""
+                                   ? `Verbinde mit ${WifiStatus.connectingSsid}…` : "Verbinde…")
         : !WifiStatus.connected ? "Getrennt"
         : WifiStatus.ssid + " · " + WifiStatus.signal + "%"
 
@@ -378,7 +380,7 @@ ColumnLayout {
 
             tapEnabled: false   // Toggle macht der bewachte TapHandler unten
 
-            icon: root.wifiOn ? "wifi" : "wifi_off"
+            icon: !root.wifiOn ? "wifi_off" : WifiStatus.connecting ? WifiStatus.icon : "wifi"
             title: "Wi-Fi"
             subtitle: root.wifiStatus
             active: root.wifiOn
