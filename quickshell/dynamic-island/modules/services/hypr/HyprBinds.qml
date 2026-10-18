@@ -15,16 +15,30 @@ import Quickshell.Io
 //
 // Gelesen wird beim Oeffnen der Uebersicht (refresh) und nach jedem
 // `hyprctl reload`, solange schon einmal gelesen wurde.
+//
+// Ausfuehren (run): hypr/hyprland.lua legt die Aktion jedes beschriebenen
+// Binds unter seiner Beschreibung ab, `hyprctl eval` ruft sie im laufenden
+// Hyprland auf. Nicht anklickbar sind Maus-Binds (Ziehen/Groesse) und
+// Sammelzeilen mit eigener Anzeige ("1 … 0", "Pfeile") – ein Klick wuerde
+// dort nur einen der Binds ausloesen.
 Singleton {
     id: root
 
-    // [{ name, entries: [{ text, combos: [["Super", "Q"], ...] }] }]
+    // [{ name, entries: [{ text, id, clickable, combos: [["Super", "Q"], ...] }] }]
     property var groups: []
     property bool loaded: false
 
     function refresh(): void {
         if (!proc.running)
             proc.running = true;
+    }
+
+    function run(entry: var): void {
+        if (!entry?.clickable)
+            return;
+        // Lange Lua-Klammern: die Beschreibung darf so jedes Zeichen enthalten
+        // ausser der schliessenden Folge selbst
+        Quickshell.execDetached(["hyprctl", "eval", `run_keybind([==[${entry.id}]==])`]);
     }
 
     // Reihenfolge wie auf der Tastatur ueblich
@@ -96,7 +110,12 @@ Singleton {
             if (entry)
                 entry.combos.push(keys);
             else
-                group.entries.push({ text, combos: [keys] });
+                group.entries.push({
+                    text,
+                    id: bind.description,
+                    clickable: !label && !bind.mouse,
+                    combos: [keys]
+                });
         }
 
         root.groups = order;

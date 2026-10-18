@@ -12,6 +12,8 @@ import qs.modules.services.hypr
 // Beschreibung "Gruppe|Text" in hypr/profiles/simple.lua landet hier, neue
 // Kuerzel brauchen also keine Aenderung an der Shell. Oben ein Suchfeld,
 // darunter die Gruppen in drei Spalten (aufgefuellt nach Hoehe).
+// Klick auf eine Zeile (oder Enter: erster Treffer der Suche) schliesst die
+// Uebersicht und fuehrt den Bind aus.
 // Aufruf: SUPER+K, `>tasten`.
 Item {
     id: panel
@@ -71,6 +73,28 @@ Item {
             heights[target] += panel.groupHeight(group);
         }
         return cols;
+    }
+
+    // Was Enter ausloest: erster anklickbarer Treffer, nur waehrend gesucht wird
+    readonly property var firstHit: {
+        if (panel.query === "")
+            return null;
+        for (const col of panel.columns)
+            for (const group of col)
+                for (const entry of group.entries)
+                    if (entry.clickable)
+                        return entry;
+        return null;
+    }
+
+    // Erst zu, dann ausfuehren: "Schliessen" & Co. sollen das Fenster unter
+    // der Notch treffen, und Shell-Kuerzel (SUPER+A ...) oeffnen sonst nur
+    // kurz und werden vom Schliessen gleich wieder ueberdeckt
+    function run(entry: var): void {
+        if (!entry?.clickable)
+            return;
+        LauncherState.close();
+        HyprBinds.run(entry);
     }
 
     function groupHeight(group: var): real {
@@ -160,6 +184,8 @@ Item {
             clip: true
 
             Keys.onEscapePressed: LauncherState.close()
+            Keys.onReturnPressed: panel.run(panel.firstHit)
+            Keys.onEnterPressed: panel.run(panel.firstHit)
             Keys.onUpPressed: panel.scrollBy(-panel.rowHeight * 3)
             Keys.onDownPressed: panel.scrollBy(panel.rowHeight * 3)
             Keys.onPressed: event => {
@@ -175,7 +201,7 @@ Item {
             Text {
                 anchors.fill: parent
                 visible: search.text === ""
-                text: "Tastenkürzel durchsuchen…"
+                text: "Tastenkürzel durchsuchen…   Klick oder Enter führt aus"
                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                 font: search.font
                 verticalAlignment: Text.AlignVCenter
@@ -335,6 +361,9 @@ Item {
 
                 required property var modelData
 
+                readonly property bool clickable: row.modelData.clickable
+                readonly property bool isFirst: row.modelData === panel.firstHit
+
                 width: block.width
                 height: panel.rowHeight
 
@@ -343,16 +372,26 @@ Item {
                     anchors.leftMargin: -6
                     anchors.rightMargin: -6
                     radius: 6
-                    color: Colors.alpha(Colors.fgSurface, 0.06)
-                    opacity: rowHover.hovered ? 1 : 0
+                    color: rowArea.pressed ? Colors.alpha(Colors.primary, 0.22)
+                         : row.isFirst ? Colors.alpha(Colors.primary, 0.14)
+                         : Colors.alpha(Colors.fgSurface, 0.06)
+                    opacity: row.clickable && (rowArea.containsMouse || row.isFirst) ? 1 : 0
 
                     Behavior on opacity {
                         NumberAnimation { duration: 90 }
                     }
                 }
 
-                HoverHandler {
-                    id: rowHover
+                MouseArea {
+                    id: rowArea
+
+                    anchors.fill: parent
+                    anchors.leftMargin: -6
+                    anchors.rightMargin: -6
+                    enabled: row.clickable
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: panel.run(row.modelData)
                 }
 
                 Text {

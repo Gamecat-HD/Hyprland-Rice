@@ -105,6 +105,32 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE && systemctl --user start hyprland-session.target")
 end)
 
+--------------------------------------------------------------------------------
+-- Klickbare Tastenkuerzel-Uebersicht der Shell (dynamic-island, SUPER + K)
+--------------------------------------------------------------------------------
+-- Binds mit Beschreibung ("Gruppe|Text") legen ueber bind_described ihre
+-- Aktion unter genau dieser Beschreibung ab; ein Klick in der Uebersicht
+-- loest sie aus:  hyprctl eval 'run_keybind([==[Gruppe|Text]==])'
+-- Global, weil `hyprctl eval` im selben Lua-Zustand laeuft wie diese Config.
+-- Bei jedem Reload neu angelegt, damit keine Aktionen alter Binds bleiben.
+keybind_actions = {}
+
+function bind_described(keys, action, opts)
+    if opts and opts.description then
+        keybind_actions[opts.description] = action
+    end
+    return hl.bind(keys, action, opts)
+end
+
+function run_keybind(id)
+    local action = keybind_actions[id]
+    if type(action) == "function" then
+        return action()
+    elseif action then
+        return hl.dispatch(action)
+    end
+end
+
 local profile = read_profile()
 local ok, err = load_profile(profile)
 
@@ -127,7 +153,7 @@ end
 -- Profil-Umschalter (nach dem Profil gesetzt, damit er immer gewinnt)
 --------------------------------------------------------------------------------
 -- description: Zeile in der Tastenkuerzel-Uebersicht der Shell ("Gruppe|Text")
-hl.bind(switchBind, hl.dsp.exec_cmd(home .. "/.local/bin/hypr-profile toggle"),
+bind_described(switchBind, hl.dsp.exec_cmd(home .. "/.local/bin/hypr-profile toggle"),
     { release = true, description = "Shell|Hypr-Profil wechseln" })
 
 -- Profiluebergreifendes Idle-Management; nur einmal beim Sessionstart starten.

@@ -356,8 +356,12 @@ end
 -- Beschreibungen fuer die Tastenkuerzel-Uebersicht der Shell (SUPER + K).
 -- Die Shell liest sie live aus `hyprctl binds -j`, Format "Gruppe|Text",
 -- optional "|Anzeige" statt der echten Taste (z.B. "1 … 0" fuer zehn Binds).
--- Binds ohne Beschreibung tauchen dort nicht auf; gleicher Text in derselben
+-- Ein Klick auf die Zeile fuehrt den Bind aus. Binds ohne Beschreibung
+-- tauchen dort nicht auf; gleicher Text in derselben
 -- Gruppe wird zu einer Zeile mit mehreren Kuerzeln zusammengefasst.
+-- bind() merkt sich die Aktion beschriebener Binds, damit die Uebersicht sie
+-- per Klick ausloesen kann (bind_described/run_keybind in ../hyprland.lua).
+local bind = bind_described
 local group = ""
 local function desc(text, opts, label)
 	opts = opts or {}
@@ -367,90 +371,90 @@ end
 
 -- Apps
 group = "Apps"
-hl.bind("SUPER + Q", hl.dsp.exec_cmd(cfg.terminal), desc("Terminal"))
-hl.bind("SUPER + W", hl.dsp.exec_cmd(cfg.browser), desc("Browser"))
-hl.bind("SUPER + P", hl.dsp.exec_cmd(cfg.editor), desc("Editor"))
-hl.bind("SUPER + E", hl.dsp.exec_cmd(cfg.fileExplorer), desc("Dateimanager"))
-hl.bind("CTRL + ALT + V", hl.dsp.exec_cmd(cfg.audioSettings), desc("Audio-Einstellungen"))
+bind("SUPER + Q", hl.dsp.exec_cmd(cfg.terminal), desc("Terminal"))
+bind("SUPER + W", hl.dsp.exec_cmd(cfg.browser), desc("Browser"))
+bind("SUPER + P", hl.dsp.exec_cmd(cfg.editor), desc("Editor"))
+bind("SUPER + E", hl.dsp.exec_cmd(cfg.fileExplorer), desc("Dateimanager"))
+bind("CTRL + ALT + V", hl.dsp.exec_cmd(cfg.audioSettings), desc("Audio-Einstellungen"))
 group = "Shell"
 -- Super allein oeffnet das App-Menue der Shell (per Quickshell-IPC).
 -- Laeuft die Shell gerade nicht, faellt es auf cfg.launcher (fuzzel) zurueck.
-hl.bind(
+bind(
 	"SUPER + SUPER_L",
 	hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher toggle || " .. cfg.launcher),
 	desc("App-Menü", { release = true })
 )
-hl.bind("SUPER + Space", hl.dsp.exec_cmd(cfg.launcher), desc("App-Starter (fuzzel)"))
+bind("SUPER + Space", hl.dsp.exec_cmd(cfg.launcher), desc("App-Starter (fuzzel)"))
 -- Untermenues der Notch (Quickshell-IPC), nochmal druecken = zu.
 -- Dieselben Ansichten erreicht man im Launcher mit >medien, >steuerung,
 -- >benachrichtigungen, >system, >power oder durch Blaettern in der Notch.
 -- Medien hat bewusst kein Kuerzel: SUPER+M gehoert dem Music-Workspace.
-hl.bind("SUPER + A", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher control"), desc("Steuerung"))
-hl.bind("SUPER + N", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher notifications"), desc("Benachrichtigungen"))
-hl.bind("SUPER + I", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher system"), desc("System"))
-hl.bind("SUPER + X", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher power"), desc("Power-Menü"))
-hl.bind("SUPER + K", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher keys"), desc("Tastenkürzel"))
-hl.bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd), desc("Sperren"))
-hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), desc("Standby", { locked = true }))
+bind("SUPER + A", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher control"), desc("Steuerung"))
+bind("SUPER + N", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher notifications"), desc("Benachrichtigungen"))
+bind("SUPER + I", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher system"), desc("System"))
+bind("SUPER + X", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher power"), desc("Power-Menü"))
+bind("SUPER + K", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher keys"), desc("Tastenkürzel"))
+bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd), desc("Sperren"))
+bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), desc("Standby", { locked = true }))
 
 -- Fenster
 group = "Fenster"
 -- SUPER + C: ist das Einstellungs-Fenster der Shell offen, schliesst es das
 -- (die Shell meldet "true"), sonst wie gewohnt das aktive Fenster.
-hl.bind("SUPER + C", hl.dsp.exec_cmd(
+bind("SUPER + C", hl.dsp.exec_cmd(
 	"sh -c '[ \"$(qs -c dynamic-island ipc call settings dismiss 2>/dev/null)\" = true ] "
 	.. "|| hyprctl dispatch \"hl.dsp.window.close()\"'"
 ), desc("Schließen"))
-hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }), desc("Vollbild"))
-hl.bind("SUPER + ALT + F", hl.dsp.window.fullscreen({ mode = "maximized" }), desc("Maximieren"))
-hl.bind("SUPER + ALT + space", hl.dsp.window.float(), desc("Schwebend an/aus"))
-hl.bind("SUPER + SHIFT + P", hl.dsp.window.pin(), desc("Anheften"))
-hl.bind("CTRL + SUPER + Backslash", hl.dsp.window.center(), desc("Zentrieren"))
-hl.bind("SUPER + mouse:272", hl.dsp.window.drag(), desc("Fenster ziehen", { mouse = true }))
-hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), desc("Größe ändern", { mouse = true }))
+bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }), desc("Vollbild"))
+bind("SUPER + ALT + F", hl.dsp.window.fullscreen({ mode = "maximized" }), desc("Maximieren"))
+bind("SUPER + ALT + space", hl.dsp.window.float(), desc("Schwebend an/aus"))
+bind("SUPER + SHIFT + P", hl.dsp.window.pin(), desc("Anheften"))
+bind("CTRL + SUPER + Backslash", hl.dsp.window.center(), desc("Zentrieren"))
+bind("SUPER + mouse:272", hl.dsp.window.drag(), desc("Fenster ziehen", { mouse = true }))
+bind("SUPER + mouse:273", hl.dsp.window.resize(), desc("Größe ändern", { mouse = true }))
 
 -- Fokus / verschieben
 group = "Fokus"
-hl.bind("SUPER + left", hl.dsp.focus({ direction = "left" }), desc("Fokus wechseln", nil, "Pfeile"))
-hl.bind("SUPER + right", hl.dsp.focus({ direction = "right" }))
-hl.bind("SUPER + up", hl.dsp.focus({ direction = "up" }))
-hl.bind("SUPER + down", hl.dsp.focus({ direction = "down" }))
-hl.bind("SUPER + SHIFT + left", hl.dsp.window.move({ direction = "left" }), desc("Fenster verschieben", nil, "Pfeile"))
-hl.bind("SUPER + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
-hl.bind("SUPER + SHIFT + up", hl.dsp.window.move({ direction = "up" }))
-hl.bind("SUPER + SHIFT + down", hl.dsp.window.move({ direction = "down" }))
+bind("SUPER + left", hl.dsp.focus({ direction = "left" }), desc("Fokus wechseln", nil, "Pfeile"))
+bind("SUPER + right", hl.dsp.focus({ direction = "right" }))
+bind("SUPER + up", hl.dsp.focus({ direction = "up" }))
+bind("SUPER + down", hl.dsp.focus({ direction = "down" }))
+bind("SUPER + SHIFT + left", hl.dsp.window.move({ direction = "left" }), desc("Fenster verschieben", nil, "Pfeile"))
+bind("SUPER + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
+bind("SUPER + SHIFT + up", hl.dsp.window.move({ direction = "up" }))
+bind("SUPER + SHIFT + down", hl.dsp.window.move({ direction = "down" }))
 
 -- Fenstergruppen (Tabs)
 group = "Fokus"
-hl.bind("SUPER + Comma", hl.dsp.group.toggle(), desc("Fenstergruppe an/aus"))
-hl.bind("SUPER + U", hl.dsp.window.move({ out_of_group = true }), desc("Aus Gruppe lösen"))
-hl.bind("ALT + TAB", hl.dsp.window.cycle_next(), desc("Nächstes Fenster", { repeating = true }))
-hl.bind("SHIFT + ALT + TAB", hl.dsp.window.cycle_next({ next = false }), desc("Vorheriges Fenster", { repeating = true }))
+bind("SUPER + Comma", hl.dsp.group.toggle(), desc("Fenstergruppe an/aus"))
+bind("SUPER + U", hl.dsp.window.move({ out_of_group = true }), desc("Aus Gruppe lösen"))
+bind("ALT + TAB", hl.dsp.window.cycle_next(), desc("Nächstes Fenster", { repeating = true }))
+bind("SHIFT + ALT + TAB", hl.dsp.window.cycle_next({ next = false }), desc("Vorheriges Fenster", { repeating = true }))
 
 -- Workspaces des fokussierten Monitors
 group = "Workspaces"
 for i = 1, 10 do
 	local key = i % 10 -- 10 liegt auf der Taste 0
 	-- in der Uebersicht eine Zeile fuer alle zehn
-	hl.bind("SUPER + " .. key, wsaction("focus", i), i == 1 and desc("Workspace 1–10", nil, "1 … 0") or {})
-	hl.bind("SUPER + ALT + " .. key, wsaction("move", i), i == 1 and desc("Fenster auf Workspace 1–10", nil, "1 … 0") or {})
+	bind("SUPER + " .. key, wsaction("focus", i), i == 1 and desc("Workspace 1–10", nil, "1 … 0") or {})
+	bind("SUPER + ALT + " .. key, wsaction("move", i), i == 1 and desc("Fenster auf Workspace 1–10", nil, "1 … 0") or {})
 end
-hl.bind("CTRL + SUPER + Left", hl.dsp.focus({ workspace = "m-1" }), desc("Vorheriger Workspace", { repeating = true }))
-hl.bind("CTRL + SUPER + Right", hl.dsp.focus({ workspace = "m+1" }), desc("Nächster Workspace", { repeating = true }))
-hl.bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "m-1" }), desc("Workspace blättern", nil, "Mausrad"))
-hl.bind("SUPER + mouse_up", hl.dsp.focus({ workspace = "m+1" }))
-hl.bind("CTRL + SUPER + SHIFT + Left", hl.dsp.window.move({ workspace = "m-1" }), desc("Fenster zurückschieben", { repeating = true }))
-hl.bind("CTRL + SUPER + SHIFT + Right", hl.dsp.window.move({ workspace = "m+1" }), desc("Fenster weiterschieben", { repeating = true }))
+bind("CTRL + SUPER + Left", hl.dsp.focus({ workspace = "m-1" }), desc("Vorheriger Workspace", { repeating = true }))
+bind("CTRL + SUPER + Right", hl.dsp.focus({ workspace = "m+1" }), desc("Nächster Workspace", { repeating = true }))
+bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "m-1" }), desc("Workspace blättern", nil, "Mausrad"))
+bind("SUPER + mouse_up", hl.dsp.focus({ workspace = "m+1" }))
+bind("CTRL + SUPER + SHIFT + Left", hl.dsp.window.move({ workspace = "m-1" }), desc("Fenster zurückschieben", { repeating = true }))
+bind("CTRL + SUPER + SHIFT + Right", hl.dsp.window.move({ workspace = "m+1" }), desc("Fenster weiterschieben", { repeating = true }))
 
 -- Special-Workspaces (Scratchpads)
 group = "Scratchpads"
 -- ueber die CLI: startet die zugehoerige App gleich mit, wenn der Workspace leer ist
 -- (Zuordnung in ~/.config/dynamic-island/cli.json unter "toggles")
-hl.bind("SUPER + S", hl.dsp.exec_cmd("dynamic-island toggle specialws"), desc("Scratchpad"))
+bind("SUPER + S", hl.dsp.exec_cmd("dynamic-island toggle specialws"), desc("Scratchpad"))
 -- Music: laeuft Spotify schon, wird special:music auf dem Fokus-Monitor
 -- getoggelt (offen -> zu, zu/anderer Monitor -> hierher). Sonst startet
 -- Spotify zuerst und der Special wird geöffnet, sobald das Fenster da ist.
-hl.bind(
+bind(
 	"SUPER + M",
 	hl.dsp.exec_cmd([[
 		if hyprctl -j clients | grep -q '"class": *"Spotify"'; then
@@ -466,16 +470,16 @@ hl.bind(
 	]]),
 	desc("Spotify")
 )
-hl.bind("SUPER + D", hl.dsp.exec_cmd("dynamic-island toggle communication"), desc("Kommunikation"))
-hl.bind("CTRL + SHIFT + Escape", hl.dsp.exec_cmd("dynamic-island toggle sysmon"), desc("Systemmonitor"))
-hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special:special" }), desc("Fenster ins Scratchpad"))
+bind("SUPER + D", hl.dsp.exec_cmd("dynamic-island toggle communication"), desc("Kommunikation"))
+bind("CTRL + SHIFT + Escape", hl.dsp.exec_cmd("dynamic-island toggle sysmon"), desc("Systemmonitor"))
+bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special:special" }), desc("Fenster ins Scratchpad"))
 
 -- Lautstaerke / Mikrofon
 group = "Audio & Medien"
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), desc("Ton stumm", { locked = true }))
-hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), desc("Ton stumm", { locked = true }))
-hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), desc("Mikrofon stumm", { locked = true }))
-hl.bind(
+bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), desc("Ton stumm", { locked = true }))
+bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), desc("Ton stumm", { locked = true }))
+bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), desc("Mikrofon stumm", { locked = true }))
+bind(
 	"XF86AudioRaiseVolume",
 	hl.dsp.exec_cmd(
 		"wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume -l "
@@ -486,15 +490,15 @@ hl.bind(
 	),
 	desc("Lauter", { locked = true, repeating = true })
 )
-hl.bind(
+bind(
 	"XF86AudioLowerVolume",
 	hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ " .. cfg.volumeStep .. "%-"),
 	desc("Leiser", { locked = true, repeating = true })
 )
 
 -- Helligkeit
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl s " .. cfg.brightnessStep .. "%+"), desc("Heller", { locked = true }))
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl s " .. cfg.brightnessStep .. "%-"), desc("Dunkler", { locked = true }))
+bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl s " .. cfg.brightnessStep .. "%+"), desc("Heller", { locked = true }))
+bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl s " .. cfg.brightnessStep .. "%-"), desc("Dunkler", { locked = true }))
 
 -- Medien
 -- Medientasten gehen an die Shell statt an playerctl: nur die kennt die im
@@ -502,42 +506,42 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl s " .. cfg.brigh
 -- aussuchen und damit womoeglich einen anderen als die Leiste anzeigt.
 -- Die Gegenstelle sind die GlobalShortcuts in
 -- ~/.config/quickshell/dynamic-island/modules/services/media/Media.qml
-hl.bind("CTRL + SUPER + Space", hl.dsp.global("dynamic-island:mediaToggle"), desc("Play/Pause", { locked = true }))
-hl.bind("XF86AudioPlay", hl.dsp.global("dynamic-island:mediaToggle"), desc("Play/Pause", { locked = true }))
-hl.bind("XF86AudioNext", hl.dsp.global("dynamic-island:mediaNext"), desc("Nächster Titel", { locked = true }))
-hl.bind("XF86AudioPrev", hl.dsp.global("dynamic-island:mediaPrev"), desc("Vorheriger Titel", { locked = true }))
+bind("CTRL + SUPER + Space", hl.dsp.global("dynamic-island:mediaToggle"), desc("Play/Pause", { locked = true }))
+bind("XF86AudioPlay", hl.dsp.global("dynamic-island:mediaToggle"), desc("Play/Pause", { locked = true }))
+bind("XF86AudioNext", hl.dsp.global("dynamic-island:mediaNext"), desc("Nächster Titel", { locked = true }))
+bind("XF86AudioPrev", hl.dsp.global("dynamic-island:mediaPrev"), desc("Vorheriger Titel", { locked = true }))
 
 group = "Aufnahme"
 -- Screenshots  (dynamic-island uebernimmt Zwischenablage,
 -- Benachrichtigung mit Open/Save und den Cache unter ~/.cache/dynamic-island)
-hl.bind("Print", hl.dsp.exec_cmd("dynamic-island screenshot"), desc("Screenshot ganzer Bildschirm", { locked = true }))
-hl.bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r -f"), desc("Screenshot Bereich"))
-hl.bind("SUPER + SHIFT + ALT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r -e"), desc("Screenshot bearbeiten"))
+bind("Print", hl.dsp.exec_cmd("dynamic-island screenshot"), desc("Screenshot ganzer Bildschirm", { locked = true }))
+bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r -f"), desc("Screenshot Bereich"))
+bind("SUPER + SHIFT + ALT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r -e"), desc("Screenshot bearbeiten"))
 
 -- Bildschirmaufnahme (gpu-screen-recorder; derselbe Bind stoppt wieder)
-hl.bind("CTRL + ALT + R", hl.dsp.exec_cmd("dynamic-island record"), desc("Aufnahme an/aus"))
-hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd("dynamic-island record -s"), desc("Aufnahme mit Ton"))
-hl.bind("SUPER + SHIFT + ALT + R", hl.dsp.exec_cmd("dynamic-island record -r"), desc("Aufnahme Bereich"))
+bind("CTRL + ALT + R", hl.dsp.exec_cmd("dynamic-island record"), desc("Aufnahme an/aus"))
+bind("SUPER + ALT + R", hl.dsp.exec_cmd("dynamic-island record -s"), desc("Aufnahme mit Ton"))
+bind("SUPER + SHIFT + ALT + R", hl.dsp.exec_cmd("dynamic-island record -r"), desc("Aufnahme Bereich"))
 
 -- Zwischenablage-Verlauf (cliphist via fuzzel)
 group = "Werkzeuge"
-hl.bind("SUPER + V", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island clipboard"), desc("Zwischenablage"))
-hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island clipboard -d"), desc("Aus Zwischenablage löschen"))
+bind("SUPER + V", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island clipboard"), desc("Zwischenablage"))
+bind("SUPER + ALT + V", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island clipboard -d"), desc("Aus Zwischenablage löschen"))
 
 -- Farbpipette
-hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"), desc("Farbpipette"))
+bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"), desc("Farbpipette"))
 
 -- Emoji-/Glyph-Picker
-hl.bind("SUPER + Period", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island emoji -p"), desc("Emoji-Picker"))
+bind("SUPER + Period", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island emoji -p"), desc("Emoji-Picker"))
 
 -- Wallpaper und Farbschema
-hl.bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("dynamic-island wallpaper -r"), desc("Zufälliges Wallpaper"))
-hl.bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("dynamic-island scheme set -r"), desc("Zufälliges Farbschema"))
+bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("dynamic-island wallpaper -r"), desc("Zufälliges Wallpaper"))
+bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("dynamic-island scheme set -r"), desc("Zufälliges Farbschema"))
 
 -- Shell dieses Profils neu starten / beenden (wie im Caelestia-Profil belegt)
 group = "Shell"
-hl.bind("CTRL + SUPER + ALT + R", hl.dsp.exec_cmd(hyprProfile .. " shell-restart"), desc("Shell neu starten", { release = true }))
-hl.bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd(hyprProfile .. " shell-kill"), desc("Shell beenden", { release = true }))
+bind("CTRL + SUPER + ALT + R", hl.dsp.exec_cmd(hyprProfile .. " shell-restart"), desc("Shell neu starten", { release = true }))
+bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd(hyprProfile .. " shell-kill"), desc("Shell beenden", { release = true }))
 
 -- Hinweis: Der Profil-Umschalter CTRL + SUPER + SHIFT + P wird in ../hyprland.lua
 -- gesetzt und gilt damit in beiden Profilen.
