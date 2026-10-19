@@ -150,6 +150,21 @@ if not ok then
 end
 
 --------------------------------------------------------------------------------
+-- Von Apps verwaltete Binds (z. B. FTHR Clips: F9 Clip, F12 Screenshot)
+--------------------------------------------------------------------------------
+-- FTHR schreibt die Datei bei jedem Start selbst neu, darum nicht im Repo
+-- (.gitignore) und ohne Fehler, wenn sie fehlt.
+local customBinds = hypr .. "/custom/keybinds.lua"
+local customFile = io.open(customBinds)
+if customFile then
+    customFile:close()
+    local okCustom, errCustom = pcall(dofile, customBinds)
+    if not okCustom then
+        io.stderr:write("custom/keybinds.lua fehlerhaft: " .. tostring(errCustom) .. "\n")
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Profil-Umschalter (nach dem Profil gesetzt, damit er immer gewinnt)
 --------------------------------------------------------------------------------
 -- description: Zeile in der Tastenkuerzel-Uebersicht der Shell ("Gruppe|Text")
