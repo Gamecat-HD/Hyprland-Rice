@@ -150,21 +150,6 @@ if not ok then
 end
 
 --------------------------------------------------------------------------------
--- Clips (clipdeck, ~/projects/clipdeck: Replay-Puffer ueber gpu-screen-recorder)
---------------------------------------------------------------------------------
--- Global, damit Clips in jedem Profil gehen; der Daemon laeuft als
--- clipdeck.service (graphical-session.target).
-local clipdeck = home .. "/.local/bin/clipdeck"
-bind_described("F10", hl.dsp.exec_cmd(clipdeck .. " save"),
-    { description = "Clips|Clip speichern (Replay)" })
-bind_described("F12", hl.dsp.exec_cmd(clipdeck .. " screenshot"),
-    { description = "Clips|Screenshot (Spiel-Monitor)" })
-bind_described("ALT + F10", hl.dsp.exec_cmd(clipdeck .. " record"),
-    { description = "Clips|Aufnahme starten/stoppen" })
-bind_described("SUPER + F10", hl.dsp.exec_cmd(clipdeck .. " ui"),
-    { description = "Clips|Clip-Bibliothek" })
-
---------------------------------------------------------------------------------
 -- Profil-Umschalter (nach dem Profil gesetzt, damit er immer gewinnt)
 --------------------------------------------------------------------------------
 -- description: Zeile in der Tastenkuerzel-Uebersicht der Shell ("Gruppe|Text")
