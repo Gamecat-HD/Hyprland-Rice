@@ -150,19 +150,19 @@ if not ok then
 end
 
 --------------------------------------------------------------------------------
--- Von Apps verwaltete Binds (z. B. FTHR Clips: F9 Clip, F12 Screenshot)
+-- Clips (clipdeck, ~/projects/clipdeck: Replay-Puffer ueber gpu-screen-recorder)
 --------------------------------------------------------------------------------
--- FTHR schreibt die Datei bei jedem Start selbst neu, darum nicht im Repo
--- (.gitignore) und ohne Fehler, wenn sie fehlt.
-local customBinds = hypr .. "/custom/keybinds.lua"
-local customFile = io.open(customBinds)
-if customFile then
-    customFile:close()
-    local okCustom, errCustom = pcall(dofile, customBinds)
-    if not okCustom then
-        io.stderr:write("custom/keybinds.lua fehlerhaft: " .. tostring(errCustom) .. "\n")
-    end
-end
+-- Global, damit Clips in jedem Profil gehen; der Daemon laeuft als
+-- clipdeck.service (graphical-session.target).
+local clipdeck = home .. "/.local/bin/clipdeck"
+bind_described("F10", hl.dsp.exec_cmd(clipdeck .. " save"),
+    { description = "Clips|Clip speichern (Replay)" })
+bind_described("F12", hl.dsp.exec_cmd(clipdeck .. " screenshot"),
+    { description = "Clips|Screenshot (Spiel-Monitor)" })
+bind_described("ALT + F10", hl.dsp.exec_cmd(clipdeck .. " record"),
+    { description = "Clips|Aufnahme starten/stoppen" })
+bind_described("SUPER + F10", hl.dsp.exec_cmd(clipdeck .. " ui"),
+    { description = "Clips|Clip-Bibliothek" })
 
 --------------------------------------------------------------------------------
 -- Profil-Umschalter (nach dem Profil gesetzt, damit er immer gewinnt)
