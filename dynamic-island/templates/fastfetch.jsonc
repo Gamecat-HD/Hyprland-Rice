@@ -1,0 +1,87 @@
+// fastfetch in den Farben des aktuellen Schemas (gross, ab 100x25).
+//
+// Vorlage:  ~/.config/dynamic-island/templates/fastfetch*.jsonc  <- diese Dateien
+// Erzeugt:  ~/.local/state/dynamic-island/theme/fastfetch*.jsonc <- nicht bearbeiten
+// Genutzt:  ~/.config/fish/functions/fastfetch.fish, sobald das Wallpaper
+//           NICHT im Miku-Ordner liegt (sonst die Vocaloid-Configs aus
+//           ~/.config/fastfetch). Platzhalter siehe templates/kitty.conf;
+//           {{ x.ansi }} ist "r;g;b" fuer 38;2;...-Sequenzen.
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "source": "CachyOS_small",
+        "color": {
+            "1": "38;2;{{ primary.ansi }}",
+            "2": "38;2;{{ tertiary.ansi }}"
+        },
+        "padding": {
+            "top": 2,
+            "left": 2,
+            "right": 4
+        }
+    },
+    "display": {
+        "separator": "  ",
+        "color": {
+            "keys": "38;2;{{ primary.ansi }}",
+            "separator": "38;2;{{ tertiary.ansi }}",
+            "output": "default"
+        },
+        "bar": {
+            "width": 14,
+            "char": {
+                "elapsed": "■",
+                "total": "■"
+            },
+            "border": {
+                "left": "",
+                "right": ""
+            },
+            "color": {
+                "elapsed": "38;2;{{ primary.ansi }}",
+                "total": "38;2;{{ outline.ansi }}"
+            }
+        },
+        "percent": {
+            "type": ["bar", "num"]
+        }
+    },
+    "modules": [
+        "break",
+        {
+            "type": "title",
+            "key": "\u001b[38;2;{{ tertiary.ansi }}m◆",
+            "format": "\u001b[1;38;2;{{ primary.ansi }}m{user-name}\u001b[0m\u001b[38;2;{{ outline.ansi }}m@\u001b[0m\u001b[1;38;2;{{ tertiary.ansi }}m{host-name}\u001b[0m"
+        },
+        {
+            "type": "custom",
+            "format": "\u001b[38;2;{{ outline.ansi }}m────────────────────────────────────────────\u001b[0m"
+        },
+
+        // ── System ────────────────────────────────────────
+        { "type": "os",       "key": "󰣇 os      ", "format": "{pretty-name}" },
+        { "type": "kernel",   "key": "󰒋 kernel  ", "format": "{release}" },
+        { "type": "wm",       "key": "󰕮 wm      ", "format": "{pretty-name}" },
+        { "type": "uptime",   "key": "󱎫 uptime  " },
+        { "type": "packages", "key": "󰏗 pakete  ", "format": "{all} \u001b[38;2;{{ outline.ansi }}m({pacman} pacman · {flatpak-all} flatpak)\u001b[0m" },
+        "break",
+
+        // ── Hardware ──────────────────────────────────────
+        { "type": "cpu",    "key": "󰻠 cpu     ", "format": "{name}" },
+        { "type": "gpu",    "key": "󰍛 gpu     ", "format": "{name}", "hideType": "integrated" },
+        { "type": "memory", "key": "󰘚 ram     ", "format": "{percentage-bar} {used} / {total}" },
+        { "type": "disk",   "key": "󰋊 disk    ", "format": "{size-percentage-bar} {size-used} / {size-total}", "folders": "/" },
+        "break",
+
+        // ── Umgebung ──────────────────────────────────────
+        { "type": "shell",    "key": "󰆍 shell   ", "format": "{pretty-name} {version}" },
+        { "type": "terminal", "key": "󰄛 term    ", "format": "{pretty-name}" },
+        { "type": "media",    "key": "󰎈 musik   ", "format": "{combined}" },
+
+        "break",
+        {
+            "type": "colors",
+            "symbol": "circle"
+        }
+    ]
+}

@@ -104,6 +104,7 @@ ColumnLayout {
         "vpn": vpnComponent,
         "nosleep": noSleepComponent,
         "gamemode": gameModeComponent,
+        "fastfetch": fastfetchComponent,
         "settings": settingsComponent,
         "record": recordComponent,
         "volume": volumeComponent,
@@ -499,6 +500,21 @@ ColumnLayout {
             icon: "sports_esports"
             active: root.gameMode
             onToggled: root.toggleGameMode()
+        }
+    }
+
+    // An = fastfetch folgt dem Wallpaper (Miku-Ordner -> Vocaloid-HUD, sonst
+    // Schema-Farben), aus = immer Vocaloid-HUD
+    Component {
+        id: fastfetchComponent
+
+        Tile {
+            icon: "terminal"
+            title: "Fastfetch"
+            subtitle: !FetchMode.followWallpaper ? "Immer Miku"
+                      : FetchMode.mikuWallpaper ? "Wallpaper · Miku" : "Wallpaper · Schema"
+            active: FetchMode.followWallpaper
+            onToggled: FetchMode.toggle()
         }
     }
 
