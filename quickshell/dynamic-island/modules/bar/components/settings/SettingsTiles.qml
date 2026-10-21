@@ -503,18 +503,19 @@ ColumnLayout {
         }
     }
 
-    // An = fastfetch folgt dem Wallpaper (Miku-Ordner -> Vocaloid-HUD, sonst
-    // Schema-Farben), aus = immer Vocaloid-HUD
+    // Derselbe Schalter wie "Terminal > An Theme anpassen" in den
+    // Einstellungen: Prompt + fastfetch in Schema-Farben, aus = Vocaloid-Look.
+    // Die ID bleibt "fastfetch", damit gespeicherte Kachel-Layouts passen.
     Component {
         id: fastfetchComponent
 
         Tile {
             icon: "terminal"
-            title: "Fastfetch"
-            subtitle: !FetchMode.followWallpaper ? "Immer Miku"
-                      : FetchMode.mikuWallpaper ? "Wallpaper · Miku" : "Wallpaper · Schema"
-            active: FetchMode.followWallpaper
-            onToggled: FetchMode.toggle()
+            title: "Terminal"
+            subtitle: !TerminalTheme.followTheme ? "Immer Vocaloid"
+                      : TerminalTheme.miku ? "Theme · Miku-Wallpaper" : "Theme"
+            active: TerminalTheme.followTheme
+            onToggled: TerminalTheme.toggle()
         }
     }
 

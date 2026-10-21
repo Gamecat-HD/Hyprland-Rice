@@ -31,6 +31,7 @@ Singleton {
     readonly property alias quick: adapter.quick
     readonly property alias osd: adapter.osd
     readonly property alias wallpaper: adapter.wallpaper
+    readonly property alias terminal: adapter.terminal
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -145,6 +146,16 @@ Singleton {
             desc: "Wie lange die Regler nach einer Änderung sichtbar bleiben",
             min: 1, max: 10, step: 1, unit: "s", requires: "osd.enabled"
         },
+        // Starship-Prompt und fastfetch (modules/services/system/TerminalTheme.qml)
+        "terminal.theme": {
+            title: "An Theme anpassen",
+            desc: "Prompt und fastfetch nehmen die Farben des aktuellen Schemas. Aus: immer der Vocaloid-Look"
+        },
+        "terminal.mikuWallpaper": {
+            title: "Miku-Wallpaper bleibt Vocaloid",
+            desc: "Liegt das Wallpaper im Miku-Ordner, zeigt das Terminal trotzdem den Vocaloid-Look",
+            requires: "terminal.theme"
+        },
         "quick.columns": {
             title: "Raster",
             desc: "Spalten des Kachel-Rasters; eine Kachel kann mehrere belegen",
@@ -159,7 +170,7 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "wallpaper", "terminal", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
@@ -167,6 +178,7 @@ Singleton {
         "notch": "web_asset",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
+        "terminal": "terminal",
         "notifications": "notifications",
         "vpn": "vpn_key"
     })
@@ -179,6 +191,7 @@ Singleton {
         "vpn": "VPN",
         "appearance": "Darstellung",
         "wallpaper": "Wallpaper",
+        "terminal": "Terminal",
         "notch": "Notch-Layout"
     })
 
@@ -375,6 +388,12 @@ Singleton {
             property JsonObject wallpaper: JsonObject {
                 property string transition: "kreis"
                 property int duration: 800
+            }
+
+            // Look von Starship-Prompt und fastfetch (siehe TerminalTheme.qml)
+            property JsonObject terminal: JsonObject {
+                property bool theme: true
+                property bool mikuWallpaper: true
             }
 
             property JsonObject bar: JsonObject {

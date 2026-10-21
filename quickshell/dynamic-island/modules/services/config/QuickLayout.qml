@@ -26,7 +26,7 @@ Singleton {
         "vpn":        { label: "VPN",           icon: "vpn_key",        kind: "pill" },
         "nosleep":    { label: "No Sleep",      icon: "coffee",         kind: "pill" },
         "gamemode":   { label: "Game-Mode",     icon: "sports_esports", kind: "circle" },
-        "fastfetch":  { label: "Fastfetch",     icon: "terminal",       kind: "pill" },
+        "fastfetch":  { label: "Terminal",      icon: "terminal",       kind: "pill" },
         "settings":   { label: "Einstellungen", icon: "tune",           kind: "circle" },
         "record":     { label: "Aufnahme",      icon: "screen_record",  kind: "wide" },
         "volume":     { label: "Lautstärke",    icon: "volume_up",      kind: "wide" },
