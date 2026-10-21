@@ -153,7 +153,7 @@ Singleton {
         },
         "terminal.folderLooks": {
             title: "Wallpaper-Ordner mit eigenem Look",
-            desc: "Liegt das Wallpaper in einem Ordner mit eigenem fastfetch-Look (Miku, Cyberpunk-Edgerunners), zeigt das Terminal diesen statt der Schema-Farben",
+            desc: "Liegt das Wallpaper in einem Ordner mit eigenem fastfetch-Look (Miku, Cyberpunk-Edgerunners, Lord-of-the-Mysteries), zeigt das Terminal diesen statt der Schema-Farben",
             requires: "terminal.theme"
         },
         "quick.columns": {
