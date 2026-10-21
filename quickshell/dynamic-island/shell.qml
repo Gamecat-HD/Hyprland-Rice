@@ -19,7 +19,7 @@ import qs.modules.services.system
 ShellRoot {
     settings.watchFiles: true
 
-    // Schreibt die Modus-Datei fuer Prompt/fastfetch, auch ohne offene Kachel
+    // Schreibt die Modus-Datei fuer Prompt/fastfetch, auch ohne offenes Menue
     readonly property string terminalMode: TerminalTheme.mode
 
     Wallpaper {}

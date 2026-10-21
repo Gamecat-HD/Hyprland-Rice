@@ -151,9 +151,9 @@ Singleton {
             title: "An Theme anpassen",
             desc: "Prompt und fastfetch nehmen die Farben des aktuellen Schemas. Aus: immer der Vocaloid-Look"
         },
-        "terminal.mikuWallpaper": {
-            title: "Miku-Wallpaper bleibt Vocaloid",
-            desc: "Liegt das Wallpaper im Miku-Ordner, zeigt das Terminal trotzdem den Vocaloid-Look",
+        "terminal.folderLooks": {
+            title: "Wallpaper-Ordner mit eigenem Look",
+            desc: "Liegt das Wallpaper in einem Ordner mit eigenem fastfetch-Look (Miku, Cyberpunk-Edgerunners), zeigt das Terminal diesen statt der Schema-Farben",
             requires: "terminal.theme"
         },
         "quick.columns": {
@@ -393,7 +393,7 @@ Singleton {
             // Look von Starship-Prompt und fastfetch (siehe TerminalTheme.qml)
             property JsonObject terminal: JsonObject {
                 property bool theme: true
-                property bool mikuWallpaper: true
+                property bool folderLooks: true
             }
 
             property JsonObject bar: JsonObject {

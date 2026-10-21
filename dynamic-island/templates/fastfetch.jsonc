@@ -2,10 +2,13 @@
 //
 // Vorlage:  ~/.config/dynamic-island/templates/fastfetch*.jsonc  <- diese Dateien
 // Erzeugt:  ~/.local/state/dynamic-island/theme/fastfetch*.jsonc <- nicht bearbeiten
-// Genutzt:  ~/.config/fish/functions/fastfetch.fish, sobald das Wallpaper
-//           NICHT im Miku-Ordner liegt (sonst die Vocaloid-Configs aus
-//           ~/.config/fastfetch). Platzhalter siehe templates/kitty.conf;
+// Genutzt:  ~/.config/fish/functions/fastfetch.fish, wenn __terminal_look
+//           "scheme" sagt (Wallpaper-Ordner ohne eigenen Look oder
+//           Einstellungen > Terminal). Platzhalter siehe templates/kitty.conf;
 //           {{ x.ansi }} ist "r;g;b" fuer 38;2;...-Sequenzen.
+//
+// Aufbau als Baum: Keys tragen ihre Linie (│/╰) selbst, die Farbe danach
+// wird neu gesetzt, sonst stuende das Symbol in der Linienfarbe.
 {
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
     "logo": {
@@ -15,7 +18,7 @@
             "2": "38;2;{{ tertiary.ansi }}"
         },
         "padding": {
-            "top": 2,
+            "top": 3,
             "left": 2,
             "right": 4
         }
@@ -24,14 +27,13 @@
         "separator": "  ",
         "color": {
             "keys": "38;2;{{ primary.ansi }}",
-            "separator": "38;2;{{ tertiary.ansi }}",
             "output": "default"
         },
         "bar": {
-            "width": 14,
+            "width": 12,
             "char": {
-                "elapsed": "■",
-                "total": "■"
+                "elapsed": "━",
+                "total": "━"
             },
             "border": {
                 "left": "",
@@ -39,49 +41,61 @@
             },
             "color": {
                 "elapsed": "38;2;{{ primary.ansi }}",
-                "total": "38;2;{{ outline.ansi }}"
+                "total": "38;2;{{ outlineVariant.ansi }}"
             }
         },
         "percent": {
-            "type": ["bar", "num"]
+            "type": ["bar", "num"],
+            "color": {
+                "green": "38;2;{{ onSurfaceVariant.ansi }}",
+                "yellow": "38;2;{{ tertiary.ansi }}",
+                "red": "38;2;{{ error.ansi }}"
+            }
         }
     },
     "modules": [
         "break",
         {
             "type": "title",
-            "key": "\u001b[38;2;{{ tertiary.ansi }}m◆",
-            "format": "\u001b[1;38;2;{{ primary.ansi }}m{user-name}\u001b[0m\u001b[38;2;{{ outline.ansi }}m@\u001b[0m\u001b[1;38;2;{{ tertiary.ansi }}m{host-name}\u001b[0m"
+            "key": "\u001b[38;2;{{ tertiary.ansi }}m",
+            "format": "\u001b[1;38;2;{{ primary.ansi }}m{user-name}\u001b[0m\u001b[38;2;{{ outline.ansi }}m @ \u001b[0m\u001b[1;38;2;{{ tertiary.ansi }}m{host-name}\u001b[0m"
         },
+        "break",
+
         {
             "type": "custom",
-            "format": "\u001b[38;2;{{ outline.ansi }}m────────────────────────────────────────────\u001b[0m"
+            "format": "\u001b[38;2;{{ outline.ansi }}m╭─\u001b[0m \u001b[1;38;2;{{ tertiary.ansi }}mSystem\u001b[0m"
         },
+        { "type": "os",       "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰣇  OS      ", "format": "{pretty-name}" },
+        { "type": "kernel",   "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰒋  Kernel  ", "format": "{release}" },
+        { "type": "uptime",   "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󱎫  Uptime  " },
+        { "type": "packages", "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰏗  Pakete  ", "format": "{all} \u001b[38;2;{{ outline.ansi }}m· {pacman} pacman · {flatpak-all} flatpak\u001b[0m" },
 
-        // ── System ────────────────────────────────────────
-        { "type": "os",       "key": "󰣇 os      ", "format": "{pretty-name}" },
-        { "type": "kernel",   "key": "󰒋 kernel  ", "format": "{release}" },
-        { "type": "wm",       "key": "󰕮 wm      ", "format": "{pretty-name}" },
-        { "type": "uptime",   "key": "󱎫 uptime  " },
-        { "type": "packages", "key": "󰏗 pakete  ", "format": "{all} \u001b[38;2;{{ outline.ansi }}m({pacman} pacman · {flatpak-all} flatpak)\u001b[0m" },
-        "break",
+        {
+            "type": "custom",
+            "format": "\u001b[38;2;{{ outline.ansi }}m├─\u001b[0m \u001b[1;38;2;{{ tertiary.ansi }}mHardware\u001b[0m"
+        },
+        { "type": "cpu",     "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰻠  CPU     ", "format": "{name} \u001b[38;2;{{ outline.ansi }}m· {cores-logical} Threads\u001b[0m" },
+        { "type": "gpu",     "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰍛  GPU     ", "format": "{name}", "hideType": "integrated" },
+        { "type": "memory",  "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰘚  RAM     ", "format": "{percentage-bar} {used} / {total}" },
+        { "type": "disk",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰋊  Disk    ", "format": "{size-percentage-bar} {size-used} / {size-total}", "folders": "/" },
+        { "type": "display", "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰍹  Display ", "format": "{width}×{height} \u001b[38;2;{{ outline.ansi }}m· {refresh-rate} Hz\u001b[0m" },
 
-        // ── Hardware ──────────────────────────────────────
-        { "type": "cpu",    "key": "󰻠 cpu     ", "format": "{name}" },
-        { "type": "gpu",    "key": "󰍛 gpu     ", "format": "{name}", "hideType": "integrated" },
-        { "type": "memory", "key": "󰘚 ram     ", "format": "{percentage-bar} {used} / {total}" },
-        { "type": "disk",   "key": "󰋊 disk    ", "format": "{size-percentage-bar} {size-used} / {size-total}", "folders": "/" },
-        "break",
-
-        // ── Umgebung ──────────────────────────────────────
-        { "type": "shell",    "key": "󰆍 shell   ", "format": "{pretty-name} {version}" },
-        { "type": "terminal", "key": "󰄛 term    ", "format": "{pretty-name}" },
-        { "type": "media",    "key": "󰎈 musik   ", "format": "{combined}" },
+        {
+            "type": "custom",
+            "format": "\u001b[38;2;{{ outline.ansi }}m├─\u001b[0m \u001b[1;38;2;{{ tertiary.ansi }}mDesktop\u001b[0m"
+        },
+        { "type": "wm",       "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰕮  WM      ", "format": "{pretty-name}" },
+        { "type": "shell",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰆍  Shell   ", "format": "{pretty-name} {version}" },
+        // Musik faellt weg, wenn nichts laeuft – darum schliesst das Terminal den Baum
+        { "type": "media",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰎈  Musik   ", "format": "{combined}" },
+        { "type": "terminal", "key": "\u001b[38;2;{{ outline.ansi }}m╰\u001b[38;2;{{ primary.ansi }}m 󰄛  Terminal", "format": "{pretty-name}" },
 
         "break",
         {
             "type": "colors",
-            "symbol": "circle"
+            "symbol": "circle",
+            "paddingLeft": 2
         }
     ]
 }

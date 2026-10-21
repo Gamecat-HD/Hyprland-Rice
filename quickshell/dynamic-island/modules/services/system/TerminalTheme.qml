@@ -5,36 +5,29 @@ import Quickshell
 import Quickshell.Io
 
 import qs.modules.services.config
-import qs.modules.services.wallpaper
 
 // Welchen Look das Terminal zeigt: Starship-Prompt und fastfetch.
 //
 // Eingestellt wird in shell.json (Gruppe "terminal", im Menue "Terminal"):
 //   theme         an = Farben des aktuellen Schemas, aus = immer Vocaloid-Look
-//   mikuWallpaper an = Wallpaper im Miku-Ordner behaelt trotzdem den Vocaloid-Look
+//   folderLooks   an = Wallpaper-Ordner mit eigenem Look (~/.config/fastfetch/<ordner>/,
+//                 Miku direkt in ~/.config/fastfetch) zeigt diesen statt des Schemas
 //
-// Entschieden wird in fish (~/.config/fish/functions/fastfetch.fish und
-// conf.d/terminal-theme.fish), bei jedem Aufruf bzw. Prompt. fish liest kein
-// JSON, darum schreibt dieser Singleton den Stand als ein Wort in eine
-// Modus-Datei:
-//   "wallpaper"  Schema, ausser bei Miku-Wallpaper (Standard, auch ohne Datei)
+// Entschieden wird in fish (functions/__terminal_look.fish, genutzt von
+// fastfetch.fish und conf.d/terminal-theme.fish), bei jedem Aufruf bzw.
+// Prompt. fish liest kein JSON, darum schreibt dieser Singleton den Stand
+// als ein Wort in eine Modus-Datei:
+//   "wallpaper"  Ordner-Look des Wallpapers, sonst Schema (Standard, auch ohne Datei)
 //   "theme"      immer Schema
 //   "miku"       immer Vocaloid-Look
-// shell.qml haelt ihn am Leben, damit die Datei auch ohne offene Kachel stimmt.
+// shell.qml haelt ihn am Leben, damit die Datei auch ohne offenes Menue stimmt.
 Singleton {
     id: root
 
     readonly property string modePath: Quickshell.env("HOME") + "/.local/state/dynamic-island/terminal-mode"
 
     readonly property bool followTheme: Config.terminal.theme
-    // Dieselbe Regel wie im fish-Wrapper (Ordnername, ohne Gross/Klein)
-    readonly property bool mikuWallpaper: /\/miku\//i.test(Wallpapers.actualCurrent)
-    readonly property bool miku: !root.followTheme || (Config.terminal.mikuWallpaper && root.mikuWallpaper)
-    readonly property string mode: !root.followTheme ? "miku" : Config.terminal.mikuWallpaper ? "wallpaper" : "theme"
-
-    function toggle(): void {
-        Config.set("terminal", "theme", !root.followTheme);
-    }
+    readonly property string mode: !root.followTheme ? "miku" : Config.terminal.folderLooks ? "wallpaper" : "theme"
 
     function write(): void {
         if (modeFile.text().trim() !== root.mode)

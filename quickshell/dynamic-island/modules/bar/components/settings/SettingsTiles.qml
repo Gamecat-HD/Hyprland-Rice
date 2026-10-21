@@ -104,7 +104,6 @@ ColumnLayout {
         "vpn": vpnComponent,
         "nosleep": noSleepComponent,
         "gamemode": gameModeComponent,
-        "fastfetch": fastfetchComponent,
         "settings": settingsComponent,
         "record": recordComponent,
         "volume": volumeComponent,
@@ -500,22 +499,6 @@ ColumnLayout {
             icon: "sports_esports"
             active: root.gameMode
             onToggled: root.toggleGameMode()
-        }
-    }
-
-    // Derselbe Schalter wie "Terminal > An Theme anpassen" in den
-    // Einstellungen: Prompt + fastfetch in Schema-Farben, aus = Vocaloid-Look.
-    // Die ID bleibt "fastfetch", damit gespeicherte Kachel-Layouts passen.
-    Component {
-        id: fastfetchComponent
-
-        Tile {
-            icon: "terminal"
-            title: "Terminal"
-            subtitle: !TerminalTheme.followTheme ? "Immer Vocaloid"
-                      : TerminalTheme.miku ? "Theme · Miku-Wallpaper" : "Theme"
-            active: TerminalTheme.followTheme
-            onToggled: TerminalTheme.toggle()
         }
     }
 
