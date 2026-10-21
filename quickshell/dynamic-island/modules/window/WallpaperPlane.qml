@@ -22,8 +22,15 @@ Item {
     property string path: ""
     readonly property bool ready: plane.path !== "" && img.status === Image.Ready
 
+    // Laesst sich das Bild nicht laden (geloescht, kaputt, falscher Pfad),
+    // kommt statt einer leeren Flaeche das hier. Nur ein Versuch – scheitert
+    // auch der Fallback, bleibt es eben leer.
+    readonly property url fallback: Qt.resolvedUrl("../../assets/wallpaper-error.jpg")
+    property bool failed: false
+
     function load(p: string): void {
         plane.path = p;
+        plane.failed = false;
         img.source = p !== "" ? `file://${p}` : "";
     }
 
@@ -73,6 +80,14 @@ Item {
             sourceSize: plane.decodeSize
             cache: true
             visible: !plane.masked
+
+            onStatusChanged: {
+                if (status === Image.Error && plane.path !== "" && !plane.failed) {
+                    console.warn("Wallpaper laedt nicht, nehme Fallback:", plane.path);
+                    plane.failed = true;
+                    img.source = plane.fallback;
+                }
+            }
 
             scale: plane.kind !== "zoom" ? 1
                 : plane.animFront ? 1.12 - 0.12 * plane.p
