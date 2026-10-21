@@ -54,3 +54,12 @@ __pycache__/
 !/spicetify/Themes/
 /spicetify/Themes/*
 !/spicetify/Themes/Island/
+!/spicetify/config-xpui.ini
+
+# Spotify-Lag-Fix: GPU-Prozess darf WAYLAND_DISPLAY nicht sehen (sonst Crash ->
+# Software-Rendering). Gilt fuer spotify-launcher bzw. den caelestia-Musik-Toggle
+# (startet ueber `spicetify watch -s`, darum dort `env WAYLAND_DISPLAY=`).
+!/spotify-launcher.conf
+!/caelestia/
+/caelestia/*
+!/caelestia/cli.json

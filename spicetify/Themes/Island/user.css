@@ -492,8 +492,12 @@ button[data-testid="user-widget-link"]:hover {
   background: linear-gradient(90deg, transparent 0%, rgba(var(--spice-rgb-text), 0.45) 50%, transparent 100%);
   background-size: 180px 100%;
   background-repeat: no-repeat;
-  animation: island-shimmer 2.8s linear infinite;
   opacity: 0.8;
+}
+/* Nur beim Hover: background-position laesst sich nicht auf dem Compositor
+   animieren -> Dauer-Repaint inkl. aller backdrop-filter-Flaechen (~100 % CPU). */
+.Root__now-playing-bar:hover .x-progressBar-fillColor::after {
+  animation: island-shimmer 2.8s linear infinite;
 }
 @keyframes island-shimmer {
   from { background-position: -180px 0; }
