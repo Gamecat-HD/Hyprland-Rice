@@ -287,13 +287,16 @@ Item {
                 easing.type: Easing.OutCubic
             }
 
+            // Leere Spalten fallen weg, die uebrigen stehen mittig – bei
+            // wenigen Treffern klebt sonst eine Gruppe am linken Rand
             Row {
                 id: columnsRow
 
+                x: Math.max(0, (flick.width - width) / 2)
                 spacing: panel.columnGap
 
                 Repeater {
-                    model: panel.columns
+                    model: panel.columns.filter(col => col.length > 0)
 
                     Column {
                         id: column
