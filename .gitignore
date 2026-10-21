@@ -46,3 +46,11 @@ __pycache__/
 *.orig
 *.rej
 *.tmp
+
+# Spicetify: nur das eigene Theme "Island". color.ini ist ein Symlink auf
+# Themes/caelestia/color.ini (von caelestia bei jedem Schemawechsel erzeugt).
+!/spicetify/
+/spicetify/*
+!/spicetify/Themes/
+/spicetify/Themes/*
+!/spicetify/Themes/Island/
