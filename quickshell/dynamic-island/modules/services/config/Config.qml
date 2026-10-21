@@ -135,6 +135,24 @@ Singleton {
             desc: "Länge des Übergangs. Beim Durchblättern in der Auswahl läuft er schneller",
             min: 200, max: 2000, step: 100, unit: "ms"
         },
+        // Zufallsmodus (Wallpapers.qml): "start" wuerfelt einmal je Login,
+        // "timer" zusaetzlich alle randomMinutes
+        "wallpaper.random": {
+            title: "Zufallsmodus",
+            desc: "Start: bei jedem Login ein zufälliges Wallpaper. Timer: dazu regelmäßig ein neues",
+            options: ["aus", "start", "timer"]
+        },
+        "wallpaper.randomMinutes": {
+            title: "Wechsel alle",
+            desc: "Abstand im Timer-Modus. Bei Vollbild oder Game-Mode wartet der Wechsel, bis wieder frei ist",
+            min: 5, max: 240, step: 5, unit: "min", requires: { "wallpaper.random": "timer" }
+        },
+        "wallpaper.randomScope": {
+            title: "Zufall aus",
+            desc: "Alle: aus dem ganzen Wallpaper-Ordner. Ordner: nur aus dem Unterordner des aktuellen Bilds"
+                + " (z. B. Cyberpunk-Edgerunners)",
+            options: ["alle", "ordner"]
+        },
         // `editor` statt Bedienelement: das Menue laedt dafuer einen eigenen
         // Editor (modules/settings/QuickLayoutEditor.qml)
         // Regler am rechten Rand (modules/osd)
@@ -384,10 +402,14 @@ Singleton {
                 property string provider: "nordvpn"
             }
 
-            // Wallpaperwechsel: Animation und ihre Dauer in ms
+            // Wallpaperwechsel: Animation und ihre Dauer in ms, dazu der
+            // Zufallsmodus (aus | start | timer) samt Abstand und Auswahl
             property JsonObject wallpaper: JsonObject {
                 property string transition: "kreis"
                 property int duration: 800
+                property string random: "aus"
+                property int randomMinutes: 30
+                property string randomScope: "alle"
             }
 
             // Look von Starship-Prompt und fastfetch (siehe TerminalTheme.qml)
