@@ -212,9 +212,14 @@ Singleton {
         onTriggered: root.refreshStatus()
     }
 
-    // Regelmäßiges Polling, falls sich außerhalb der Shell was ändert
+    // Kachel geht auf: sofort frisch lesen, statt auf den naechsten Takt zu warten
+    onWatchingChanged: if (root.watching) root.refreshStatus()
+
+    // Regelmäßiges Polling, falls sich außerhalb der Shell was ändert. Ohne
+    // offene Kachel nur selten – sichtbar ist der Status dann hoechstens als
+    // Symbol der Insel-Pille.
     Timer {
-        interval: root.watching ? 15000 : 60000
+        interval: root.watching ? 15000 : 300000
         running: root.toolsChecked && (root.nordAvailable || root.warpAvailable)
         repeat: true
         onTriggered: {

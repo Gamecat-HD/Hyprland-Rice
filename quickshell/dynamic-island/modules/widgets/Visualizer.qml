@@ -76,7 +76,10 @@ Item {
             x: bar.index * (root.barWidth + root.spacing)
             y: (root.height - height) / 2
             width: root.barWidth
-            height: Math.max(root.barWidth, bar.value * root.height)
+            // Auf ganze Pixel je Seite gerundet (waechst nach oben und unten):
+            // Frames, die sich nur im Subpixel unterscheiden, aendern die Hoehe
+            // nicht und loesen so kein Neuzeichnen der Leiste aus.
+            height: Math.max(root.barWidth, Math.round(bar.value * root.height / 2) * 2)
             radius: root.barWidth / 2
             color: root.color
             opacity: root.active ? 1 : 0.4
