@@ -7,6 +7,9 @@
 //           Einstellungen > Terminal). Platzhalter siehe templates/kitty.conf;
 //           {{ x.ansi }} ist "r;g;b" fuer 38;2;...-Sequenzen.
 //
+// Logo: in Kitty eine Karte aus dem aktuellen Wallpaper (fish/functions/
+// __fastfetch_card.fish, per --logo uebergeben), sonst das CachyOS-Logo hier.
+//
 // Aufbau als Baum: Keys tragen ihre Linie (│/╰) selbst, die Farbe danach
 // wird neu gesetzt, sonst stuende das Symbol in der Linienfarbe.
 {
@@ -60,7 +63,10 @@
             "key": "\u001b[38;2;{{ tertiary.ansi }}m",
             "format": "\u001b[1;38;2;{{ primary.ansi }}m{user-name}\u001b[0m\u001b[38;2;{{ outline.ansi }}m @ \u001b[0m\u001b[1;38;2;{{ tertiary.ansi }}m{host-name}\u001b[0m"
         },
-        "break",
+        {
+            "type": "custom",
+            "format": "\u001b[38;2;{{ outline.ansi }}m────────────────────────────────────────────\u001b[0m"
+        },
 
         {
             "type": "custom",
@@ -77,8 +83,8 @@
         },
         { "type": "cpu",     "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰻠  CPU     ", "format": "{name} \u001b[38;2;{{ outline.ansi }}m· {cores-logical} Threads\u001b[0m" },
         { "type": "gpu",     "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰍛  GPU     ", "format": "{name}", "hideType": "integrated" },
-        { "type": "memory",  "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰘚  RAM     ", "format": "{percentage-bar} {used} / {total}" },
-        { "type": "disk",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰋊  Disk    ", "format": "{size-percentage-bar} {size-used} / {size-total}", "folders": "/" },
+        { "type": "memory",  "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰘚  RAM     ", "format": "{percentage-bar} {percentage}  \u001b[38;2;{{ outline.ansi }}m{used} / {total}\u001b[0m" },
+        { "type": "disk",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰋊  Disk    ", "format": "{size-percentage-bar} {size-percentage}  \u001b[38;2;{{ outline.ansi }}m{size-used} / {size-total}\u001b[0m", "folders": "/" },
         { "type": "display", "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰍹  Display ", "format": "{width}×{height} \u001b[38;2;{{ outline.ansi }}m· {refresh-rate} Hz\u001b[0m" },
 
         {
@@ -86,6 +92,8 @@
             "format": "\u001b[38;2;{{ outline.ansi }}m├─\u001b[0m \u001b[1;38;2;{{ tertiary.ansi }}mDesktop\u001b[0m"
         },
         { "type": "wm",       "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰕮  WM      ", "format": "{pretty-name}" },
+        // Wallpaper-Ordner + Hell/Dunkel des Schemas – die Karte links ist das Wallpaper selbst
+        { "type": "command",  "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰸉  Theme   ", "text": "w=$(cat ~/.local/state/dynamic-island/wallpaper/path.txt); basename \"$(dirname \"$w\")\"", "format": "{result} \u001b[38;2;{{ outline.ansi }}m· {{ mode }}\u001b[0m" },
         { "type": "shell",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰆍  Shell   ", "format": "{pretty-name} {version}" },
         // Musik faellt weg, wenn nichts laeuft – darum schliesst das Terminal den Baum
         { "type": "media",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰎈  Musik   ", "format": "{combined}" },
