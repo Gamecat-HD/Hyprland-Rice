@@ -1,8 +1,11 @@
-// Island — liefert Cover-Bilder als CSS-Variablen fuer den Ambient-Glow:
-//   --island-art       (auf <html>)      : Cover des laufenden Titels
-//   --island-page-art  (auf #main-view)  : Cover der gerade geoeffneten Seite
+// Island — liefert Cover-Bilder als CSS-Variablen und setzt die Schrift:
+//   --island-art        (auf <html>)     : Cover des laufenden Titels (immer aktuell)
+//   --island-art-a / -b (auf <html>)     : zwei Ebenen fuer den ganzflaechigen
+//                                          Backdrop; html.island-b schaltet die
+//                                          sichtbare Ebene um -> weicher Crossfade
+//   --island-page-art   (auf #main-view) : Cover der gerade geoeffneten Seite
 //                                          (Playlist/Album/Artist-Header), sonst entfernt
-// user.css zeichnet daraus unscharfe Glows hinter Hauptansicht, NPV und Player-Leiste.
+// user.css zeichnet daraus Backdrop und Glows hinter Hauptansicht, NPV und Player-Pille.
 (function island() {
   if (!window.Spicetify || !Spicetify.Player || !Spicetify.Player.data || !Spicetify.Platform) {
     setTimeout(island, 300);
@@ -33,21 +36,37 @@
   }
 
   // Erst laden, dann setzen -> kein Flackern beim Wechsel
-  function setVar(el, name, url) {
-    if (!url) { el.style.removeProperty(name); return; }
+  function preload(url, cb) {
     const img = new Image();
-    img.onload = () => el.style.setProperty(name, `url("${url}")`);
-    img.onerror = () => el.style.removeProperty(name);
+    img.onload = () => cb(true);
+    img.onerror = () => cb(false);
     img.src = url;
   }
+  function setVar(el, name, url) {
+    if (!url) { el.style.removeProperty(name); return; }
+    preload(url, (ok) => ok ? el.style.setProperty(name, `url("${url}")`) : el.style.removeProperty(name));
+  }
 
-  // --- Laufender Titel --------------------------------------------------------
+  // --- Laufender Titel: --island-art + Backdrop-Crossfade --------------------
   let currentTrackArt = null;
+  let showingB = false;
   function updateTrackArt() {
     const url = coverUrl();
     if (url === currentTrackArt) return;
     currentTrackArt = url;
-    setVar(root, "--island-art", url);
+    if (!url) {
+      root.style.removeProperty("--island-art");
+      return;
+    }
+    preload(url, (ok) => {
+      if (!ok || url !== currentTrackArt) return;
+      root.style.setProperty("--island-art", `url("${url}")`);
+      // in die gerade unsichtbare Ebene laden, dann umschalten
+      const next = showingB ? "--island-art-a" : "--island-art-b";
+      root.style.setProperty(next, `url("${url}")`);
+      showingB = !showingB;
+      root.classList.toggle("island-b", showingB);
+    });
   }
   Spicetify.Player.addEventListener("songchange", updateTrackArt);
   updateTrackArt();

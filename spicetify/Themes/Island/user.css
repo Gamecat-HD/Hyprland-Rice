@@ -1,10 +1,16 @@
 /* ============================================================================
    Island — Spicetify-Theme passend zur Dynamic-Island-Shell (Caelestia)
    ----------------------------------------------------------------------------
+   Konzept: ganzflaechiger, weich verwaschener Cover-Hintergrund (crossfaded
+   bei Titelwechsel, gesetzt durch theme.js), darauf Panels aus Milchglas,
+   HUD-Details im Stil des VOCALOID-NET-Prompts (Eck-Klammern, abgeschraegte
+   Ecken, Mono-Mikrolabels, Scanlines) und eine schwarze "Island"-Pille als
+   Player-Leiste, die die Notch der Shell aufgreift.
+
    Farben kommen ausschliesslich aus color.ini (Symlink auf
    Themes/caelestia/color.ini, das caelestia-cli bei jedem Wallpaper-/Scheme-
    Wechsel aus dem Material-3-Schema neu erzeugt). Alle weiteren Farben werden
-   hier per color-mix()/rgba() aus den --spice-* Variablen abgeleitet.
+   per color-mix()/rgba() aus den --spice-* Variablen abgeleitet.
    Keine hartcodierten Hex-Werte.
    ============================================================================ */
 
@@ -12,27 +18,42 @@
 :root {
   /* Hyprland: gaps_in 5 / gaps_out 10 / rounding 15 */
   --island-gap: 10px;
-  --island-radius: 16px;
+  --island-radius: 18px;
   --island-radius-sm: 12px;
   --island-radius-xs: 8px;
+  --island-notch: 14px;                                     /* abgeschraegte Ecke */
 
-  --island-bg: var(--spice-sidebar);                       /* surface            */
-  --island-panel: var(--spice-main);                       /* surfaceContainer   */
-  --island-panel-hi: var(--spice-main-elevated);           /* surfaceContainerHigh */
-  --island-panel-top: var(--spice-highlight-elevated);     /* surfaceContainerHighest */
-  --island-accent: var(--spice-button);                    /* primary            */
-  --island-tint: var(--spice-player);                      /* secondaryContainer */
+  --island-bg: var(--spice-sidebar);                        /* surface                 */
+  --island-panel: var(--spice-main);                        /* surfaceContainer        */
+  --island-panel-hi: var(--spice-main-elevated);            /* surfaceContainerHigh    */
+  --island-panel-top: var(--spice-highlight-elevated);      /* surfaceContainerHighest */
+  --island-accent: var(--spice-button);                     /* primary                 */
+  --island-tint: var(--spice-player);                       /* secondaryContainer      */
   --island-on-accent: color-mix(in oklab, var(--spice-sidebar) 88%, var(--spice-button));
-  --island-line: rgba(var(--spice-rgb-text), 0.07);
-  --island-line-strong: rgba(var(--spice-rgb-text), 0.12);
-  --island-hover: rgba(var(--spice-rgb-text), 0.07);
-  --island-press: rgba(var(--spice-rgb-text), 0.12);
-  --island-shadow: 0 1px 2px rgba(var(--spice-rgb-shadow), 0.35),
-                   0 12px 32px -12px rgba(var(--spice-rgb-shadow), 0.6);
+  --island-accent-glow: color-mix(in oklab, var(--island-accent) 55%, transparent);
+  --island-accent-soft: color-mix(in oklab, var(--island-accent) 28%, transparent);
+
+  /* Glas */
+  --island-glass: color-mix(in oklab, var(--island-panel) 40%, transparent);
+  --island-glass-hi: color-mix(in oklab, var(--island-panel-hi) 55%, transparent);
+  --island-glass-top: color-mix(in oklab, var(--island-panel-top) 68%, transparent);
+  --island-ink: color-mix(in oklab, var(--spice-sidebar) 70%, transparent);     /* "Notch"-Schwarz */
+  --island-blur: blur(26px) saturate(1.35);
+
+  --island-line: rgba(var(--spice-rgb-text), 0.09);
+  --island-line-strong: rgba(var(--spice-rgb-text), 0.16);
+  --island-hover: rgba(var(--spice-rgb-text), 0.08);
+  --island-press: rgba(var(--spice-rgb-text), 0.14);
+  --island-shadow: 0 1px 2px rgba(var(--spice-rgb-shadow), 0.4),
+                   0 18px 48px -18px rgba(var(--spice-rgb-shadow), 0.75);
   --island-ease: cubic-bezier(0.2, 0, 0, 1);
 
-  /* wird von theme.js gesetzt (aktuelles Cover) */
-  --island-art: none;
+  --island-mono: "JetBrains Mono", "JetBrainsMono Nerd Font", "CaskaydiaCove Nerd Font", ui-monospace, monospace;
+
+  /* werden von theme.js gesetzt */
+  --island-art: none;          /* Cover des laufenden Titels (immer aktuell)        */
+  --island-art-a: none;        /* Crossfade-Ebene A                                 */
+  --island-art-b: none;        /* Crossfade-Ebene B                                 */
 }
 
 /* ---------- Typografie ------------------------------------------------------ */
@@ -47,7 +68,6 @@
   --encore-variable-font-stack: "Inter Display", "Inter Variable", "Inter", var(--fallback-fonts, sans-serif);
 }
 body {
-  font-family: var(--encore-body-font-stack);
   font-feature-settings: "cv11", "ss01", "calt";
   letter-spacing: -0.005em;
 }
@@ -56,13 +76,38 @@ body {
 .encore-text-title-large,
 .encore-text-headline-large,
 .encore-text-headline-medium,
-.main-entityHeader-title,
-.main-nowPlayingView-sectionHeaderText {
-  letter-spacing: -0.02em;
-}
+.main-entityHeader-title { letter-spacing: -0.02em; }
 .encore-text-title-small { font-weight: 650; }
 
-/* ---------- Spotify-Grün & Weiss-Sets auf den Akzent umbiegen -------------- */
+/* HUD-Mikrolabel: Mono, Versalien, gesperrt */
+.island-label,
+.main-yourLibraryX-header h1,
+.main-nowPlayingView-sectionHeaderText,
+.main-nowPlayingView-headerText,
+.main-entityHeader-headerText > span:first-child,
+.main-trackList-trackListHeaderRow,
+.main-trackList-trackListHeaderRow button,
+.main-trackList-trackListHeaderRow span {
+  font-family: var(--island-mono) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase;
+}
+.main-trackList-rowSectionIndex,
+.main-trackList-rowDuration,
+.main-trackList-rowDuration *,
+.playback-bar [data-testid="playback-position"],
+.playback-bar [data-testid="playback-duration"],
+.main-globalNav-searchInputKBDWrapper kbd,
+.main-entityHeader-metaData .main-entityHeader-metaDataText:last-child {
+  font-family: var(--island-mono) !important;
+  font-variant-numeric: tabular-nums;
+}
+.main-trackList-rowSectionIndex { font-size: 12px; color: var(--spice-subtext); }
+.main-trackList-rowDuration { font-size: 12px; }
+
+/* ---------- Spotify-Gruen & Weiss-Sets auf den Akzent umbiegen -------------- */
 .encore-dark-theme .encore-bright-accent-set,
 .encore-light-theme .encore-bright-accent-set,
 .encore-dark-theme .encore-inverted-light-set,
@@ -89,54 +134,117 @@ body {
   --parents-essential-base: var(--island-on-accent);
 }
 
-/* ---------- Grundlayout: schwebende Panels auf nahezu schwarzem Grund ------- */
+/* ============================================================================
+   HINTERGRUND: Cover-Backdrop (Crossfade) + HUD-Textur
+   ============================================================================ */
+html { background-color: var(--island-bg) !important; }
+body,
+#main,
+.Root__top-container { background-color: transparent !important; }
+
+/* Zwei Ebenen, theme.js wechselt per html.island-b zwischen A und B */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -6%;
+  z-index: -1;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  filter: blur(44px) saturate(1.45) brightness(0.88);
+  transform: translateZ(0);
+  transition: opacity 1.6s var(--island-ease);
+}
+body::before { background-image: var(--island-art-a); opacity: 1; }
+body::after  { background-image: var(--island-art-b); opacity: 0; }
+html.island-b body::before { opacity: 0; }
+html.island-b body::after  { opacity: 1; }
+
+/* Abdunkelung + Scanlines + feines Raster, unter den Panels */
+.Root__top-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, transparent 0%, color-mix(in oklab, var(--island-bg) 45%, transparent) 100%),
+    linear-gradient(to bottom, color-mix(in oklab, var(--island-bg) 22%, transparent), color-mix(in oklab, var(--island-bg) 48%, transparent)),
+    repeating-linear-gradient(0deg, rgba(var(--spice-rgb-shadow), 0.3) 0 1px, transparent 1px 3px),
+    linear-gradient(to right, rgba(var(--spice-rgb-text), 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--spice-rgb-text), 0.035) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 3px, 48px 48px, 48px 48px;
+}
+
+/* ============================================================================
+   LAYOUT: Milchglas-Panels
+   ============================================================================ */
 .Root__top-container {
   --panel-gap: var(--island-gap);
-  background-color: var(--island-bg);
   padding: var(--island-gap);
 }
 
 .Root__nav-bar,
 .Root__main-view,
-.Root__right-sidebar-peek,
-.Root__right-sidebar-peekContent,
-.main-nowPlayingView-container,
-.Root__right-sidebar .GQZWDj0xGPg_0Q25WEyf {
-  border-radius: var(--island-radius);
-}
-.Root__nav-bar,
-.Root__main-view,
 .Root__right-sidebar-peek {
-  background-color: var(--island-panel);
-  box-shadow: inset 0 0 0 1px var(--island-line);
+  background-color: var(--island-glass);
+  -webkit-backdrop-filter: var(--island-blur);
+  backdrop-filter: var(--island-blur);
+  border-radius: var(--island-radius);
+  box-shadow:
+    inset 0 0 0 1px var(--island-line),
+    inset 0 1px 0 rgba(var(--spice-rgb-text), 0.06),
+    var(--island-shadow);
 }
-.Root__right-sidebar-overlayWrapper { border-radius: var(--island-radius); }
-
-/* Hauptansicht: Hintergrund der Seiten transparent, Panel liefert die Farbe */
-.Root__main-view { background-color: var(--island-panel); }
-.main-view-container { background: transparent; }
+.Root__right-sidebar-peekContent,
+.Root__right-sidebar-overlayWrapper,
+.main-nowPlayingView-container,
+.Root__right-sidebar .GQZWDj0xGPg_0Q25WEyf { border-radius: var(--island-radius); }
+.main-view-container,
 .main-view-container__scroll-node-child > main { background: transparent; }
 
-/* ---------- Ambient-Glow aus dem Cover (gesetzt durch theme.js) ------------- */
+/* HUD-Eckklammern auf Hauptansicht und Now-Playing-View */
+.Root__main-view::after,
+.Root__right-sidebar-peekContent::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 6px;
+  --b: color-mix(in oklab, var(--island-accent) 75%, transparent);
+  background:
+    linear-gradient(var(--b), var(--b)) top    left  / 22px 2px no-repeat,
+    linear-gradient(var(--b), var(--b)) top    left  / 2px 22px no-repeat,
+    linear-gradient(var(--b), var(--b)) top    right / 22px 2px no-repeat,
+    linear-gradient(var(--b), var(--b)) top    right / 2px 22px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom left  / 22px 2px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom left  / 2px 22px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom right / 22px 2px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom right / 2px 22px no-repeat;
+  filter: drop-shadow(0 0 6px var(--island-accent-glow));
+}
+
+/* Cover-Glow der Seite oben in der Hauptansicht (Seiten-Cover, sonst Titel-Cover) */
 .Root__main-view::before,
 .Root__right-sidebar-peekContent::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
-  height: 55%;
+  height: 50%;
   background-image: var(--island-page-art, var(--island-art));
   background-size: cover;
   background-position: center 30%;
-  filter: blur(90px) saturate(1.4);
-  opacity: 0.3;
+  filter: blur(80px) saturate(1.5);
+  opacity: 0.28;
   pointer-events: none;
   z-index: 0;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 25%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 25%, transparent 100%);
   transition: opacity 1.2s var(--island-ease);
 }
-.Root__main-view::before { opacity: 0.22; }
-.Root__right-sidebar-peekContent::before { background-image: var(--island-art); }
+.Root__right-sidebar-peekContent::before { background-image: var(--island-art); opacity: 0.35; }
 .Root__main-view > *,
 .Root__right-sidebar-peekContent > * { position: relative; z-index: 1; }
 
@@ -148,51 +256,50 @@ body {
   height: calc(48px + var(--island-gap));
 }
 .Root__globalNav .main-globalNav-searchInputContainer,
+.main-globalNav-searchInputContainer .e-10860-form-input { border-radius: 999px; }
 .main-globalNav-searchInputContainer .e-10860-form-input {
-  border-radius: 999px;
-}
-.main-globalNav-searchInputContainer .e-10860-form-input {
-  background-color: var(--island-panel) !important;
+  background-color: var(--island-ink) !important;
+  -webkit-backdrop-filter: var(--island-blur);
+  backdrop-filter: var(--island-blur);
   box-shadow: inset 0 0 0 1px var(--island-line) !important;
+  font-family: var(--island-mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
   transition: background-color .2s var(--island-ease), box-shadow .2s var(--island-ease);
 }
-.main-globalNav-searchInputContainer:hover .e-10860-form-input,
-.main-globalNav-searchInputContainer:focus-within .e-10860-form-input {
-  background-color: var(--island-panel-hi) !important;
+.main-globalNav-searchInputContainer:hover .e-10860-form-input {
   box-shadow: inset 0 0 0 1px var(--island-line-strong) !important;
 }
 .main-globalNav-searchInputContainer:focus-within .e-10860-form-input {
-  box-shadow: inset 0 0 0 1.5px var(--island-accent) !important;
+  box-shadow: inset 0 0 0 1.5px var(--island-accent), 0 0 24px -6px var(--island-accent-glow) !important;
 }
 .main-globalNav-searchInputKBDWrapper kbd {
   border-radius: 6px;
-  background: var(--island-panel-top);
+  background: var(--island-glass-top);
   color: var(--spice-subtext);
+  font-size: 11px;
 }
-/* Home-Button rund, Akzent wenn aktiv */
-.main-globalNav-searchContainer > button[aria-label="Home"] {
-  background-color: var(--island-panel);
+/* Home-Button, Avatar, Pfeile */
+.main-globalNav-searchContainer > button[aria-label="Home"],
+button[data-testid="user-widget-link"] {
+  background-color: var(--island-ink) !important;
+  -webkit-backdrop-filter: var(--island-blur);
+  backdrop-filter: var(--island-blur);
   box-shadow: inset 0 0 0 1px var(--island-line);
   border-radius: 999px;
-  transition: background-color .2s var(--island-ease), transform .2s var(--island-ease);
+  transition: background-color .2s var(--island-ease), transform .2s var(--island-ease), box-shadow .2s var(--island-ease);
 }
-.main-globalNav-searchContainer > button[aria-label="Home"]:hover {
-  background-color: var(--island-panel-hi);
-  transform: scale(1.04);
+.main-globalNav-searchContainer > button[aria-label="Home"]:hover,
+button[data-testid="user-widget-link"]:hover {
+  transform: scale(1.05);
+  box-shadow: inset 0 0 0 1px var(--island-accent-soft), 0 0 20px -6px var(--island-accent-glow);
 }
 .main-globalNav-searchContainer > button[aria-label="Home"][aria-current],
 .main-globalNav-searchContainer > button[aria-label="Home"].main-globalNav-navLinkActive {
-  background-color: var(--island-tint);
-  color: var(--spice-text);
+  color: var(--island-accent);
+  box-shadow: inset 0 0 0 1px var(--island-accent-soft), 0 0 20px -6px var(--island-accent-glow);
 }
-.main-globalNav-link-icon { background-color: var(--island-panel); }
-/* User-Avatar-Button */
-button[data-testid="user-widget-link"] {
-  background-color: var(--island-panel) !important;
-  box-shadow: inset 0 0 0 1px var(--island-line);
-}
-button[data-testid="user-widget-link"]:hover { background-color: var(--island-panel-hi) !important; }
-/* Navigations-Pfeile */
+.main-globalNav-link-icon { background-color: var(--island-ink); }
 .main-globalNav-historyButtons button {
   border-radius: 999px;
   transition: background-color .2s var(--island-ease), color .2s var(--island-ease);
@@ -200,10 +307,11 @@ button[data-testid="user-widget-link"]:hover { background-color: var(--island-pa
 .main-globalNav-historyButtons button:hover:not(:disabled) { background-color: var(--island-hover); }
 
 /* ---------- Linke Seitenleiste / Bibliothek --------------------------------- */
-.main-yourLibraryX-header { padding: 14px 14px 6px; }
+.main-yourLibraryX-header { padding: 16px 16px 8px; }
+.main-yourLibraryX-header h1 { color: var(--spice-subtext); }
+.main-yourLibraryX-header h1::before { content: "// "; color: var(--island-accent); }
 .main-yourLibraryX-libraryRootlist { padding: 0 8px 8px; }
 .main-yourLibraryX-entryPoints { background: transparent; }
-/* Einträge als weiche Pills */
 .main-rootlist-wrapper [role="row"] [data-encore-id="listRow"] {
   border-radius: var(--island-radius-sm);
   transition: background-color .18s var(--island-ease);
@@ -214,119 +322,191 @@ button[data-testid="user-widget-link"]:hover { background-color: var(--island-pa
 }
 .main-rootlist-wrapper [role="row"] [data-encore-id="listRow"][aria-selected="true"],
 .main-rootlist-wrapper [role="row"][aria-selected="true"] [data-encore-id="listRow"] {
-  background-color: color-mix(in oklab, var(--island-tint) 70%, transparent);
+  background-color: color-mix(in oklab, var(--island-tint) 60%, transparent);
+  box-shadow: inset 2px 0 0 var(--island-accent);
 }
 .main-rootlist-wrapper .x-entityImage-imageContainer,
 .main-rootlist-wrapper .x-entityImage-imageContainer img { border-radius: var(--island-radius-xs); }
 /* Filter-Chips */
 .main-yourLibraryX-filterArea [role="option"] > *,
-.search-searchCategory-categoryGrid [role="option"] > * {
-  border-radius: 999px;
-}
-/* Create-Button */
+.search-searchCategory-categoryGrid [role="option"] > * { border-radius: 999px; }
 .main-yourLibraryX-header button[aria-label="Create"] {
   border-radius: 999px;
-  background-color: var(--island-panel-hi);
+  background-color: var(--island-glass-hi);
   box-shadow: inset 0 0 0 1px var(--island-line);
-  transition: background-color .2s var(--island-ease), transform .2s var(--island-ease);
+  transition: background-color .2s var(--island-ease), transform .2s var(--island-ease), box-shadow .2s var(--island-ease);
 }
 .main-yourLibraryX-header button[aria-label="Create"]:hover {
-  background-color: var(--island-panel-top);
   transform: scale(1.03);
+  box-shadow: inset 0 0 0 1px var(--island-accent-soft), 0 0 18px -6px var(--island-accent-glow);
 }
-/* Suchfeld in der Bibliothek */
 .x-filterBox-filterInput {
   border-radius: 999px !important;
-  background-color: var(--island-panel-hi) !important;
+  background-color: var(--island-glass-hi) !important;
   box-shadow: inset 0 0 0 1px var(--island-line);
+  font-family: var(--island-mono);
+  font-size: 12px;
 }
 .x-filterBox-expandButton:hover { background-color: var(--island-hover); border-radius: 999px; }
 
 /* ---------- Rechte Seitenleiste (Now Playing View) -------------------------- */
 .Root__right-sidebar .GQZWDj0xGPg_0Q25WEyf,
-.Root__right-sidebar .GQZWDj0xGPg_0Q25WEyf:before {
-  background-color: transparent;
-}
+.Root__right-sidebar .GQZWDj0xGPg_0Q25WEyf:before { background-color: transparent; }
+.main-nowPlayingView-headerContainer { background: transparent; }
+.main-nowPlayingView-headerText,
+.main-nowPlayingView-headerText * { color: var(--island-accent) !important; }
 .main-nowPlayingView-section {
-  --section-background-base: color-mix(in oklab, var(--island-panel-hi) 82%, transparent);
-  --section-border-radius: var(--island-radius-sm);
+  --section-background-base: color-mix(in oklab, var(--island-panel-hi) 70%, transparent);
+  --section-border-radius: 0;
+  clip-path: polygon(
+    0 0, calc(100% - var(--island-notch)) 0, 100% var(--island-notch),
+    100% 100%, var(--island-notch) 100%, 0 calc(100% - var(--island-notch)));
   box-shadow: inset 0 0 0 1px var(--island-line);
+  position: relative;
 }
+/* Akzent-Kante an der abgeschraegten Ecke */
+.main-nowPlayingView-section::before {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  width: var(--island-notch); height: var(--island-notch);
+  background: linear-gradient(225deg, transparent 50%, var(--island-accent-soft) 50%, var(--island-accent-soft) calc(50% + 1.5px), transparent calc(50% + 1.5px));
+  pointer-events: none;
+  z-index: 1;
+}
+.main-nowPlayingView-sectionHeaderText { color: var(--island-accent); }
+.main-nowPlayingView-sectionHeaderText::before { content: "// "; opacity: 0.7; }
 .main-nowPlayingView-coverArt,
 .main-nowPlayingView-coverArt img,
 .main-nowPlayingView-coverArtSquare { border-radius: var(--island-radius-sm) !important; }
-.main-nowPlayingView-headerContainer { background: transparent; }
+.main-nowPlayingView-coverArt { box-shadow: 0 0 40px -8px var(--island-accent-glow), 0 20px 50px -20px rgba(var(--spice-rgb-shadow), 0.9); }
+.main-nowPlayingView-trackInfo .main-trackInfo-name,
+.main-nowPlayingView-trackInfo .encore-text-title-small { font-family: var(--encore-title-font-stack); letter-spacing: -0.02em; }
 
-/* ---------- Now-Playing-Leiste --------------------------------------------- */
+/* ============================================================================
+   PLAYER-LEISTE: schwarze "Island"-Pille
+   ============================================================================ */
 .Root__now-playing-bar {
   background-color: transparent;
   padding: 0;
   margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
 }
 .main-nowPlayingBar-container {
-  background-color: var(--island-panel);
-  border-radius: var(--island-radius);
-  box-shadow: inset 0 0 0 1px var(--island-line), var(--island-shadow);
-  padding: 0 14px;
+  width: min(100%, 1560px);
+  min-width: 620px;
+  margin: 0 auto;
+  border-radius: 999px;
+  padding: 0 26px 0 12px;
   position: relative;
   overflow: hidden;
+  background-color: var(--island-ink);
+  -webkit-backdrop-filter: var(--island-blur);
+  backdrop-filter: var(--island-blur);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--island-accent) 42%, transparent),
+    inset 0 1px 0 rgba(var(--spice-rgb-text), 0.08),
+    0 14px 44px -14px rgba(var(--spice-rgb-shadow), 0.9),
+    0 0 70px -18px var(--island-accent-glow);
 }
+/* Cover-Schimmer links in der Pille */
 .main-nowPlayingBar-container::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image: var(--island-art);
-  background-size: 140% auto;
+  background-size: 120% auto;
   background-position: left center;
-  filter: blur(70px) saturate(1.3);
-  opacity: 0.22;
+  filter: blur(60px) saturate(1.4);
+  opacity: 0.35;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(to right, #000 0%, transparent 45%);
-  mask-image: linear-gradient(to right, #000 0%, transparent 45%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, transparent 40%);
+  mask-image: linear-gradient(to right, #000 0%, transparent 40%);
 }
-.main-nowPlayingBar-nowPlayingBar { height: 76px; position: relative; }
+/* leuchtender Akzent-Strich oben (Notch-Zitat) */
+.main-nowPlayingBar-container::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 50%;
+  width: 120px; height: 2px;
+  transform: translateX(-50%);
+  border-radius: 0 0 4px 4px;
+  background: var(--island-accent);
+  box-shadow: 0 0 14px 1px var(--island-accent-glow);
+  opacity: 0.85;
+  pointer-events: none;
+}
+.main-nowPlayingBar-nowPlayingBar { height: 84px; position: relative; }
 .main-nowPlayingWidget-coverArtContainer {
-  border-radius: var(--island-radius-xs);
-  box-shadow: 0 4px 14px -4px rgba(var(--spice-rgb-shadow), 0.7);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(var(--spice-rgb-text), 0.1),
+    0 0 28px -4px var(--island-accent-glow),
+    0 6px 16px -4px rgba(var(--spice-rgb-shadow), 0.9);
+  transition: transform .3s var(--island-ease), box-shadow .3s var(--island-ease);
 }
+.main-nowPlayingWidget-coverArtContainer:hover { transform: scale(1.06); }
 .main-trackInfo-name { font-weight: 600; letter-spacing: -0.01em; }
 .main-trackInfo-artists { color: var(--spice-subtext); }
 .main-trackInfo-artists a:hover { color: var(--spice-text); }
 
-/* Transport-Buttons */
+/* Transport */
 .player-controls__buttons button { transition: transform .15s var(--island-ease), color .15s var(--island-ease); }
-.player-controls__buttons button:hover { transform: scale(1.08); color: var(--spice-text); }
+.player-controls__buttons button:hover { transform: scale(1.1); color: var(--spice-text); }
 .player-controls__buttons button[data-testid="control-button-playpause"] .e-10860-button-primary__inner,
 .main-playButton-PlayButton .e-10860-button-primary__inner {
   background-color: var(--island-accent);
   color: var(--island-on-accent);
-  box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--island-accent) 70%, transparent);
+  box-shadow: 0 0 26px -4px var(--island-accent-glow), 0 6px 18px -8px rgba(var(--spice-rgb-shadow), 0.9);
 }
 .player-controls__buttons button[data-testid="control-button-playpause"]:hover .e-10860-button-primary__inner,
 .main-playButton-PlayButton button:hover .e-10860-button-primary__inner {
   background-color: color-mix(in oklab, var(--island-accent) 88%, var(--spice-text));
+  box-shadow: 0 0 34px -2px var(--island-accent-glow), 0 6px 18px -8px rgba(var(--spice-rgb-shadow), 0.9);
 }
 .player-controls__buttons button[data-testid="control-button-playpause"] { transform: none; }
 .player-controls__buttons button[data-testid="control-button-playpause"]:hover { transform: scale(1.06); }
-/* Shuffle/Repeat aktiv: Akzentpunkt bleibt (Spotify setzt ihn), Farbe auf Akzent */
 .player-controls__buttons button[aria-checked="true"],
-.player-controls__buttons button[aria-checked="mixed"] { color: var(--island-accent); }
+.player-controls__buttons button[aria-checked="mixed"] { color: var(--island-accent); filter: drop-shadow(0 0 6px var(--island-accent-glow)); }
 
-/* Fortschritts- & Lautstärkebalken */
+/* Fortschritts- & Lautstaerkebalken: Akzent mit Glow + laufendem Schimmer */
 .progress-bar {
   --progress-bar-height: 5px;
-  --bg-color: rgba(var(--spice-rgb-text), 0.14);
+  --bg-color: rgba(var(--spice-rgb-text), 0.13);
   --mg-color: rgba(var(--spice-rgb-text), 0.35);
   --fg-color: var(--island-accent);
   --is-active-fg-color: var(--island-accent);
 }
+.x-progressBar-progressBarBg { overflow: visible; }
+.x-progressBar-fillColor {
+  position: relative;
+  box-shadow: 0 0 10px 0 var(--island-accent-glow);
+}
+.x-progressBar-fillColor::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 0%, rgba(var(--spice-rgb-text), 0.45) 50%, transparent 100%);
+  background-size: 180px 100%;
+  background-repeat: no-repeat;
+  animation: island-shimmer 2.8s linear infinite;
+  opacity: 0.8;
+}
+@keyframes island-shimmer {
+  from { background-position: -180px 0; }
+  to   { background-position: calc(100% + 180px) 0; }
+}
 .progress-bar__slider {
   background-color: var(--spice-text);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--island-accent) 40%, transparent),
-              0 2px 6px rgba(var(--spice-rgb-shadow), 0.5);
+  box-shadow: 0 0 0 3px var(--island-accent-soft), 0 0 12px var(--island-accent-glow);
 }
-.playback-bar .e-10860-text { font-variant-numeric: tabular-nums; font-size: 11px; }
+.playback-bar [data-testid="playback-position"],
+.playback-bar [data-testid="playback-duration"] { font-size: 11px; letter-spacing: 0.04em; }
 .main-nowPlayingBar-volumeBar .progress-bar { --progress-bar-height: 4px; }
+.main-nowPlayingBar-volumeBar .x-progressBar-fillColor::after { display: none; }
 .main-nowPlayingBar-extraControls button:hover { color: var(--spice-text); }
 
 /* ---------- Karten, Shelves, Kacheln ---------------------------------------- */
@@ -334,24 +514,49 @@ button[data-testid="user-widget-link"]:hover { background-color: var(--island-pa
   border-radius: var(--island-radius-sm);
   transition: background-color .2s var(--island-ease), transform .2s var(--island-ease);
 }
+[data-encore-id="card"]:hover { transform: translateY(-2px); }
 [data-encore-id="card"]:hover:after { background-color: var(--island-hover); }
 .main-cardImage-imageWrapper,
 .main-cardImage-image { border-radius: var(--island-radius-xs); }
 .main-cardImage-circular,
 .main-cardImage-circular .main-cardImage-image { border-radius: 50%; }
-.main-card-PlayButtonContainer { box-shadow: 0 8px 20px -6px rgba(var(--spice-rgb-shadow), 0.8); }
+.main-card-PlayButtonContainer { box-shadow: 0 0 24px -4px var(--island-accent-glow), 0 8px 20px -6px rgba(var(--spice-rgb-shadow), 0.8); }
 
-/* Schnellzugriff-Kacheln ("Good evening") */
+/* Shelf-Titel mit HUD-Praefix (h2 ist eine -webkit-box, darum absolut gesetzt) */
+section[data-testid="component-shelf"] h2[data-encore-id="listRowTitle"],
+#searchPage h2 { position: relative; padding-left: 1.35em; }
+section[data-testid="component-shelf"] h2[data-encore-id="listRowTitle"]::before,
+#searchPage h2::before {
+  content: "//";
+  position: absolute;
+  left: 0;
+  top: 0.42em;
+  font-family: var(--island-mono);
+  font-size: 0.58em;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--island-accent);
+  opacity: 0.9;
+}
+
+/* Schnellzugriff-Kacheln ("Good evening"): Glas mit abgeschraegter Ecke */
 .qqdeiPoFoM_sPX0pRHsT {
-  border-radius: var(--island-radius-xs);
-  background-color: color-mix(in oklab, var(--island-panel-hi) 90%, transparent);
+  border-radius: 0;
+  clip-path: polygon(
+    0 0, calc(100% - var(--island-notch)) 0, 100% var(--island-notch),
+    100% 100%, 0 100%);
+  background-color: var(--island-glass-hi);
   box-shadow: inset 0 0 0 1px var(--island-line);
+  transition: background-color .25s var(--island-ease), box-shadow .25s var(--island-ease);
 }
 .qqdeiPoFoM_sPX0pRHsT:hover,
-.qqdeiPoFoM_sPX0pRHsT:focus-within { background: var(--island-panel-top); }
-.qqdeiPoFoM_sPX0pRHsT img { border-radius: var(--island-radius-xs) 0 0 var(--island-radius-xs); }
+.qqdeiPoFoM_sPX0pRHsT:focus-within {
+  background: var(--island-glass-top);
+  box-shadow: inset 0 0 0 1px var(--island-accent-soft);
+}
+.qqdeiPoFoM_sPX0pRHsT img { border-radius: 0; }
 
-/* Home-Banner (Ads/Announcements) abrunden */
+/* Home-Banner (Ads/Announcements) */
 [data-testid="home-ads-container"] > *,
 [data-testid="home-ad-card"] { border-radius: var(--island-radius-sm); overflow: hidden; }
 
@@ -361,32 +566,46 @@ button[data-testid="user-widget-link"]:hover { background-color: var(--island-pa
 #searchPage a[href^="/genre/"] { transition: transform .2s var(--island-ease); }
 #searchPage a[href^="/genre/"]:hover { transform: translateY(-2px); }
 
-/* "Show all"-Links */
-.main-view-container a[class] { transition: color .15s var(--island-ease); }
-
 /* ---------- Entity-Header (Playlist/Album/Artist) -------------------------- */
 .main-entityHeader-backgroundColor,
 .main-entityHeader-backgroundColor[data-seamless-gradient] {
   --color-to: transparent;
   --dither: none;
   background-color: transparent;
-  /* Band laeuft ueber den Header hinaus und blendet weich in die Action-Bar aus */
-  opacity: 0.5;
+  opacity: 0.45;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 50%, transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 50%, transparent 100%);
 }
 .main-entityHeader-backgroundColor:after { opacity: 0 !important; }
 .playlist-playlist-actionBarBackground-background,
 [class*="actionBarBackground-background"] { opacity: 0 !important; }
-.main-entityHeader-shadow { box-shadow: 0 16px 48px -12px rgba(var(--spice-rgb-shadow), 0.9); }
+.main-entityHeader-shadow { box-shadow: 0 0 60px -10px var(--island-accent-glow), 0 24px 60px -16px rgba(var(--spice-rgb-shadow), 0.95); }
 .main-entityHeader-imageContainer img,
 .main-entityHeader-image { border-radius: var(--island-radius-sm); }
-.main-entityHeader-title { letter-spacing: -0.03em; }
+.main-entityHeader-title { letter-spacing: -0.035em; }
+/* Typ-Label ("Public Playlist") als HUD-Tag */
+.main-entityHeader-headerText > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  width: fit-content;
+  gap: 8px;
+  color: var(--island-accent) !important;
+  padding: 3px 10px 3px 8px;
+  margin-bottom: 6px;
+  border: 1px solid var(--island-accent-soft);
+  border-radius: 4px;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
+  background: color-mix(in oklab, var(--island-accent) 10%, transparent);
+}
+.main-entityHeader-headerText > span:first-child::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--island-accent);
+  box-shadow: 0 0 8px var(--island-accent-glow);
+}
 .main-actionBar-ActionBarRow { gap: 14px; }
-
-/* Action-Bar-Hintergrund (Gradient zur Panelfarbe) */
-.main-actionBar-ActionBar::before,
-.main-actionBar-ActionBarContainer > div:first-child > div[style*="background"] { opacity: 0.9; }
 
 /* Tracklisten */
 .main-trackList-trackListRow {
@@ -396,18 +615,18 @@ button[data-testid="user-widget-link"]:hover { background-color: var(--island-pa
 .main-trackList-trackListRow:hover,
 .main-trackList-trackListRow:focus-within { background-color: var(--island-hover); }
 .main-trackList-trackListRow[aria-selected="true"],
-.main-trackList-trackListRow.main-trackList-selected { background-color: var(--island-press); }
+.main-trackList-trackListRow.main-trackList-selected {
+  background-color: var(--island-press);
+  box-shadow: inset 2px 0 0 var(--island-accent);
+}
 html:not(.no-focus-outline) .main-trackList-trackListRow:focus-within { border-color: transparent; }
-.main-trackList-trackListHeaderRow { border-bottom-color: var(--island-line); }
+.main-trackList-trackListHeaderRow { border-bottom-color: var(--island-line-strong); color: var(--spice-subtext); }
 .main-trackList-rowImage { border-radius: 4px; }
 .main-trackList-rowTitle { font-weight: 500; }
-/* laufender Titel */
-.main-trackList-trackListRow .main-trackList-rowTitle[class*="playing"],
-.main-trackList-trackListRow[aria-selected="true"] .main-trackList-rowTitle { color: var(--spice-text); }
 
 /* ---------- Top-Bar in der Hauptansicht ------------------------------------- */
 .main-topBar-background {
-  background-color: color-mix(in oklab, var(--island-panel) 85%, transparent);
+  background-color: color-mix(in oklab, var(--island-panel) 70%, transparent);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   border-top-left-radius: var(--island-radius);
@@ -419,16 +638,14 @@ html:not(.no-focus-outline) .main-trackList-trackListRow:focus-within { border-c
 .e-10860-legacy-button-secondary,
 .e-10860-legacy-button-primary .e-10860-button-primary__inner { border-radius: 999px; }
 .e-10860-legacy-button-secondary {
-  transition: background-color .2s var(--island-ease), border-color .2s var(--island-ease), transform .2s var(--island-ease);
+  transition: background-color .2s var(--island-ease), border-color .2s var(--island-ease), transform .2s var(--island-ease), box-shadow .2s var(--island-ease);
 }
-.e-10860-legacy-button-secondary:hover { transform: scale(1.03); }
+.e-10860-legacy-button-secondary:hover { transform: scale(1.03); box-shadow: 0 0 18px -6px var(--island-accent-glow); }
 button[data-encore-id="buttonTertiary"] { transition: color .15s var(--island-ease), transform .15s var(--island-ease), background-color .15s var(--island-ease); }
-
-/* Chips (All / Music / Podcasts …) */
-[role="listbox"] [role="option"] > * ,
+[role="listbox"] [role="option"] > *,
 .main-view-container [role="list"][aria-label="Home Filters"] > * > * { border-radius: 999px; }
 
-/* ---------- Kontextmenüs, Tooltips, Dialoge --------------------------------- */
+/* ---------- Kontextmenues, Tooltips, Dialoge -------------------------------- */
 #context-menu > *,
 [data-tippy-root] .main-contextMenu-container,
 .main-contextMenu-menu,
@@ -437,22 +654,23 @@ button[data-encore-id="buttonTertiary"] { transition: color .15s var(--island-ea
 .main-dropDown-dropDown,
 [data-encore-id="popover"] {
   border-radius: var(--island-radius-sm) !important;
-  background-color: color-mix(in oklab, var(--spice-card) 92%, transparent) !important;
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
-  box-shadow: inset 0 0 0 1px var(--island-line-strong), var(--island-shadow) !important;
+  background-color: color-mix(in oklab, var(--spice-card) 78%, transparent) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.3);
+  backdrop-filter: blur(28px) saturate(1.3);
+  box-shadow: inset 0 0 0 1px var(--island-line-strong), inset 0 1px 0 rgba(var(--spice-rgb-text), 0.06), var(--island-shadow) !important;
 }
 [role="menu"] [role="menuitem"],
-.main-contextMenu-menuItemButton {
-  border-radius: var(--island-radius-xs);
-}
+.main-contextMenu-menuItemButton { border-radius: var(--island-radius-xs); }
 [role="menu"] [role="menuitem"]:hover,
 .main-contextMenu-menuItemButton:hover { background-color: var(--island-hover) !important; }
 #context-menu { padding: 4px; }
 .main-contextMenu-menu { padding: 6px !important; }
 [data-encore-id="tooltip"] {
   border-radius: 8px !important;
-  background: var(--spice-card) !important;
+  background: color-mix(in oklab, var(--spice-card) 90%, transparent) !important;
+  font-family: var(--island-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
   box-shadow: inset 0 0 0 1px var(--island-line-strong), var(--island-shadow) !important;
 }
 
@@ -463,8 +681,8 @@ button[data-encore-id="buttonTertiary"] { transition: color .15s var(--island-ea
   --os-padding-axis: 6px;
   --os-handle-border-radius: 999px;
   --os-handle-bg: rgba(var(--spice-rgb-text), 0.16);
-  --os-handle-bg-hover: rgba(var(--spice-rgb-text), 0.32);
-  --os-handle-bg-active: rgba(var(--spice-rgb-text), 0.5);
+  --os-handle-bg-hover: color-mix(in oklab, var(--island-accent) 55%, transparent);
+  --os-handle-bg-active: var(--island-accent);
 }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb {
@@ -473,7 +691,7 @@ button[data-encore-id="buttonTertiary"] { transition: color .15s var(--island-ea
   border: 2px solid transparent;
   background-clip: content-box;
 }
-::-webkit-scrollbar-thumb:hover { background-color: rgba(var(--spice-rgb-text), 0.32); }
+::-webkit-scrollbar-thumb:hover { background-color: color-mix(in oklab, var(--island-accent) 55%, transparent); }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ---------- Resizer (Griff zwischen den Panels) ----------------------------- */
@@ -481,15 +699,19 @@ button[data-encore-id="buttonTertiary"] { transition: color .15s var(--island-ea
 .LayoutResizer__resize-bar:hover,
 .LayoutResizer__resize-bar:focus-within { opacity: 1; }
 .LayoutResizer__inline-end:after,
-.LayoutResizer__inline-start:after { background-color: var(--island-accent) !important; border-radius: 999px; }
+.LayoutResizer__inline-start:after { background-color: var(--island-accent) !important; border-radius: 999px; box-shadow: 0 0 10px var(--island-accent-glow); }
 
-/* ---------- Fokus-Ringe ----------------------------------------------------- */
+/* ---------- Fokus, Auswahl, Links ------------------------------------------ */
 :root { --encore-focus-outline-color: var(--island-accent); }
-
-/* ---------- Auswahl / Links ------------------------------------------------ */
 ::selection { background: color-mix(in oklab, var(--island-accent) 40%, transparent); }
 a { transition: color .15s var(--island-ease); }
 
 /* ---------- Lyrics ---------------------------------------------------------- */
 .lyrics-lyrics-container,
 .lyrics-lyricsContent-lyric { font-family: var(--encore-title-font-stack); letter-spacing: -0.02em; }
+
+/* ---------- Bewegung reduzieren --------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .x-progressBar-fillColor::after { animation: none; }
+  body::before, body::after { transition: none; }
+}
