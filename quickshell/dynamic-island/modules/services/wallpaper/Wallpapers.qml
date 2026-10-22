@@ -59,8 +59,11 @@ Singleton {
     property string actualCurrent: ""
     property string previewPath: ""
     property bool showPreview: false
-    readonly property string current: root.showPreview && root.previewPath !== "" ? root.previewPath
-                                                                                  : root.actualCurrent
+    // Ob die Vorschau auch den Hintergrund umstellt – nur die Farben gehen
+    // auch allein (previewColours)
+    property bool previewImage: true
+    readonly property string current: root.showPreview && root.previewImage && root.previewPath !== ""
+        ? root.previewPath : root.actualCurrent
 
     // ---- Uebergang ----
     // Welche Animation der Hintergrund beim Wechsel spielt (Config
@@ -300,6 +303,20 @@ Singleton {
     // Schema (catppuccin, tokyonight, ...) aendert ein Bildwechsel die Farben
     // nicht, die Vorschau wuerde also etwas zeigen, was nie eintritt.
     function preview(path: string): void {
+        root.previewImage = true;
+        root.previewAs(path);
+    }
+
+    // Nur die Farben, der Hintergrund bleibt: fuer Wallhaven-Treffer gibt es
+    // vor dem Download nur das 432-px-Thumb – als Hintergrund auf 1440p
+    // hochgezogen waere das Matsch, fuer die Palette reicht es (die CLI
+    // rechnet ohnehin auf einem 128-px-Abzug).
+    function previewColours(path: string): void {
+        root.previewImage = false;
+        root.previewAs(path);
+    }
+
+    function previewAs(path: string): void {
         if (root.previewPath !== path)
             root.previewVariant = "";
         root.previewPath = path;
@@ -316,6 +333,7 @@ Singleton {
     function stopPreview(): void {
         root.showPreview = false;
         root.previewPath = "";
+        root.previewImage = true;
         root.previewVariant = "";
         colourPreview.running = false;
         Colors.clearPreview();

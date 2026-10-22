@@ -20,6 +20,10 @@ PathView {
     // Reihe an beiden Seiten hart aufhoert (so macht es der Datumsstreifen).
     readonly property real overhang: view.itemWidth / 2
 
+    // Mit dem Rad geblaettert – wer zwei Reihen hat, holt die Tastatur in
+    // diese (WallpaperPanel)
+    signal wheeled
+
     // Immer eine ungerade Zahl: sonst sitzt keine Kachel wirklich in der Mitte.
     readonly property int visibleItems: {
         const fits = Math.floor(view.width / view.itemWidth);
@@ -68,6 +72,7 @@ PathView {
             const steps = accum > 0 ? Math.floor(accum) : Math.ceil(accum);
             if (steps !== 0) {
                 accum -= steps;
+                view.wheeled();
                 view.moveBy(-steps);
             }
             event.accepted = true;

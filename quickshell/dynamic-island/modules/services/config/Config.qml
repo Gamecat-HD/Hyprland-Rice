@@ -31,6 +31,7 @@ Singleton {
     readonly property alias quick: adapter.quick
     readonly property alias osd: adapter.osd
     readonly property alias wallpaper: adapter.wallpaper
+    readonly property alias wallhaven: adapter.wallhaven
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -151,6 +152,39 @@ Singleton {
                 + " (z. B. Cyberpunk-Edgerunners)",
             options: ["alle", "ordner"]
         },
+        // Wallhaven-Suche in der Wallpaper-Auswahl (Wallhaven.qml mappt die
+        // deutschen Chip-Werte auf die API)
+        "wallhaven.sorting": {
+            title: "Sortierung",
+            desc: "Reihenfolge der Treffer; steht auch als Chips in der Auswahl",
+            options: ["relevanz", "neu", "zufall", "views", "favoriten", "top"]
+        },
+        "wallhaven.topRange": {
+            title: "Top-Zeitraum",
+            desc: "Zeitraum der Toplist",
+            options: ["1 Tag", "3 Tage", "1 Woche", "1 Monat", "3 Monate", "6 Monate", "1 Jahr"],
+            requires: { "wallhaven.sorting": "top" }
+        },
+        "wallhaven.purity": {
+            title: "Inhalt",
+            desc: "sfw: nur jugendfrei. sketchy: dazu Grenzfälle (NSFW nur mit API-Key: `dynamic-island wallhaven key`)",
+            options: ["sfw", "sfw+sketchy"]
+        },
+        "wallhaven.categories": {
+            title: "Kategorien",
+            desc: "Welche Wallhaven-Kategorien die Suche durchsucht",
+            options: ["alle", "general", "anime", "people", "general+anime"]
+        },
+        "wallhaven.atleast": {
+            title: "Mindestauflösung",
+            desc: "Kleinere Bilder fliegen raus",
+            options: ["aus", "1920x1080", "2560x1440", "3840x2160"]
+        },
+        "wallhaven.ratios": {
+            title: "Seitenverhältnis",
+            desc: "Nur Bilder in diesem Format",
+            options: ["alle", "16x9", "16x10", "21x9"]
+        },
         // `editor` statt Bedienelement: das Menue laedt dafuer einen eigenen
         // Editor (modules/settings/QuickLayoutEditor.qml)
         // Regler am rechten Rand (modules/osd)
@@ -176,7 +210,7 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "wallpaper", "wallhaven", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
@@ -184,6 +218,7 @@ Singleton {
         "notch": "web_asset",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
+        "wallhaven": "travel_explore",
         "notifications": "notifications",
         "vpn": "vpn_key"
     })
@@ -196,6 +231,7 @@ Singleton {
         "vpn": "VPN",
         "appearance": "Darstellung",
         "wallpaper": "Wallpaper",
+        "wallhaven": "Wallhaven",
         "notch": "Notch-Layout"
     })
 
@@ -433,6 +469,16 @@ Singleton {
                 property string randomScope: "alle"
             }
 
+            // Wallhaven-Suche (Wallhaven.qml): Sortierung samt Zeitraum der
+            // Toplist, Inhalt, Kategorien, Mindestaufloesung und Format
+            property JsonObject wallhaven: JsonObject {
+                property string sorting: "top"
+                property string topRange: "1 Monat"
+                property string purity: "sfw"
+                property string categories: "alle"
+                property string atleast: "aus"
+                property string ratios: "alle"
+            }
 
             property JsonObject bar: JsonObject {
                 property bool workspaces: true
