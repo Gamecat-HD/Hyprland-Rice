@@ -8,9 +8,11 @@ import qs.modules.services.media
 import qs.modules.widgets
 
 // Eine "Jetzt laeuft"-Karte (siehe NowPlayingRow): verwaschener Cover-Blend
-// als Hintergrund, Cover, Titel/Interpret, Visualiser, Play/Pause. Echte und
-// zweite Karte der Wisch-Geste sind diese Komponente, damit beim Wechsel
-// alles exakt an derselben Stelle steht.
+// als Hintergrund, davor Cover, Titel/Interpret, Visualiser, Play/Pause.
+// Hintergrund und Inhalt sind getrennt verschiebbar: bei der Wisch-Geste
+// wandert nur der Blend (`shift`), der Inhalt bleibt stehen. Die zweite
+// Karte der Geste ist dieselbe Komponente ohne Inhalt (`showContent`), damit
+// ihr Blend beim Wechsel exakt an derselben Stelle landet.
 //
 // `track` ist ein Objekt wie aus MediaQueue ({ title, artist, art }); null
 // heisst leer – nur der Blend des laufenden Titels, wenn die Queue unbekannt
@@ -23,6 +25,12 @@ Item {
     property bool live: false
     // Kartenfarbe, in die der Cover-Hintergrund nach rechts ausblendet
     property color fadeColor: Appearance.notchColor
+    // Versatz nur des Hintergrunds (Wisch-Geste); der Inhalt bleibt stehen
+    property real shift: 0
+    // Cover, Titel, Visualiser, Knopf – aus fuer die reine Blend-Karte
+    property bool showContent: true
+    // Deckkraft des Inhalts, fuer das Ueberblenden beim Titelwechsel
+    property real contentOpacity: 1
     readonly property real artSize: 36
 
     readonly property string artSource: card.track?.art ?? ""
@@ -38,6 +46,7 @@ Item {
         readonly property real strength: 0.45
 
         anchors.fill: parent
+        transform: Translate { x: card.shift }
         radius: 16
         color: Colors.alpha(Colors.fgBackground, 0.05)
 
@@ -91,156 +100,161 @@ Item {
         }
     }
 
-    // ---- Cover, rund maskiert ----
+    // ---- Inhalt: steht fest, waehrend der Hintergrund wandert ----
     Item {
-        id: art
+        id: content
 
-        anchors {
-            left: parent.left
-            leftMargin: 8
-            verticalCenter: parent.verticalCenter
-        }
-        width: card.artSize
-        height: card.artSize
-        visible: card.filled
+        anchors.fill: parent
+        visible: card.filled && card.showContent
+        opacity: card.contentOpacity
 
-        Rectangle {
-            anchors.fill: parent
-            radius: 10
-            color: Colors.surfaceContainer
+        // ---- Cover, rund maskiert ----
+        Item {
+            id: art
 
-            Text {
-                anchors.centerIn: parent
-                visible: artImage.status !== Image.Ready
-                text: "music_note"
-                color: Colors.fgSurfaceVariant
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 16
+            anchors {
+                left: parent.left
+                leftMargin: 8
+                verticalCenter: parent.verticalCenter
+            }
+            width: card.artSize
+            height: card.artSize
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 10
+                color: Colors.surfaceContainer
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: artImage.status !== Image.Ready
+                    text: "music_note"
+                    color: Colors.fgSurfaceVariant
+                    font.family: "Material Symbols Outlined"
+                    font.pixelSize: 16
+                }
+            }
+
+            Image {
+                id: artImage
+
+                anchors.fill: parent
+                source: card.artSource
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                sourceSize.width: card.artSize * 2
+                sourceSize.height: card.artSize * 2
+                visible: false
+            }
+
+            Rectangle {
+                id: artMask
+
+                anchors.fill: parent
+                radius: 10
+                color: "black"
+                layer.enabled: true
+                visible: false
+            }
+
+            MultiEffect {
+                anchors.fill: parent
+                source: artImage
+                maskEnabled: true
+                maskSource: artMask
+                visible: artImage.status === Image.Ready
             }
         }
 
-        Image {
-            id: artImage
+        // ---- Titel / Interpret ----
+        Column {
+            anchors {
+                left: art.right
+                leftMargin: 10
+                right: wave.left
+                rightMargin: 10
+                verticalCenter: parent.verticalCenter
+            }
+            spacing: 2
 
-            anchors.fill: parent
-            source: card.artSource
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
-            sourceSize.width: card.artSize * 2
-            sourceSize.height: card.artSize * 2
-            visible: false
+            Text {
+                width: parent.width
+                text: (card.track?.title ?? "") || Media.source
+                color: Colors.fgBackground
+                font.family: Config.font
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+            }
+
+            Text {
+                width: parent.width
+                text: (card.track?.artist ?? "") || Media.source
+                color: Colors.fgSurfaceVariant
+                font.family: Config.font
+                font.pixelSize: 11
+                elide: Text.ElideRight
+            }
         }
 
-        Rectangle {
-            id: artMask
+        // ---- Visualiser ----
+        // Rechnet nur, solange der Inhalt sichtbar ist (Visualizer prueft
+        // `visible`) – die reine Blend-Karte kostet also keine Cava-Pegel.
+        Visualizer {
+            id: wave
 
-            anchors.fill: parent
-            radius: 10
-            color: "black"
-            layer.enabled: true
-            visible: false
+            anchors {
+                right: playButton.left
+                rightMargin: 12
+                verticalCenter: parent.verticalCenter
+            }
+            height: 22
+            count: 7
+            barWidth: 3
+            active: Media.playing
         }
 
-        MultiEffect {
-            anchors.fill: parent
-            source: artImage
-            maskEnabled: true
-            maskSource: artMask
-            visible: artImage.status === Image.Ready
-        }
-    }
+        // ---- Play/Pause ----
+        Item {
+            id: playButton
 
-    // ---- Titel / Interpret ----
-    Column {
-        anchors {
-            left: art.right
-            leftMargin: 10
-            right: wave.left
-            rightMargin: 10
-            verticalCenter: parent.verticalCenter
-        }
-        spacing: 2
-        visible: card.filled
+            anchors {
+                right: parent.right
+                rightMargin: 10
+                verticalCenter: parent.verticalCenter
+            }
+            width: 32
+            height: 32
+            scale: playHover.hovered ? 1.08 : 1
 
-        Text {
-            width: parent.width
-            text: (card.track?.title ?? "") || Media.source
-            color: Colors.fgBackground
-            font.family: Config.font
-            font.pixelSize: 12
-            font.weight: Font.DemiBold
-            elide: Text.ElideRight
-        }
+            Morph on scale {}
 
-        Text {
-            width: parent.width
-            text: (card.track?.artist ?? "") || Media.source
-            color: Colors.fgSurfaceVariant
-            font.family: Config.font
-            font.pixelSize: 11
-            elide: Text.ElideRight
-        }
-    }
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: playHover.hovered ? Colors.alpha(Colors.primary, 0.3) : Colors.alpha(Colors.primary, 0.18)
+            }
 
-    // ---- Visualiser ----
-    // Auch auf der zweiten Karte live (gleiche Cava-Pegel, rechnet nur,
-    // solange sie sichtbar ist), damit die Balken beim Wechsel nicht springen.
-    Visualizer {
-        id: wave
+            Text {
+                anchors.centerIn: parent
+                text: Media.playing ? "pause" : "play_arrow"
+                color: Colors.primary
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 18
+                font.variableAxes: ({ FILL: 1, wght: 600 })
+            }
 
-        anchors {
-            right: playButton.left
-            rightMargin: 12
-            verticalCenter: parent.verticalCenter
-        }
-        height: 22
-        count: 7
-        barWidth: 3
-        active: Media.playing
-        visible: card.filled
-    }
+            HoverHandler {
+                id: playHover
 
-    // ---- Play/Pause ----
-    Item {
-        id: playButton
+                enabled: card.live
+                cursorShape: Qt.PointingHandCursor
+            }
 
-        anchors {
-            right: parent.right
-            rightMargin: 10
-            verticalCenter: parent.verticalCenter
-        }
-        width: 32
-        height: 32
-        scale: playHover.hovered ? 1.08 : 1
-        visible: card.filled
-
-        Morph on scale {}
-
-        Rectangle {
-            anchors.fill: parent
-            radius: width / 2
-            color: playHover.hovered ? Colors.alpha(Colors.primary, 0.3) : Colors.alpha(Colors.primary, 0.18)
-        }
-
-        Text {
-            anchors.centerIn: parent
-            text: Media.playing ? "pause" : "play_arrow"
-            color: Colors.primary
-            font.family: "Material Symbols Outlined"
-            font.pixelSize: 18
-            font.variableAxes: ({ FILL: 1, wght: 600 })
-        }
-
-        HoverHandler {
-            id: playHover
-
-            enabled: card.live
-            cursorShape: Qt.PointingHandCursor
-        }
-
-        TapHandler {
-            enabled: card.live
-            onTapped: Media.playPause()
+            TapHandler {
+                enabled: card.live
+                onTapped: Media.playPause()
+            }
         }
     }
 }

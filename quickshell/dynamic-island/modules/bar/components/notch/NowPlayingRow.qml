@@ -9,20 +9,23 @@ import qs.modules.services.media
 // alles Weitere (Player-Auswahl, Fortschritt, Vor/Zurueck) steht im
 // Medien-Untermenue (SUPER+M bzw. blaettern).
 //
-// Wisch-Geste der Notch (swipe in Notch.qml): die ganze Karte folgt dem
-// Zeiger (`shift`), daneben haengt eine zweite Karte (ghost) im selben Look,
-// die mit hereingezogen wird. Kennt MediaQueue die Warteschlange (Spotify),
-// zeigt sie den naechsten bzw. vorigen Titel samt Cover und Blend; sonst
-// bleibt sie leer und traegt nur den aktuellen Blend. `pull` ist der
-// Fortschritt bis zur Schwelle, -1..1 (negativ = nach links = naechster
-// Titel).
+// Wisch-Geste der Notch (swipe in Notch.qml): nur die Hintergruende wandern.
+// Der Cover-Blend der echten Karte folgt dem Zeiger (`shift`), daneben
+// haengt der Blend des naechsten bzw. vorigen Titels (ghost, nur
+// Hintergrund) und wird mit hereingezogen. Kennt MediaQueue die
+// Warteschlange (Spotify), ist das dessen Cover; sonst der aktuelle Blend.
+// Cover, Titel, Visualiser und Knopf bleiben die ganze Zeit stehen. `pull`
+// ist der Fortschritt bis zur Schwelle, -1..1 (negativ = nach links =
+// naechster Titel).
 //
-// Beim Wechsel (skipSong → commit) faehrt die zweite Karte ganz herein,
-// dann springt alles ohne Animation auf 0 zurueck. Damit der Sprung nicht
-// auffaellt, zeigt die echte Karte an dieser Stelle schon den neuen Titel
-// aus dem Schnappschuss (`flipTo`) – MPRIS hinkt dem Wechsel ein paar
-// hundert Millisekunden hinterher. Erst wenn Media nachgezogen hat (oder
-// nach einer Frist), uebernimmt wieder der Live-Stand.
+// Beim Wechsel (skipSong → commit) faehrt der zweite Blend ganz herein,
+// dann springt der Versatz ohne Animation auf 0 zurueck – der Blend der
+// echten Karte zeigt dann denselben Titel, der Sprung ist unsichtbar. Der
+// stehende Inhalt blendet derweil aus und mit dem neuen Titel wieder ein:
+// erst der alte Titel (`flipFrom`), dann der neue aus dem Schnappschuss
+// (`flipTo`) – MPRIS hinkt dem Wechsel ein paar hundert Millisekunden
+// hinterher. Erst wenn Media nachgezogen hat (oder nach einer Frist),
+// uebernimmt wieder der Live-Stand.
 Item {
     id: root
 
@@ -73,15 +76,46 @@ Item {
         onTriggered: root.flipTo = null
     }
 
+    // Ueberblenden des stehenden Inhalts beim Wechsel: raus, solange die
+    // Hintergruende fahren (commit), rein mit dem neuen Titel (pull → 0).
+    // Einmalige Animationen statt Behavior – `shift`/`pull` aendern sich pro
+    // Frame, die Deckkraft soll nur hier angestossen werden.
+    property real contentOpacity: 1
+
+    NumberAnimation {
+        id: contentOut
+
+        target: root
+        property: "contentOpacity"
+        to: 0
+        duration: Appearance.morphDuration
+        easing.type: Easing.OutCubic
+    }
+
+    NumberAnimation {
+        id: contentIn
+
+        target: root
+        property: "contentOpacity"
+        to: 1
+        duration: Appearance.fadeDuration
+        easing.type: Easing.OutCubic
+    }
+
     implicitHeight: 52
 
     onPullChanged: {
         if (root.pull === 0) {
-            // Zug vorbei (zurueckgeschnappt oder Wechsel durch): zweite Karte
-            // weg, die echte zeigt ab jetzt flipTo bzw. den Live-Stand
+            // Zug vorbei (zurueckgeschnappt oder Wechsel durch): zweiter Blend
+            // weg, der Inhalt zeigt ab jetzt flipTo bzw. den Live-Stand
             root.ghostTrack = null;
             root.ghostTrackSide = 0;
             root.flipFrom = null;
+            // Inhalt wieder her – auch nach einem abgebrochenen Wechsel
+            if (contentOut.running || root.contentOpacity < 1) {
+                contentOut.stop();
+                contentIn.restart();
+            }
             return;
         }
         const sideChanged = root.ghostTrackSide !== root.ghostSide;
@@ -100,9 +134,9 @@ Item {
         }
     }
 
-    // Vom Wechsel (Notch.skipSong) aufgerufen, bevor die zweite Karte ganz
-    // hereinfaehrt: alter Titel bleibt auf der hinausfahrenden Karte, der
-    // neue kommt vom Schnappschuss – auch wenn Media schon unterwegs umspringt.
+    // Vom Wechsel (Notch.skipSong) aufgerufen, bevor der zweite Blend ganz
+    // hereinfaehrt: der alte Titel bleibt stehen und blendet aus, der neue
+    // kommt vom Schnappschuss – auch wenn Media schon unterwegs umspringt.
     function commit(): void {
         root.flipFrom = root.shown;
         root.flipTo = root.ghostTrack;
@@ -112,11 +146,14 @@ Item {
             root.flipTo = null;
             catchUp.stop();
         }
+        contentIn.stop();
+        contentOut.restart();
     }
 
-    // ---- Zweite Karte: naechster / voriger Titel ----
-    // Haengt neben der echten Karte und faehrt mit `shift` herein. Solange
-    // nichts gezogen wird, liegt sie ausserhalb der Notch-Karte (die clippt).
+    // ---- Zweiter Blend: naechster / voriger Titel ----
+    // Nur der Hintergrund, haengt neben der echten Karte und faehrt mit
+    // `shift` herein. Solange nichts gezogen wird, liegt er ausserhalb der
+    // Notch-Karte (die clippt).
     NowPlayingCard {
         id: ghost
 
@@ -127,17 +164,19 @@ Item {
         visible: root.pull !== 0
         opacity: 0.45 + 0.55 * Math.abs(root.pull)
         fadeColor: root.fadeColor
+        showContent: false
         track: root.ghostTrack
     }
 
-    // ---- Echte Karte: gleitet als Ganzes mit dem Zeiger ----
+    // ---- Echte Karte: Blend gleitet mit dem Zeiger, Inhalt steht ----
     NowPlayingCard {
         id: card
 
         anchors.fill: parent
-        transform: Translate { x: root.shift }
         live: true
         fadeColor: root.fadeColor
+        shift: root.shift
+        contentOpacity: root.contentOpacity
         track: root.shown
     }
 }
