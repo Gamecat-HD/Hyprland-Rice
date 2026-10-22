@@ -89,7 +89,8 @@ Item {
     // Blaettern: Inhalt gleitet in Scrollrichtung herein (siehe flipWheel)
     property real slide: 0
     // Song-Wechsel per Wischen: die Jetzt-laeuft-Karte folgt dem Zeiger 1:1,
-    // daneben kommt eine Dummy-Karte (NowPlayingRow) mit herein. songPull =
+    // daneben kommt eine zweite Karte mit dem naechsten/vorigen Titel
+    // (NowPlayingRow, Queue aus MediaQueue) mit herein. songPull =
     // Fortschritt bis zur Schwelle, -1..1 (negativ = nach links = naechster
     // Titel), aus songSlide abgeleitet, damit Zurueckschnappen und Einblenden
     // dieselbe Animation nutzen.
@@ -113,17 +114,24 @@ Item {
         }
     }
 
-    // Song vor (dir = +1) oder zurueck (-1). Die Dummy-Karte faehrt ganz
+    // Song vor (dir = +1) oder zurueck (-1). Die zweite Karte faehrt ganz
     // herein (songFlip), der Player wechselt derweil; am Ende springt der
     // Versatz auf 0 und die echte Karte zeigt den neuen Titel an derselben
-    // Stelle. Geht es nicht, schnappt die Karte nur zurueck.
+    // Stelle (NowPlayingRow.commit friert dafuer alten und neuen Titel ein,
+    // bis MPRIS nachgezogen hat). Geht es nicht, schnappt die Karte nur zurueck.
     function skipSong(dir: int): void {
         const can = dir > 0 ? Media.canNext : Media.canPrevious;
         if (can) {
-            if (dir > 0)
+            nowPlaying.commit();
+            if (dir > 0) {
                 Media.next();
-            else
+            } else {
+                // Spotifys "Zurueck" startet den laufenden Titel neu, wenn er
+                // schon ein paar Sekunden laeuft – erst an den Anfang, dann
+                // springt es wirklich zum vorigen (wie im Medien-Untermenue)
+                Media.seek(0);
                 Media.previous();
+            }
             songFlip.to = -dir * nowPlaying.flipDistance;
             songFlip.restart();
         } else {
@@ -381,7 +389,7 @@ Item {
             readonly property real threshold: 60
             readonly property real follow: 0.4     // Daempfung beim Blaettern
             readonly property real followMax: 48
-            // Beim Song folgt die Karte 1:1, hoechstens bis die Dummy-Karte steht
+            // Beim Song folgt die Karte 1:1, hoechstens bis die zweite Karte steht
             readonly property real songFollowMax: nowPlaying.flipDistance
             // "song", "tabs" oder "" (nichts zu tun)
             property string kind: ""
@@ -1012,7 +1020,7 @@ Item {
             easing.type: Easing.OutCubic
         }
 
-        // Wechsel: Dummy-Karte ganz herein, dann ohne Animation zurueck auf 0
+        // Wechsel: zweite Karte ganz herein, dann ohne Animation zurueck auf 0
         NumberAnimation {
             id: songFlip
 

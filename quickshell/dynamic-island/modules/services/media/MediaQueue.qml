@@ -122,17 +122,56 @@ Singleton {
 
     // Spotify-Neustart = neue Verbindung; die alte schliesst sich von selbst
     property int clients: 0
-    onClientsChanged: root.connected = root.clients > 0
+    onClientsChanged: {
+        root.connected = root.clients > 0;
+        if (root.clients > 0)
+            root.bindFailed = false;
+    }
+
+    // Beim Hot-Reload entsteht der neue Server, bevor die alte Generation den
+    // Port freigibt -> "Adresse bereits in Gebrauch". errorString wird bei
+    // Erfolg nie geleert, darum gilt erst ein verbundener Client als Beweis.
+    // Bis dahin alle 2 s neu binden; ohne Client trennt das niemanden.
+    property bool bindFailed: false
+
+    // Angenommene Sockets ueberleben sonst den Abbau einer Reload-Generation:
+    // die Extension bliebe mit dem toten Singleton verbunden und die neue
+    // Generation bekaeme nie Daten. Also beim Abbau alles schliessen.
+    property var sockets: []
+
+    Component.onDestruction: {
+        server.listen = false;
+        for (const socket of root.sockets)
+            socket.active = false;
+    }
+
+    Timer {
+        running: root.bindFailed && root.clients === 0
+        interval: 2000
+        repeat: true
+        onTriggered: {
+            server.listen = false;
+            server.listen = true;
+        }
+    }
 
     WebSocketServer {
+        id: server
+
         listen: true
         host: "127.0.0.1"
         port: root.port
         accept: true
 
-        onErrorStringChanged: console.warn("MediaQueue:", errorString)
+        onErrorStringChanged: {
+            if (!server.errorString)
+                return;
+            console.warn("MediaQueue:", server.errorString);
+            root.bindFailed = true;
+        }
 
         onClientConnected: socket => {
+            root.sockets.push(socket);
             root.clients++;
             let gone = false; // Error und Closed koennen beide kommen
             socket.textMessageReceived.connect(root.receive);
@@ -141,6 +180,7 @@ Singleton {
                     return;
                 gone = true;
                 root.clients--;
+                root.sockets = root.sockets.filter(s => s !== socket);
             });
         }
     }
