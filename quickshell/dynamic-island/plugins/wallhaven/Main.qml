@@ -81,7 +81,9 @@ Scope {
         if (cmd === "status")
             return JSON.stringify({
                 query: root.query, items: root.items.count, page: root.page, lastPage: root.lastPage,
-                total: root.total, searching: root.searching, downloading: root.downloading, error: root.error
+                total: root.total, searching: root.searching, downloading: root.downloading, error: root.error,
+                fullPreview: root.cfg.fullPreview, prefetchingId: root.prefetchingId, screenWidth: root.screenWidth,
+                hq: (() => { let n = 0; for (let i = 0; i < root.items.count; i++) n += root.items.get(i).hq !== "" ? 1 : 0; return n; })()
             });
         return "unbekannt: open | status";
     }

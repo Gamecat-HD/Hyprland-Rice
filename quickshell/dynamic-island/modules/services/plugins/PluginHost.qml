@@ -62,8 +62,16 @@ Scope {
         };
     }
 
+    // QML-Dateien bekommen den Ladezeitpunkt als Query: Qt haelt kompilierte
+    // Komponenten pro URL im Cache, Qt.createComponent/Loader lieferten sonst
+    // bis zum Shell-Neustart den alten Stand – auch nach Hot-Reload und
+    // `plugins reload`. Zeitstempel statt Zaehler, weil ein Hot-Reload alle
+    // Objekte neu baut (ein Zaehler finge wieder bei 0 an = alte URL).
+    property string stamp: String(Date.now())
+
     function url(rel: string): string {
-        return root.dir + "/" + rel;
+        const path = root.dir + "/" + rel;
+        return rel.endsWith(".qml") ? `${path}?v=${root.stamp}` : path;
     }
 
     // ---- Main-Objekt --------------------------------------------------------
@@ -110,6 +118,7 @@ Scope {
 
     function load(): void {
         root.unload();
+        root.stamp = String(Date.now());
         const main = root.manifest?.main;
         if (!root.enabled || !main)
             return;

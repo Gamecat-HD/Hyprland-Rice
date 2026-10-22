@@ -137,7 +137,7 @@ Kinder an einem `QtObject` als `property FileView x: FileView {}` anhängen
 | `settings` | aktuelle Werte (`{ key: value }`), neues Objekt bei jeder Änderung → bindbar |
 | `setting(key)` / `set(key, value)` | lesen / schreiben (landet in `plugins.json`) |
 | `main` | das Objekt aus `main`, solange es läuft (sonst `null`) – Kacheln und Sektionen greifen so auf den Dienst zu |
-| `url(rel)` | Pfad einer Datei im Plugin-Ordner |
+| `url(rel)` | Pfad einer Datei im Plugin-Ordner (`.qml` mit `?v=<Ladezeit>` dahinter, damit Qt nach Änderungen nicht den alten Stand aus seinem Komponenten-Cache nimmt – für `Loader.setSource`/`Qt.createComponent` immer diese URL nehmen) |
 | `statePath(rel)`, `cachePath(rel)` | `~/.local/state/dynamic-island/plugins/<id>/…`, `~/.cache/…` (nicht angelegt) |
 | `log(msg)` | `console.info` mit Präfix |
 
