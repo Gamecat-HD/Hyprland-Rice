@@ -15,6 +15,11 @@
         "wallpaper": { "component": "Section.qml", "icon": "travel_explore" }
     },
     "settings": {
+        "fullPreview": {
+            "default": true,
+            "title": "Vorschau in voller Qualität",
+            "desc": "Bleibt die Auswahl kurz auf einem Treffer stehen, lädt das Vollbild in den Cache und der Hintergrund zeigt es scharf statt als Thumb. Aus bei langsamem Netz"
+        },
         "sorting": {
             "default": "top",
             "title": "Sortierung",

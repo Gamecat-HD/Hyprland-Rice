@@ -34,13 +34,31 @@ Item {
     implicitHeight: whRow.height + 1 + whWrapper.implicitHeight
 
     // Die Tastatur kommt (auch gleich beim Erzeugen): ins Suchfeld, und die
-    // Vorschau der markierten Kachel nachholen
+    // Vorschau der markierten Kachel nachholen. forceActiveFocus greift nur
+    // bei sichtbarem Feld – beim Aufklappen blendet das Panel die Sektion
+    // aber erst ein (opacity 0 -> visible false), deshalb notfalls warten,
+    // bis das Feld sichtbar ist
+    property bool wantFocus: false
+
     function focusIn(): void {
-        whSearch.forceActiveFocus();
+        section.wantFocus = true;
+        section.applyFocus();
         whList.item?.previewNow();
     }
 
-    onFocusedChanged: if (section.focused) section.focusIn()
+    function applyFocus(): void {
+        if (section.wantFocus && whSearch.visible) {
+            section.wantFocus = false;
+            whSearch.forceActiveFocus();
+        }
+    }
+
+    onFocusedChanged: {
+        if (section.focused)
+            section.focusIn();
+        else
+            section.wantFocus = false;
+    }
 
     Component.onCompleted: {
         // Der letzte Suchtext bleibt stehen – ohne neue Anfrage, der Dienst
@@ -78,6 +96,8 @@ Item {
     readonly property string status: {
         if (section.wh.downloading)
             return "lädt herunter…";
+        if (section.wh.prefetching)
+            return "HQ-Vorschau lädt…";
         if (section.wh.error !== "" && section.wh.items.count > 0)
             return section.wh.error;
         if (section.wh.items.count === 0)
@@ -131,6 +151,8 @@ Item {
             // Tipp-Pause statt jeder Taste: die API erlaubt 45 Anfragen
             // pro Minute
             onTextChanged: searchDelay.restart()
+            // `visible` ist die wirksame Sichtbarkeit (samt Eltern)
+            onVisibleChanged: section.applyFocus()
 
             Keys.onEscapePressed: section.host.close()
             Keys.onReturnPressed: event => section.apply(!(event.modifiers & Qt.ShiftModifier))

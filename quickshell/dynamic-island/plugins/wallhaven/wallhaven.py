@@ -8,7 +8,10 @@ Die Shell ruft das per Process auf und liest NDJSON von stdout:
   search   -> erst {"type": "result", "meta": …, "items": […]}, dann je fertigem
               Thumbnail {"type": "thumb", "id": …, "thumb": PFAD} (parallel geladen,
               die Kacheln koennen also sofort mit Platzhaltern erscheinen)
-  download -> {"type": "done", "id": …, "path": PFAD} bzw. {"type": "error", …}
+  fetch    -> {"type": "preview", "id": …, "path": JPG}: Vollbild in den Cache,
+              auf Bildschirmbreite verkleinert (Vorschau in voller Qualitaet)
+  download -> {"type": "done", "id": …, "path": PFAD} bzw. {"type": "error", …};
+              nimmt das Original aus dem fetch-Cache, wenn es schon da ist
 
 Kein Key noetig (SFW/Sketchy). Ein Key fuer NSFW/eigene Filter kommt aus
 $WALLHAVEN_API_KEY oder ~/.local/state/dynamic-island/plugins/wallhaven/apikey - nicht
@@ -18,7 +21,10 @@ aus shell.json/cli.json, die liegen im Dotfiles-Repo.
 import argparse
 import json
 import os
+import shutil
+import subprocess
 import sys
+import time
 from argparse import Namespace
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -35,6 +41,10 @@ state_dir = Path(os.getenv("XDG_STATE_HOME", home / ".local/state")) / "dynamic-
 wallpapers_dir = Path(os.getenv("DYNAMIC_ISLAND_WALLPAPERS_DIR", home / "Pictures/Wallpapers"))
 
 thumbs_dir: Path = cache_dir / "thumbs"
+# fetch: Originale + verkleinerte Vorschauen, nach Groesse begrenzt (prune)
+full_dir: Path = cache_dir / "full"
+preview_dir: Path = cache_dir / "preview"
+CACHE_LIMIT = 400 << 20
 key_path: Path = state_dir / "apikey"
 # Eigener Unterordner: der Scan der Shell findet die Bilder so von selbst
 download_dir: Path = wallpapers_dir / "Wallhaven"
@@ -86,10 +96,72 @@ def local_path(item_id: str) -> str | None:
 
 
 def write_atomic(path: Path, data: bytes) -> None:
+    # Eigener Name je Prozess: ein abgebrochener fetch und ein neuer duerfen
+    # sich nicht die halbe Datei teilen (Reste raeumt prune weg)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".part")
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.part")
     tmp.write_bytes(data)
     os.replace(tmp, path)
+
+
+def full_name(item_id: str, url: str) -> str:
+    ext = "png" if url.lower().endswith(".png") else "jpg"
+    return f"wallhaven-{item_id}.{ext}"
+
+
+def cached_full(item_id: str) -> Path | None:
+    for ext in ("jpg", "png"):
+        p = full_dir / f"wallhaven-{item_id}.{ext}"
+        if p.exists():
+            return p
+    return None
+
+
+def shrink(src: Path, dest: Path, width: int) -> Path:
+    """Verkleinert auf `width` (nie vergroessert) als JPEG; ohne vips/magick
+    bleibt es beim Original."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(f"{dest.stem}.{os.getpid()}.part.jpg")
+    cmds = [
+        ["vipsthumbnail", str(src), "--size", f"{width}x>", "-o", f"{tmp}[Q=88,strip]"],
+        ["magick", str(src), "-resize", f"{width}x>", "-quality", "88", "-strip", str(tmp)],
+    ]
+    for cmd in cmds:
+        try:
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except (OSError, subprocess.CalledProcessError):
+            continue
+        if tmp.exists():
+            os.replace(tmp, dest)
+            return dest
+    tmp.unlink(missing_ok=True)
+    return src
+
+
+def prune() -> None:
+    """Haelt full/ + preview/ unter CACHE_LIMIT (aelteste zuerst) und raeumt
+    Reste abgebrochener Laeufe (*.part, aelter als 10 min) weg."""
+    now = time.time()
+    files = []
+    for d in (full_dir, preview_dir, thumbs_dir):
+        if not d.is_dir():
+            continue
+        for f in d.iterdir():
+            try:
+                st = f.stat()
+            except OSError:
+                continue
+            if ".part" in f.name:
+                if now - st.st_mtime > 600:
+                    f.unlink(missing_ok=True)
+            elif d is not thumbs_dir:
+                files.append((st.st_mtime, st.st_size, f))
+    total = sum(size for _, size, _ in files)
+    for _, size, f in sorted(files):
+        if total <= CACHE_LIMIT:
+            break
+        f.unlink(missing_ok=True)
+        total -= size
 
 
 class Command:
@@ -102,6 +174,8 @@ class Command:
         try:
             if self.args.action == "search":
                 self.search()
+            elif self.args.action == "fetch":
+                self.fetch()
             elif self.args.action == "download":
                 self.download()
             elif self.args.action == "key":
@@ -195,15 +269,39 @@ class Command:
         with ThreadPoolExecutor(max_workers=8) as pool:
             list(pool.map(load, todo))
 
+    def full_url(self) -> str:
+        return self.args.url or json.loads(fetch(f"{API}/w/{self.args.id}"))["data"]["path"]
+
+    def fetch(self) -> None:
+        item_id = self.args.id
+        preview = preview_dir / f"{item_id}-{self.args.width}.jpg"
+        if not preview.exists():
+            # Schon heruntergeladen: von dort verkleinern statt neu laden
+            src = Path(p) if (p := local_path(item_id)) else cached_full(item_id)
+            if not src:
+                url = self.full_url()
+                src = full_dir / full_name(item_id, url)
+                write_atomic(src, fetch(url, timeout=120))
+            preview = shrink(src, preview, self.args.width)
+            prune()
+        else:
+            preview.touch()
+        emit({"type": "preview", "id": item_id, "path": str(preview)})
+
     def download(self) -> None:
         item_id = self.args.id
         if not (path := local_path(item_id)):
-            url = self.args.url
-            if not url:
-                url = json.loads(fetch(f"{API}/w/{item_id}"))["data"]["path"]
-            ext = "png" if url.lower().endswith(".png") else "jpg"
-            target = download_dir / f"wallhaven-{item_id}.{ext}"
-            write_atomic(target, fetch(url, timeout=120))
+            download_dir.mkdir(parents=True, exist_ok=True)
+            if cached := cached_full(item_id):
+                # Vom fetch schon da: nur umziehen (gleiches Dateisystem = sofort)
+                target = download_dir / cached.name
+                tmp = target.with_name(f"{target.name}.{os.getpid()}.part")
+                shutil.move(cached, tmp)
+                os.replace(tmp, target)
+            else:
+                url = self.full_url()
+                target = download_dir / full_name(item_id, url)
+                write_atomic(target, fetch(url, timeout=120))
             path = str(target)
 
         emit({"type": "done", "id": item_id, "path": path})
@@ -224,6 +322,11 @@ def parse_args() -> Namespace:
     p.add_argument("--colors", help="hex colour from the wallhaven palette")
     p.add_argument("-p", "--page", type=int, default=1)
     p.add_argument("--seed", help="seed of the first page for random sorting")
+
+    p = cmd.add_parser("fetch", help="cache the full image and print a screen-sized preview")
+    p.add_argument("id", help="wallhaven id, e.g. w533px")
+    p.add_argument("--url", help="full image url (skips the lookup)")
+    p.add_argument("-w", "--width", type=int, default=2560, help="preview width (never upscaled)")
 
     p = cmd.add_parser("download", help="download a wallpaper into the Wallhaven folder")
     p.add_argument("id", help="wallhaven id, e.g. w533px")

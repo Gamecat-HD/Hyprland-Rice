@@ -18,9 +18,13 @@ import qs.modules.services.config
 // die naechste Seite an.
 //
 // Beim Blaettern zeigt der Hintergrund den Treffer wie in der lokalen Reihe
-// – vor dem Download nur als hochgezogenes Thumb (Wallpapers.previewThumb,
-// Farben wie gehabt), danach die lokale Datei. Kommt das Thumb erst nach
-// der Auswahl an, zieht die Vorschau nach.
+// – zuerst als hochgezogenes Thumb (Wallpapers.previewThumb, Farben wie
+// gehabt). Bleibt die Auswahl kurz stehen (hqTimer) und die Einstellung
+// fullPreview ist an, holt der Dienst das Vollbild in den Cache und liefert
+// eine Vorschau in Bildschirmbreite (`hq`), auf die der Hintergrund dann
+// hochzieht; Weiterblaettern bricht den Abruf ab. Liegt das Bild schon
+// lokal, zeigt der Hintergrund gleich die Datei. Kommt Thumb oder HQ erst
+// nach der Auswahl an, zieht die Vorschau nach.
 Carousel {
     id: view
 
@@ -42,6 +46,9 @@ Carousel {
     readonly property string currentId: view.currentItem?.wid ?? ""
     readonly property string currentThumb: view.currentItem?.thumb ?? ""
     readonly property string currentLocal: view.currentItem?.local ?? ""
+    readonly property string currentHq: view.currentItem?.hq ?? ""
+    // Beste Vorschau, die es fuer die markierte Kachel schon gibt
+    readonly property string currentBest: view.currentLocal || view.currentHq
 
     // Uebernehmen: herunterladen und (apply) setzen – fertig setzt der
     // Dienst das Bild und schliesst die Auswahl
@@ -52,6 +59,7 @@ Carousel {
 
     function previewNow(): void {
         previewTimer.restart();
+        hqTimer.restart();
     }
 
     implicitHeight: view.itemPadding + view.imageHeight + 4 + 15 + view.itemPadding
@@ -70,11 +78,23 @@ Carousel {
     }
 
     onCurrentIndexChanged: {
-        previewTimer.restart();
+        // Weitergeblaettert: ein laufender Abruf gilt dem alten Bild
+        if (view.wh.prefetchingId !== "" && view.wh.prefetchingId !== view.currentId)
+            view.wh.cancelPrefetch();
+        view.previewNow();
         // Die letzten fuenf Kacheln: Nachschub holen, bevor man ankommt
         if (view.count > 0 && view.currentIndex >= view.count - 5)
             view.wh.loadMore();
     }
+
+    // Reihe verlassen oder zu: nichts mehr holen, was niemand sieht
+    onFocusedChanged: {
+        if (!view.focused) {
+            hqTimer.stop();
+            view.wh.cancelPrefetch();
+        }
+    }
+    Component.onDestruction: view.wh.cancelPrefetch()
 
     // Erst nach kurzem Verweilen, wie in der lokalen Reihe – sonst laeuft
     // jeder Tastendruck in einen Hintergrund-Uebergang
@@ -85,10 +105,22 @@ Carousel {
         onTriggered: {
             if (!view.focused)
                 return;
-            if (view.currentLocal !== "")
-                Wallpapers.preview(view.currentLocal);
+            if (view.currentBest !== "")
+                Wallpapers.preview(view.currentBest);
             else if (view.currentThumb !== "")
                 Wallpapers.previewThumb(view.currentThumb);
+        }
+    }
+
+    // Laenger verweilt: das Vollbild holen (der Dienst prueft die
+    // Einstellung und ob es schon da ist)
+    Timer {
+        id: hqTimer
+
+        interval: 500
+        onTriggered: {
+            if (view.focused && view.currentId !== "" && view.currentBest === "")
+                view.wh.prefetch(view.currentId);
         }
     }
 
@@ -111,11 +143,14 @@ Carousel {
         required property int favorites
         required property int views
         required property string local
+        required property string hq
         required property string phase
 
         readonly property bool isCurrent: PathView.isCurrentItem
         readonly property bool onPath: PathView.onPath
         readonly property bool downloading: item.phase === "downloading"
+        // Die HQ-Vorschau fuer diese Kachel ist unterwegs
+        readonly property bool fetching: view.wh.prefetchingId === item.wid
 
         width: view.itemWidth
         height: view.height
@@ -131,8 +166,11 @@ Carousel {
             NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
         }
 
-        // Kommt das Thumb der markierten Kachel nach, Vorschau nachholen
+        // Kommt Thumb oder HQ-Vorschau der markierten Kachel nach, Vorschau
+        // nachholen (previewNow laesst den HQ-Abruf nicht nochmal anlaufen,
+        // der Dienst kennt den Stand)
         onThumbChanged: if (item.isCurrent) view.previewNow()
+        onHqChanged: if (item.isCurrent && item.hq !== "") previewTimer.restart()
 
         // Keine Auswahl per Hover – siehe WallpaperList
         HoverHandler {
@@ -253,6 +291,34 @@ Carousel {
                     font.family: Config.font
                     font.pixelSize: 9
                     color: "#ffffff"
+                }
+            }
+
+            // HQ-Vorschau: unten rechts ein kleines "hd", pulsierend solange
+            // sie laedt, danach still – dezent, nur als Hinweis, warum der
+            // Hintergrund gleich scharf wird
+            Text {
+                id: hqBadge
+
+                anchors {
+                    right: parent.right
+                    bottom: parent.bottom
+                    margins: 6
+                }
+                visible: item.fetching || item.hq !== ""
+                text: "hd"
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 14
+                color: item.fetching ? Colors.primary : Colors.alpha("#ffffff", 0.75)
+                style: Text.Outline
+                styleColor: Colors.alpha("#000000", 0.6)
+
+                SequentialAnimation on opacity {
+                    running: item.fetching
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.3; duration: 500; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1; duration: 500; easing.type: Easing.InOutSine }
+                    onStopped: hqBadge.opacity = 1
                 }
             }
 

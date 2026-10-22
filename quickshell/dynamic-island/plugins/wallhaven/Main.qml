@@ -50,7 +50,7 @@ Scope {
     // lohnt eine Statusanzeige), `busy` solange der Prozess noch Thumbs
     // nachreicht (dann keine neue Seite anstossen)
     property bool searching: false
-    readonly property bool busy: searchProc.running
+    readonly property bool busy: searchProc.alive
     readonly property bool hasMore: root.page > 0 && root.page < Math.min(root.lastPage, root.maxPages)
     // Es gab schon eine Antwort fuer die aktuelle Suche (sonst: nichts
     // gesucht, "keine Treffer" waere falsch)
@@ -87,17 +87,21 @@ Scope {
     }
 
     // Plugin aus: nichts mehr anfragen, und zeigt der Hintergrund gerade
-    // eines unserer Thumbs, zurueck zum echten Bild
+    // eines unserer Bilder (Thumb oder HQ-Vorschau aus dem Cache), zurueck
+    // zum echten Bild
     function onDisable(): void {
-        searchProc.running = false;
+        searchProc.stop();
         downloadProc.running = false;
-        if (Wallpapers.showPreview && Wallpapers.previewPath.startsWith(root.thumbsDir))
+        root.pendingDownload = null;
+        root.cancelPrefetch();
+        if (Wallpapers.showPreview && Wallpapers.previewPath.startsWith(root.plugin.cachePath("")))
             Wallpapers.stopPreview();
     }
 
     // ---- Treffer ----
     // Rollen: wid, url, full, thumb, resolution, size, fileType, favorites,
-    // views, local (Pfad oder ""), phase ("" | "downloading" | "error").
+    // views, local (Pfad oder ""), hq (Vorschau in Bildschirmgroesse aus dem
+    // Cache oder ""), phase ("" | "downloading" | "error").
     // `wid` statt `id`: das ist in QML reserviert.
     readonly property ListModel items: ListModel {}
 
@@ -196,7 +200,6 @@ Scope {
     }
 
     function fetch(page: int): void {
-        searchProc.running = false;
         root.error = "";
         root.searching = true;
 
@@ -213,15 +216,36 @@ Scope {
         if (root.sorting === "random" && root.seed !== "")
             cmd.push("--seed", root.seed);
 
-        searchProc.page = page;
-        searchProc.command = cmd;
-        searchProc.running = true;
+        searchProc.start(cmd, page);
     }
 
     Process {
         id: searchProc
 
         property int page: 1
+        // Neustart erst, wenn der alte Prozess wirklich weg ist: Quickshell
+        // meldet dessen onExited sonst NACH dem Start des neuen (und `running`
+        // steht dann auf false, obwohl der neue laeuft) – `searching` fiele
+        // mitten in der neuen Suche ab. Darum eigenes `alive` + Warteschlange.
+        property bool alive: false
+        property var queued: null
+
+        function start(cmd: var, page: int): void {
+            if (searchProc.alive) {
+                searchProc.queued = { cmd, page };
+                searchProc.running = false;
+                return;
+            }
+            searchProc.page = page;
+            searchProc.command = cmd;
+            searchProc.alive = true;
+            searchProc.running = true;
+        }
+
+        function stop(): void {
+            searchProc.queued = null;
+            searchProc.running = false;
+        }
 
         stdout: SplitParser {
             onRead: line => {
@@ -242,8 +266,17 @@ Scope {
             }
         }
 
-        // Abgebrochen oder abgestuerzt, ohne dass eine Antwort kam
-        onExited: root.searching = false
+        // Abgebrochen oder abgestuerzt, ohne dass eine Antwort kam – oder
+        // fuer die naechste Anfrage beendet, die jetzt startet
+        onExited: {
+            searchProc.alive = false;
+            const next = searchProc.queued;
+            searchProc.queued = null;
+            if (next)
+                searchProc.start(next.cmd, next.page);
+            else
+                root.searching = false;
+        }
     }
 
     function receive(msg: var): void {
@@ -262,6 +295,7 @@ Scope {
                 favorites: Number(w.favorites ?? 0),
                 views: Number(w.views ?? 0),
                 local: w.local ?? "",
+                hq: w.hq ?? "",
                 phase: ""
             });
         }
@@ -274,11 +308,104 @@ Scope {
         root.searching = false;
     }
 
+    // ---- HQ-Vorschau ----
+    // Bleibt die Auswahl kurz auf einem Treffer stehen (WallhavenList), holt
+    // `prefetch` das Vollbild in den Cache des Plugins (wallhaven.py fetch:
+    // Original + auf Bildschirmbreite verkleinertes JPEG) und traegt das
+    // JPEG als `hq` ein – der Hintergrund zieht dann vom Thumb darauf hoch.
+    // Einer gleichzeitig; Weiterblaettern bricht ab (Prozess beenden reicht,
+    // das Skript laesst keine halben Dateien liegen). Ein spaeterer Download
+    // nimmt das Original aus dem Cache und ist damit sofort fertig.
+    property string prefetchingId: ""
+    readonly property bool prefetching: fetchProc.alive
+    // So breit wird das Vorschau-JPEG: der Monitor, auf dem die Auswahl
+    // offen ist (gleiche Breite = gleicher Cache-Eintrag)
+    readonly property int screenWidth: LauncherState.screen?.width ?? 2560
+
+    function prefetch(wid: string): void {
+        if (!root.cfg.fullPreview)
+            return;
+        const at = root.indexOf(wid);
+        if (at < 0)
+            return;
+        const item = root.items.get(at);
+        if (item.local !== "" || item.hq !== "" || (fetchProc.alive && root.prefetchingId === wid))
+            return;
+        // Wartet ein Download auf den laufenden Abruf, den nicht abbrechen
+        if (root.pendingDownload)
+            return;
+        fetchProc.start(wid, ["python3", "-I", root.script, "fetch", wid, "--url", item.full,
+            "--width", String(root.screenWidth)]);
+    }
+
+    // Laufenden Abruf abbrechen – ausser ein Download wartet auf genau ihn
+    // (Enter waehrend des Abrufs, danach weitergeblaettert)
+    function cancelPrefetch(): void {
+        fetchProc.queued = null;
+        if (root.pendingDownload && root.pendingDownload.wid === root.prefetchingId)
+            return;
+        fetchProc.running = false;
+    }
+
+    Process {
+        id: fetchProc
+
+        // Wie searchProc: Neustart erst nach dem echten Ende des alten
+        property bool alive: false
+        property var queued: null
+
+        function start(wid: string, cmd: var): void {
+            if (fetchProc.alive) {
+                fetchProc.queued = { wid, cmd };
+                fetchProc.running = false;
+                return;
+            }
+            root.prefetchingId = wid;
+            fetchProc.command = cmd;
+            fetchProc.alive = true;
+            fetchProc.running = true;
+        }
+
+        stdout: SplitParser {
+            onRead: line => {
+                let msg;
+                try {
+                    msg = JSON.parse(line);
+                } catch (e) {
+                    return;
+                }
+                if (msg.type === "preview" && msg.path)
+                    root.patch(msg.id, { hq: msg.path });
+                else if (msg.type === "error")
+                    root.plugin.log(`HQ-Vorschau ${root.prefetchingId}: ${msg.message ?? "Fehler"}`);
+            }
+        }
+
+        onExited: {
+            fetchProc.alive = false;
+            root.prefetchingId = "";
+            // Enter waehrend des Abrufs: jetzt den Download nachholen, der
+            // nimmt das Original aus dem Cache
+            const p = root.pendingDownload;
+            root.pendingDownload = null;
+            if (p)
+                root.download(p.wid, p.apply);
+            const next = fetchProc.queued;
+            fetchProc.queued = null;
+            if (next && !root.downloading)
+                fetchProc.start(next.wid, next.cmd);
+        }
+    }
+
     // ---- Download ----
     // Einer nach dem anderen: die Bilder sind 2-6 MB, und ein zweiter Klick
     // waehrend des ersten ist eher ein Versehen als ein Wunsch.
     property string downloadingId: ""
-    readonly property bool downloading: downloadProc.running
+    // Auch ein auf den Abruf wartender Download zaehlt: sonst startet ein
+    // zweiter Klick daneben, und der wartende ginge danach verloren
+    readonly property bool downloading: downloadProc.running || root.pendingDownload !== null
+    // Download, der auf das Ende eines laufenden Abrufs wartet ({ wid, apply })
+    property var pendingDownload: null
 
     // `apply`: danach als Wallpaper setzen (ueber Wallpapers.set, damit die
     // Auswahl sofort das neue Bild kennt). Liegt es schon lokal, geht es
@@ -291,6 +418,16 @@ Scope {
         if (item.local !== "") {
             root.finish(wid, item.local, apply);
             return;
+        }
+        // Laeuft gerade der Abruf fuer dieses Bild, zu Ende laden lassen
+        // statt es ein zweites Mal zu holen; ein anderer Abruf fliegt raus
+        if (fetchProc.alive) {
+            if (root.prefetchingId === wid) {
+                root.pendingDownload = { wid, apply };
+                root.items.setProperty(at, "phase", "downloading");
+                return;
+            }
+            root.cancelPrefetch();
         }
         root.downloadingId = wid;
         root.items.setProperty(at, "phase", "downloading");

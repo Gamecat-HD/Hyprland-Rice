@@ -633,8 +633,12 @@ Item {
 
         // Die zuletzt offene Sektion, bis sie ausgeblendet ist – ausser ihr
         // Plugin ist weg (ausgeschaltet): dann sofort, ihr Dienst
-        // (plugin.main) verschwindet gleich mit
+        // (plugin.main) verschwindet gleich mit. Beim Erzeugen kann schon
+        // eine offen sein (LauncherState merkt sie sich, showWallpaperSection)
+        // – dann kommt kein Wechsel-Signal, also hier setzen
         property var shown: null
+
+        Component.onCompleted: if (panel.section) sectionWrapper.shown = panel.section
 
         Connections {
             target: panel
@@ -671,7 +675,6 @@ Item {
                     sectionLoader.setSource(sectionLoader.url, { plugin: sectionWrapper.shown.plugin, host: panel.host });
             }
 
-            Component.onCompleted: sectionLoader.rebuild()
             onUrlChanged: sectionLoader.rebuild()
             onStatusChanged: {
                 if (sectionLoader.status === Loader.Error)
