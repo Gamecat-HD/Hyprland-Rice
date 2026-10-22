@@ -14,7 +14,7 @@ import Quickshell.Io
 // Entschieden wird in fish (functions/__terminal_look.fish, genutzt von
 // fastfetch.fish und conf.d/terminal-theme.fish), bei jedem Aufruf bzw.
 // Prompt. fish liest kein JSON, darum schreibt das Plugin den Stand als ein
-// Wort in eine Modus-Datei:
+// Wort in eine Modus-Datei (Plugin aus = "miku", siehe onDisable):
 //   "wallpaper"  Ordner-Look des Wallpapers, sonst Schema (Standard, auch ohne Datei)
 //   "theme"      immer Schema
 //   "miku"       immer Vocaloid-Look
@@ -68,6 +68,14 @@ QtObject {
     }
 
     onModeChanged: write()
+
+    // Plugin aus = Funktion aus: fester Vocaloid-Look statt Wechsel je
+    // Wallpaper. Ohne das bliebe die Datei auf dem letzten Stand stehen und
+    // fish wechselte weiter. Per sh, weil das Objekt gleich danach zerstoert
+    // wird (ein FileView-Schreiben koennte dabei verloren gehen).
+    function onDisable(): void {
+        Quickshell.execDetached(["sh", "-c", 'printf "%s\\n" "$1" > "$2"', "sh", "miku", root.modePath]);
+    }
 
     property FileView modeFile: FileView {
         path: root.modePath

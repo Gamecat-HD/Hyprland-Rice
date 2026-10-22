@@ -98,6 +98,12 @@ QtObject {
 
     // optional: qs -c dynamic-island ipc call plugins call <id> <cmd> <arg>
     function ipc(cmd: string, arg: string): string { return "ok"; }
+
+    // optional: nur beim echten Ausschalten (nicht bei Shell-Ende/Reload).
+    // Hier nach aussen sichtbare Spuren zuruecknehmen (Dateien, Modi …).
+    // Das Objekt wird direkt danach zerstoert – nichts Asynchrones anfangen,
+    // das es noch braucht (Quickshell.execDetached ist ok).
+    function onDisable(): void {}
 }
 ```
 

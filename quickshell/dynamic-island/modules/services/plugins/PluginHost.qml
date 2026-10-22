@@ -144,7 +144,19 @@ Scope {
         root.load();
     }
 
-    onEnabledChanged: Qt.callLater(root.load)
+    // Echtes Ausschalten (nicht Shell-Ende/Reload): dem Plugin Bescheid geben,
+    // damit es nach aussen sichtbare Spuren zuruecknehmen kann – sonst
+    // wirkt z.B. eine geschriebene Modus-Datei einfach weiter
+    onEnabledChanged: {
+        if (!root.enabled && root.instance && typeof root.instance.onDisable === "function") {
+            try {
+                root.instance.onDisable();
+            } catch (e) {
+                console.warn(`plugin ${root.pluginId}: onDisable: ${e}`);
+            }
+        }
+        Qt.callLater(root.load);
+    }
     Component.onDestruction: root.unload()
 
     // ---- Manifest -----------------------------------------------------------

@@ -72,6 +72,7 @@ def write_state(state: dict[str, Any]) -> None:
     with os.fdopen(fd, "w") as f:
         json.dump(state, f, indent=2, ensure_ascii=False)
         f.write("\n")
+    os.chmod(tmp, 0o644)  # mkstemp legt 0600 an; wie shell.json lesbar lassen
     os.replace(tmp, state_path)
 
 
