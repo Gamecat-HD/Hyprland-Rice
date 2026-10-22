@@ -105,7 +105,11 @@ Singleton {
         return out;
     }
 
+    // Stand beim Start des Bearbeitens, fuer "Abbrechen"
+    property string snapshot: ""
+
     function edit(screenName: string): void {
+        root.snapshot = JSON.stringify(root.data);
         root.target = root.currentKey !== "" ? root.currentKey : root.chainFor(root.wallpaper)[0];
         root.editScreen = screenName || (Hyprland.focusedMonitor?.name ?? "");
         root.selected = "";
@@ -114,6 +118,17 @@ Singleton {
     }
 
     function done(): void {
+        root.editing = false;
+        root.selected = "";
+        root.flush();
+    }
+
+    // Alles seit dem Start des Bearbeitens verwerfen
+    function cancel(): void {
+        if (root.snapshot !== "") {
+            root.data = JSON.parse(root.snapshot);
+            root.save();
+        }
         root.editing = false;
         root.selected = "";
         root.flush();

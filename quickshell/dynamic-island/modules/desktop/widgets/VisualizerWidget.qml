@@ -16,6 +16,8 @@ import qs.modules.services.media
 //   kapseln  freie, symmetrische Kapseln: Bass in der Mitte, nach aussen
 //            leiser und durchsichtiger, oben/unten gespiegelt
 //   welle    weiche, gefuellte Wellenform, symmetrisch
+//   unten    ueber die ganze Bildschirmbreite, unten angedockt: Balken
+//            wachsen vom Rand nach oben, Bass in der Mitte oder links
 //
 // Haengt am selben cava wie die Notch (Cava.demand). Geglaettet wird in den
 // Daten, nicht per Animation: bei jedem cava-Frame (30/s) steigen die Pegel
@@ -32,15 +34,22 @@ Item {
     property color accent: Colors.primary
 
     readonly property string style: {
-        const s = root.opts.style ?? "insel";
+        const s = root.opts.style ?? "kapseln";
         return ({ "saeulen": "kapseln", "spiegel": "kapseln", "punkte": "kapseln" })[s] ?? s;
     }
     readonly property bool live: root.active && Media.playing
     readonly property bool idleShown: root.opts.idle === "ruhig"
-    readonly property int bars: root.style === "insel" ? 5 : Math.max(8, Number(root.opts.bars ?? 32))
+    readonly property int bars: root.style === "insel" ? 5
+                              : Math.max(8, Number(root.opts.bars ?? (root.style === "unten" ? 64 : 32)))
 
-    implicitWidth: root.style === "insel" ? island.width : free.width
-    implicitHeight: root.style === "insel" ? island.height : free.height
+    // "unten": der Host dockt an der Unterkante an und reicht die Breite durch
+    readonly property string dock: root.style === "unten" ? "unten" : ""
+    property real areaWidth: 0
+    // Bass in der Mitte (symmetrisch) oder links (klassisches Spektrum)
+    readonly property bool fromLeft: root.opts.order === "links"
+
+    implicitWidth: root.style === "insel" ? island.width : root.style === "unten" ? root.areaWidth : free.width
+    implicitHeight: root.style === "insel" ? island.height : root.style === "unten" ? floor.height : free.height
 
     opacity: root.live || root.editing || (root.idleShown && Media.available) ? 1 : 0
     visible: opacity > 0
@@ -76,7 +85,9 @@ Item {
         const prev = root.levels.length === n ? root.levels : new Array(n).fill(0);
         const next = new Array(n);
         for (let i = 0; i < n; i++) {
-            const f = Math.abs(i - half) / Math.max(1, half);
+            const f = root.fromLeft && root.style === "unten"
+                ? i / Math.max(1, n - 1)
+                : Math.abs(i - half) / Math.max(1, half);
             const target = root.band(f);
             const p = prev[i];
             next[i] = target > p ? p + (target - p) * 0.65 : Math.max(target, p - 0.045);
@@ -171,6 +182,47 @@ Item {
                         return top.concat(bottom.reverse(), [Qt.point(0, mid)]);
                     }
                 }
+            }
+        }
+    }
+
+    // ---- Unten angedockt, volle Breite ----
+    // Balken wachsen vom Bildschirmrand nach oben, oben rund, unten buendig,
+    // leicht durchsichtig, damit die Flaeche nicht aufs Bild drueckt.
+    Item {
+        id: floor
+
+        visible: root.style === "unten"
+        width: root.areaWidth
+        height: Math.round(root.unit * 11)
+
+        readonly property real slot: floor.width / root.bars
+        readonly property real barW: Math.max(2, Math.round(floor.slot * 0.6))
+
+        Repeater {
+            model: root.style === "unten" ? root.bars : 0
+
+            Rectangle {
+                id: col
+
+                required property int index
+
+                readonly property real f: root.fromLeft ? col.index / Math.max(1, root.bars - 1)
+                    : Math.abs(col.index - (root.bars - 1) / 2) / Math.max(1, (root.bars - 1) / 2)
+                readonly property real v: root.levels[col.index] ?? 0
+
+                x: Math.round(col.index * floor.slot + (floor.slot - floor.barW) / 2)
+                width: floor.barW
+                height: Math.max(Math.round(floor.barW / 2), Math.round(col.v * floor.height))
+                y: floor.height - height
+                topLeftRadius: width / 2
+                topRightRadius: width / 2
+                // Feste Farbe statt Verlauf je Balken: 64 Verlaeufe auf zwei
+                // Monitoren kosteten gemessen ~2 % CPU mehr
+                color: col.tint
+                opacity: 0.85
+
+                readonly property color tint: root.fromLeft ? root.accent : Colors.mix(root.accent, root.color, col.f * 0.4)
             }
         }
     }

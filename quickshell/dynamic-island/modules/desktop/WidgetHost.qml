@@ -46,12 +46,26 @@ Item {
 
     readonly property var opts: Object.assign(DesktopWidgets.defaults(host.widget?.type ?? ""), host.widget?.opts ?? {})
 
+    // Angedockte Widgets (z.B. Visualiser "unten") setzen `dock` und bekommen
+    // die volle Breite (`areaWidth`); x/y aus der Szene gelten dann nicht
+    readonly property string dock: loader.item?.dock ?? ""
+    readonly property real areaW: host.parent?.width ?? 0
+    readonly property real areaH: host.parent?.height ?? 0
+
     width: Math.max(host.editing ? 40 : 0, loader.item?.implicitWidth ?? 0)
     height: Math.max(host.editing ? 24 : 0, loader.item?.implicitHeight ?? 0)
-    x: Math.round(host.cx - host.width / 2)
-    y: Math.round(host.cy - host.height / 2)
+    x: host.dock !== "" ? 0 : Math.round(host.cx - host.width / 2)
+    y: host.dock === "unten" ? host.areaH - host.height
+     : host.dock === "oben" ? 0
+     : Math.round(host.cy - host.height / 2)
     visible: host.widget !== null && host.info !== null
-    z: host.selected ? 2 : 1
+    z: host.selected ? 3 : 1
+
+    function select(): void {
+        Scenes.selected = host.widget.id;
+    }
+
+    onSelectedChanged: if (host.selected && host.parent && host.parent.selectedHost !== undefined) host.parent.selectedHost = host
 
     Loader {
         id: loader
@@ -109,6 +123,12 @@ Item {
         value: Config.desktop.fps
         when: loader.item !== null && loader.item.fps !== undefined
     }
+    Binding {
+        target: loader.item
+        property: "areaWidth"
+        value: host.areaW
+        when: loader.item !== null && loader.item.areaWidth !== undefined
+    }
     // Plugin-Widgets kommen an ihr Plugin (Einstellungen, Ordner) ueber `plugin`
     Binding {
         target: loader.item
@@ -119,19 +139,28 @@ Item {
 
     // ---- Bearbeiten ----
 
+    // Auswahlrahmen (8 px um das Widget). Liegt das Optionsfeld buendig an
+    // seiner linken Kante an, wird die Ecke dort eckig – Rahmen und Feld
+    // lesen sich dann als eine Flaeche.
+    readonly property real frame: 8
+
     Rectangle {
+        id: frameRect
+
         anchors.fill: parent
-        anchors.margins: -8
+        anchors.margins: -host.frame
         visible: host.editing
-        radius: 10
+        radius: 12
+        bottomLeftRadius: options.item && options.item.flushBelow ? 0 : 12
+        topLeftRadius: options.item && options.item.flushAbove ? 0 : 12
         color: host.selected ? Colors.alpha(Colors.primary, 0.08) : "transparent"
         border.width: host.selected ? 2 : 1
         border.color: host.selected ? Colors.primary : Colors.alpha("#ffffff", hoverArea.hovered ? 0.6 : 0.3)
 
-        // Typ als kleines Etikett oben links
+        // Typ als kleines Etikett oben links (nicht, wenn das Feld dort andockt)
         Rectangle {
-            visible: host.selected || hoverArea.hovered
-            x: 8
+            visible: (host.selected || hoverArea.hovered) && !(options.item && options.item.flushAbove)
+            x: 10
             y: -height / 2
             width: label.implicitWidth + 12
             height: 18
@@ -155,12 +184,63 @@ Item {
         id: hoverArea
 
         enabled: host.editing
-        cursorShape: dragger.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        cursorShape: host.dock !== "" ? Qt.PointingHandCursor
+                   : dragger.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
     }
 
+    // Auswahl schon beim Druecken – das Optionsfeld ist sofort da
     TapHandler {
         enabled: host.editing
-        onTapped: Scenes.selected = host.widget.id
+        gesturePolicy: TapHandler.DragThreshold
+        onPressedChanged: if (pressed) host.select()
+    }
+
+    // Optionsfeld: unter dem Rahmen, sonst darueber; linksbuendig mit dem
+    // Rahmen, am Bildschirmrand eingefangen. Angedockte (volle Breite) mittig.
+    Loader {
+        id: options
+
+        active: host.selected && !host.dragging
+        z: 10
+
+        sourceComponent: WidgetOptions {
+            id: pop
+
+            widget: host.widget
+            screenName: host.screenName
+
+            readonly property real fx: host.x - host.frame
+            readonly property real fy: host.y - host.frame
+            readonly property real fw: host.width + host.frame * 2
+            readonly property real fh: host.height + host.frame * 2
+            readonly property bool below: pop.fy + pop.fh + pop.height + 16 <= host.areaH
+            readonly property real px: host.dock !== "" ? Math.round((host.areaW - pop.width) / 2)
+                                     : Math.max(16, Math.min(host.areaW - pop.width - 16, pop.fx))
+            readonly property bool aligned: host.dock === "" && pop.px === pop.fx
+            readonly property bool flushBelow: pop.aligned && pop.below
+            readonly property bool flushAbove: pop.aligned && !pop.below
+
+            width: implicitWidth
+            height: implicitHeight
+            // 2 px Ueberlappung: Rand von Rahmen und Feld fallen zusammen
+            x: pop.px - host.x
+            y: (pop.below ? pop.fy + pop.fh - 2 : pop.fy - pop.height + 2) - host.y
+            radius: 14
+            // Angedockt (volle Breite): sitzt wie ein Reiter auf dem Rahmen
+            topLeftRadius: pop.flushBelow || (host.dock !== "" && pop.below) ? 0 : 14
+            topRightRadius: host.dock !== "" && pop.below ? 0 : 14
+            bottomLeftRadius: pop.flushAbove || (host.dock !== "" && !pop.below) ? 0 : 14
+            bottomRightRadius: host.dock !== "" && !pop.below ? 0 : 14
+        }
+    }
+
+    // Liegt ein Punkt (Koordinaten der Buehne) auf dem Optionsfeld?
+    function optionsContain(px: real, py: real): bool {
+        const it = options.item;
+        if (!it)
+            return false;
+        const p = it.mapFromItem(host.parent, px, py);
+        return p.x >= 0 && p.y >= 0 && p.x <= it.width && p.y <= it.height;
     }
 
     // Einrasten: Mittelpunkt auf Drittel/Mitte, Kanten an den Rand (mit
@@ -178,7 +258,7 @@ Item {
     DragHandler {
         id: dragger
 
-        enabled: host.editing
+        enabled: host.editing && host.dock === ""
         target: null
         dragThreshold: 4
 
@@ -219,8 +299,8 @@ Item {
     // Groesse: Griff unten rechts
     Rectangle {
         visible: host.selected
-        x: parent.width + 8 - width / 2
-        y: parent.height + 8 - height / 2
+        x: parent.width - (host.dock !== "" ? 40 : -8) - width / 2
+        y: (host.dock === "unten" ? -8 : parent.height + 8) - height / 2
         width: 16
         height: 16
         radius: 8
@@ -240,11 +320,13 @@ Item {
 
             property real startSize: 1
             property real startW: 1
+            property real startH: 1
 
             onActiveChanged: {
                 if (sizer.active) {
                     sizer.startSize = host.widget?.size ?? 1;
                     sizer.startW = Math.max(20, host.width);
+                    sizer.startH = Math.max(20, host.height);
                     host.liveSize = sizer.startSize;
                     return;
                 }
@@ -254,8 +336,11 @@ Item {
             onTranslationChanged: {
                 if (!sizer.active)
                     return;
-                // Mittelpunkt bleibt stehen -> die Ecke wandert halb so schnell
-                const grow = (sizer.startW / 2 + Math.max(sizer.translation.x, sizer.translation.y)) / (sizer.startW / 2);
+                // Angedockt unten: nach oben ziehen = hoeher. Sonst bleibt der
+                // Mittelpunkt stehen -> die Ecke wandert halb so schnell
+                const grow = host.dock === "unten"
+                    ? (sizer.startH - sizer.translation.y) / sizer.startH
+                    : (sizer.startW / 2 + Math.max(sizer.translation.x, sizer.translation.y)) / (sizer.startW / 2);
                 host.liveSize = Math.max(0.3, Math.min(8, sizer.startSize * grow));
             }
         }

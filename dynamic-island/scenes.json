@@ -5,12 +5,12 @@
       {
         "id": "wclo00",
         "type": "clock",
-        "x": 0.14,
-        "y": 0.14,
-        "size": 1.0,
+        "x": 0.13,
+        "y": 0.17,
+        "size": 1.2,
         "monitor": "*",
         "opts": {
-          "style": "insel",
+          "style": "sperrbildschirm",
           "date": true,
           "color": "#ffffff",
           "accent": "#fcee0a"
@@ -20,7 +20,7 @@
         "id": "wlyr01",
         "type": "lyrics",
         "x": 0.8,
-        "y": 0.79,
+        "y": 0.78,
         "size": 0.9,
         "monitor": "*",
         "opts": {
@@ -35,13 +35,14 @@
         "type": "visualizer",
         "x": 0.8,
         "y": 0.9,
-        "size": 1.0,
+        "size": 1,
         "monitor": "*",
         "opts": {
-          "style": "insel",
-          "bars": 48,
+          "style": "unten",
+          "bars": 64,
+          "order": "mitte",
           "idle": "ausblenden",
-          "color": "#fcee0a",
+          "color": "#ffffff",
           "accent": "#fcee0a"
         }
       }
@@ -236,12 +237,28 @@
         "id": "wlyr15",
         "type": "lyrics",
         "x": 0.5,
-        "y": 0.93,
+        "y": 0.8,
         "size": 0.9,
         "monitor": "*",
         "opts": {
           "lines": 1,
           "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#ff2bd6"
+        }
+      },
+      {
+        "id": "wvisu1",
+        "type": "visualizer",
+        "x": 0.5,
+        "y": 0.95,
+        "size": 1,
+        "monitor": "*",
+        "opts": {
+          "style": "unten",
+          "bars": 96,
+          "order": "mitte",
+          "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#ff2bd6"
         }
@@ -266,12 +283,28 @@
         "id": "wlyr17",
         "type": "lyrics",
         "x": 0.5,
-        "y": 0.88,
+        "y": 0.78,
         "size": 1,
         "monitor": "*",
         "opts": {
           "lines": 3,
           "align": "mitte",
+          "color": "hell",
+          "accent": "primary"
+        }
+      },
+      {
+        "id": "wvisu2",
+        "type": "visualizer",
+        "x": 0.5,
+        "y": 0.95,
+        "size": 1,
+        "monitor": "*",
+        "opts": {
+          "style": "unten",
+          "bars": 64,
+          "order": "mitte",
+          "idle": "ausblenden",
           "color": "hell",
           "accent": "primary"
         }
@@ -420,14 +453,14 @@
         "id": "wclo27",
         "type": "clock",
         "x": 0.2,
-        "y": 0.15,
-        "size": 1.0,
+        "y": 0.2,
+        "size": 1.1,
         "monitor": "*",
         "opts": {
-          "style": "insel",
+          "style": "sperrbildschirm",
           "date": true,
-          "color": "#ffffff",
-          "accent": "#39c5bb"
+          "color": "#1c2a3a",
+          "accent": "#1f8f9c"
         }
       },
       {

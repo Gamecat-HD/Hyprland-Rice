@@ -41,8 +41,9 @@ Singleton {
             url: root.dir + "/VisualizerWidget.qml",
             size: [26, 7],
             options: {
-                style: { title: "Stil", values: ["insel", "kapseln", "welle"], default: "insel" },
-                bars: { title: "Balken", values: [16, 24, 32, 48], default: 32 },
+                style: { title: "Stil", values: ["kapseln", "unten", "welle", "insel"], default: "kapseln" },
+                bars: { title: "Balken", values: [16, 24, 32, 48, 64, 96], default: 32 },
+                order: { title: "Bass", values: ["mitte", "links"], default: "mitte" },
                 idle: { title: "Ohne Musik", values: ["ausblenden", "ruhig"], default: "ausblenden" }
             }
         },

@@ -69,6 +69,10 @@ PanelWindow {
         anchors.fill: parent
         focus: win.editingHere
 
+        // Ausgewaehltes Widget (setzt WidgetHost) – fuer "Klick ins Leere"
+        property Item selectedHost: null
+
+        // Esc: erst Auswahl weg, dann Abbrechen (alles zurueck). Enter: Fertig.
         Keys.onPressed: event => {
             if (!win.editingHere)
                 return;
@@ -78,7 +82,9 @@ PanelWindow {
                 if (Scenes.selected !== "")
                     Scenes.selected = "";
                 else
-                    Scenes.done();
+                    Scenes.cancel();
+            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                Scenes.done();
             } else if (sel && (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace)) {
                 Scenes.remove(sel.id);
             } else if (sel && event.key === Qt.Key_Left) {
@@ -101,12 +107,24 @@ PanelWindow {
 
         // Bearbeiten: Grund leicht abdunkeln, Drittel-Linien andeuten
         Rectangle {
+            id: backdrop
+
             anchors.fill: parent
             visible: win.editingHere
             color: Colors.alpha("#000000", 0.28)
 
+            // Nur ein Klick auf freie Flaeche hebt die Auswahl auf – nicht auf
+            // ein Widget, sein Optionsfeld oder die Leiste
             TapHandler {
-                onTapped: Scenes.selected = ""
+                onTapped: point => {
+                    const x = point.position.x, y = point.position.y;
+                    const hit = stage.childAt(x, y);
+                    if (hit && hit !== backdrop)
+                        return;
+                    if (stage.selectedHost && stage.selectedHost.optionsContain(x, y))
+                        return;
+                    Scenes.selected = "";
+                }
             }
 
             Repeater {
@@ -205,6 +223,8 @@ PanelWindow {
         // Bearbeitungsleiste unten mittig
         Loader {
             active: win.editingHere
+            // ueber den Widgets (auch ueber dem Visualiser "unten")
+            z: 20
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 36
