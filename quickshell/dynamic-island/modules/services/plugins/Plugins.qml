@@ -17,8 +17,9 @@ import qs.modules.services.config
 //                 main (Dienst, laeuft solange das Plugin an ist),
 //                 settings (Schluessel -> { default, title, desc, options,
 //                 min/max/step/unit, requires }), tiles (Schnellkacheln),
-//                 files (externe Dateien, die zum Plugin gehoeren – fuer
-//                 Export/Import ueber `dynamic-island plugin`)
+//                 panels (Sektionen in Ansichten der Shell, z.B. der
+//                 Wallpaper-Auswahl), files (externe Dateien, die zum Plugin
+//                 gehoeren – fuer Export/Import ueber `dynamic-island plugin`)
 //
 // Zustand (an/aus + Einstellungswerte) liegt pro Rechner in
 //   ~/.config/dynamic-island/plugins.json
@@ -238,6 +239,36 @@ Singleton {
         target: QuickLayout
         property: "extraTiles"
         value: root.tiles
+    }
+
+    // Sektionen in Ansichten der Shell: "<ansicht>" -> [{ pluginId, icon, url,
+    // plugin (PluginContext) }], je Plugin hoechstens eine je Ansicht
+    // (Manifest `panels`). Einzige Ansicht bisher: "wallpaper" – die
+    // Wallpaper-Auswahl haengt sie unter ihre lokale Reihe (WallpaperPanel,
+    // Vertrag in plugins/README.md). Hat das Plugin einen Dienst (`main`),
+    // erscheint die Sektion erst, wenn er laeuft – sie greift ueber
+    // plugin.main darauf zu.
+    readonly property var panels: {
+        const out = {};
+        for (const h of root.hosts) {
+            if (!h.enabled || !h.valid || (h.manifest.main && !h.instance))
+                continue;
+            const panels = h.manifest.panels ?? {};
+            for (const name in panels) {
+                const p = panels[name];
+                if (!p?.component)
+                    continue;
+                if (!out[name])
+                    out[name] = [];
+                out[name].push({
+                    pluginId: h.pluginId,
+                    icon: p.icon ?? h.icon,
+                    url: h.url(p.component),
+                    plugin: h.context
+                });
+            }
+        }
+        return out;
     }
 
     // Launcher-Aktionen aus `actions` der Main-Objekte (gleiches Format wie

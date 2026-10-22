@@ -22,7 +22,7 @@ Carousel {
     // Wird gesetzt, wenn ein Bild uebernommen wurde (der Launcher schliesst dann)
     signal applied
 
-    // Hat diese Reihe die Tastatur? Sonst (Wallhaven-Reihe aktiv) ist der
+    // Hat diese Reihe die Tastatur? Sonst (Plugin-Sektion aktiv) ist der
     // Rahmen der markierten Kachel gedimmt.
     property bool focused: true
 

@@ -110,6 +110,13 @@ def check_manifest(m: Any, folder: str | None = None) -> str:
         comp = tile.get("component") if isinstance(tile, dict) else None
         if not re.match(r"^[a-z0-9][a-z0-9-]*$", tid) or not isinstance(comp, str) or ".." in comp:
             return f"tiles.{tid}: id oder component ungueltig"
+    panels = m.get("panels", {})
+    if not isinstance(panels, dict):
+        return "panels muss ein Objekt sein"
+    for name, panel in panels.items():
+        comp = panel.get("component") if isinstance(panel, dict) else None
+        if not re.match(r"^[a-z][a-z0-9-]*$", name) or not isinstance(comp, str) or ".." in comp:
+            return f"panels.{name}: Ansicht oder component ungueltig"
     files = m.get("files", [])
     if not isinstance(files, list):
         return "files muss eine Liste sein"
@@ -303,7 +310,9 @@ class Validate(Command):
             m, problem = load_manifest(path)
             if m is None:
                 raise PluginError(problem)
-            for rel in [m.get("main")] + [t["component"] for t in m.get("tiles", {}).values()]:
+            components = [t["component"] for t in m.get("tiles", {}).values()]
+            components += [p["component"] for p in m.get("panels", {}).values()]
+            for rel in [m.get("main")] + components:
                 if rel and not (path / rel).is_file():
                     raise PluginError(f"{rel} fehlt im Plugin-Ordner")
             return {"ok": True, "message": f"{m['id']} {m.get('version', '?')}: in Ordnung", "id": m["id"]}

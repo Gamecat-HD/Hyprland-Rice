@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
+import qs.modules.services.plugins
 import qs.modules.services.theme
 import qs.modules.services.wallpaper
 
@@ -15,19 +16,25 @@ import qs.modules.widgets
 // dritte Ansicht – welche gilt, sagt LauncherState.mode. Bewusst ein eigenes
 // Panel statt eines Modus im Launcher: eigenes Suchfeld, eigene Breite.
 //
-// Unter der Stil-Reihe klappt auf Wunsch die Wallhaven-Suche auf (Knopf in
-// der Suchzeile oder Strg+W): eigene Suchzeile mit Sortier-Chips und ein
-// zweites Karussell mit den Treffern. Die lokale Reihe bleibt dabei stehen,
-// die Notch waechst nur nach unten (Morph).
+// Unter der Stil-Reihe koennen Plugins eine Sektion anhaengen (Manifest
+// `panels.wallpaper`, Plugins.panels): je Sektion ein Knopf in der Suchzeile,
+// aufgeklappt ist hoechstens eine. Die lokale Reihe bleibt dabei stehen, die
+// Notch waechst nur nach unten (Morph). Welche offen ist, merkt sich
+// LauncherState – ueber das Schliessen hinweg, das Panel entsteht ja jedes
+// Mal neu.
 //
-// Tasten (gelten in beiden Suchfeldern, `row` sagt, welche Reihe sie hat):
+// Vertrag mit der Sektion (plugins/README.md, "Sektionen"): das Panel laedt
+// ihre QML-Datei mit `plugin` (Kontext) und `host` (s.u.); sie bringt ihr
+// Suchfeld und ihre Tasten selbst mit und meldet ueber host zurueck. Ihre
+// implicitHeight sagt, wie weit die Karte waechst.
+//
+// Tasten (im lokalen Suchfeld; die Sektion belegt ihres gleich):
 //   Esc               schliessen
-//   Links/Rechts, Tab blaettern in der aktiven Reihe
-//   Hoch/Runter       Wallhaven zu: blaettern; offen: Reihe wechseln
-//   Enter             lokal: setzen – Wallhaven: herunterladen + setzen
-//   Shift+Enter       Wallhaven: nur herunterladen
+//   Links/Rechts, Tab blaettern in der Reihe
+//   Hoch/Runter       Sektion zu: blaettern; offen: Tastatur in die Sektion
+//   Enter             setzen
 //   Strg+Links/Rechts Stil des markierten lokalen Bilds wechseln
-//   Strg+W            Wallhaven auf-/zuklappen
+//   Strg+W            Sektionen durchschalten (auf, naechste, ..., zu)
 Item {
     id: panel
 
@@ -56,69 +63,91 @@ Item {
     // Kachelbreite; die Hoehe darunter haengt daran (16:9 + Beschriftung)
     readonly property real imageWidth: 175
     implicitHeight: searchRow.height + 1 + listWrapper.implicitHeight + 1 + styleRow.height
-        + (panel.whOpen ? 1 + whSection.implicitHeight : 0)
+        + (panel.sectionOpen ? 1 + sectionWrapper.implicitHeight : 0)
 
-    // ---- Wallhaven ----
-    // Aufgeklappt merkt sich der Dienst (bleibt ueber das Schliessen hinweg);
-    // welche Reihe die Tastatur hat, faengt bei jedem Oeffnen lokal an.
-    readonly property bool whOpen: Wallhaven.expanded
+    // ---- Plugin-Sektionen ----
+    // [{ pluginId, icon, url, plugin }] der aktiven Plugins; offen ist die
+    // mit der id aus LauncherState (und nur, solange es sie noch gibt)
+    readonly property var sections: Plugins.panels.wallpaper ?? []
+    readonly property string openSection: LauncherState.wallpaperSection
+    readonly property var section: panel.sections.find(s => s.pluginId === panel.openSection) ?? null
+    readonly property bool sectionOpen: panel.section !== null
+
+    // Welche Reihe die Tastatur hat: "local" oder "section". Faengt bei
+    // jedem Oeffnen lokal an, ausser LauncherState verlangt die Sektion.
     property string row: "local"
-    readonly property bool whFocused: panel.whOpen && panel.row === "wallhaven"
+    readonly property bool sectionFocused: panel.sectionOpen && panel.row === "section"
 
     function focusRow(name: string): void {
-        if (name === "wallhaven" && !panel.whOpen)
+        if (name === "section" && !panel.sectionOpen)
             name = "local";
         panel.row = name;
-        if (name === "wallhaven")
-            whSearch.forceActiveFocus();
-        else
+        // Die Sektion holt sich die Tastatur selbst, sobald host.focused kippt
+        if (name === "local")
             search.forceActiveFocus();
     }
 
-    // Beim Reihenwechsel die Vorschau der neuen Reihe nachholen – die
-    // Karussells zeigen sie nur beim Blaettern
+    // Zurueck in der lokalen Reihe: deren Vorschau nachholen – die Karussells
+    // zeigen sie nur beim Blaettern. (Die Sektion macht das fuer sich, wenn
+    // host.focused kippt.)
     onRowChanged: {
         if (panel.row === "local") {
             const path = walls.item?.currentPath ?? "";
             if (path !== "")
                 Wallpapers.preview(path);
-        } else {
-            whList.item?.previewNow();
         }
     }
 
-    function toggleWallhaven(): void {
-        Wallhaven.expanded = !Wallhaven.expanded;
-        if (Wallhaven.expanded) {
-            // Ohne Suchtext gleich etwas zeigen (Toplist o.ae. laut Config)
-            if (!Wallhaven.answered && !Wallhaven.searching)
-                Wallhaven.search(whSearch.text, false);
-            panel.focusRow("wallhaven");
-        } else {
+    // Sektion weg (zugeklappt, Plugin aus): die Tastatur darf nicht in ihrem
+    // Suchfeld haengen bleiben
+    onSectionOpenChanged: if (!panel.sectionOpen && panel.row === "section") panel.focusRow("local")
+
+    // Aufklappen (""= zu); die Tastatur geht mit
+    function openSectionTo(id: string): void {
+        LauncherState.wallpaperSection = id;
+        panel.focusRow(id !== "" ? "section" : "local");
+    }
+
+    // Knopf in der Suchzeile: dieselbe nochmal = zu
+    function toggleSection(id: string): void {
+        panel.openSectionTo(panel.openSection === id ? "" : id);
+    }
+
+    // Strg+W: erste auf, dann die naechste, nach der letzten zu
+    function cycleSection(): void {
+        const ids = panel.sections.map(s => s.pluginId);
+        const at = ids.indexOf(panel.openSection);
+        panel.openSectionTo(at + 1 < ids.length ? ids[at + 1] : "");
+    }
+
+    // Was die Sektion von der Auswahl sieht (Vertrag in plugins/README.md)
+    readonly property QtObject host: QtObject {
+        // Masse der lokalen Reihe, damit die Sektion dazu passt
+        readonly property real listHeight: panel.listHeight
+        readonly property real imageWidth: panel.imageWidth
+        // Die Sektion hat die Tastatur: Suchfeld fokussieren, Vorschau ihrer
+        // markierten Kachel zeigen. Kann beim Erzeugen schon true sein.
+        readonly property bool focused: panel.sectionFocused
+
+        // Die Sektion will die Tastatur (Klick oder Rad auf eine Kachel)
+        function takeFocus(): void {
+            panel.focusRow("section");
+        }
+        // Tastatur zurueck in die lokale Reihe (Hoch/Runter)
+        function leaveFocus(): void {
             panel.focusRow("local");
         }
-    }
-
-    // Enter im Wallhaven-Feld: steht eine Suche noch aus (Tipp-Pause), erst
-    // die; sonst den markierten Treffer uebernehmen
-    function whApply(set: bool): void {
-        if (searchDelay.running) {
-            searchDelay.stop();
-            Wallhaven.search(whSearch.text, false);
-        } else {
-            whList.item?.apply(set);
+        // Strg+W in der Sektion: weiter zur naechsten bzw. zu
+        function toggle(): void {
+            panel.cycleSection();
         }
-    }
-
-    // Fertig heruntergeladen und gesetzt: zu, wie beim lokalen Setzen. Beim
-    // reinen Download bleibt die Auswahl offen – die Kachel traegt dann das
-    // Haekchen, und das Bild steht in der lokalen Reihe.
-    Connections {
-        target: Wallhaven
-
-        function onDownloaded(wid: string, path: string, applied: bool): void {
-            if (applied && panel.active)
-                LauncherState.close();
+        // Auswahl schliessen (Esc)
+        function close(): void {
+            LauncherState.close();
+        }
+        // Strg+Links/Rechts: Stil des markierten lokalen Bilds
+        function cycleStyle(delta: int): void {
+            panel.cycleStyle(delta);
         }
     }
 
@@ -161,11 +190,24 @@ Item {
     onActiveChanged: {
         if (active) {
             search.text = "";
-            // Der letzte Wallhaven-Suchtext bleibt stehen (ohne neue Anfrage:
-            // der Dienst kennt ihn schon)
-            whSearch.text = Wallhaven.query;
-            panel.row = "local";
-            search.forceActiveFocus();
+            // Tastatur lokal – ausser jemand hat die Sektion verlangt
+            // (showWallpaperSection, z.B. per IPC aus dem Plugin)
+            const toSection = LauncherState.wallpaperSectionFocus && panel.sectionOpen;
+            LauncherState.wallpaperSectionFocus = false;
+            panel.focusRow(toSection ? "section" : "local");
+        }
+    }
+
+    // Dasselbe bei schon offener Auswahl (die Sektion ist dann ueber die
+    // Bindung an LauncherState.wallpaperSection bereits aufgeklappt)
+    Connections {
+        target: LauncherState
+
+        function onWallpaperSectionFocusChanged(): void {
+            if (LauncherState.wallpaperSectionFocus && panel.active) {
+                LauncherState.wallpaperSectionFocus = false;
+                panel.focusRow("section");
+            }
         }
     }
 
@@ -201,7 +243,7 @@ Item {
             anchors {
                 left: searchIcon.right
                 leftMargin: 12
-                right: wallhavenButton.left
+                right: sectionButtons.left
                 rightMargin: 12
                 verticalCenter: parent.verticalCenter
             }
@@ -229,13 +271,13 @@ Item {
                 else
                     walls.item?.moveBy(1);
             }
-            // Mit offenem Wallhaven wechseln Hoch/Runter die Reihe
-            Keys.onUpPressed: panel.whOpen ? panel.focusRow("wallhaven") : walls.item?.moveBy(-1)
-            Keys.onDownPressed: panel.whOpen ? panel.focusRow("wallhaven") : walls.item?.moveBy(1)
+            // Mit offener Sektion wechseln Hoch/Runter die Reihe
+            Keys.onUpPressed: panel.sectionOpen ? panel.focusRow("section") : walls.item?.moveBy(-1)
+            Keys.onDownPressed: panel.sectionOpen ? panel.focusRow("section") : walls.item?.moveBy(1)
             Keys.onTabPressed: walls.item?.moveBy(1)
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_W && (event.modifiers & Qt.ControlModifier)) {
-                    panel.toggleWallhaven();
+                    panel.cycleSection();
                     event.accepted = true;
                 }
             }
@@ -250,40 +292,55 @@ Item {
             }
         }
 
-        // Wallhaven auf-/zuklappen; aufgeklappt bleibt der Knopf getoent
-        Rectangle {
-            id: wallhavenButton
+        // Ein Knopf je Plugin-Sektion (auf-/zuklappen); die offene bleibt
+        // getoent. Ohne Plugins ist die Reihe leer und nimmt keinen Platz.
+        Row {
+            id: sectionButtons
 
             anchors {
                 right: shuffleButton.left
                 rightMargin: 4
                 verticalCenter: parent.verticalCenter
             }
-            width: 32
-            height: 32
-            radius: height / 2
-            color: panel.whOpen ? Colors.alpha(Colors.primary, wallhavenArea.containsMouse ? 0.28 : 0.18)
-                : wallhavenArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08) : "transparent"
+            spacing: 4
 
-            Behavior on color {
-                ColorAnimation { duration: 90 }
-            }
+            Repeater {
+                model: panel.sections
 
-            MouseArea {
-                id: wallhavenArea
+                delegate: Rectangle {
+                    id: sectionButton
 
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: panel.toggleWallhaven()
-            }
+                    required property var modelData
 
-            Text {
-                anchors.centerIn: parent
-                text: "travel_explore"
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 17
-                color: panel.whOpen || wallhavenArea.containsMouse ? Colors.primary : Colors.fgSurfaceVariant
+                    readonly property bool open: panel.openSection === sectionButton.modelData.pluginId
+
+                    width: 32
+                    height: 32
+                    radius: height / 2
+                    color: sectionButton.open ? Colors.alpha(Colors.primary, sectionArea.containsMouse ? 0.28 : 0.18)
+                        : sectionArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08) : "transparent"
+
+                    Behavior on color {
+                        ColorAnimation { duration: 90 }
+                    }
+
+                    MouseArea {
+                        id: sectionArea
+
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: panel.toggleSection(sectionButton.modelData.pluginId)
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: sectionButton.modelData.icon
+                        font.family: "Material Symbols Outlined"
+                        font.pixelSize: 17
+                        color: sectionButton.open || sectionArea.containsMouse ? Colors.primary : Colors.fgSurfaceVariant
+                    }
+                }
             }
         }
 
@@ -371,7 +428,7 @@ Item {
             sourceComponent: WallpaperList {
                 imageWidth: panel.imageWidth
                 query: search.text
-                focused: !panel.whFocused
+                focused: !panel.sectionFocused
                 onApplied: LauncherState.close()
                 onWheeled: panel.focusRow("local")
             }
@@ -537,11 +594,13 @@ Item {
         }
     }
 
-    // ---- Wallhaven ----
+    // ---- Plugin-Sektion ----
     // Der aufklappbare Bereich unter der Stil-Reihe. Die Hoehe des Panels
     // springt sofort, die Notch zieht per Morph nach und schneidet so lange
-    // ab – deshalb bleibt der Bereich beim Zuklappen sichtbar, bis er
-    // ausgeblendet ist, sonst schrumpft die Karte ueber leerem Grund.
+    // ab – deshalb bleibt die Sektion beim Zuklappen stehen, bis sie
+    // ausgeblendet ist, sonst schrumpft die Karte ueber leerem Grund. Erst
+    // danach wird sie zerstoert (zugeklappt gibt es also keine Sektion, keine
+    // Timer, nichts).
     Rectangle {
         id: separator3
 
@@ -552,307 +611,71 @@ Item {
         }
         height: 1
         color: Colors.alpha(Colors.outline, 0.35)
-        opacity: whSection.opacity
-        visible: whSection.visible
+        opacity: sectionWrapper.opacity
+        visible: sectionWrapper.visible
     }
 
     Item {
-        id: whSection
+        id: sectionWrapper
 
         anchors {
             top: separator3.bottom
             left: parent.left
             right: parent.right
         }
-        implicitHeight: whRow.height + 1 + whWrapper.implicitHeight
+        implicitHeight: sectionLoader.item?.implicitHeight ?? 0
         height: implicitHeight
 
-        opacity: panel.whOpen ? 1 : 0
+        opacity: panel.sectionOpen ? 1 : 0
         visible: opacity > 0
 
         Fade on opacity {}
 
-        // Sortierung als Chips – dieselben Werte wie wallhaven.sorting im Menue
-        readonly property var sortings: [
-            { name: "relevanz", label: "Relevanz", icon: "manage_search" },
-            { name: "neu", label: "Neu", icon: "schedule" },
-            { name: "zufall", label: "Zufall", icon: "casino" },
-            { name: "views", label: "Views", icon: "visibility" },
-            { name: "favoriten", label: "Favs", icon: "favorite" },
-            { name: "top", label: "Top", icon: "trending_up" }
-        ]
+        // Die zuletzt offene Sektion, bis sie ausgeblendet ist – ausser ihr
+        // Plugin ist weg (ausgeschaltet): dann sofort, ihr Dienst
+        // (plugin.main) verschwindet gleich mit
+        property var shown: null
 
-        // Kurzer Stand rechts neben dem Suchfeld; die leeren Zustaende
-        // (Suche, keine Treffer, Fehler) stehen gross im Karussellbereich
-        readonly property string status: {
-            if (Wallhaven.downloading)
-                return "lädt herunter…";
-            if (Wallhaven.error !== "" && Wallhaven.items.count > 0)
-                return Wallhaven.error;
-            if (Wallhaven.items.count === 0)
-                return "";
-            const pages = Math.min(Wallhaven.lastPage, Wallhaven.maxPages);
-            return `${Wallhaven.total} Treffer · Seite ${Wallhaven.page}/${pages}`
-                + (Wallhaven.searching ? " · lädt…" : "");
+        Connections {
+            target: panel
+
+            function onSectionChanged(): void {
+                if (panel.section)
+                    sectionWrapper.shown = panel.section;
+            }
+            function onSectionsChanged(): void {
+                if (sectionWrapper.shown && !panel.sections.some(s => s.pluginId === sectionWrapper.shown.pluginId))
+                    sectionWrapper.shown = null;
+            }
         }
+        onOpacityChanged: if (sectionWrapper.opacity === 0 && !panel.sectionOpen) sectionWrapper.shown = null
 
-        Item {
-            id: whRow
+        Loader {
+            id: sectionLoader
 
             anchors {
                 top: parent.top
                 left: parent.left
                 right: parent.right
             }
-            height: 46
 
-            Text {
-                id: whIcon
+            // Nur der Pfad als Abhaengigkeit: Plugins.panels wird bei jeder
+            // Plugin-Aenderung neu gebaut, die Sektion soll aber nur neu
+            // laden, wenn ihre Datei wechselt (wie die Kacheln in SettingsTiles)
+            readonly property string url: sectionWrapper.shown?.url ?? ""
 
-                anchors {
-                    left: parent.left
-                    leftMargin: 16
-                    verticalCenter: parent.verticalCenter
-                }
-                text: "travel_explore"
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 19
-                color: Colors.primary
+            function rebuild(): void {
+                if (sectionLoader.url === "")
+                    sectionLoader.source = "";
+                else
+                    sectionLoader.setSource(sectionLoader.url, { plugin: sectionWrapper.shown.plugin, host: panel.host });
             }
 
-            TextInput {
-                id: whSearch
-                font.family: Config.font
-
-                anchors {
-                    left: whIcon.right
-                    leftMargin: 12
-                    right: whStatus.left
-                    rightMargin: 12
-                    verticalCenter: parent.verticalCenter
-                }
-                color: Colors.fgSurface
-                font.pixelSize: 14
-                selectionColor: Colors.alpha(Colors.primary, 0.35)
-                selectedTextColor: Colors.fgSurface
-                clip: true
-
-                // Tipp-Pause statt jeder Taste: die API erlaubt 45 Anfragen
-                // pro Minute
-                onTextChanged: searchDelay.restart()
-
-                Keys.onEscapePressed: LauncherState.close()
-                Keys.onReturnPressed: event => panel.whApply(!(event.modifiers & Qt.ShiftModifier))
-                Keys.onEnterPressed: event => panel.whApply(!(event.modifiers & Qt.ShiftModifier))
-                Keys.onLeftPressed: event => {
-                    if (event.modifiers & Qt.ControlModifier)
-                        panel.cycleStyle(-1);
-                    else
-                        whList.item?.moveBy(-1);
-                }
-                Keys.onRightPressed: event => {
-                    if (event.modifiers & Qt.ControlModifier)
-                        panel.cycleStyle(1);
-                    else
-                        whList.item?.moveBy(1);
-                }
-                Keys.onUpPressed: panel.focusRow("local")
-                Keys.onDownPressed: panel.focusRow("local")
-                Keys.onTabPressed: whList.item?.moveBy(1)
-                Keys.onPressed: event => {
-                    if (event.key === Qt.Key_W && (event.modifiers & Qt.ControlModifier)) {
-                        panel.toggleWallhaven();
-                        event.accepted = true;
-                    }
-                }
-
-                Text {
-                    anchors.fill: parent
-                    visible: whSearch.text === ""
-                    text: "Wallhaven durchsuchen…   tag, -tag, like:ID"
-                    color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
-                    font: whSearch.font
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
-            }
-
-            Text {
-                id: whStatus
-
-                anchors {
-                    right: whChips.left
-                    rightMargin: 14
-                    verticalCenter: parent.verticalCenter
-                }
-                text: whSection.status
-                font.family: Config.font
-                font.pixelSize: 11
-                color: Wallhaven.error !== "" ? Colors.error : Colors.fgSurfaceVariant
-            }
-
-            Row {
-                id: whChips
-
-                anchors {
-                    right: parent.right
-                    rightMargin: 14
-                    verticalCenter: parent.verticalCenter
-                }
-                spacing: 4
-
-                Repeater {
-                    model: whSection.sortings
-
-                    delegate: Rectangle {
-                        id: sortChip
-
-                        required property var modelData
-
-                        readonly property bool selected: Config.wallhaven.sorting === sortChip.modelData.name
-
-                        implicitWidth: sortContent.implicitWidth + 18
-                        implicitHeight: 26
-                        radius: height / 2
-                        color: sortChip.selected ? Colors.primary
-                            : sortArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08)
-                            : Colors.alpha(Colors.fgSurface, 0.04)
-
-                        Behavior on color {
-                            ColorAnimation { duration: 120 }
-                        }
-
-                        Row {
-                            id: sortContent
-
-                            anchors.centerIn: parent
-                            spacing: 4
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: sortChip.modelData.icon
-                                font.family: "Material Symbols Outlined"
-                                font.pixelSize: 13
-                                color: sortChip.selected ? Colors.fgPrimary : Colors.fgSurfaceVariant
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: sortChip.modelData.label
-                                font.family: Config.font
-                                font.pixelSize: 11
-                                color: sortChip.selected ? Colors.fgPrimary : Colors.fgSurface
-                            }
-                        }
-
-                        MouseArea {
-                            id: sortArea
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Wallhaven.setSorting(sortChip.modelData.name)
-                        }
-                    }
-                }
-            }
-        }
-
-        Timer {
-            id: searchDelay
-
-            interval: 500
-            onTriggered: Wallhaven.search(whSearch.text, false)
-        }
-
-        Rectangle {
-            id: whSeparator
-
-            anchors {
-                top: whRow.bottom
-                left: parent.left
-                right: parent.right
-            }
-            height: 1
-            color: Colors.alpha(Colors.outline, 0.2)
-        }
-
-        Item {
-            id: whWrapper
-
-            anchors {
-                top: whSeparator.bottom
-                left: parent.left
-                right: parent.right
-            }
-            implicitHeight: panel.listHeight
-
-            Loader {
-                id: whList
-
-                anchors.fill: parent
-                anchors.margins: 6
-                active: panel.active && panel.whOpen
-
-                layer.enabled: true
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskSource: whEdgeMask
-                    maskThresholdMin: 0.5
-                    maskSpreadAtMin: 1
-                }
-
-                sourceComponent: WallhavenList {
-                    imageWidth: panel.imageWidth
-                    focused: panel.whFocused
-                    onActivated: panel.focusRow("wallhaven")
-                    onWheeled: panel.focusRow("wallhaven")
-                }
-            }
-
-            EdgeMask {
-                id: whEdgeMask
-
-                anchors.fill: whList
-                fade: 200
-            }
-
-            // Leere Zustaende mitten im Karussellbereich
-            Column {
-                anchors.centerIn: parent
-                spacing: 4
-                visible: Wallhaven.items.count === 0
-
-                Text {
-                    id: emptyIcon
-
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: Wallhaven.searching ? "progress_activity"
-                        : Wallhaven.error !== "" ? "cloud_off"
-                        : Wallhaven.answered ? "search_off" : "travel_explore"
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 26
-                    color: Wallhaven.error !== "" ? Colors.error : Colors.fgSurfaceVariant
-
-                    RotationAnimation on rotation {
-                        running: Wallhaven.searching && Wallhaven.items.count === 0
-                        loops: Animation.Infinite
-                        from: 0
-                        to: 360
-                        duration: 900
-                        onStopped: emptyIcon.rotation = 0
-                    }
-                }
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: Wallhaven.searching ? "Suche auf wallhaven.cc…"
-                        : Wallhaven.error !== "" ? Wallhaven.error
-                        : Wallhaven.answered ? "Keine Treffer" : "Tippen, um zu suchen"
-                    font.family: Config.font
-                    font.pixelSize: 12
-                    color: Wallhaven.error !== "" ? Colors.error : Colors.fgSurfaceVariant
-                }
+            Component.onCompleted: sectionLoader.rebuild()
+            onUrlChanged: sectionLoader.rebuild()
+            onStatusChanged: {
+                if (sectionLoader.status === Loader.Error)
+                    console.warn(`Wallpaper-Sektion ${sectionWrapper.shown?.pluginId}: ${sectionLoader.url} laedt nicht`);
             }
         }
     }

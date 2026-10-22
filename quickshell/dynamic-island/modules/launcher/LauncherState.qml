@@ -89,6 +89,33 @@ Singleton {
             root.showWallpapers(target);
     }
 
+    // ---- Plugin-Sektion der Wallpaper-Auswahl ----
+    // Plugins koennen unter die lokale Reihe eine Sektion haengen (Manifest
+    // `panels.wallpaper`, siehe WallpaperPanel). Welche aufgeklappt ist
+    // (Plugin-id, "" = keine), lebt hier statt im Panel: das Panel entsteht
+    // bei jedem Oeffnen neu, die Sektion soll aber offen bleiben, wie der
+    // Suchtext darin. Die Tastatur faengt trotzdem in der lokalen Reihe an –
+    // ausser `wallpaperSectionFocus` verlangt die Sektion (das Panel setzt
+    // das Flag zurueck, sobald es die Tastatur dorthin gegeben hat).
+    property string wallpaperSection: ""
+    property bool wallpaperSectionFocus: false
+
+    // Auswahl mit aufgeklappter Sektion und der Tastatur darin (IPC eines
+    // Plugins, Tastenkuerzel)
+    function showWallpaperSection(target: ShellScreen, section: string): void {
+        root.wallpaperSection = section;
+        root.wallpaperSectionFocus = true;
+        root.showWallpapers(target);
+    }
+
+    // Genau so schon offen -> zu
+    function toggleWallpaperSection(target: ShellScreen, section: string): void {
+        if (root.open && root.mode === "wallpaper" && root.wallpaperSection === section)
+            root.close();
+        else
+            root.showWallpaperSection(target, section);
+    }
+
     // Farbschema-Auswahl. Anders als die Wallpaper hat sie keinen Knopf in der
     // Leiste – nur den Launcher-Befehl und diesen Weg hier.
     function showThemes(target: ShellScreen): void {

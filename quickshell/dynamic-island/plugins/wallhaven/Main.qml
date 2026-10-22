@@ -1,36 +1,37 @@
-pragma Singleton
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import qs.modules.services.config
+import qs.modules.launcher
+import qs.modules.services.wallpaper
 
-// Wallhaven-Suche fuer die Wallpaper-Auswahl: Treffer, Seiten, Downloads.
+// Dienst des Plugins: Wallhaven-Suche fuer die Wallpaper-Auswahl – Treffer,
+// Seiten, Downloads. (Frueher modules/services/wallpaper/Wallhaven.qml.)
 //
-// Die Arbeit macht die CLI (`dynamic-island wallhaven search|download`), sie
-// liefert NDJSON auf stdout – erst die Trefferliste, dann je fertigem
+// Die Arbeit macht wallhaven.py im Plugin-Ordner (python3 -I, nur Stdlib),
+// es liefert NDJSON auf stdout – erst die Trefferliste, dann je fertigem
 // Vorschaubild eine Zeile (die Kacheln stehen also sofort mit Platzhaltern
 // da). Hier wird nur gesammelt und in ein ListModel geschrieben: ein
 // JS-Array als Modell wuerde bei jedem nachgereichten Thumb alle Kacheln neu
 // bauen und das Karussell auf Null stellen.
 //
+// Die Oberflaeche ist Section.qml (Manifest panels.wallpaper) und entsteht
+// nur, solange die Sektion aufgeklappt ist – hier liegt, was das Zuklappen
+// ueberleben soll: Suchtext, Treffer, ein laufender Download. Keine Timer;
+// Prozesse laufen nur waehrend einer Anfrage.
+//
 // Die API erlaubt 45 Anfragen pro Minute: eine laufende Suche wird beim
 // neuen Start abgebrochen, die naechste Seite kommt erst, wenn die vorige
 // samt Thumbs durch ist, und mehr als `maxPages` Seiten gibt es je Suche
-// nicht. Entprellt wird im Panel (Tipp-Pause), nicht hier.
-//
-// Treffer und Einstellungen bleiben nach dem Schliessen der Auswahl stehen,
-// beim naechsten Oeffnen geht es ohne neue Anfrage weiter.
-//
-// Benutzung:  import qs.modules.services.wallpaper
-Singleton {
+// nicht. Entprellt wird in der Sektion (Tipp-Pause), nicht hier.
+Scope {
     id: root
 
-    readonly property string cli: Quickshell.env("HOME") + "/.local/bin/dynamic-island"
+    required property var plugin
 
-    // Ob der Wallhaven-Bereich im Panel aufgeklappt ist – nur Laufzeit, die
-    // Auswahl faengt nach einem Neustart zusammengeklappt an
-    property bool expanded: false
+    readonly property string script: root.plugin.url("wallhaven.py")
+    // Dieselben Orte wie in wallhaven.py
+    readonly property string thumbsDir: root.plugin.cachePath("thumbs")
 
     // Mehr Seiten als das laedt das Karussell nicht nach (24 Treffer je Seite)
     readonly property int maxPages: 6
@@ -39,7 +40,6 @@ Singleton {
     // Daten der letzten Antwort. `seed` haelt die Zufallsreihenfolge ueber
     // die Seiten hinweg zusammen.
     property string query: ""
-    property string sorting: root.sortingApi(Config.wallhaven.sorting)
     property int page: 0
     property int lastPage: 0
     property int total: 0
@@ -55,6 +55,45 @@ Singleton {
     // Es gab schon eine Antwort fuer die aktuelle Suche (sonst: nichts
     // gesucht, "keine Treffer" waere falsch)
     property bool answered: false
+
+    // Ob die eigene Sektion gerade offen ist
+    readonly property bool shown: LauncherState.open && LauncherState.mode === "wallpaper"
+        && LauncherState.wallpaperSection === root.plugin.id
+
+    // Im Launcher unter ">" und per Tastenkuerzel (simple.lua: SUPER+ALT+W ->
+    // ipc open): Auswahl mit aufgeklappter Sektion und der Tastatur darin
+    readonly property var actions: [
+        {
+            name: "Wallhaven durchsuchen",
+            desc: "Wallpaper-Auswahl mit der Wallhaven-Suche",
+            keepOpen: true,
+            run: () => LauncherState.showWallpaperSection(LauncherState.screen, root.plugin.id)
+        }
+    ]
+
+    // qs -c dynamic-island ipc call plugins call wallhaven open _
+    function ipc(cmd: string, arg: string): string {
+        if (cmd === "open") {
+            // Genau so schon offen -> zu
+            LauncherState.toggleWallpaperSection(LauncherState.focusedScreen(), root.plugin.id);
+            return "ok";
+        }
+        if (cmd === "status")
+            return JSON.stringify({
+                query: root.query, items: root.items.count, page: root.page, lastPage: root.lastPage,
+                total: root.total, searching: root.searching, downloading: root.downloading, error: root.error
+            });
+        return "unbekannt: open | status";
+    }
+
+    // Plugin aus: nichts mehr anfragen, und zeigt der Hintergrund gerade
+    // eines unserer Thumbs, zurueck zum echten Bild
+    function onDisable(): void {
+        searchProc.running = false;
+        downloadProc.running = false;
+        if (Wallpapers.showPreview && Wallpapers.previewPath.startsWith(root.thumbsDir))
+            Wallpapers.stopPreview();
+    }
 
     // ---- Treffer ----
     // Rollen: wid, url, full, thumb, resolution, size, fileType, favorites,
@@ -78,8 +117,8 @@ Singleton {
     }
 
     // ---- Einstellungen -> API ----
-    // shell.json haelt deutsche Chip-Werte (wie wallpaper.transition), die
-    // API will ihre eigenen Woerter bzw. Bitmasken
+    // Die Einstellungen halten deutsche Chip-Werte (wie wallpaper.transition),
+    // die API will ihre eigenen Woerter bzw. Bitmasken
     readonly property var sortings: ({
         "relevanz": "relevance",
         "neu": "date_added",
@@ -97,22 +136,42 @@ Singleton {
         "alle": "111", "general": "100", "anime": "010", "people": "001", "general+anime": "110"
     })
 
-    function sortingApi(name: string): string {
-        return root.sortings[name] ?? "toplist";
-    }
+    readonly property var cfg: root.plugin.settings
+    readonly property string sorting: root.sortings[root.cfg.sorting] ?? "toplist"
 
-    // Sortierung aus dem Panel: in die Config, Chips dort und im Menue zeigen
-    // denselben Wert. Die neue Suche loest der Wechsel von `sorting` aus –
-    // so auch, wenn jemand sie im Einstellungsmenue umstellt.
+    // Sortierung aus der Sektion: in die Einstellungen, Chips dort und im
+    // Menue zeigen denselben Wert
     function setSorting(name: string): void {
         if (name in root.sortings)
-            Config.set("wallhaven", "sorting", name);
+            root.plugin.set("sorting", name);
     }
 
-    onSortingChanged: if (root.answered || root.searching) root.search(root.query, true)
+    // Alle Filter als ein Schluessel: aendert sich einer (Chip in der
+    // Sektion oder im Menue), passt die Trefferliste nicht mehr. Bei offener
+    // Sektion gleich neu suchen – zugeklappt nur merken, sonst liefe fuer
+    // eine Liste, die niemand sieht, ein Prozess (refresh holt es nach).
+    readonly property string filters: [root.sorting, root.cfg.topRange, root.cfg.categories,
+        root.cfg.purity, root.cfg.atleast, root.cfg.ratios].join("|")
+    property bool stale: false
+
+    onFiltersChanged: {
+        if (!root.answered && !root.searching)
+            return;
+        if (root.shown)
+            root.search(root.query, true);
+        else
+            root.stale = true;
+    }
+
+    // Beim Aufklappen der Sektion: ohne Treffer gleich etwas zeigen (Toplist
+    // o.ae. laut Einstellungen), veraltete Treffer erneuern
+    function refresh(): void {
+        if (root.stale || (!root.answered && !root.searching))
+            root.search(root.query, true);
+    }
 
     // ---- Suche ----
-    // Erste Seite. `force` sucht auch bei gleichem Text nochmal (Sortierung
+    // Erste Seite. `force` sucht auch bei gleichem Text nochmal (Filter
     // gewechselt, Fehler wiederholen).
     function search(text: string, force: bool): void {
         const q = text.trim();
@@ -124,6 +183,7 @@ Singleton {
         root.lastPage = 0;
         root.total = 0;
         root.answered = false;
+        root.stale = false;
         root.fetch(1);
     }
 
@@ -140,8 +200,8 @@ Singleton {
         root.error = "";
         root.searching = true;
 
-        const c = Config.wallhaven;
-        const cmd = [root.cli, "wallhaven", "search", root.query,
+        const c = root.cfg;
+        const cmd = ["python3", "-I", root.script, "search", root.query,
             "-s", root.sorting, "-r", root.topRanges[c.topRange] ?? "1M",
             "-c", root.categoryBits[c.categories] ?? "111",
             "-u", root.purities[c.purity] ?? "100",
@@ -219,7 +279,6 @@ Singleton {
     // waehrend des ersten ist eher ein Versehen als ein Wunsch.
     property string downloadingId: ""
     readonly property bool downloading: downloadProc.running
-    signal downloaded(string wid, string path, bool applied)
 
     // `apply`: danach als Wallpaper setzen (ueber Wallpapers.set, damit die
     // Auswahl sofort das neue Bild kennt). Liegt es schon lokal, geht es
@@ -237,17 +296,22 @@ Singleton {
         root.items.setProperty(at, "phase", "downloading");
         downloadProc.wid = wid;
         downloadProc.apply = apply;
-        downloadProc.command = [root.cli, "wallhaven", "download", wid, "--url", item.full];
+        downloadProc.command = ["python3", "-I", root.script, "download", wid, "--url", item.full];
         downloadProc.running = true;
     }
 
     function finish(wid: string, path: string, apply: bool): void {
         root.patch(wid, { local: path, phase: "" });
-        if (apply)
+        if (apply) {
             Wallpapers.set(path);
+            // Gesetzt: die Auswahl zu, wie beim lokalen Setzen. Beim reinen
+            // Download bleibt sie offen – die Kachel traegt dann das Haekchen,
+            // und das Bild steht in der lokalen Reihe.
+            if (LauncherState.open && LauncherState.mode === "wallpaper")
+                LauncherState.close();
+        }
         // Ab jetzt steht es auch im lokalen Karussell
         Wallpapers.reload();
-        root.downloaded(wid, path, apply);
     }
 
     Process {

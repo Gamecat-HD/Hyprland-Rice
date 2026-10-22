@@ -1,4 +1,8 @@
-"""Wallhaven-Suche fuer die Wallpaper-Auswahl der Shell.
+#!/usr/bin/env python3
+"""Wallhaven-Suche fuer die Wallpaper-Auswahl (Plugin `wallhaven`).
+
+Eigenstaendig (nur Stdlib, nicht das CLI-Paket), damit das Plugin als .dip
+mitwandern kann. Aufruf: python3 -I wallhaven.py search|download|key …
 
 Die Shell ruft das per Process auf und liest NDJSON von stdout:
   search   -> erst {"type": "result", "meta": …, "items": […]}, dann je fertigem
@@ -7,10 +11,11 @@ Die Shell ruft das per Process auf und liest NDJSON von stdout:
   download -> {"type": "done", "id": …, "path": PFAD} bzw. {"type": "error", …}
 
 Kein Key noetig (SFW/Sketchy). Ein Key fuer NSFW/eigene Filter kommt aus
-$WALLHAVEN_API_KEY oder ~/.local/state/dynamic-island/wallhaven/apikey - nicht
+$WALLHAVEN_API_KEY oder ~/.local/state/dynamic-island/plugins/wallhaven/apikey - nicht
 aus shell.json/cli.json, die liegen im Dotfiles-Repo.
 """
 
+import argparse
 import json
 import os
 import sys
@@ -18,15 +23,19 @@ from argparse import Namespace
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from dynamic_island.utils.paths import c_cache_dir, c_state_dir, wallpapers_dir
-
 API = "https://wallhaven.cc/api/v1"
 UA = "dynamic-island-wallhaven/1.0"
 SORTINGS = ("relevance", "date_added", "random", "views", "favorites", "toplist")
 TOP_RANGES = ("1d", "3d", "1w", "1M", "3M", "6M", "1y")
 
-thumbs_dir: Path = c_cache_dir / "wallhaven/thumbs"
-key_path: Path = c_state_dir / "wallhaven/apikey"
+home = Path.home()
+# Gleiche Orte wie plugin.cachePath()/statePath() und Wallpapers.qml
+cache_dir = Path(os.getenv("XDG_CACHE_HOME", home / ".cache")) / "dynamic-island/plugins/wallhaven"
+state_dir = Path(os.getenv("XDG_STATE_HOME", home / ".local/state")) / "dynamic-island/plugins/wallhaven"
+wallpapers_dir = Path(os.getenv("DYNAMIC_ISLAND_WALLPAPERS_DIR", home / "Pictures/Wallpapers"))
+
+thumbs_dir: Path = cache_dir / "thumbs"
+key_path: Path = state_dir / "apikey"
 # Eigener Unterordner: der Scan der Shell findet die Bilder so von selbst
 download_dir: Path = wallpapers_dir / "Wallhaven"
 
@@ -199,7 +208,32 @@ class Command:
 
         emit({"type": "done", "id": item_id, "path": path})
 
-        if self.args.set:
-            from dynamic_island.utils.wallpaper import set_wallpaper
 
-            set_wallpaper(Path(path), False)
+def parse_args() -> Namespace:
+    parser = argparse.ArgumentParser(prog="wallhaven.py", description="search and download wallpapers from wallhaven.cc")
+    cmd = parser.add_subparsers(dest="action", required=True)
+
+    p = cmd.add_parser("search", help="search wallhaven (prints NDJSON)")
+    p.add_argument("query", nargs="?", default="", help="search terms (tags, -tag, @user, like:ID, type:png)")
+    p.add_argument("-s", "--sorting", choices=SORTINGS, default="relevance")
+    p.add_argument("-r", "--top-range", choices=TOP_RANGES, default="1M", help="only for toplist")
+    p.add_argument("-c", "--categories", default="111", help="bits general/anime/people, e.g. 110")
+    p.add_argument("-u", "--purity", default="100", help="bits sfw/sketchy/nsfw, e.g. 110 (nsfw needs a key)")
+    p.add_argument("-a", "--atleast", help="minimum resolution, e.g. 2560x1440")
+    p.add_argument("--ratios", help="comma list, e.g. 16x9,21x9")
+    p.add_argument("--colors", help="hex colour from the wallhaven palette")
+    p.add_argument("-p", "--page", type=int, default=1)
+    p.add_argument("--seed", help="seed of the first page for random sorting")
+
+    p = cmd.add_parser("download", help="download a wallpaper into the Wallhaven folder")
+    p.add_argument("id", help="wallhaven id, e.g. w533px")
+    p.add_argument("--url", help="full image url (skips the lookup)")
+
+    p = cmd.add_parser("key", help="store the API key (empty removes it)")
+    p.add_argument("value", nargs="?", default="")
+
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    Command(parse_args()).run()

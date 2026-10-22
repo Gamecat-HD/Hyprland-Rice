@@ -59,11 +59,18 @@ Singleton {
     property string actualCurrent: ""
     property string previewPath: ""
     property bool showPreview: false
-    // Ob die Vorschau auch den Hintergrund umstellt – nur die Farben gehen
-    // auch allein (previewColours)
-    property bool previewImage: true
-    readonly property string current: root.showPreview && root.previewImage && root.previewPath !== ""
-        ? root.previewPath : root.actualCurrent
+    readonly property string current: root.showPreview && root.previewPath !== "" ? root.previewPath
+                                                                                  : root.actualCurrent
+    // Die Vorschau ist nur ein kleines Bild (previewThumb): der Hintergrund
+    // dekodiert es dann in seiner Groesse, statt es auf Bildschirmgroesse
+    // hochzurechnen. Als Funktion statt Bindung: WallpaperStage fragt beim
+    // Wechsel von `current`, und eine zweite Bindung waere in dem Moment
+    // womoeglich noch nicht nachgezogen (Reihenfolge der Benachrichtigung).
+    property bool previewSmall: false
+
+    function smallFor(path: string): bool {
+        return root.showPreview && root.previewSmall && path === root.previewPath;
+    }
 
     // ---- Uebergang ----
     // Welche Animation der Hintergrund beim Wechsel spielt (Config
@@ -302,17 +309,20 @@ Singleton {
     // Nur wenn das Schema ueberhaupt am Wallpaper haengt: bei einem festen
     // Schema (catppuccin, tokyonight, ...) aendert ein Bildwechsel die Farben
     // nicht, die Vorschau wuerde also etwas zeigen, was nie eintritt.
+    //
+    // Der Pfad darf auch ausserhalb des Wallpaper-Ordners liegen (dann ohne
+    // Vorschaubild der Auswahl – siehe thumbPathFor).
     function preview(path: string): void {
-        root.previewImage = true;
+        root.previewSmall = false;
         root.previewAs(path);
     }
 
-    // Nur die Farben, der Hintergrund bleibt: fuer Wallhaven-Treffer gibt es
-    // vor dem Download nur das 432-px-Thumb – als Hintergrund auf 1440p
-    // hochgezogen waere das Matsch, fuer die Palette reicht es (die CLI
-    // rechnet ohnehin auf einem 128-px-Abzug).
-    function previewColours(path: string): void {
-        root.previewImage = false;
+    // Dasselbe mit einem kleinen Bild (Thumb, z.B. ein Treffer aus dem Netz,
+    // der lokal noch nicht liegt): der Hintergrund zieht es nur hoch, statt
+    // es beim Dekodieren auf Bildschirmgroesse zu rechnen. Fuer die Palette
+    // reicht es – die CLI rechnet ohnehin auf einem 128-px-Abzug.
+    function previewThumb(path: string): void {
+        root.previewSmall = true;
         root.previewAs(path);
     }
 
@@ -333,7 +343,7 @@ Singleton {
     function stopPreview(): void {
         root.showPreview = false;
         root.previewPath = "";
-        root.previewImage = true;
+        root.previewSmall = false;
         root.previewVariant = "";
         colourPreview.running = false;
         Colors.clearPreview();

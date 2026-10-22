@@ -92,6 +92,7 @@ Scope {
         hasSettings: root.settingKeys.length > 0,
         settingsCount: root.settingKeys.length,
         tiles: Object.keys(root.manifest?.tiles ?? {}),
+        panels: Object.keys(root.manifest?.panels ?? {}),
         actions: root.instance?.actions?.length ?? 0,
         files: (root.manifest?.files ?? []).length,
         main: root.manifest?.main ?? "",
@@ -216,6 +217,11 @@ Scope {
             if (!/^[a-z0-9][a-z0-9-]*$/.test(tid) || typeof t?.component !== "string" || t.component.includes(".."))
                 return `tiles.${tid}: id oder component ungueltig`;
         }
+        for (const name in m.panels ?? {}) {
+            const p = m.panels[name];
+            if (!/^[a-z][a-z0-9-]*$/.test(name) || typeof p?.component !== "string" || p.component.includes(".."))
+                return `panels.${name}: Ansicht oder component ungueltig`;
+        }
         return "";
     }
 
@@ -265,6 +271,9 @@ Scope {
         // Aktuelle Werte, bei jeder Aenderung ein neues Objekt (bindbar)
         readonly property var settings: root.settings
         readonly property bool enabled: root.enabled
+        // Das Objekt aus `main`, solange es laeuft (sonst null) – fuer
+        // Kacheln und Sektionen, die seinen Zustand brauchen
+        readonly property QtObject main: root.instance
 
         function setting(key: string): var {
             return root.settings[key];

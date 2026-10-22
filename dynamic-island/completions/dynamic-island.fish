@@ -1,7 +1,7 @@
 set -l seen '__fish_seen_subcommand_from'
 set -l has_opt '__fish_contains_opt'
 
-set -l commands shell toggle scheme screenshot record clipboard emoji wallpaper wallhaven resizer plugin
+set -l commands shell toggle scheme screenshot record clipboard emoji wallpaper resizer plugin
 set -l not_seen "not $seen $commands"
 
 # Disable file completions
@@ -19,7 +19,6 @@ complete -c dynamic-island -n $not_seen -a 'record' -d 'Start a screen recording
 complete -c dynamic-island -n $not_seen -a 'clipboard' -d 'Open clipboard history'
 complete -c dynamic-island -n $not_seen -a 'emoji' -d 'Emoji/glyph utilities'
 complete -c dynamic-island -n $not_seen -a 'wallpaper' -d 'Manage the wallpaper'
-complete -c dynamic-island -n $not_seen -a 'wallhaven' -d 'Search and download wallpapers from wallhaven.cc'
 complete -c dynamic-island -n $not_seen -a 'resizer' -d 'Window resizer'
 complete -c dynamic-island -n $not_seen -a 'plugin' -d 'Manage shell plugins'
 
@@ -164,20 +163,3 @@ complete -c dynamic-island -n "$seen plugin && $seen import" -l 'overwrite-files
 complete -c dynamic-island -n "$seen plugin && $seen remove" -l 'keep-settings' -d 'Keep settings'
 complete -c dynamic-island -n "$seen plugin && $seen new" -l 'name' -d 'Display name' -r
 complete -c dynamic-island -n "$seen plugin && $seen new" -l 'author' -d 'Author' -r
-
-# Wallhaven
-set -l wallhaven_actions search download key
-complete -c dynamic-island -n "$seen wallhaven && not $seen $wallhaven_actions" -a 'search' -d 'Search wallhaven (NDJSON)'
-complete -c dynamic-island -n "$seen wallhaven && not $seen $wallhaven_actions" -a 'download' -d 'Download into the Wallhaven folder'
-complete -c dynamic-island -n "$seen wallhaven && not $seen $wallhaven_actions" -a 'key' -d 'Store the API key (empty removes it)'
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -s 's' -l 'sorting' -d 'Sorting' -xa 'relevance date_added random views favorites toplist'
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -s 'r' -l 'top-range' -d 'Toplist range' -xa '1d 3d 1w 1M 3M 6M 1y'
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -s 'c' -l 'categories' -d 'Bits general/anime/people' -x
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -s 'u' -l 'purity' -d 'Bits sfw/sketchy/nsfw' -x
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -s 'a' -l 'atleast' -d 'Minimum resolution' -xa '1920x1080 2560x1440 3840x2160'
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -l 'ratios' -d 'Aspect ratios' -xa '16x9 16x10 21x9 32x9'
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -l 'colors' -d 'Palette colour' -x
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -s 'p' -l 'page' -d 'Page' -x
-complete -c dynamic-island -n "$seen wallhaven && $seen search" -l 'seed' -d 'Seed for random sorting' -x
-complete -c dynamic-island -n "$seen wallhaven && $seen download" -l 'url' -d 'Full image url' -x
-complete -c dynamic-island -n "$seen wallhaven && $seen download" -l 'set' -d 'Set it as wallpaper afterwards'

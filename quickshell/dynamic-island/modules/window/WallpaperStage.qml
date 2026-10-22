@@ -58,11 +58,13 @@ Item {
 
         if (stage.front.path === p) {
             // Ein anderes Bild, das hinten noch laedt, wird nicht mehr gebraucht
-            stage.back.load("");
+            stage.back.load("", false);
             return;
         }
 
-        stage.back.load(p);
+        // Ein kleines Vorschaubild (Wallpapers.previewThumb) wird in seiner
+        // Groesse dekodiert statt in Monitoraufloesung
+        stage.back.load(p, Wallpapers.smallFor(p));
         if (stage.back.ready)
             stage.begin();
         // sonst geht es in planeReady weiter, sobald das Bild dekodiert ist
@@ -102,7 +104,7 @@ Item {
     // Uebergang fertig: vorne steht das neue Bild, das alte wird freigegeben
     function settle(): void {
         stage.progress = 1;
-        stage.back.load("");
+        stage.back.load("", false);
     }
 
     NumberAnimation {

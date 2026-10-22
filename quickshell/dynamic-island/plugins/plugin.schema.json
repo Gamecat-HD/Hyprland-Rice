@@ -54,6 +54,19 @@
                 }
             }
         },
+        "panels": {
+            "type": "object",
+            "description": "Sektionen in Ansichten der Shell, je Ansicht eine (bisher nur \"wallpaper\")",
+            "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+            "additionalProperties": {
+                "type": "object",
+                "required": ["component"],
+                "properties": {
+                    "icon": { "type": "string" },
+                    "component": { "type": "string", "pattern": "^[^/].*\\.qml$" }
+                }
+            }
+        },
         "files": {
             "type": "array",
             "items": {

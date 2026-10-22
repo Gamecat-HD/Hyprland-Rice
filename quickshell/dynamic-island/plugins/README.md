@@ -10,6 +10,7 @@ plugins/
     plugin.json     Manifest (Pflicht)
     Main.qml        Dienst, läuft solange das Plugin an ist (optional)
     Tile.qml        Schnellkachel (optional, beliebig viele)
+    Section.qml     Sektion in einer Ansicht der Shell (optional, je Ansicht eine)
 ```
 
 Kern: `modules/services/plugins/Plugins.qml` (Singleton) + `PluginHost.qml`
@@ -30,6 +31,7 @@ Kern: `modules/services/plugins/Plugins.qml` (Singleton) + `PluginHost.qml`
 | `main` | – | QML-Datei des Dienstes (relativ) |
 | `settings` | – | Einstellungen, s.u. |
 | `tiles` | – | Schnellkacheln, s.u. |
+| `panels` | – | Sektionen in Ansichten der Shell (bisher: Wallpaper-Auswahl), s.u. |
 | `files` | – | Dateien außerhalb des Plugin-Ordners, die dazugehören (für Export/Import) |
 | `migrateFrom` | – | Gruppe in `shell.json`, deren Werte einmalig übernommen werden |
 
@@ -68,6 +70,21 @@ Im Menü erscheint jedes aktive Plugin mit Einstellungen als eigene Gruppe
 heißt im Raster `<plugin>.<kachel>` und taucht nach dem Einschalten im
 Kachel-Editor unter „Ausgeblendet“ auf. Vertrag der Komponente: siehe
 Abschnitt „Kacheln“ unten.
+
+### `panels`
+
+```json
+"panels": {
+    "wallpaper": { "component": "Section.qml", "icon": "travel_explore" }
+}
+```
+
+Hängt eine Sektion in eine Ansicht der Shell, je Ansicht höchstens eine pro
+Plugin. Bisher einzige Ansicht: `wallpaper`, die Wallpaper-Auswahl der Notch
+(aufklappbar unter der lokalen Reihe und der Stil-Reihe). `icon` (Vorgabe:
+Plugin-Icon) wird zum Knopf in deren Suchzeile. Hat das Plugin einen Dienst
+(`main`), erscheint die Sektion erst, wenn er läuft. Vertrag der Komponente:
+Abschnitt „Sektionen“ unten.
 
 ### `files`
 
@@ -119,6 +136,7 @@ Kinder an einem `QtObject` als `property FileView x: FileView {}` anhängen
 | `id`, `name`, `version`, `dir`, `manifest`, `enabled` | Infos |
 | `settings` | aktuelle Werte (`{ key: value }`), neues Objekt bei jeder Änderung → bindbar |
 | `setting(key)` / `set(key, value)` | lesen / schreiben (landet in `plugins.json`) |
+| `main` | das Objekt aus `main`, solange es läuft (sonst `null`) – Kacheln und Sektionen greifen so auf den Dienst zu |
 | `url(rel)` | Pfad einer Datei im Plugin-Ordner |
 | `statePath(rel)`, `cachePath(rel)` | `~/.local/state/dynamic-island/plugins/<id>/…`, `~/.cache/…` (nicht angelegt) |
 | `log(msg)` | `console.info` mit Präfix |
@@ -157,6 +175,86 @@ Ersatzkachel „Kachel lädt nicht“ (Grund im Log).
 **Imports:** Plugin-QML kann alle `qs.*`-Module importieren, die die Shell
 selbst schon lädt (config, widgets, services/…, `qs` für Colors/Appearance).
 Ein Modul, das nirgends in der Shell importiert wird, gilt als „not installed“.
+Dateien im Plugin-Ordner sehen sich untereinander **nicht** als Typen („X is
+not a type“ – die Shell lädt sie über ihr `qs:`-Schema, das keinen
+Verzeichnis-Import kennt). Eine zweite QML-Datei des Plugins also über den
+Pfad laden: `Loader { Component.onCompleted: setSource(plugin.url("Liste.qml"),
+{ wert: 1 }) }` und Bindungen in `onLoaded` nachziehen (so macht es
+`plugins/wallhaven/Section.qml` mit `WallhavenList.qml`).
+
+**Neue Dateien:** Die Shell sieht Dateien, die nach ihrem Start in den
+Plugin-Ordner kommen, erst nach einem Neustart (`dynamic-island shell -k`,
+`-d`) – „File not found“ im Log, obwohl die Datei da ist. Importierte Plugins
+sind davon nicht betroffen, sie liegen vor dem Einschalten komplett da.
+
+## Sektionen
+
+Eine Sektion (Manifest `panels.<ansicht>`) ist ein `Item`, das die Ansicht
+beim Aufklappen lädt und beim Zuklappen wieder zerstört – zugeklappt gibt es
+also keine Sektion, keine Timer, keine Prozesse. Was das Zuklappen überleben
+soll (Suchtext, Treffer), gehört in den Dienst (`plugin.main`). Vorbild:
+`plugins/wallhaven/Section.qml`.
+
+```qml
+Item {
+    id: section
+
+    required property var plugin        // Kontext, s.o.
+    required property var host          // was die Ansicht anbietet, s.u.
+
+    implicitHeight: 190                 // so weit wächst die Karte
+
+    // Die Tastatur kommt – kann beim Erzeugen schon so sein
+    readonly property bool focused: section.host.focused
+    onFocusedChanged: if (focused) input.forceActiveFocus()
+    Component.onCompleted: if (focused) input.forceActiveFocus()
+
+    TextInput {
+        id: input
+        Keys.onEscapePressed: section.host.close()
+        Keys.onUpPressed: section.host.leaveFocus()
+        Keys.onDownPressed: section.host.leaveFocus()
+        Keys.onPressed: event => {
+            if (event.key === Qt.Key_W && (event.modifiers & Qt.ControlModifier)) {
+                section.host.toggle();
+                event.accepted = true;
+            }
+        }
+    }
+}
+```
+
+Ansicht `wallpaper` (`modules/launcher/WallpaperPanel.qml`): offen ist
+höchstens eine Sektion, welche, merkt sich `LauncherState.wallpaperSection`
+(Plugin-id, bleibt über das Schließen der Auswahl hinweg). Auf/zu geht über
+den Knopf in der Suchzeile, Strg+W (erste auf, dann die nächste, nach der
+letzten zu) und `LauncherState.showWallpaperSection(screen, id)` bzw.
+`toggleWallpaperSection` (öffnet die Auswahl mit aufgeklappter Sektion und
+der Tastatur darin – so macht es `ipc("open")` des Wallhaven-Plugins). Die
+Tastatur hat entweder die lokale Reihe oder die Sektion; Hoch/Runter
+wechseln. Die Sektion belegt die Tasten in ihrem Suchfeld selbst.
+
+`host` der Wallpaper-Auswahl:
+
+| | |
+|---|---|
+| `listHeight`, `imageWidth` | Maße der lokalen Reihe (Karussellhöhe, Kachelbreite) |
+| `focused` | die Sektion hat die Tastatur → Suchfeld fokussieren, eigene Vorschau zeigen |
+| `takeFocus()` | die Sektion will die Tastatur (Klick/Rad auf eine Kachel) |
+| `leaveFocus()` | Tastatur zurück in die lokale Reihe (Hoch/Runter) |
+| `toggle()` | Strg+W: nächste Sektion bzw. zu |
+| `close()` | Auswahl schließen (Esc) |
+| `cycleStyle(delta)` | Strg+Links/Rechts: Stil des markierten lokalen Bilds |
+
+Hintergrund-Vorschau: `Wallpapers.preview(pfad)` wie die lokale Reihe,
+`Wallpapers.previewThumb(pfad)` für ein kleines Bild (wird nur hochgezogen,
+nicht auf Bildschirmgröße dekodiert). Verliert die Sektion die Tastatur,
+stellt die Ansicht die Vorschau der lokalen Reihe selbst wieder her; beim
+Schließen der Auswahl nimmt die lokale Reihe die Vorschau zurück. Eine
+Sektion ruft `Wallpapers.stopPreview()` deshalb nicht selbst – höchstens der
+Dienst in `onDisable()`, wenn der Hintergrund gerade eines seiner Bilder
+zeigt. Setzt die Sektion ein Wallpaper, schließt sie die Auswahl mit
+`LauncherState.close()` (bzw. `host.close()`).
 
 ## Austauschformate
 

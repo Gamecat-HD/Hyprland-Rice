@@ -20,6 +20,9 @@ Item {
 
     // ---- Bild ----
     property string path: ""
+    // Kleines Bild (Thumb): in seiner Groesse dekodieren, nicht in decodeSize
+    // – mit PreserveAspectCrop rechnet Qt sonst auch hoch
+    property bool small: false
     readonly property bool ready: plane.path !== "" && img.status === Image.Ready
 
     // Laesst sich das Bild nicht laden (geloescht, kaputt, falscher Pfad),
@@ -28,9 +31,11 @@ Item {
     readonly property url fallback: Qt.resolvedUrl("../../assets/wallpaper-error.jpg")
     property bool failed: false
 
-    function load(p: string): void {
+    function load(p: string, small: bool): void {
         plane.path = p;
         plane.failed = false;
+        // Vor der Quelle setzen: sourceSize wechseln laedt neu
+        plane.small = small;
         img.source = p !== "" ? `file://${p}` : "";
     }
 
@@ -76,8 +81,11 @@ Item {
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             // Nur in Bildschirmgroesse decodieren (statt z. B. 6K voll) und
-            // ueber den Cache teilen – beide Monitore zeigen dasselbe Bild
-            sourceSize: plane.decodeSize
+            // ueber den Cache teilen – beide Monitore zeigen dasselbe Bild.
+            // Ein Thumb bleibt klein (0x0 = Originalgroesse) und wird nur
+            // beim Zeichnen hochgezogen (smooth)
+            sourceSize: plane.small ? Qt.size(0, 0) : plane.decodeSize
+            smooth: true
             cache: true
             visible: !plane.masked
 

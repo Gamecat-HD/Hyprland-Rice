@@ -11,7 +11,6 @@ from dynamic_island.subcommands import (
     screenshot,
     shell,
     toggle,
-    wallhaven,
     wallpaper,
 )
 from dynamic_island.utils.paths import wallpapers_dir
@@ -177,31 +176,6 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     wallpaper_parser.add_argument(
         "--for", dest="target", metavar="PATH", help="the wallpaper --variant applies to (default: current)"
     )
-
-    # Create parser for wallhaven opts (NDJSON auf stdout, fuer die Shell)
-    wallhaven_parser = command_parser.add_parser("wallhaven", help="search and download wallpapers from wallhaven.cc")
-    wallhaven_parser.set_defaults(cls=wallhaven.Command)
-    wallhaven_cmd = wallhaven_parser.add_subparsers(dest="action", required=True)
-
-    p = wallhaven_cmd.add_parser("search", help="search wallhaven (prints NDJSON)")
-    p.add_argument("query", nargs="?", default="", help="search terms (tags, -tag, @user, like:ID, type:png)")
-    p.add_argument("-s", "--sorting", choices=wallhaven.SORTINGS, default="relevance")
-    p.add_argument("-r", "--top-range", choices=wallhaven.TOP_RANGES, default="1M", help="only for toplist")
-    p.add_argument("-c", "--categories", default="111", help="bits general/anime/people, e.g. 110")
-    p.add_argument("-u", "--purity", default="100", help="bits sfw/sketchy/nsfw, e.g. 110 (nsfw needs a key)")
-    p.add_argument("-a", "--atleast", help="minimum resolution, e.g. 2560x1440")
-    p.add_argument("--ratios", help="comma list, e.g. 16x9,21x9")
-    p.add_argument("--colors", help="hex colour from the wallhaven palette")
-    p.add_argument("-p", "--page", type=int, default=1)
-    p.add_argument("--seed", help="seed of the first page for random sorting")
-
-    p = wallhaven_cmd.add_parser("download", help="download a wallpaper into the Wallhaven folder")
-    p.add_argument("id", help="wallhaven id, e.g. w533px")
-    p.add_argument("--url", help="full image url (skips the lookup)")
-    p.add_argument("--set", action="store_true", help="set it as wallpaper afterwards")
-
-    p = wallhaven_cmd.add_parser("key", help="store the API key (empty removes it)")
-    p.add_argument("value", nargs="?", default="")
 
     # Create parser for resizer opts
     resizer_parser = command_parser.add_parser("resizer", help="window resizer daemon")

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
+import qs.modules.launcher
 import qs.modules.services.wallpaper
 
 import qs
@@ -9,40 +10,44 @@ import qs.modules.services.config
 // Wallhaven-Treffer in der Wallpaper-Auswahl: dasselbe Karussell wie die
 // lokale Reihe (WallpaperList), nur mit Bildern, die noch nicht da sind.
 //
-// Die Kacheln zeigen das kleine Vorschaubild von Wallhaven (432x243, von der
-// CLI gecacht), solange es noch laedt einen Platzhalter. Dazu die Aufloesung,
-// ein Haekchen, wenn das Bild schon im Wallpaper-Ordner liegt, und waehrend
-// des Downloads einen Ring auf der Kachel. Klick/Enter laedt und setzt,
-// Rechtsklick/Shift+Enter laedt nur. Nahe dem Ende haengt sich die naechste
-// Seite an.
+// Die Kacheln zeigen das kleine Vorschaubild von Wallhaven (432x243, von
+// wallhaven.py gecacht), solange es noch laedt einen Platzhalter. Dazu die
+// Aufloesung, ein Haekchen, wenn das Bild schon im Wallpaper-Ordner liegt,
+// und waehrend des Downloads einen Ring auf der Kachel. Klick/Enter laedt
+// und setzt, Rechtsklick/Shift+Enter laedt nur. Nahe dem Ende haengt sich
+// die naechste Seite an.
 //
-// Die Vorschau beim Blaettern faerbt nur die Shell um (previewColours): vom
-// Treffer gibt es nur das Thumb, als Hintergrund waere das Matsch. Liegt das
-// Bild schon lokal, zeigt der Hintergrund es wie in der lokalen Reihe.
+// Beim Blaettern zeigt der Hintergrund den Treffer wie in der lokalen Reihe
+// – vor dem Download nur als hochgezogenes Thumb (Wallpapers.previewThumb,
+// Farben wie gehabt), danach die lokale Datei. Kommt das Thumb erst nach
+// der Auswahl an, zieht die Vorschau nach.
 Carousel {
     id: view
+
+    // Der Dienst (Main.qml): Treffer, Seiten, Downloads
+    required property var wh
 
     // Hat diese Reihe die Tastatur? Sonst ist der Rahmen gedimmt und die
     // Vorschau bleibt aus.
     property bool focused: false
-    // Vom Panel vorgegeben, wie bei WallpaperList
+    // Von der Sektion vorgegeben, wie bei WallpaperList
     property real imageWidth: 160
     readonly property real imageHeight: Math.round(imageWidth / 16 * 9)
     readonly property real itemPadding: 8
     itemWidth: view.imageWidth + view.itemPadding * 2
 
-    // Geklickt: das Panel holt die Tastatur in diese Reihe
+    // Geklickt: die Sektion holt die Tastatur in diese Reihe
     signal activated
 
     readonly property string currentId: view.currentItem?.wid ?? ""
     readonly property string currentThumb: view.currentItem?.thumb ?? ""
     readonly property string currentLocal: view.currentItem?.local ?? ""
 
-    // Uebernehmen: herunterladen und (apply) setzen. Fertig meldet der
-    // Dienst per `downloaded`, das Panel schliesst dann.
+    // Uebernehmen: herunterladen und (apply) setzen – fertig setzt der
+    // Dienst das Bild und schliesst die Auswahl
     function apply(set: bool): void {
         if (view.currentId !== "")
-            Wallhaven.download(view.currentId, set);
+            view.wh.download(view.currentId, set);
     }
 
     function previewNow(): void {
@@ -51,28 +56,28 @@ Carousel {
 
     implicitHeight: view.itemPadding + view.imageHeight + 4 + 15 + view.itemPadding
 
-    model: Wallhaven.items
+    model: view.wh.items
 
     // Neue Suche: vorne anfangen (siehe snapTo – der Versatz bleibt sonst
     // vom alten Modell stehen)
     Connections {
-        target: Wallhaven
+        target: view.wh
 
         function onPageChanged(): void {
-            if (Wallhaven.page === 1)
+            if (view.wh.page === 1)
                 Qt.callLater(() => view.snapTo(0));
         }
     }
-
-    Component.onDestruction: Wallpapers.stopPreview()
 
     onCurrentIndexChanged: {
         previewTimer.restart();
         // Die letzten fuenf Kacheln: Nachschub holen, bevor man ankommt
         if (view.count > 0 && view.currentIndex >= view.count - 5)
-            Wallhaven.loadMore();
+            view.wh.loadMore();
     }
 
+    // Erst nach kurzem Verweilen, wie in der lokalen Reihe – sonst laeuft
+    // jeder Tastendruck in einen Hintergrund-Uebergang
     Timer {
         id: previewTimer
 
@@ -83,7 +88,7 @@ Carousel {
             if (view.currentLocal !== "")
                 Wallpapers.preview(view.currentLocal);
             else if (view.currentThumb !== "")
-                Wallpapers.previewColours(view.currentThumb);
+                Wallpapers.previewThumb(view.currentThumb);
         }
     }
 
@@ -164,20 +169,24 @@ Carousel {
             }
 
             // Platzhalter, solange das Thumb noch unterwegs ist: pulsiert
-            // leicht, damit "laedt" von "kaputt" zu unterscheiden ist
+            // leicht, damit "laedt" von "kaputt" zu unterscheiden ist. Nur
+            // solange der Prozess noch Thumbs liefert - ein nie ankommendes
+            // Thumb (Timeout) liesse die Shell sonst endlos neu zeichnen
             Text {
                 id: placeholder
+
+                readonly property bool pending: item.thumb === "" && view.wh.busy
 
                 anchors.centerIn: parent
                 visible: thumb.status !== Image.Ready
 
-                text: item.thumb === "" ? "hourglass_top" : "image"
+                text: placeholder.pending ? "hourglass_top" : "image"
                 color: Colors.fgSurfaceVariant
                 font.family: "Material Symbols Outlined"
                 font.pixelSize: 22
 
                 SequentialAnimation on opacity {
-                    running: placeholder.visible && item.thumb === ""
+                    running: placeholder.visible && placeholder.pending
                     loops: Animation.Infinite
                     NumberAnimation { to: 0.35; duration: 700; easing.type: Easing.InOutSine }
                     NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
@@ -191,8 +200,8 @@ Carousel {
                 anchors.fill: parent
                 anchors.margins: frame.border.width
 
-                // Nur das kleine Vorschaubild der CLI (siehe WallpaperList:
-                // Qt dekodiert alles in einem Thread)
+                // Nur das kleine Vorschaubild (siehe WallpaperList: Qt
+                // dekodiert alles in einem Thread)
                 source: item.thumb !== "" ? `file://${item.thumb}` : ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
