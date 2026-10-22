@@ -12,8 +12,15 @@ import Quickshell.Io
 // ~/.config/spicetify/Extensions/islandQueue.js: sie verbindet sich als
 // WebSocket-Client mit diesem Server und schickt bei jeder Aenderung
 //   {"type":"queue","current":{…},"prev":[…],"next":[…]}
-// (je Titel uri/title/artist/album/art/queued, prev[0] = direkter Vorgaenger).
-// Der Server lauscht nur auf 127.0.0.1.
+// (je Titel uri/uid/title/artist/album/art/queued, prev[0] = direkter
+// Vorgaenger, next bis zu 30 Titel). Der Server lauscht nur auf 127.0.0.1.
+//
+// Zurueck an die Extension gehen Befehle (`command`):
+//   {"cmd":"refresh"}                    alles neu schicken
+//   {"cmd":"skip","uri","uid","index"}   zu next[index] springen
+//   {"cmd":"lyrics"}                     Songtext des laufenden Titels
+// Die Antwort auf "lyrics" ist {"type":"lyrics","uri","title","synced",
+// "lines":[{"t":ms,"text"}]} und landet in `lyrics` (Lyrics.qml liest sie).
 //
 // Benutzung:  MediaQueue.previous?.title, MediaQueue.upcoming?.art, MediaQueue.next
 Singleton {
@@ -39,6 +46,38 @@ Singleton {
     readonly property var previous: root.prev[0] ?? null
     readonly property var upcoming: root.next[0] ?? null
 
+    // Letzte Songtext-Antwort der Extension (siehe oben), null = keine
+    property var lyrics: null
+
+    // Cover werden nur fuer den sichtbaren Anfang der Liste geholt – die
+    // aufgeklappte Warteschlange zeigt die ersten paar, der Rest bekommt
+    // sein Bild, sobald er nachrueckt
+    readonly property int artAhead: 12
+
+    function command(msg: var): void {
+        const text = JSON.stringify(msg);
+        for (const socket of root.sockets)
+            if (socket.status === WebSocket.Open)
+                socket.sendTextMessage(text);
+    }
+
+    // Zu einem Titel der naechsten-Liste springen. Die Extension nimmt
+    // Spotifys eigenes skipTo, sonst entsprechend oft "weiter".
+    function skipTo(index: int): void {
+        const t = root.rawNext[index];
+        if (!t)
+            return;
+        if (index === 0 || root.clients === 0) {
+            Media.next();
+            return;
+        }
+        root.command({ cmd: "skip", uri: t.uri, uid: t.uid ?? "", index: index });
+    }
+
+    function requestLyrics(): void {
+        root.command({ cmd: "lyrics" });
+    }
+
     // ---- Cover-Cache ----------------------------------------------------
     // Gleicher Cache und gleiches Dateinamen-Schema wie Media.art (Qt laedt
     // Spotifys CDN nicht, curl schon). `cached` wird neu zugewiesen, damit
@@ -55,7 +94,7 @@ Singleton {
     }
 
     function fetchArt(): void {
-        const missing = [...root.rawPrev, ...root.rawNext]
+        const missing = [...root.rawPrev.slice(0, 3), ...root.rawNext.slice(0, root.artAhead)]
             .map(t => t.art)
             .filter((url, i, all) => url && !root.cached[url] && all.indexOf(url) === i);
         if (!missing.length)
@@ -110,6 +149,10 @@ Singleton {
         try {
             msg = JSON.parse(text);
         } catch (e) {
+            return;
+        }
+        if (msg?.type === "lyrics") {
+            root.lyrics = msg;
             return;
         }
         if (msg?.type !== "queue")

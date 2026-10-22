@@ -13,7 +13,8 @@
 	}
 
 	const URL = "ws://127.0.0.1:28199";
-	const DEPTH = 3; // Titel je Richtung
+	const DEPTH_PREV = 5; // Titel zurueck
+	const DEPTH_NEXT = 30; // Titel voraus (aufklappbare Warteschlange)
 	const IMAGE = "https://i.scdn.co/image/";
 
 	let ws = null;
@@ -39,6 +40,7 @@
 
 	const pack = (t) => ({
 		uri: t.uri,
+		uid: t.uid || "",
 		title: t.metadata.title,
 		artist: artists(t.metadata),
 		album: t.metadata.album_title || "",
@@ -69,8 +71,8 @@
 			type: "queue",
 			current: usable(cur) ? pack(cur) : null,
 			// prevTracks ist chronologisch, der direkte Vorgaenger steht am Ende
-			prev: prev.map(unwrap).filter(usable).slice(-DEPTH).reverse().map(pack),
-			next: next.map(unwrap).filter(usable).slice(0, DEPTH).map(pack),
+			prev: prev.map(unwrap).filter(usable).slice(-DEPTH_PREV).reverse().map(pack),
+			next: next.map(unwrap).filter(usable).slice(0, DEPTH_NEXT).map(pack),
 		};
 	}
 
@@ -100,9 +102,58 @@
 				return;
 			}
 			if (msg.cmd === "refresh") send(true);
+			else if (msg.cmd === "skip") skip(msg);
+			else if (msg.cmd === "lyrics") lyrics();
 		};
 		ws.onclose = schedule;
 		ws.onerror = () => ws?.close();
+	}
+
+	// Zu einem Titel der Warteschlange springen: Spotifys PlayerAPI.skipTo,
+	// sonst so oft "weiter", bis er dran ist
+	async function skip({ uri, uid, index }) {
+		const api = Spicetify.Platform?.PlayerAPI;
+		try {
+			if (api?.skipTo) {
+				await api.skipTo({ uri, uid });
+				return;
+			}
+		} catch (e) {
+			console.warn("[islandQueue] skipTo:", e);
+		}
+		for (let i = 0; i <= index; i++) {
+			await Spicetify.Player.next();
+			await new Promise((r) => setTimeout(r, 120));
+		}
+	}
+
+	// Songtext ueber denselben Weg wie Spotifys eigene Lyrics-Ansicht.
+	// Antwort immer schicken (auch leer), dann faellt die Shell sofort auf
+	// lrclib zurueck statt auf ihren Timeout zu warten.
+	async function lyrics() {
+		const item = Spicetify.Player.data?.item;
+		const uri = item?.uri || "";
+		const title = item?.metadata?.title || item?.name || "";
+		const answer = { type: "lyrics", uri, title, synced: false, lines: [] };
+		const id = uri.startsWith("spotify:track:") ? uri.slice(14) : "";
+		if (id) {
+			try {
+				const res = await Spicetify.CosmosAsync.get(
+					`https://spclient.wg.spotify.com/color-lyrics/v2/track/${id}?format=json&vocalRemoval=false&market=from_token`,
+				);
+				const l = res?.lyrics;
+				if (l?.lines?.length) {
+					answer.synced = l.syncType === "LINE_SYNCED";
+					answer.lines = l.lines.map((x) => ({
+						t: answer.synced ? Number(x.startTimeMs) : -1,
+						text: x.words === "♪" ? "♪" : x.words || "",
+					}));
+				}
+			} catch (e) {
+				// 404 = Spotify hat keinen Text
+			}
+		}
+		if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(answer));
 	}
 
 	// Shell aus → leise mit wachsendem Abstand (max. 30 s) neu versuchen

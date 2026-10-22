@@ -12,14 +12,21 @@ import qs.modules.services.config
 //
 // `track` ist ein Eintrag aus MediaQueue (title/artist/art/queued), `art`
 // kommt dort schon als file:// oder "" (noch nicht geladen) an.
+//
+// Kompakt (`compact: true`, in der aufgeklappten Liste): kleineres Cover,
+// keine Bildunterschrift, dafuer links die Position in der Warteschlange.
+// Der "Warteschlange"-Hinweis rueckt dann neben den Titel.
 Item {
     id: row
 
     required property var track
-    required property string caption
+    property string caption: ""
     // Grundfarbe der Karte, davon setzt sich der Hover ab (siehe MediaPanel)
     property color tint: Colors.background
-    property real artSize: 34
+    property real artSize: row.compact ? 26 : 34
+    property bool compact: false
+    // Positionsnummer (nur kompakt), 0 = keine
+    property int number: 0
 
     signal triggered
 
@@ -29,7 +36,8 @@ Item {
     readonly property bool queued: row.track?.queued ?? false
 
     Layout.fillWidth: true
-    Layout.preferredHeight: row.artSize + 8
+    Layout.preferredHeight: row.artSize + (row.compact ? 6 : 8)
+    implicitHeight: Layout.preferredHeight
 
     // Beim Titelwechsel blendet der Inhalt kurz ein – einmalig, kein
     // Behavior: die Zeile soll nicht auf jede Pegel- oder Hover-Aenderung
@@ -50,7 +58,7 @@ Item {
     Rectangle {
         anchors.fill: parent
 
-        radius: 10
+        radius: row.compact ? 8 : 10
         color: hover.hovered ? Colors.shade(row.tint, 0.11) : "transparent"
 
         Behavior on color {
@@ -66,7 +74,21 @@ Item {
             leftMargin: 4
             rightMargin: 8
         }
-        spacing: 10
+        spacing: row.compact ? 8 : 10
+
+        // ---- Position (nur kompakt) ----
+        Text {
+            visible: row.compact && row.number > 0
+            Layout.preferredWidth: 16
+            Layout.alignment: Qt.AlignVCenter
+
+            font.family: Config.font
+            text: row.number
+            color: Colors.alpha(Colors.fgSurfaceVariant, 0.55)
+            font.pixelSize: 9
+            font.weight: Font.DemiBold
+            horizontalAlignment: Text.AlignRight
+        }
 
         // ---- Cover ----
         // Rund maskiert wie in der Notch-Zeile (NowPlayingRow): `clip`
@@ -76,7 +98,7 @@ Item {
             Layout.preferredHeight: row.artSize
             Layout.alignment: Qt.AlignVCenter
 
-            radius: 9
+            radius: row.compact ? 7 : 9
             color: Colors.shade(row.tint, 0.08)
 
             Image {
@@ -100,7 +122,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 9
+                    radius: row.compact ? 7 : 9
                     color: "black"
                 }
             }
@@ -121,7 +143,7 @@ Item {
                 text: "music_note"
                 color: Colors.fgSurfaceVariant
                 font.family: "Material Symbols Outlined"
-                font.pixelSize: 15
+                font.pixelSize: row.compact ? 12 : 15
             }
         }
 
@@ -132,6 +154,7 @@ Item {
             spacing: 0
 
             RowLayout {
+                visible: !row.compact
                 Layout.fillWidth: true
                 spacing: 6
 
@@ -147,38 +170,33 @@ Item {
 
                 // Von Hand in die Warteschlange gelegt – kleiner Hinweis in
                 // der Akzentfarbe, damit man es von der Playlist unterscheidet
-                Rectangle {
-                    visible: row.queued
-                    Layout.preferredWidth: queuedTag.implicitWidth + 8
-                    Layout.preferredHeight: 12
-
-                    radius: height / 2
-                    color: Colors.alpha(Colors.primary, 0.16)
-
-                    Text {
-                        id: queuedTag
-
-                        anchors.centerIn: parent
-                        font.family: Config.font
-                        text: "Warteschlange"
-                        color: Colors.primary
-                        font.pixelSize: 8
-                        font.weight: Font.DemiBold
-                    }
+                QueueTag {
+                    visible: row.queued && !row.compact
                 }
 
                 Item { Layout.fillWidth: true }
             }
 
-            Text {
-                font.family: Config.font
+            RowLayout {
                 Layout.fillWidth: true
+                spacing: 6
 
-                text: row.title
-                color: Colors.fgBackground
-                font.pixelSize: 10
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
+                Text {
+                    font.family: Config.font
+                    Layout.fillWidth: true
+
+                    text: row.title
+                    color: Colors.fgBackground
+                    font.pixelSize: 10
+                    font.weight: Font.DemiBold
+                    elide: Text.ElideRight
+                }
+
+                // Kompakt gibt es keine Bildunterschrift – der Hinweis
+                // sitzt dann neben dem Titel
+                QueueTag {
+                    visible: row.queued && row.compact
+                }
             }
 
             Text {
@@ -188,7 +206,7 @@ Item {
 
                 text: row.artist
                 color: Colors.fgSurfaceVariant
-                font.pixelSize: 9
+                font.pixelSize: row.compact ? 8.5 : 9
                 font.weight: Font.Medium
                 elide: Text.ElideRight
             }
