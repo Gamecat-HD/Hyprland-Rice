@@ -6,11 +6,11 @@ from argparse import Namespace
 from pathlib import Path
 from typing import cast
 
-from materialyoucolor.hct import Hct
-from materialyoucolor.utils.color_utils import argb_from_rgb
-from PIL import Image
-
-from dynamic_island.utils.colourfulness import get_variant
+# PIL und materialyoucolor erst bei Bedarf laden: die Vorschau (`-p`) laeuft bei
+# jedem Blaettern in der Auswahl, meist komplett aus dem Cache, und braucht
+# beides dann gar nicht (PIL allein kostete ~20 ms Startzeit)
+from dynamic_island.utils.colourfulness import VERSION as SMART_VERSION
+from dynamic_island.utils.colourfulness import analyse
 from dynamic_island.utils.hypr import message
 from dynamic_island.utils.material import get_colours_for_image
 from dynamic_island.utils.paths import (
@@ -32,6 +32,8 @@ def is_valid_image(path: Path) -> bool:
 
 
 def check_wall(wall: Path, filter_size: tuple[int, int], threshold: float) -> bool:
+    from PIL import Image
+
     with Image.open(wall) as img:
         width, height = img.size
         return width >= filter_size[0] * threshold and height >= filter_size[1] * threshold
@@ -113,6 +115,8 @@ def get_thumb(wall: Path, cache: Path) -> Path:
     thumb = cache / "thumbnail.jpg"
 
     if not thumb.exists():
+        from PIL import Image
+
         with Image.open(wall) as img:
             # JPEGs gleich verkleinert dekodieren (libjpeg kann 1/2..1/8):
             # ein 4K-Bild braucht so einen Bruchteil der Zeit
@@ -126,28 +130,24 @@ def get_thumb(wall: Path, cache: Path) -> Path:
 
 
 def get_smart_opts(wall: Path, cache: Path) -> dict:
+    """Stil und Modus, die "smart" fuer ein Bild waehlt (colourfulness.analyse).
+
+    smart.json haelt das Ergebnis samt Merkmalen; Eintraege einer aelteren
+    Analyse-Version werden neu berechnet.
+    """
     opts_cache = cache / "smart.json"
 
     try:
-        return json.loads(opts_cache.read_text())
+        opts = json.loads(opts_cache.read_text())
+        if opts.get("version") == SMART_VERSION:
+            return opts
     except (IOError, json.JSONDecodeError):
         pass
 
-    opts = {}
-
-    with Image.open(get_thumb(wall, cache)) as img:
-        opts["variant"] = get_variant(img)
-        img.thumbnail((1, 1), Image.Resampling.LANCZOS)
-
-        # Cast the pixel to a tuple of 3 integers to safely unpack it
-        pixel = cast(tuple[int, int, int], img.getpixel((0, 0)))
-        hct = Hct.from_int(argb_from_rgb(*pixel))
-
-        opts["mode"] = "light" if hct.tone > 60 else "dark"
+    opts = analyse(get_thumb(wall, cache))
 
     opts_cache.parent.mkdir(parents=True, exist_ok=True)
-    with opts_cache.open("w") as f:
-        json.dump(opts, f)
+    atomic_dump(opts_cache, opts)
 
     return opts
 
@@ -155,11 +155,13 @@ def get_smart_opts(wall: Path, cache: Path) -> dict:
 def get_colours_for_wall(wall: Path | str, no_smart: bool) -> dict:
     wall = Path(wall)
     scheme = get_scheme()
-    cache = wallpapers_cache_dir / compute_hash(wall)
     pinned = get_wall_variant(wall)
 
+    # Wie set_wallpaper: bei GIFs haengt der Cache am ersten Einzelbild, sonst
+    # lagen fuer dasselbe GIF zwei Cache-Ordner mit eigener Analyse herum
     if wall.suffix.lower() == ".gif":
         wall = convert_gif(wall)
+    cache = wallpapers_cache_dir / compute_hash(wall)
 
     name = "dynamic"
 
@@ -192,6 +194,8 @@ def convert_gif(wall: Path) -> Path:
     output_path = cache / "first_frame.png"
 
     if not output_path.exists():
+        from PIL import Image
+
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with Image.open(wall) as img:
             try:
