@@ -13,6 +13,14 @@
    Keine Chamfer, keine Eck-Klammern, keine Scanlines, keine Mono-Labels
    mehr – das war die Sprache des alten VOCALOID-NET-Rices.
 
+   v4 (2026-10-22) "ruhiger": dunklerer Backdrop, Panels ohne Schlagschatten
+   (nur 1-px-Haarlinie), Player als kompakte Notch-Pille mit Fortschritt als
+   Haarlinie an der Unterkante und rundem, langsam drehendem Cover (Vinyl),
+   Glow unter der Pille in der Farbe des Covers (theme.js), Stoerer
+   ausgeblendet (What's New, Freunde, Miniplayer), Fokus-Modus (Ctrl+.)
+   blendet beide Seitenleisten aus. Extensions: trashbin, keyboardShortcut,
+   quickQueue, volumePercentage, playlist-icons – alle hier mitgestylt.
+
    Farben kommen ausschliesslich aus color.ini (Symlink auf das vom
    dynamic-island-CLI erzeugte Schema). Alle weiteren Farben werden per
    color-mix()/rgba() aus den --spice-* Variablen abgeleitet.
@@ -41,8 +49,8 @@
   --island-accent-soft: rgba(var(--spice-rgb-button), 0.35);
 
   /* Inseln: Notch-Schwarz, halbtransparent, damit das Cover durchscheint */
-  --island-black: rgba(var(--spice-rgb-shadow), 0.7);
-  --island-black-deep: rgba(var(--spice-rgb-shadow), 0.82);
+  --island-black: rgba(var(--spice-rgb-shadow), 0.8);
+  --island-black-deep: rgba(var(--spice-rgb-shadow), 0.9);
   --island-blur: blur(24px) saturate(1.2);
   /* Karte auf der Insel: alpha(fgBackground, 0.05) wie NowPlayingRow */
   --island-card: rgba(var(--spice-rgb-text), 0.05);
@@ -62,6 +70,7 @@
   --island-art: none;          /* Cover des laufenden Titels (immer aktuell)        */
   --island-art-a: none;        /* Crossfade-Ebene A                                 */
   --island-art-b: none;        /* Crossfade-Ebene B                                 */
+  --island-tint: var(--spice-rgb-button); /* Vibrant-Farbe des Covers (r, g, b) */
 }
 
 /* ---------- Typografie ------------------------------------------------------ */
@@ -160,7 +169,7 @@ body::after {
   pointer-events: none;
   background-size: cover;
   background-position: center;
-  filter: blur(48px) saturate(1.3) brightness(0.9);
+  filter: blur(64px) saturate(1.15) brightness(0.55);
   transform: translateZ(0);
   transition: opacity 1.6s var(--island-ease);
 }
@@ -197,9 +206,8 @@ html.island-b body::after  { opacity: 1; }
   -webkit-backdrop-filter: var(--island-blur);
   backdrop-filter: var(--island-blur);
   border-radius: var(--island-radius);
-  box-shadow:
-    inset 0 0 0 1px var(--island-line),
-    var(--island-shadow);
+  /* v4: kein Schlagschatten mehr, nur die Haarlinie */
+  box-shadow: inset 0 0 0 1px var(--island-line-soft);
 }
 .Root__right-sidebar-peekContent,
 .Root__right-sidebar-overlayWrapper,
@@ -374,12 +382,13 @@ button[data-testid="user-widget-link"]:hover { transform: scale(1.05); }
   justify-content: center;
   align-items: flex-end;
 }
+/* v4: kompakte Notch statt Vollbreite; Glow darunter in der Coverfarbe */
 .main-nowPlayingBar-container {
-  width: min(100%, 1560px);
+  width: clamp(640px, 64vw, 1180px);
   min-width: 620px;
-  margin: 0 auto;
+  margin: 0 auto 4px;
   border-radius: 999px;
-  padding: 0 26px 0 12px;
+  padding: 0 24px 0 10px;
   position: relative;
   overflow: hidden;
   background-color: var(--island-black-deep);
@@ -388,7 +397,8 @@ button[data-testid="user-widget-link"]:hover { transform: scale(1.05); }
   box-shadow:
     inset 0 0 0 1px var(--island-line),
     0 6px 14px rgba(var(--spice-rgb-shadow), 0.35),
-    0 24px 60px -14px rgba(var(--spice-rgb-shadow), 0.7);
+    0 18px 60px -18px rgba(var(--island-tint), 0.55);
+  transition: box-shadow 1.2s var(--island-ease);
 }
 /* Cover-Blend wie NowPlayingRow: verwaschen, nach rechts in die
    Kartenfarbe (Schwarz) ausgeblendet */
@@ -405,16 +415,46 @@ button[data-testid="user-widget-link"]:hover { transform: scale(1.05); }
   -webkit-mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,0.5) 28%, transparent 55%);
   mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,0.5) 28%, transparent 55%);
 }
-.main-nowPlayingBar-nowPlayingBar { height: 84px; position: relative; }
-.main-nowPlayingWidget-coverArtContainer {
-  border-radius: 12px;
-  box-shadow:
-    0 0 0 1px rgba(var(--spice-rgb-text), 0.1),
-    0 6px 16px -4px rgba(var(--spice-rgb-shadow), 0.7);
-  transition: transform .3s var(--island-ease);
+.main-nowPlayingBar-nowPlayingBar { height: 72px; position: relative; }
+/* Cover rund wie im MediaPanel der Shell, dreht beim Abspielen langsam
+   (Vinyl). Nur transform -> laeuft auf dem Compositor, kein Repaint der
+   backdrop-filter-Flaechen. html.island-playing setzt theme.js. */
+.main-nowPlayingWidget-nowPlaying [data-testid="CoverSlotCollapsed__container"] {
+  width: 52px;
+  height: 52px;
 }
-.main-nowPlayingWidget-coverArtContainer:hover { transform: scale(1.04); }
-.main-nowPlayingWidget-coverArtContainer img { border-radius: 12px; }
+.main-nowPlayingWidget-nowPlaying [data-testid="CoverSlotCollapsed__container"] > div {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(var(--spice-rgb-text), 0.12),
+    0 6px 16px -4px rgba(var(--spice-rgb-shadow), 0.7);
+  animation: island-spin 24s linear infinite;
+  animation-play-state: paused;
+}
+html.island-playing .main-nowPlayingWidget-nowPlaying [data-testid="CoverSlotCollapsed__container"] > div {
+  animation-play-state: running;
+}
+/* Spindelloch */
+.main-nowPlayingWidget-nowPlaying [data-testid="CoverSlotCollapsed__container"] > div::after {
+  content: "";
+  position: absolute;
+  inset: calc(50% - 4px);
+  border-radius: 50%;
+  background: var(--spice-shadow);
+  box-shadow: 0 0 0 2px rgba(var(--spice-rgb-text), 0.18);
+  pointer-events: none;
+}
+.main-nowPlayingWidget-nowPlaying [data-testid="CoverSlotCollapsed__container"] img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+@keyframes island-spin { to { transform: rotate(1turn); } }
+.main-nowPlayingWidget-trackInfo { margin-left: 4px; }
 .main-trackInfo-name { font-weight: 600; letter-spacing: -0.01em; }
 .main-trackInfo-artists { color: var(--spice-subtext); }
 .main-trackInfo-artists a:hover { color: var(--spice-text); }
@@ -461,10 +501,61 @@ button[data-testid="user-widget-link"]:hover { transform: scale(1.05); }
   background-color: var(--spice-text);
   box-shadow: 0 0 0 3px var(--island-chip);
 }
-.playback-bar [data-testid="playback-position"],
-.playback-bar [data-testid="playback-duration"] { font-size: 11px; letter-spacing: 0.02em; color: var(--spice-subtext); }
 .main-nowPlayingBar-volumeBar .progress-bar { --progress-bar-height: 4px; }
 .main-nowPlayingBar-extraControls button:hover { color: var(--spice-text); }
+
+/* Fortschritt als Haarlinie an der Unterkante der Pille (wie die Notch-
+   Fortschrittsanzeige). Die Zwischencontainer sind position: static, der
+   Container haengt sich also an .main-nowPlayingBar-nowPlayingBar. Die
+   Zeiten bleiben klein und zentriert unter den Tasten. */
+.main-nowPlayingBar-center .player-controls { gap: 2px; }
+.main-nowPlayingBar-center .playback-bar {
+  justify-content: center;
+  gap: 6px;
+}
+.main-nowPlayingBar-center .playback-bar [data-testid="playback-position"],
+.main-nowPlayingBar-center .playback-bar [data-testid="playback-duration"] {
+  min-width: 0;
+  width: auto;
+  flex: none;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(var(--spice-rgb-subtext), 0.8);
+}
+/* Spotify positioniert die Zeit-Spans absolut (rechts-/linksbuendig am
+   Balken) -> zurueck in den Fluss */
+.main-nowPlayingBar-center .playback-bar [data-testid="playback-position"] > span,
+.main-nowPlayingBar-center .playback-bar [data-testid="playback-duration"] > span {
+  position: static;
+  inset: auto;
+}
+.main-nowPlayingBar-center .playback-bar [data-testid="playback-position"]::after {
+  content: "/";
+  margin-left: 6px;
+  opacity: 0.5;
+}
+.main-nowPlayingBar-center .playback-progressbar-container {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  bottom: 0;
+  height: 12px;
+  width: auto;
+  display: flex;
+  align-items: flex-end;
+}
+.main-nowPlayingBar-center .playback-progressbar-container .progress-bar {
+  --progress-bar-height: 2px;
+  --bg-color: rgba(var(--spice-rgb-text), 0.08);
+  --fg-color: rgba(var(--island-tint), 1);
+  --is-active-fg-color: var(--island-accent);
+}
+.main-nowPlayingBar-center .playback-progressbar-container:hover .progress-bar { --progress-bar-height: 4px; }
+.main-nowPlayingBar-center .playback-progressbar-container .x-progressBar-progressBarBg {
+  border-radius: 999px 999px 0 0;
+}
 
 /* ---------- Karten, Shelves, Kacheln ---------------------------------------- */
 [data-encore-id="card"] {
@@ -636,6 +727,91 @@ button[data-encore-id="buttonTertiary"] { transition: color .15s var(--island-ea
 ::selection { background: rgba(var(--spice-rgb-button), 0.35); }
 a { transition: color .15s var(--island-ease); }
 
+/* ---------- Weniger Stoerer (v4) -------------------------------------------- */
+.main-globalNav-contentRight button[aria-label="What's New"],
+.main-globalNav-contentRight button[aria-label="Listening activity"],
+.main-globalNav-contentRight button[aria-label="Friend Activity"],
+.main-nowPlayingBar-extraControls [data-testid="pip-toggle-button"],
+.main-topBar-UpgradeButton,
+a[href*="spotify.com/download"],
+button[aria-label="Install App"] { display: none !important; }
+/* Zusatz-Tasten der Pille: gedaempft, erst bei Hover voll */
+.main-nowPlayingBar-extraControls { opacity: 0.6; transition: opacity .25s var(--island-ease); }
+.main-nowPlayingBar-container:hover .main-nowPlayingBar-extraControls { opacity: 1; }
+.main-nowPlayingBar-extraControls button[data-active="true"],
+.main-nowPlayingBar-extraControls button[aria-pressed="true"] { color: var(--island-accent); }
+
+/* ---------- Fokus-Modus (html.island-focus, theme.js, Ctrl+.) -------------- */
+html.island-focus .Root__nav-bar,
+html.island-focus .Root__right-sidebar { display: none !important; }
+html.island-focus .Root__top-container { grid-template-columns: 0 minmax(0, 1fr) 0 !important; column-gap: 0 !important; }
+
+/* ---------- Extensions ------------------------------------------------------ */
+/* quickQueue: Knopf nur bei Hover der Zeile, gequeued = Akzent */
+.main-trackList-trackListRow .queueControl-wrapper > button { opacity: 0; transition: opacity .15s var(--island-ease); }
+.main-trackList-trackListRow:hover .queueControl-wrapper > button,
+.main-trackList-trackListRow:focus-within .queueControl-wrapper > button,
+.queueControl-wrapper > button[aria-checked="true"] { opacity: 1; }
+.queueControl-wrapper > button[aria-checked="true"] svg { fill: var(--island-accent) !important; }
+
+/* volumePercentage + alle Tippy-Popups: kleine schwarze Insel */
+[data-tippy-root] .main-contextMenu-tippy,
+[data-tippy-root] > .tippy-box {
+  border-radius: var(--island-radius-sm) !important;
+  background: rgba(var(--spice-rgb-shadow), 0.9) !important;
+  box-shadow: inset 0 0 0 1px var(--island-line), var(--island-shadow) !important;
+}
+[data-tippy-root] div.text { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 2px 4px; }
+[data-tippy-root] div.text input { font-variant-numeric: tabular-nums; }
+[data-tippy-root] .main-popper-arrow { display: none; }
+
+/* playlist-icons: Cover im "Zu Playlist hinzufuegen"-Menue rund wie die Bibliothek */
+.add-to-playlist-item__img,
+.playlist-item__img { border-radius: 6px !important; object-fit: cover; }
+.add-to-playlist-item__img.no-icon,
+.add-to-playlist-item__folder { background-color: var(--island-card-hi) !important; border-radius: 6px; }
+.add-to-playlist-item:hover { background-color: var(--island-hover) !important; border-radius: var(--island-radius-sm); }
+.add-to-playlist-item__folder svg { fill: var(--spice-subtext); }
+
+/* ---------- Marketplace ----------------------------------------------------- */
+.marketplace-header { padding-top: 8px; }
+.marketplace-tabBar-headerItemLink {
+  border-radius: 999px !important;
+  background: transparent !important;
+  transition: background-color .2s var(--island-ease), color .2s var(--island-ease);
+}
+.marketplace-tabBar-headerItemLink:hover { background: var(--island-hover) !important; }
+.marketplace-tabBar-headerItemLink[aria-selected="true"],
+.marketplace-tabBar-active .marketplace-tabBar-headerItemLink {
+  background: var(--island-chip) !important;
+  color: var(--island-accent) !important;
+}
+.marketplace-grid { gap: 14px !important; }
+.marketplace-grid .main-card-card {
+  background: var(--island-card) !important;
+  border-radius: var(--island-radius-card) !important;
+  box-shadow: inset 0 0 0 1px var(--island-line-soft);
+  transition: background-color .2s var(--island-ease), transform .2s var(--island-ease);
+}
+.marketplace-grid .main-card-card:hover { background: var(--island-card-hi) !important; transform: translateY(-2px); }
+.marketplace-grid .main-card-card img,
+.marketplace-grid .main-cardImage-imageWrapper { border-radius: var(--island-radius-sm) !important; }
+.marketplace-card-desc { color: var(--spice-subtext); }
+.marketplace-card__tag {
+  border-radius: 999px !important;
+  background: var(--island-card-hi) !important;
+  color: var(--spice-subtext) !important;
+  padding: 2px 8px !important;
+  font-size: 11px;
+}
+.marketplace-sortBox-header,
+.marketplace-header input {
+  border-radius: 999px !important;
+  background: var(--island-card-hi) !important;
+  box-shadow: inset 0 0 0 1px var(--island-line-soft);
+  border: 0 !important;
+}
+
 /* ---------- Full App Display (Extension fullAppDisplay.js) ----------------- */
 /* Die Extension haengt ihr <style> NACH user.css an, gleiche Spezifitaet
    verliert also - darum ueberall ein vorangestelltes `body`.
@@ -729,4 +905,5 @@ body #fad-heart { color: var(--island-accent); }
 /* ---------- Bewegung reduzieren --------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   body::before, body::after { transition: none; }
+  .main-nowPlayingWidget-nowPlaying [data-testid="CoverSlotCollapsed__container"] > div { animation: none; }
 }
