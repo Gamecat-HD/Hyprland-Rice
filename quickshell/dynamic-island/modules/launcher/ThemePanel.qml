@@ -199,7 +199,7 @@ Item {
                 top: parent.top
                 bottom: parent.bottom
             }
-            implicitWidth: 56
+            implicitWidth: 160
         }
 
         EdgeFade {
@@ -208,7 +208,7 @@ Item {
                 top: parent.top
                 bottom: parent.bottom
             }
-            implicitWidth: 56
+            implicitWidth: 160
             mirrored: true
         }
     }

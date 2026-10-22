@@ -246,7 +246,7 @@ Item {
                 top: parent.top
                 bottom: parent.bottom
             }
-            implicitWidth: 56
+            implicitWidth: 160
             cornerRadius: panel.cardRadius - panel.inset
         }
 
@@ -256,7 +256,7 @@ Item {
                 top: parent.top
                 bottom: parent.bottom
             }
-            implicitWidth: 56
+            implicitWidth: 160
             mirrored: true
             cornerRadius: panel.cardRadius - panel.inset
         }
