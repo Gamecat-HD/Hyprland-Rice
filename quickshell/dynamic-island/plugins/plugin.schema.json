@@ -67,6 +67,33 @@
                 }
             }
         },
+        "widgets": {
+            "type": "object",
+            "description": "Desktop-Widgets fuer die Szenen je Wallpaper (Vertrag in README.md)",
+            "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+            "additionalProperties": {
+                "type": "object",
+                "required": ["component"],
+                "properties": {
+                    "title": { "type": "string" },
+                    "icon": { "type": "string" },
+                    "component": { "type": "string", "pattern": "^[^/].*\\.qml$" },
+                    "size": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+                    "options": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "title": { "type": "string" },
+                                "values": { "type": "array" },
+                                "bool": { "type": "boolean" },
+                                "default": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "files": {
             "type": "array",
             "items": {

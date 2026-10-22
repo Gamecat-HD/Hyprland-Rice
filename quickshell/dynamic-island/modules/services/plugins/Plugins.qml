@@ -271,6 +271,33 @@ Singleton {
         return out;
     }
 
+    // Desktop-Widgets (Manifest `widgets`): "<typ>" -> { pluginId, title,
+    // icon, url, options, plugin }. Gleiche Regel wie bei `panels`: mit Dienst
+    // erst, wenn er laeuft. Die Liste der Typen fuehrt DesktopWidgets.qml
+    // mit den eingebauten zusammen (Vertrag in plugins/README.md).
+    readonly property var widgets: {
+        const out = {};
+        for (const h of root.hosts) {
+            if (!h.enabled || !h.valid || (h.manifest.main && !h.instance))
+                continue;
+            const widgets = h.manifest.widgets ?? {};
+            for (const type in widgets) {
+                const w = widgets[type];
+                if (!w?.component)
+                    continue;
+                out[type] = {
+                    pluginId: h.pluginId,
+                    title: w.title ?? type,
+                    icon: w.icon ?? h.icon,
+                    url: h.url(w.component),
+                    options: w.options ?? {},
+                    plugin: h.context
+                };
+            }
+        }
+        return out;
+    }
+
     // Launcher-Aktionen aus `actions` der Main-Objekte (gleiches Format wie
     // LauncherActions); ohne eigenes Symbol gilt das des Plugins
     readonly property var actions: {

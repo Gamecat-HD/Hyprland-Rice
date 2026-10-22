@@ -546,6 +546,8 @@ bind("SUPER + Period", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island emoji -p"
 bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("dynamic-island wallpaper -r"), desc("Zufälliges Wallpaper"))
 -- Wallpaper-Auswahl direkt mit aufgeklappter Wallhaven-Suche (Plugin `wallhaven`)
 bind("SUPER + ALT + W", hl.dsp.exec_cmd("qs -c dynamic-island ipc call plugins call wallhaven open _"), desc("Wallhaven-Suche"))
+-- Desktop-Widgets des aktuellen Wallpapers anordnen (modules/desktop, Esc = fertig)
+bind("SUPER + ALT + D", hl.dsp.exec_cmd("qs -c dynamic-island ipc call desktop toggle"), desc("Desktop-Widgets anordnen"))
 bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("dynamic-island scheme set -r"), desc("Zufälliges Farbschema"))
 
 -- Shell dieses Profils neu starten / beenden (wie im Caelestia-Profil belegt)

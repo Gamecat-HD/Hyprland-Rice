@@ -1,0 +1,66 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import Quickshell
+import Quickshell.Hyprland
+import Quickshell.Io
+
+import qs.modules.services.config
+import qs.modules.services.desktop
+// Widgets (auch aus Plugins) werden per Loader-URL geladen und duerfen nur
+// qs-Module importieren, die die Shell schon statisch kennt – deshalb hier
+// alles, was Widgets typischerweise brauchen, einmal importieren.
+import qs
+import qs.modules.services.audio
+import qs.modules.services.core
+import qs.modules.services.media
+import qs.modules.services.plugins
+import qs.modules.widgets
+import qs.modules.widgets.clock
+
+// Desktop-Widgets: je Monitor eine durchsichtige Ebene zwischen Wallpaper und
+// Fenstern (DesktopScreen.qml). Was dort steht, sagt die Szene des aktuellen
+// Wallpapers (Scenes.qml, ~/.config/dynamic-island/scenes.json).
+//
+// Ohne Einstellung "Desktop-Widgets" gibt es die Fenster gar nicht.
+//
+// IPC:  qs -c dynamic-island ipc call desktop edit|done|toggle
+//       … desktop add <typ>        Widget ins Bearbeitungsziel legen
+Scope {
+    id: root
+
+    LazyLoader {
+        active: Config.desktop.enabled
+
+        Variants {
+            model: Quickshell.screens
+
+            DesktopScreen {}
+        }
+    }
+
+    IpcHandler {
+        target: "desktop"
+
+        function edit(): void {
+            if (Config.desktop.enabled)
+                Scenes.edit(Hyprland.focusedMonitor?.name ?? "");
+        }
+        function done(): void {
+            Scenes.done();
+        }
+        function toggle(): void {
+            if (Scenes.editing)
+                Scenes.done();
+            else
+                edit();
+        }
+        function add(type: string): void {
+            if (!Scenes.editing)
+                edit();
+            Scenes.add(type);
+        }
+        function scene(): string {
+            return JSON.stringify({ key: Scenes.currentKey, widgets: Scenes.widgets });
+        }
+    }
+}

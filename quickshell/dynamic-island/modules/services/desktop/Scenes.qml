@@ -1,0 +1,383 @@
+pragma Singleton
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import Quickshell.Hyprland
+import Quickshell.Io
+
+import qs.modules.services.wallpaper
+
+// Desktop-Widgets je Wallpaper ("Szenen").
+//
+// Datei: ~/.config/dynamic-island/scenes.json (im Dotfiles-Repo, wandert per
+// chezmoi auf den Laptop mit)
+//
+//   { "version": 1, "scenes": {
+//       "*":                     [ … ],   ueberall, wo nichts Genaueres steht
+//       "Miku/":                 [ … ],   alle Bilder im Ordner Miku
+//       "Miku/wallhaven-zp85do_2560x1440.png": [ … ]  genau dieses Bild
+//   } }
+//
+// Schluessel sind relativ zum Wallpaper-Ordner, damit sie auf jedem Rechner
+// passen. Gesucht wird vom Genauen zum Allgemeinen: Bild, Ordner (auch
+// Elternordner), "*". Eine leere Liste ist eine echte Szene ("hier keine
+// Widgets") und haelt die Suche an.
+//
+// Ein Widget:
+//   { "id": "w…", "type": "clock", "x": 0.5, "y": 0.3, "size": 1,
+//     "monitor": "*" | "<name>", "opts": { "style": "gestapelt", "color": "hell" } }
+// x/y = Mittelpunkt als Anteil der Bildschirmbreite/-hoehe, size skaliert die
+// Grundeinheit (16 px bei 1440p). Typen: DesktopWidgets.qml.
+//
+// Die Szene folgt Wallpapers.current – also auch der Vorschau beim Blaettern
+// in der Wallpaper-Auswahl.
+Singleton {
+    id: root
+
+    readonly property string path: Quickshell.env("HOME") + "/.config/dynamic-island/scenes.json"
+    readonly property string wallsDir: Wallpapers.wallsDir
+
+    property var data: ({ version: 1, scenes: {} })
+    readonly property var scenes: root.data.scenes ?? {}
+
+    // ---- Aufloesung ----
+
+    function relOf(path: string): string {
+        const prefix = root.wallsDir + "/";
+        return path.startsWith(prefix) ? path.slice(prefix.length) : "";
+    }
+
+    // Kandidaten vom Genauen zum Allgemeinen
+    function chainFor(path: string): var {
+        const rel = root.relOf(path);
+        const out = [];
+        if (rel !== "") {
+            out.push(rel);
+            const parts = rel.split("/");
+            for (let i = parts.length - 1; i > 0; i--)
+                out.push(parts.slice(0, i).join("/") + "/");
+        }
+        out.push("*");
+        return out;
+    }
+
+    function keyFor(path: string): string {
+        for (const key of root.chainFor(path))
+            if (Array.isArray(root.scenes[key]))
+                return key;
+        return "";
+    }
+
+    readonly property string wallpaper: Wallpapers.current
+    readonly property string currentKey: root.keyFor(root.wallpaper)
+
+    // Was gerade zu sehen ist: beim Bearbeiten die Szene des Ziels
+    readonly property string shownKey: root.editing ? root.target : root.currentKey
+    readonly property var widgets: root.scenes[root.shownKey] ?? []
+
+    function widgetsFor(screenName: string): var {
+        return root.widgets.filter(w => !w.monitor || w.monitor === "*" || w.monitor === screenName);
+    }
+
+    // ---- Bearbeiten ----
+
+    property bool editing: false
+    property string editScreen: ""
+    property string target: ""
+    property string selected: ""
+    readonly property var selectedWidget: root.widgets.find(w => w.id === root.selected) ?? null
+
+    // Wohin Aenderungen gehen koennen: [{ key, label, own }]
+    readonly property var targets: {
+        const out = [];
+        const rel = root.relOf(root.wallpaper);
+        for (const key of root.chainFor(root.wallpaper)) {
+            let label;
+            if (key === "*")
+                label = "Überall";
+            else if (key === rel)
+                label = "Dieses Bild";
+            else
+                label = "Ordner " + key.slice(0, -1).split("/").pop();
+            out.push({ key: key, label: label, own: Array.isArray(root.scenes[key]) });
+        }
+        return out;
+    }
+
+    function edit(screenName: string): void {
+        root.target = root.currentKey !== "" ? root.currentKey : root.chainFor(root.wallpaper)[0];
+        root.editScreen = screenName || (Hyprland.focusedMonitor?.name ?? "");
+        root.selected = "";
+        root.editing = true;
+        root.analyse();
+    }
+
+    function done(): void {
+        root.editing = false;
+        root.selected = "";
+        root.flush();
+    }
+
+    function toggleEdit(screenName: string): void {
+        if (root.editing)
+            root.done();
+        else
+            root.edit(screenName);
+    }
+
+    // Ziel wechseln. Hat es noch keine eigene Szene, startet es mit einer
+    // Kopie dessen, was gerade zu sehen ist.
+    function setTarget(key: string): void {
+        if (!Array.isArray(root.scenes[key]))
+            root.writeScene(key, JSON.parse(JSON.stringify(root.widgets)));
+        root.target = key;
+        root.selected = "";
+    }
+
+    // Eigene Szene des Ziels loeschen: es gilt wieder die allgemeinere
+    function dropTarget(): void {
+        const next = Object.assign({}, root.scenes);
+        delete next[root.target];
+        root.data = Object.assign({}, root.data, { scenes: next });
+        root.save();
+        const chain = root.chainFor(root.wallpaper);
+        const at = chain.indexOf(root.target);
+        let fallback = "*";
+        for (let i = at + 1; i < chain.length; i++) {
+            if (Array.isArray(next[chain[i]])) {
+                fallback = chain[i];
+                break;
+            }
+        }
+        root.setTarget(fallback);
+    }
+
+    function writeScene(key: string, list: var): void {
+        const next = Object.assign({}, root.scenes);
+        next[key] = list;
+        root.data = Object.assign({}, root.data, { scenes: next });
+        root.save();
+    }
+
+    function newId(): string {
+        return "w" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+    }
+
+    function add(type: string): void {
+        const info = DesktopWidgets.info(type);
+        if (!info)
+            return;
+        const w = {
+            id: root.newId(),
+            type: type,
+            x: 0.5,
+            y: 0.5,
+            size: 1,
+            monitor: "*",
+            opts: DesktopWidgets.defaults(type)
+        };
+        const spot = root.place(info.size ?? [10, 6], 1, root.widgets);
+        if (spot) {
+            w.x = spot.x;
+            w.y = spot.y;
+            w.opts.color = spot.dark ? "dunkel" : "hell";
+        }
+        root.writeScene(root.target, [...root.widgets, w]);
+        root.selected = w.id;
+    }
+
+    function patch(id: string, changes: var): void {
+        root.writeScene(root.target, root.widgets.map(w => w.id === id ? Object.assign({}, w, changes) : w));
+    }
+
+    function setOpt(id: string, key: string, value: var): void {
+        const w = root.widgets.find(x => x.id === id);
+        if (w)
+            root.patch(id, { opts: Object.assign({}, w.opts ?? {}, { [key]: value }) });
+    }
+
+    function remove(id: string): void {
+        root.writeScene(root.target, root.widgets.filter(w => w.id !== id));
+        if (root.selected === id)
+            root.selected = "";
+    }
+
+    function duplicate(id: string): void {
+        const w = root.widgets.find(x => x.id === id);
+        if (!w)
+            return;
+        const copy = JSON.parse(JSON.stringify(w));
+        copy.id = root.newId();
+        copy.x = Math.min(0.95, w.x + 0.04);
+        copy.y = Math.min(0.95, w.y + 0.04);
+        root.writeScene(root.target, [...root.widgets, copy]);
+        root.selected = copy.id;
+    }
+
+    // Alle Widgets des Ziels neu auf ruhige Stellen verteilen (groesste zuerst)
+    function arrange(): void {
+        if (!root.analysis)
+            return;
+        const placed = [];
+        const order = [...root.widgets].sort((a, b) => root.area(b) - root.area(a));
+        const moved = {};
+        for (const w of order) {
+            const spot = root.place(DesktopWidgets.info(w.type)?.size ?? [10, 6], w.size ?? 1, placed);
+            const next = spot ? Object.assign({}, w, { x: spot.x, y: spot.y }) : w;
+            moved[w.id] = next;
+            placed.push(next);
+        }
+        root.writeScene(root.target, root.widgets.map(w => moved[w.id] ?? w));
+    }
+
+    function area(w: var): real {
+        const s = DesktopWidgets.info(w.type)?.size ?? [10, 6];
+        return s[0] * s[1] * (w.size ?? 1) * (w.size ?? 1);
+    }
+
+    // ---- Ruhige Stellen (calm.py) ----
+    // Raster mit Kantendichte und Helligkeit des Wallpapers. Damit setzt
+    // `place` neue Widgets dorthin, wo das Bild wenig los hat, und waehlt die
+    // Textfarbe nach dem Untergrund.
+
+    property var analysis: null
+    property string analysedPath: ""
+    readonly property string calmScript: Qt.resolvedUrl("calm.py").toString().replace("file://", "")
+
+    function analyse(): void {
+        const path = root.wallpaper;
+        if (path === "" || path === root.analysedPath)
+            return;
+        const thumb = Wallpapers.thumbPathFor(path);
+        calm.forPath = path;
+        calm.command = ["python3", "-I", root.calmScript, thumb !== "" ? thumb : path,
+            Quickshell.env("HOME") + "/.cache/dynamic-island/calm"];
+        calm.running = true;
+    }
+
+    onWallpaperChanged: if (root.editing) root.analyse()
+
+    Process {
+        id: calm
+
+        property string forPath: ""
+
+        stdout: StdioCollector {
+            id: calmOut
+
+            onStreamFinished: {
+                try {
+                    root.analysis = JSON.parse(calmOut.text);
+                    root.analysedPath = calm.forPath;
+                } catch (e) {
+                    root.analysis = null;
+                }
+            }
+        }
+    }
+
+    // Beste Stelle fuer ein Widget der Groesse `cells` (in Einheiten, s.
+    // DesktopWidgets.size) * size. Liefert { x, y, dark } (Mittelpunkt) oder
+    // null ohne Analyse. Meidet das obere Band (Notch) und andere Widgets.
+    function place(cells: var, size: real, others: var): var {
+        const a = root.analysis;
+        if (!a)
+            return null;
+        // Einheit 16 px bei 2560x1440 -> Anteil am Bildschirm
+        const fw = Math.min(0.9, cells[0] * 16 * size / 2560);
+        const fh = Math.min(0.9, cells[1] * 16 * size / 1440);
+        const cw = Math.max(1, Math.ceil(fw * a.cols));
+        const ch = Math.max(1, Math.ceil(fh * a.rows));
+
+        const boxes = others.map(o => {
+            const s = DesktopWidgets.info(o.type)?.size ?? [10, 6];
+            const ow = s[0] * 16 * (o.size ?? 1) / 2560;
+            const oh = s[1] * 16 * (o.size ?? 1) / 1440;
+            return { x0: o.x - ow / 2, x1: o.x + ow / 2, y0: o.y - oh / 2, y1: o.y + oh / 2 };
+        });
+
+        let best = null;
+        for (let cy = 2; cy + ch <= a.rows - 1; cy++) {
+            for (let cx = 1; cx + cw <= a.cols - 1; cx++) {
+                let busy = 0, luma = 0;
+                for (let y = cy; y < cy + ch; y++) {
+                    for (let x = cx; x < cx + cw; x++) {
+                        busy += a.busy[y * a.cols + x];
+                        luma += a.luma[y * a.cols + x];
+                    }
+                }
+                const n = cw * ch;
+                const x = (cx + cw / 2) / a.cols;
+                const y = (cy + ch / 2) / a.rows;
+                let overlap = 0;
+                for (const b of boxes) {
+                    const ox = Math.max(0, Math.min(x + fw / 2, b.x1) - Math.max(x - fw / 2, b.x0));
+                    const oy = Math.max(0, Math.min(y + fh / 2, b.y1) - Math.max(y - fh / 2, b.y0));
+                    overlap += (ox * oy) / (fw * fh);
+                }
+                // Leichte Vorliebe fuer die Drittel-Linien
+                const thirds = Math.min(Math.abs(x - 1 / 3), Math.abs(x - 2 / 3), Math.abs(x - 0.5)) * 0.15;
+                const score = busy / n + overlap * 2 + thirds;
+                if (!best || score < best.score)
+                    best = { score: score, x: x, y: y, dark: luma / n > 0.62 };
+            }
+        }
+        return best ? { x: Number(best.x.toFixed(3)), y: Number(best.y.toFixed(3)), dark: best.dark } : null;
+    }
+
+    // ---- Datei ----
+
+    function save(): void {
+        saveDelay.restart();
+    }
+
+    function flush(): void {
+        if (!saveDelay.running)
+            return;
+        saveDelay.stop();
+        const text = JSON.stringify(root.data, null, 2) + "\n";
+        root.lastWritten = text;
+        file.setText(text);
+    }
+
+    property string lastWritten: ""
+
+    // Ziehen schreibt bei jedem Loslassen; gesammelt auf die Platte
+    Timer {
+        id: saveDelay
+
+        interval: 400
+        onTriggered: {
+            saveDelay.stop();
+            const text = JSON.stringify(root.data, null, 2) + "\n";
+            root.lastWritten = text;
+            file.setText(text);
+        }
+    }
+
+    Component.onDestruction: root.flush()
+
+    FileView {
+        id: file
+
+        path: root.path
+        watchChanges: true
+        blockLoading: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            const text = file.text();
+            // Echo des eigenen Schreibens: nichts neu setzen
+            if (text === root.lastWritten)
+                return;
+            try {
+                const parsed = JSON.parse(text);
+                if (parsed && typeof parsed.scenes === "object")
+                    root.data = parsed;
+            } catch (e) {
+                console.warn("Scenes: scenes.json nicht lesbar:", e);
+            }
+        }
+    }
+}

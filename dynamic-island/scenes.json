@@ -1,0 +1,502 @@
+{
+  "version": 1,
+  "scenes": {
+    "Cyberpunk-Edgerunners/": [
+      {
+        "id": "wclo00",
+        "type": "clock",
+        "x": 0.13,
+        "y": 0.17,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "split",
+          "date": true,
+          "color": "#fcee0a",
+          "accent": "#00f0ff"
+        }
+      },
+      {
+        "id": "wlyr01",
+        "type": "lyrics",
+        "x": 0.5,
+        "y": 0.86,
+        "size": 1,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      },
+      {
+        "id": "wvis02",
+        "type": "visualizer",
+        "x": 0.5,
+        "y": 0.95,
+        "size": 1,
+        "monitor": "*",
+        "opts": {
+          "style": "spiegel",
+          "bars": 48,
+          "idle": "ausblenden",
+          "color": "#fcee0a",
+          "accent": "#ff003c"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-3lkqy9.jpg": [
+      {
+        "id": "wclo03",
+        "type": "clock",
+        "x": 0.13,
+        "y": 0.15,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "split",
+          "date": true,
+          "color": "#fcee0a",
+          "accent": "#00f0ff"
+        }
+      },
+      {
+        "id": "wmat04",
+        "type": "matrix",
+        "x": 0.25,
+        "y": 0.58,
+        "size": 1.5,
+        "monitor": "*",
+        "opts": {
+          "form": "quer",
+          "speed": "mittel",
+          "density": "mittel",
+          "glyphs": "katakana",
+          "color": "#ffffff",
+          "accent": "#00f0ff"
+        }
+      },
+      {
+        "id": "wlyr05",
+        "type": "lyrics",
+        "x": 0.25,
+        "y": 0.92,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-571998.jpg": [
+      {
+        "id": "wclo06",
+        "type": "clock",
+        "x": 0.12,
+        "y": 0.2,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      },
+      {
+        "id": "wvis07",
+        "type": "visualizer",
+        "x": 0.86,
+        "y": 0.18,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "saeulen",
+          "bars": 32,
+          "idle": "ausblenden",
+          "color": "#fcee0a",
+          "accent": "#fcee0a"
+        }
+      },
+      {
+        "id": "wlyr08",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.3,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-6degr6.jpg": [
+      {
+        "id": "wmat09",
+        "type": "matrix",
+        "x": 0.09,
+        "y": 0.5,
+        "size": 1.4,
+        "monitor": "*",
+        "opts": {
+          "form": "spalte",
+          "speed": "langsam",
+          "density": "dicht",
+          "glyphs": "katakana",
+          "color": "#ffffff",
+          "accent": "#7dff3a"
+        }
+      },
+      {
+        "id": "wmat10",
+        "type": "matrix",
+        "x": 0.91,
+        "y": 0.5,
+        "size": 1.4,
+        "monitor": "*",
+        "opts": {
+          "form": "spalte",
+          "speed": "langsam",
+          "density": "dicht",
+          "glyphs": "binär",
+          "color": "#ffffff",
+          "accent": "#7dff3a"
+        }
+      },
+      {
+        "id": "wclo11",
+        "type": "clock",
+        "x": 0.5,
+        "y": 0.9,
+        "size": 1,
+        "monitor": "*",
+        "opts": {
+          "style": "digital",
+          "date": true,
+          "color": "#7dff3a",
+          "accent": "#fcee0a"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-x655xl.jpg": [
+      {
+        "id": "wmat12",
+        "type": "matrix",
+        "x": 0.1,
+        "y": 0.55,
+        "size": 1.4,
+        "monitor": "*",
+        "opts": {
+          "form": "spalte",
+          "speed": "mittel",
+          "density": "mittel",
+          "glyphs": "katakana",
+          "color": "#ffffff",
+          "accent": "#ff2bd6"
+        }
+      },
+      {
+        "id": "wmat13",
+        "type": "matrix",
+        "x": 0.9,
+        "y": 0.55,
+        "size": 1.4,
+        "monitor": "*",
+        "opts": {
+          "form": "spalte",
+          "speed": "schnell",
+          "density": "dünn",
+          "glyphs": "hex",
+          "color": "#ffffff",
+          "accent": "#ff2bd6"
+        }
+      },
+      {
+        "id": "wclo14",
+        "type": "clock",
+        "x": 0.21,
+        "y": 0.15,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "split",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff2bd6"
+        }
+      },
+      {
+        "id": "wlyr15",
+        "type": "lyrics",
+        "x": 0.5,
+        "y": 0.93,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#ff2bd6"
+        }
+      }
+    ],
+    "Miku/": [
+      {
+        "id": "wclo16",
+        "type": "clock",
+        "x": 0.13,
+        "y": 0.2,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "hell",
+          "accent": "primary"
+        }
+      },
+      {
+        "id": "wlyr17",
+        "type": "lyrics",
+        "x": 0.5,
+        "y": 0.88,
+        "size": 1,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "mitte",
+          "color": "hell",
+          "accent": "primary"
+        }
+      }
+    ],
+    "Miku/wallhaven-zp85do_2560x1440.png": [
+      {
+        "id": "wclo18",
+        "type": "clock",
+        "x": 0.18,
+        "y": 0.42,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "worte",
+          "date": true,
+          "color": "#e8f4ff",
+          "accent": "#39c5bb"
+        }
+      },
+      {
+        "id": "wlyr19",
+        "type": "lyrics",
+        "x": 0.82,
+        "y": 0.42,
+        "size": 0.95,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "mitte",
+          "color": "#e8f4ff",
+          "accent": "#39c5bb"
+        }
+      },
+      {
+        "id": "wvis20",
+        "type": "visualizer",
+        "x": 0.5,
+        "y": 0.94,
+        "size": 1,
+        "monitor": "*",
+        "opts": {
+          "style": "spiegel",
+          "bars": 48,
+          "idle": "ausblenden",
+          "color": "#39c5bb",
+          "accent": "#39c5bb"
+        }
+      }
+    ],
+    "Miku/wallhaven-g71rd3_2560x1440.png": [
+      {
+        "id": "wclo21",
+        "type": "clock",
+        "x": 0.13,
+        "y": 0.18,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "digital",
+          "date": true,
+          "color": "#f0f0f0",
+          "accent": "#9a9a9a"
+        }
+      },
+      {
+        "id": "wbon22",
+        "type": "bonsai",
+        "x": 0.85,
+        "y": 0.74,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "life": "mittel",
+          "leaves": "*",
+          "pot": "schale",
+          "regrow": "täglich",
+          "grow": true,
+          "color": "#d8d8d8",
+          "accent": "#f4f4f4"
+        }
+      }
+    ],
+    "Miku/731812.png": [
+      {
+        "id": "wclo23",
+        "type": "clock",
+        "x": 0.13,
+        "y": 0.3,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#9fd8ff"
+        }
+      },
+      {
+        "id": "wlyr24",
+        "type": "lyrics",
+        "x": 0.78,
+        "y": 0.9,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#9fd8ff"
+        }
+      }
+    ],
+    "Miku/wallhaven-je9jop_2560x1440.png": [
+      {
+        "id": "wclo25",
+        "type": "clock",
+        "x": 0.21,
+        "y": 0.3,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#2b2440",
+          "accent": "#e0568c"
+        }
+      },
+      {
+        "id": "wlyr26",
+        "type": "lyrics",
+        "x": 0.21,
+        "y": 0.55,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "mitte",
+          "color": "#2b2440",
+          "accent": "#e0568c"
+        }
+      }
+    ],
+    "Miku/wallhaven-lqwewr_2560x1440.png": [
+      {
+        "id": "wclo27",
+        "type": "clock",
+        "x": 0.22,
+        "y": 0.17,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "split",
+          "date": true,
+          "color": "#1c2a3a",
+          "accent": "#1f8f9c"
+        }
+      },
+      {
+        "id": "wbon28",
+        "type": "bonsai",
+        "x": 0.87,
+        "y": 0.77,
+        "size": 1.25,
+        "monitor": "*",
+        "opts": {
+          "life": "mittel",
+          "leaves": "&",
+          "pot": "klein",
+          "regrow": "täglich",
+          "grow": true,
+          "color": "#ffffff",
+          "accent": "#c8fff6"
+        }
+      }
+    ],
+    "Miku/wp12325365-hatsune-miku-2023-wallpapers.jpg": [
+      {
+        "id": "wclo29",
+        "type": "clock",
+        "x": 0.13,
+        "y": 0.78,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "worte",
+          "date": true,
+          "color": "#26304a",
+          "accent": "#2b9fb8"
+        }
+      }
+    ],
+    "Miku/wallhaven-2erp9g_2560x1440.png": [
+      {
+        "id": "wmat30",
+        "type": "matrix",
+        "x": 0.08,
+        "y": 0.55,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "form": "spalte",
+          "speed": "mittel",
+          "density": "mittel",
+          "glyphs": "katakana",
+          "color": "#ffffff",
+          "accent": "#39c5bb"
+        }
+      },
+      {
+        "id": "wmat31",
+        "type": "matrix",
+        "x": 0.92,
+        "y": 0.55,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "form": "spalte",
+          "speed": "mittel",
+          "density": "mittel",
+          "glyphs": "katakana",
+          "color": "#ffffff",
+          "accent": "#ff4f8b"
+        }
+      }
+    ]
+  }
+}

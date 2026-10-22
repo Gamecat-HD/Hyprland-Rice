@@ -5,6 +5,7 @@ import QtQuick
 import Quickshell
 
 import "modules/bar"
+import "modules/desktop"
 import "modules/osd"
 import "modules/settings"
 import "modules/window"
@@ -23,6 +24,7 @@ ShellRoot {
     readonly property int pluginCount: Plugins.hosts.length
 
     Wallpaper {}
+    Desktop {}
     Bar {}
     Osd {}
     SettingsWindow {}

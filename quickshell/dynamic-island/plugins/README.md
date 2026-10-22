@@ -32,6 +32,7 @@ Kern: `modules/services/plugins/Plugins.qml` (Singleton) + `PluginHost.qml`
 | `settings` | – | Einstellungen, s.u. |
 | `tiles` | – | Schnellkacheln, s.u. |
 | `panels` | – | Sektionen in Ansichten der Shell (bisher: Wallpaper-Auswahl), s.u. |
+| `widgets` | – | Desktop-Widgets (Typen für die Szenen je Wallpaper), s.u. |
 | `files` | – | Dateien außerhalb des Plugin-Ordners, die dazugehören (für Export/Import) |
 | `migrateFrom` | – | Gruppe in `shell.json`, deren Werte einmalig übernommen werden |
 
@@ -85,6 +86,50 @@ Plugin. Bisher einzige Ansicht: `wallpaper`, die Wallpaper-Auswahl der Notch
 Plugin-Icon) wird zum Knopf in deren Suchzeile. Hat das Plugin einen Dienst
 (`main`), erscheint die Sektion erst, wenn er läuft. Vertrag der Komponente:
 Abschnitt „Sektionen“ unten.
+
+### `widgets`
+
+Desktop-Widgets, die in den Szenen (`~/.config/dynamic-island/scenes.json`,
+siehe `modules/services/desktop/Scenes.qml`) platziert werden können – je Typ:
+
+```json
+"widgets": {
+    "matrix": {
+        "title": "Matrix",
+        "icon": "code",
+        "component": "MatrixWidget.qml",
+        "size": [30, 20],
+        "options": {
+            "speed": { "title": "Tempo", "values": ["langsam", "mittel", "schnell"], "default": "mittel" },
+            "trails": { "title": "Spuren", "bool": true, "default": true }
+        }
+    }
+}
+```
+
+`size` = ungefähre Größe in Grundeinheiten (16 px bei 1440p) für die
+automatische Platzierung; `options` erscheinen als Chips in der
+Bearbeitungsleiste (`values` = Auswahl, `bool` = Schalter) und landen in
+`opts`. Farbe und Akzent hat jedes Widget von selbst.
+
+Die Komponente bekommt vom Host (`modules/desktop/WidgetHost.qml`):
+
+| Property | Bedeutung |
+|---|---|
+| `unit` | Grundeinheit in px (16 · Monitorhöhe/1440 · Größe des Widgets) |
+| `active` | `false` = Desktop verdeckt (Fenster, Vollbild, Game-Mode): nichts rechnen, nichts animieren |
+| `editing` | Bearbeitungsmodus läuft |
+| `opts` | Optionen aus der Szene, Vorgaben schon eingesetzt |
+| `color`, `accent` | Textfarbe und Akzent |
+| `fps` | (optional deklarieren) Obergrenze für eigene Animationen, Einstellung `desktop.fps` |
+| `plugin` | (optional deklarieren) Kontext des Plugins, wie bei Kacheln |
+
+Größe setzt das Widget selbst über `implicitWidth`/`implicitHeight`. Regeln:
+dauerhafte Bewegung nur per `Timer` mit `fps` (eine `Animation` liefe mit der
+Monitorrate), bei `active: false` alles anhalten, Bedarf an Diensten
+(`Cava.demand`, `Lyrics.demand`) nur solange `active`. `opts` kommt bei jeder
+Änderung des Widgets (auch beim Verschieben) als neues Objekt – teure Neuberechnung
+nur, wenn sich der Inhalt wirklich ändert. Beispiele: `matrix/`, `bonsai/`, `tui/`.
 
 ### `files`
 

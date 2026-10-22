@@ -466,13 +466,21 @@ Item {
                 rightMargin: 14
             }
             active: row.isEditor
-            sourceComponent: row.entry?.editor === "quick" ? quickEditor : null
+            sourceComponent: row.entry?.editor === "quick" ? quickEditor
+                           : row.entry?.editor === "desktop" ? desktopEditor
+                           : null
         }
 
         Component {
             id: quickEditor
 
             QuickLayoutEditor {}
+        }
+
+        Component {
+            id: desktopEditor
+
+            DesktopSceneEditor {}
         }
 
         // Die Optionen einer Auswahl als Chips
@@ -503,9 +511,11 @@ Item {
                     required property string modelData
                     readonly property bool selected: chip.modelData === String(row.entry?.value ?? "")
 
-                    width: chipLabel.implicitWidth + 24
-                    height: 28
-                    radius: height / 2
+                    readonly property bool previewed: (row.entry?.preview ?? "") !== ""
+
+                    width: chip.previewed ? Math.max(76, chipLabel.implicitWidth + 16) : chipLabel.implicitWidth + 24
+                    height: chip.previewed ? 58 : 28
+                    radius: chip.previewed ? 12 : height / 2
                     color: chip.selected ? Colors.primary
                          : chipHover.hovered ? Colors.alpha(Colors.fgSurface, 0.12)
                          : Colors.alpha(Colors.fgSurface, 0.06)
@@ -514,14 +524,32 @@ Item {
                         ColorAnimation { duration: 120 }
                     }
 
+                    // Vorschau der Variante (Uhr, Visualiser, Workspaces)
+                    Loader {
+                        active: chip.previewed
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 6
+
+                        sourceComponent: StylePreview {
+                            kind: row.entry.preview
+                            style: chip.modelData
+                            color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
+                            accent: chip.selected ? Colors.fgPrimary : Colors.primary
+                        }
+                    }
+
                     Text {
                         id: chipLabel
 
-                        anchors.centerIn: parent
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.verticalCenter: chip.previewed ? undefined : parent.verticalCenter
+                        anchors.bottom: chip.previewed ? parent.bottom : undefined
+                        anchors.bottomMargin: 5
+                        font.pixelSize: chip.previewed ? 9 : 11
                         text: chip.modelData
                         color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
                         font.family: row.isFont ? chip.modelData : Config.font
-                        font.pixelSize: 11
                     }
 
                     HoverHandler {

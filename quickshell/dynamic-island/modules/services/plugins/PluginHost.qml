@@ -231,6 +231,11 @@ Scope {
             if (!/^[a-z][a-z0-9-]*$/.test(name) || typeof p?.component !== "string" || p.component.includes(".."))
                 return `panels.${name}: Ansicht oder component ungueltig`;
         }
+        for (const type in m.widgets ?? {}) {
+            const w = m.widgets[type];
+            if (!/^[a-z][a-z0-9-]*$/.test(type) || typeof w?.component !== "string" || w.component.includes(".."))
+                return `widgets.${type}: Typ oder component ungueltig`;
+        }
         return "";
     }
 

@@ -42,6 +42,9 @@ Singleton {
             // Fenster oeffnen/schliessen/umziehen -> Belegung frisch halten
             } else if (n === "openwindow" || n === "closewindow" || n === "movewindow") {
                 Hyprland.refreshWorkspaces();
+            // Vollbild an/aus -> hasfullscreen (Desktop-Widgets pausieren)
+            } else if (n === "fullscreen") {
+                Hyprland.refreshWorkspaces();
             }
         }
     }
