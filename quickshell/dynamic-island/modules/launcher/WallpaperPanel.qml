@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Effects
 import qs.modules.services.theme
 import qs.modules.services.wallpaper
 
 import qs
 import qs.modules.bar.components.notch
 import qs.modules.services.config
+import qs.modules.widgets
 
 // Wallpaper-Auswahl der Notch: eigenes Suchfeld und darunter das Karussell.
 //
@@ -231,6 +233,14 @@ Item {
             anchors.margins: 6
             active: panel.active
 
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                maskEnabled: true
+                maskSource: edgeMask
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 1
+            }
+
             sourceComponent: WallpaperList {
                 imageWidth: panel.imageWidth
                 query: search.text
@@ -238,27 +248,14 @@ Item {
             }
         }
 
-        // Vignette nach aussen, damit die Reihe an den Kartenraendern auslaeuft
-        // statt hart abzubrechen (dasselbe Mittel wie im Datumsstreifen).
-        EdgeFade {
-            anchors {
-                left: parent.left
-                top: parent.top
-                bottom: parent.bottom
-            }
-            implicitWidth: 160
-            cornerRadius: panel.cardRadius - panel.inset
-        }
+        // Vignette nach aussen: die Reihe blendet zu den Kartenraendern hin aus
+        // (Maske auf dem Inhalt, siehe EdgeMask – eine Flaeche in der
+        // Theme-Farbe darueber stand auf der schwarzen Notch als grauer Balken)
+        EdgeMask {
+            id: edgeMask
 
-        EdgeFade {
-            anchors {
-                right: parent.right
-                top: parent.top
-                bottom: parent.bottom
-            }
-            implicitWidth: 160
-            mirrored: true
-            cornerRadius: panel.cardRadius - panel.inset
+            anchors.fill: walls
+            fade: 200
         }
     }
 
