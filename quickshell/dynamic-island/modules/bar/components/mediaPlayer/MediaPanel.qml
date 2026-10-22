@@ -14,7 +14,8 @@ import qs.modules.services.config
 // aufpoppt: eine Flaeche, keine Naht.
 //
 // Von oben nach unten: Quellenwahl (eigene, abgesetzte Karte), grosses Cover
-// mit Visualiser-Ring, Titel, Fortschritt mit den beiden Zeiten, Transport.
+// mit Visualiser-Ring, Titel, Fortschritt mit den beiden Zeiten, Transport,
+// darunter – nur bei Spotify – voriger und naechster Titel (QueueRow).
 Item {
     id: panel
 
@@ -446,5 +447,79 @@ Item {
             }
         }
 
+        // ---- Warteschlange ----
+        // Voriger und naechster Titel aus der Spotify-Queue (MediaQueue), als
+        // zwei ruhige Zeilen unter einer Haarlinie. Gibt es keine Queue
+        // (anderer Player, Extension nicht verbunden), faehrt der Block auf
+        // Null zusammen – der obere Teil sieht dann aus wie ohne ihn. Der
+        // Abstand zur Transportreihe steckt mit im Block (topMargin hebt den
+        // Layout-Abstand auf), damit zusammengeklappt auch die Luft weg ist.
+        Item {
+            id: queue
+
+            readonly property bool shown: MediaQueue.valid
+                                          && (!!MediaQueue.previous || !!MediaQueue.upcoming)
+            // Luft ueber der Haarlinie, gehoert zum Block
+            readonly property real gap: layout.spacing
+
+            Layout.fillWidth: true
+            Layout.topMargin: -queue.gap
+            Layout.preferredHeight: queue.shown ? queueRows.implicitHeight + queue.gap : 0
+
+            clip: true
+            opacity: queue.shown ? 1 : 0
+            // Unsichtbare Elemente ueberspringt das Layout ganz (auch ihre
+            // Raender) – deshalb an der animierten Wunschhoehe festmachen,
+            // nicht an `height`, das vom Layout erst gesetzt wird
+            visible: Layout.preferredHeight > 0
+
+            Behavior on Layout.preferredHeight {
+                NumberAnimation { duration: Appearance.morphDuration; easing.type: Easing.OutCubic }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+            }
+
+            ColumnLayout {
+                id: queueRows
+
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: parent.top
+                    topMargin: queue.gap
+                }
+                spacing: 2
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    Layout.bottomMargin: 4
+                    color: Colors.alpha(Colors.outline, 0.35)
+                }
+
+                QueueRow {
+                    visible: !!MediaQueue.previous
+                    track: MediaQueue.previous
+                    caption: "Zuvor"
+                    tint: panel.tint
+                    // Spotifys "Zurueck" startet den laufenden Titel neu, wenn
+                    // er schon ein paar Sekunden laeuft – erst an den Anfang,
+                    // dann springt es wirklich zum vorigen
+                    onTriggered: {
+                        Media.seek(0);
+                        Media.previous();
+                    }
+                }
+
+                QueueRow {
+                    visible: !!MediaQueue.upcoming
+                    track: MediaQueue.upcoming
+                    caption: "Als Nächstes"
+                    tint: panel.tint
+                    onTriggered: Media.next()
+                }
+            }
+        }
     }
 }

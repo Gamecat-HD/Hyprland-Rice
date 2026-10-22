@@ -49,14 +49,18 @@ __pycache__/
 *.rej
 *.tmp
 
-# Spicetify: nur das eigene Theme "Island". color.ini ist ein Symlink auf
-# Themes/caelestia/color.ini (von caelestia bei jedem Schemawechsel erzeugt).
+# Spicetify: nur das eigene Theme "Island" + die Queue-Extension. color.ini ist
+# ein Symlink auf Themes/dynamic-island/color.ini (schreibt die dynamic-island-CLI
+# bei jedem Schemawechsel, enableSpicetify in cli.json).
 !/spicetify/
 /spicetify/*
 !/spicetify/Themes/
 /spicetify/Themes/*
 !/spicetify/Themes/Island/
 !/spicetify/config-xpui.ini
+!/spicetify/Extensions/
+/spicetify/Extensions/*
+!/spicetify/Extensions/islandQueue.js
 
 # Spotify-Lag-Fix: GPU-Prozess darf WAYLAND_DISPLAY nicht sehen (sonst Crash ->
 # Software-Rendering). Gilt fuer spotify-launcher bzw. den caelestia-Musik-Toggle

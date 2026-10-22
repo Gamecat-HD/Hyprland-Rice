@@ -14,7 +14,7 @@
 
         "enableFuzzel": false,
         "enableChromium": false,
-        "enableSpicetify": false,
+        "enableSpicetify": true,
         "enableZed": false,
         "enableHtop": false,
         "enableNvtop": false,

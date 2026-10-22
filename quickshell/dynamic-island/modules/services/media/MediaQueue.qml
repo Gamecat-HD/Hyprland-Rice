@@ -1,0 +1,147 @@
+pragma Singleton
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtWebSockets
+import Quickshell
+import Quickshell.Io
+
+// Spotify-Queue: vorherige und naechste Titel rund um den laufenden.
+//
+// MPRIS kennt keine Queue. Die liefert die Spicetify-Extension
+// ~/.config/spicetify/Extensions/islandQueue.js: sie verbindet sich als
+// WebSocket-Client mit diesem Server und schickt bei jeder Aenderung
+//   {"type":"queue","current":{…},"prev":[…],"next":[…]}
+// (je Titel uri/title/artist/album/art/queued, prev[0] = direkter Vorgaenger).
+// Der Server lauscht nur auf 127.0.0.1.
+//
+// Benutzung:  MediaQueue.previous?.title, MediaQueue.upcoming?.art, MediaQueue.next
+Singleton {
+    id: root
+
+    readonly property int port: 28199
+
+    // Letzte Nachricht der Extension, ungefiltert
+    property var current: null
+    property var rawPrev: []
+    property var rawNext: []
+    property bool connected: false
+
+    // Nur zeigen, wenn die Queue zum laufenden Titel passt: ein anderer
+    // Player kann aktiv sein, oder die Nachricht hinkt einen Wechsel hinterher.
+    readonly property bool valid: root.connected && !!root.current
+                                  && Media.source === "Spotify"
+                                  && root.current.title === Media.title
+
+    // Ausgabe fuer die UI, Cover schon als file:// (siehe fetchArt)
+    readonly property var prev: root.valid ? root.rawPrev.map(root.withArt) : []
+    readonly property var next: root.valid ? root.rawNext.map(root.withArt) : []
+    readonly property var previous: root.prev[0] ?? null
+    readonly property var upcoming: root.next[0] ?? null
+
+    // ---- Cover-Cache ----------------------------------------------------
+    // Gleicher Cache und gleiches Dateinamen-Schema wie Media.art (Qt laedt
+    // Spotifys CDN nicht, curl schon). `cached` wird neu zugewiesen, damit
+    // die Bindungen von prev/next neu rechnen.
+    property var cached: ({})
+
+    function fileFor(url: string): string {
+        return Media.artDir + url.replace(/^https?:\/\//, "").replace(/[^A-Za-z0-9]/g, "_");
+    }
+
+    function withArt(t: var): var {
+        const art = t.art && root.cached[t.art] ? "file://" + root.fileFor(t.art) : "";
+        return Object.assign({}, t, { art: art });
+    }
+
+    function fetchArt(): void {
+        const missing = [...root.rawPrev, ...root.rawNext]
+            .map(t => t.art)
+            .filter((url, i, all) => url && !root.cached[url] && all.indexOf(url) === i);
+        if (!missing.length)
+            return;
+        if (artFetch.running) {
+            artFetch.pending = true;
+            return;
+        }
+        artFetch.urls = missing;
+        artFetch.environment = ({
+            ART_LIST: missing.map(u => u + "\t" + root.fileFor(u)).join("\n")
+        });
+        artFetch.running = true;
+    }
+
+    Process {
+        id: artFetch
+
+        property var urls: []
+        property bool pending: false
+
+        // Laedt nur, was fehlt; meldet jede vorhandene Datei per URL zurueck
+        command: ["sh", "-c", `printf '%s\\n' "$ART_LIST" | while IFS="$(printf '\\t')" read -r url file; do
+            test -s "$file" || curl -sfL --max-time 10 --create-dirs -o "$file" "$url"
+            test -s "$file" && printf '%s\\n' "$url"
+        done`]
+
+        stdout: StdioCollector {
+            id: fetched
+
+            onStreamFinished: {
+                const next = Object.assign({}, root.cached);
+                for (const url of fetched.text.split("\n"))
+                    if (url)
+                        next[url] = true;
+                root.cached = next;
+            }
+        }
+
+        onExited: {
+            if (artFetch.pending) {
+                artFetch.pending = false;
+                Qt.callLater(root.fetchArt);
+            }
+        }
+    }
+
+    // ---- Server ---------------------------------------------------------
+
+    function receive(text: string): void {
+        let msg;
+        try {
+            msg = JSON.parse(text);
+        } catch (e) {
+            return;
+        }
+        if (msg?.type !== "queue")
+            return;
+        root.current = msg.current ?? null;
+        root.rawPrev = Array.isArray(msg.prev) ? msg.prev : [];
+        root.rawNext = Array.isArray(msg.next) ? msg.next : [];
+        root.fetchArt();
+    }
+
+    // Spotify-Neustart = neue Verbindung; die alte schliesst sich von selbst
+    property int clients: 0
+    onClientsChanged: root.connected = root.clients > 0
+
+    WebSocketServer {
+        listen: true
+        host: "127.0.0.1"
+        port: root.port
+        accept: true
+
+        onErrorStringChanged: console.warn("MediaQueue:", errorString)
+
+        onClientConnected: socket => {
+            root.clients++;
+            let gone = false; // Error und Closed koennen beide kommen
+            socket.textMessageReceived.connect(root.receive);
+            socket.statusChanged.connect(() => {
+                if (gone || (socket.status !== WebSocket.Closed && socket.status !== WebSocket.Error))
+                    return;
+                gone = true;
+                root.clients--;
+            });
+        }
+    }
+}
