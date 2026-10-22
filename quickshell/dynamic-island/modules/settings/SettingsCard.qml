@@ -745,7 +745,8 @@ Surface {
                                 step: meta?.step,
                                 unit: meta?.unit ?? "",
                                 requires: meta?.requires ?? null,
-                                editor: meta?.editor ?? ""
+                                editor: meta?.editor ?? "",
+                                preview: meta?.preview ?? ""
                             };
 
                             if (needle === ""

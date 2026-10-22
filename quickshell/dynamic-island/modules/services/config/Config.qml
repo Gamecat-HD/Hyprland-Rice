@@ -31,6 +31,8 @@ Singleton {
     readonly property alias quick: adapter.quick
     readonly property alias osd: adapter.osd
     readonly property alias wallpaper: adapter.wallpaper
+    readonly property alias media: adapter.media
+    readonly property alias desktop: adapter.desktop
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -77,6 +79,48 @@ Singleton {
         "notch.messages": {
             title: "Nachrichten-Zaehler", desc: "Anzahl ungelesener Benachrichtigungen neben der Uhr",
             requires: { "appearance.layout": "notch" }
+        },
+        // Stil-Varianten der Notch-Anzeigen. `preview` zeigt im Menue statt
+        // Text-Chips eine kleine Vorschau der Variante (SettingsRow -> StylePreview)
+        "notch.clockStyle": {
+            title: "Uhr-Stil", desc: "Wie die Uhr in der Notch aussieht",
+            options: ["digital", "split", "analog"], preview: "clock",
+            requires: { "appearance.layout": "notch" }
+        },
+        "notch.workspaceStyle": {
+            title: "Workspace-Stil", desc: "Stäbchen, Punkte oder Zahlen links neben der Uhr",
+            options: ["staebchen", "punkte", "zahlen"], preview: "workspaces",
+            requires: "notch.workspaces"
+        },
+        "notch.visualizerStyle": {
+            title: "Visualiser-Stil", desc: "Form der Pegel rechts neben der Uhr",
+            options: ["spiegel", "saeulen", "punkte", "welle"], preview: "visualizer",
+            requires: "notch.visualizer"
+        },
+        // Medienansicht (MediaPanel)
+        "media.cover": {
+            title: "Cover", desc: "Rund mit Pegel-Ring oder als drehende Schallplatte",
+            options: ["rund", "vinyl"]
+        },
+        "media.lyrics": {
+            title: "Songtexte", desc: "Synchrone Texte unter der Steuerung (Spotify über die Extension, sonst lrclib.net)"
+        },
+        "media.queueOpen": {
+            title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
+        },
+        // Desktop-Widgets (modules/desktop): Anordnung je Wallpaper in
+        // ~/.config/dynamic-island/scenes.json
+        "desktop.enabled": {
+            title: "Desktop-Widgets", desc: "Uhr, Visualiser, Songtext & Co. auf dem Hintergrund, je Wallpaper angeordnet",
+            editor: "desktop"
+        },
+        "desktop.pause": {
+            title: "Pausieren bei", desc: "Fenster: sobald der Workspace Fenster hat. Vollbild: nur bei Vollbild und Game-Mode",
+            options: ["fenster", "vollbild"], requires: "desktop.enabled"
+        },
+        "desktop.fps": {
+            title: "Bildrate", desc: "Obergrenze für animierte Widgets (Matrix, Bonsai-Wachstum)",
+            min: 10, max: 60, step: 5, unit: "fps", requires: "desktop.enabled"
         },
         "bar.batteryPulse": { title: "Akku-Ladeimpuls", desc: "Bewegter Impuls im leeren Teil des Akkurings", requires: "bar.battery" },
         "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" },
@@ -176,12 +220,14 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "desktop", "media", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
         "osd": "volume_up",
         "notch": "web_asset",
+        "desktop": "widgets",
+        "media": "music_note",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
         "notifications": "notifications",
@@ -196,7 +242,9 @@ Singleton {
         "vpn": "VPN",
         "appearance": "Darstellung",
         "wallpaper": "Wallpaper",
-        "notch": "Notch-Layout"
+        "notch": "Notch-Layout",
+        "desktop": "Desktop",
+        "media": "Medien"
     })
 
     // Die Datei als einfaches Objekt – daraus baut das Einstellungs-Fenster
@@ -453,6 +501,21 @@ Singleton {
                 property bool media: true
                 property bool visualizer: true
                 property bool messages: true
+                property string clockStyle: "digital"
+                property string workspaceStyle: "staebchen"
+                property string visualizerStyle: "spiegel"
+            }
+
+            property JsonObject media: JsonObject {
+                property string cover: "rund"
+                property bool lyrics: true
+                property bool queueOpen: false
+            }
+
+            property JsonObject desktop: JsonObject {
+                property bool enabled: true
+                property string pause: "fenster"
+                property int fps: 30
             }
 
             // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine
