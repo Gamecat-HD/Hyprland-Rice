@@ -20,7 +20,7 @@ import Quickshell
 Singleton {
     id: root
 
-    readonly property var tiles: ({
+    readonly property var builtinTiles: ({
         "wifi":       { label: "Wi-Fi",         icon: "wifi",           kind: "pill" },
         "bluetooth":  { label: "Bluetooth",     icon: "bluetooth",      kind: "pill" },
         "vpn":        { label: "VPN",           icon: "vpn_key",        kind: "pill" },
@@ -33,6 +33,11 @@ Singleton {
         "power":      { label: "Energie",       icon: "bolt",           kind: "pill" },
         "brightness": { label: "Helligkeit",    icon: "brightness_6",   kind: "wide" }
     })
+    // Kacheln aktiver Plugins ("<plugin>.<kachel>" -> { label, icon, kind, url,
+    // plugin }), gesetzt von Plugins.qml – die Abhaengigkeit laeuft nur in
+    // diese Richtung (plugins importiert config, nicht umgekehrt)
+    property var extraTiles: ({})
+    readonly property var tiles: Object.assign({}, root.builtinTiles, root.extraTiles)
     readonly property var ids: Object.keys(root.tiles)
 
     readonly property int columns: Math.max(2, Math.min(6, Config.quick.columns))
@@ -73,6 +78,10 @@ Singleton {
             root.reparse();
         }
     }
+
+    // Plugin-Kacheln kommen nach dem Start (oder beim Ein-/Ausschalten) dazu:
+    // neu einlesen, sonst fielen sie beim ersten Parsen als unbekannt raus
+    onExtraTilesChanged: root.reparse()
 
     // Reihen und Spalten aendern sich beim Laden oft zugleich – einmal
     // gesammelt neu aufbauen statt je Signal (jede Zuweisung baut alle

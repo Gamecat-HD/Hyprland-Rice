@@ -1,0 +1,80 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import Quickshell
+import Quickshell.Io
+
+// Welchen Look das Terminal zeigt: Starship-Prompt und fastfetch.
+// (Frueher modules/services/system/TerminalTheme.qml, jetzt ein Plugin.)
+//
+// Einstellungen (plugin.json, im Menue unter "Terminal-Looks"):
+//   theme         an = Farben des aktuellen Schemas, aus = immer Vocaloid-Look
+//   folderLooks   an = Wallpaper-Ordner mit eigenem Look (~/.config/fastfetch/<ordner>/,
+//                 Miku direkt in ~/.config/fastfetch) zeigt diesen statt des Schemas
+//
+// Entschieden wird in fish (functions/__terminal_look.fish, genutzt von
+// fastfetch.fish und conf.d/terminal-theme.fish), bei jedem Aufruf bzw.
+// Prompt. fish liest kein JSON, darum schreibt das Plugin den Stand als ein
+// Wort in eine Modus-Datei:
+//   "wallpaper"  Ordner-Look des Wallpapers, sonst Schema (Standard, auch ohne Datei)
+//   "theme"      immer Schema
+//   "miku"       immer Vocaloid-Look
+QtObject {
+    id: root
+
+    required property var plugin
+
+    readonly property string modePath: Quickshell.env("HOME") + "/.local/state/dynamic-island/terminal-mode"
+    readonly property string mode: !root.plugin.settings.theme ? "miku"
+                                   : root.plugin.settings.folderLooks ? "wallpaper" : "theme"
+
+    readonly property var labels: ({ wallpaper: "Wallpaper-Ordner", theme: "Farbschema", miku: "Vocaloid" })
+
+    // Im Launcher unter ">" – schaltet zwischen den drei Modi durch
+    readonly property var actions: [
+        {
+            name: "Terminal-Look wechseln",
+            desc: `Jetzt: ${root.labels[root.mode]} – Prompt und fastfetch`,
+            keepOpen: true,
+            run: () => root.cycle()
+        }
+    ]
+
+    function cycle(): void {
+        // wallpaper -> theme -> miku -> wallpaper
+        if (root.mode === "wallpaper")
+            root.plugin.set("folderLooks", false);
+        else if (root.mode === "theme")
+            root.plugin.set("theme", false);
+        else {
+            root.plugin.set("theme", true);
+            root.plugin.set("folderLooks", true);
+        }
+    }
+
+    // qs -c dynamic-island ipc call plugins call terminal mode ""
+    function ipc(cmd: string, arg: string): string {
+        if (cmd === "mode")
+            return root.mode;
+        if (cmd === "cycle") {
+            root.cycle();
+            return "ok";
+        }
+        return "unbekannt: mode | cycle";
+    }
+
+    function write(): void {
+        if (modeFile.text().trim() !== root.mode)
+            modeFile.setText(root.mode + "\n");
+    }
+
+    onModeChanged: write()
+
+    property FileView modeFile: FileView {
+        path: root.modePath
+        printErrors: false
+        blockLoading: true
+        // Fehlt die Datei (erster Start), trotzdem schreiben
+        onLoaded: root.write()
+        onLoadFailed: root.write()
+    }
+}

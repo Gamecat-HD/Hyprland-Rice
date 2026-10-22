@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import qs.modules.services.config
+import qs.modules.services.plugins
 import qs.modules.widgets
 
 import qs
@@ -16,6 +17,11 @@ import qs
 //
 // Dazu: ein Zuruecksetzen-Knopf, sobald der Wert von der Vorgabe abweicht,
 // und eine gedimmte Zeile, wenn ihre Voraussetzung (meta.requires) fehlt.
+//
+// Gelesen und geschrieben wird ueber die Plugins-Bruecke (get/set/reset/
+// isDefault/satisfied mit derselben Signatur wie Config): Gruppen von
+// Plugins ("plugin:<id>") landen in plugins.json, alle anderen reicht sie
+// an Config weiter – die Zeile muss den Unterschied nicht kennen.
 Item {
     id: row
 
@@ -36,17 +42,17 @@ Item {
     readonly property bool interactive: row.isBool || row.isChoice || row.isNumber
 
     // Voraussetzung erfuellt? Sonst ist die Zeile gedimmt und gesperrt.
-    readonly property bool available: Config.satisfied(row.entry?.requires)
+    readonly property bool available: Plugins.satisfied(row.entry?.requires)
     readonly property string requirementLabel: {
         const req = row.entry?.requires;
         if (!req)
             return "";
         const id = typeof req === "string" ? req : Object.keys(req)[0];
-        const title = Config.meta[id]?.title ?? id;
+        const title = Plugins.metaFor(id)?.title ?? id;
         return typeof req === "string" ? `Braucht „${title}“`
                                        : `Braucht „${title}“ = ${req[id]}`;
     }
-    readonly property bool changed: !Config.isDefault(row.entry?.section ?? "", row.entry?.key ?? "")
+    readonly property bool changed: !Plugins.isDefault(row.entry?.section ?? "", row.entry?.key ?? "")
 
     readonly property var choices: {
         if (!row.isChoice)
@@ -86,7 +92,7 @@ Item {
     function setNumber(v: real): void {
         const next = row.snap(v);
         if (next !== Number(row.entry.value))
-            Config.set(row.entry.section, row.entry.key, next);
+            Plugins.set(row.entry.section, row.entry.key, next);
     }
 
     implicitHeight: (row.section !== "" ? row.headerHeight : 0) + 52
@@ -110,7 +116,9 @@ Item {
         visible: row.section !== ""
         verticalAlignment: Text.AlignBottom
 
-        text: (Config.sectionMeta[row.section] ?? row.section).toUpperCase()
+        // Plugin-Gruppen heissen wie ihr Plugin
+        text: (Plugins.isPluginSection(row.section) ? Plugins.sectionTitle(row.section)
+               : Config.sectionMeta[row.section] ?? row.section).toUpperCase()
         color: Colors.fgSurfaceVariant
         font.pixelSize: 9
         font.weight: Font.Medium
@@ -158,7 +166,7 @@ Item {
                 enabled: (row.isBool || row.isChoice) && row.available
                 onTapped: {
                     if (row.isBool)
-                        Config.set(row.entry.section, row.entry.key, !row.entry.value);
+                        Plugins.set(row.entry.section, row.entry.key, !row.entry.value);
                     else
                         row.expanded = !row.expanded;
                 }
@@ -271,7 +279,7 @@ Item {
                 }
 
                 TapHandler {
-                    onTapped: Config.reset(row.entry.section, row.entry.key)
+                    onTapped: Plugins.reset(row.entry.section, row.entry.key)
                 }
             }
 
@@ -524,7 +532,7 @@ Item {
 
                     TapHandler {
                         enabled: row.available
-                        onTapped: Config.set(row.entry.section, row.entry.key, chip.modelData)
+                        onTapped: Plugins.set(row.entry.section, row.entry.key, chip.modelData)
                     }
                 }
             }

@@ -486,3 +486,26 @@ Gemessen mit laufender Musik, zwei Monitore, Notch-Layout: qs-CPU 12,7 % → 6 %
 - Messskripte: CPU/Kindprozesse über `/proc/<pid>/stat` (utime/stime, cutime/cstime) und
   `/proc/<pid>/task/*/children`, Startzeit = Neustart bis „Configuration Loaded“.
 
+
+## 8. Plugins (seit 2026-10-22)
+
+Erweiterungen ohne Eingriff in den Kern: Ordner `plugins/<id>/` mit
+`plugin.json` (+ optional `Main.qml`, Kachel-QML). Format, API, Austausch-
+formate und CLI stehen in `plugins/README.md`.
+
+- Kern: `modules/services/plugins/Plugins.qml` (Singleton; findet Ordner per
+  FolderListModel, haelt `plugins.json`, IPC `plugins`) und `PluginHost.qml`
+  (je Plugin: Manifest pruefen, `main` asynchron per `Qt.createComponent`
+  laden/zerstoeren, Kontext `plugin`). `shell.qml` haelt den Singleton am Leben.
+- Plugin-QML liegt im Shell-Ordner und kann deshalb alle `qs.*`-Module
+  importieren, die die Shell selbst schon importiert.
+- Beitraege: Einstellungs-Gruppe `plugin:<id>` (Menue liest/schreibt ueber
+  `Plugins.get/set/reset/isDefault/satisfied`, die normale Gruppen an Config
+  weiterreichen), Launcher-Aktionen (`actions` des Main-Objekts →
+  `LauncherActions.all`), Schnellkacheln (`Plugins.tiles` →
+  `QuickLayout.extraTiles`; die Abhaengigkeit laeuft nur plugins → config).
+- Zustand pro Rechner: `~/.config/dynamic-island/plugins.json` (nicht im Git).
+- Erstes Plugin: `plugins/terminal/` (vorher `services/system/TerminalTheme.qml`
+  + Config-Gruppe `terminal`; Werte per `migrateFrom` einmalig uebernommen).
+- Austausch: `dynamic-island plugin export|import` (`.dip` = tar.gz mit
+  `dip.json`, SHA-256 je Datei; Einstellungen allein als JSON).

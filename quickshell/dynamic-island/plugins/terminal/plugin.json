@@ -1,0 +1,39 @@
+{
+    "$schema": "../plugin.schema.json",
+    "id": "terminal",
+    "name": "Terminal-Looks",
+    "version": "1.0.0",
+    "api": 1,
+    "author": "Gamecat",
+    "icon": "terminal",
+    "description": "Starship-Prompt und fastfetch folgen dem Farbschema oder zeigen den Look des Wallpaper-Ordners (Vocaloid, Edgerunners, Lord of the Mysteries).",
+    "defaultEnabled": true,
+    "main": "Main.qml",
+    "migrateFrom": "terminal",
+    "settings": {
+        "theme": {
+            "default": true,
+            "title": "An Theme anpassen",
+            "desc": "Prompt und fastfetch nehmen die Farben des aktuellen Schemas. Aus: immer der Vocaloid-Look"
+        },
+        "folderLooks": {
+            "default": true,
+            "title": "Wallpaper-Ordner mit eigenem Look",
+            "desc": "Liegt das Wallpaper in einem Ordner mit eigenem fastfetch-Look (Miku, Cyberpunk-Edgerunners, Lord-of-the-Mysteries), zeigt das Terminal diesen statt der Schema-Farben",
+            "requires": "theme"
+        }
+    },
+    "files": [
+        { "path": "~/.config/fish/functions/fastfetch.fish" },
+        { "path": "~/.config/fish/functions/__terminal_look.fish" },
+        { "path": "~/.config/fish/functions/__terminal_themed.fish" },
+        { "path": "~/.config/fish/functions/__fastfetch_card.fish" },
+        { "path": "~/.config/fish/conf.d/terminal-theme.fish" },
+        { "path": "~/.config/dynamic-island/templates/fastfetch.jsonc" },
+        { "path": "~/.config/dynamic-island/templates/fastfetch-compact.jsonc" },
+        { "path": "~/.config/dynamic-island/templates/fastfetch-mini.jsonc" },
+        { "path": "~/.config/dynamic-island/templates/starship-palette.toml" },
+        { "path": "~/.config/starship.toml" },
+        { "path": "~/.config/fastfetch", "optional": true, "note": "Looks + Logo-Karten (~23 MB)" }
+    ]
+}

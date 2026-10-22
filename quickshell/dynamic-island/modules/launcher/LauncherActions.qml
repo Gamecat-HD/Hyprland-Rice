@@ -5,6 +5,7 @@ import Quickshell
 import qs.modules.services.wallpaper
 
 import qs.modules.settings
+import qs.modules.services.plugins
 
 // Aktionen des Launchers – das Gegenstück zu Caelestias `Actions`-Service.
 // Erreichbar über das Präfix `>`.
@@ -106,11 +107,14 @@ Singleton {
         }
     ]
 
+    // Eingebaute Aktionen plus die der aktiven Plugins (Main.qml `actions`)
+    readonly property var all: root.actions.concat(Plugins.actions)
+
     function search(needle: string): var {
         const query = needle.trim().toLowerCase();
         if (query === "")
-            return root.actions;
+            return root.all;
 
-        return root.actions.filter(action => `${action.name} ${action.desc}`.toLowerCase().includes(query));
+        return root.all.filter(action => `${action.name} ${action.desc}`.toLowerCase().includes(query));
     }
 }

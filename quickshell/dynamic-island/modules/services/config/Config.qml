@@ -31,7 +31,6 @@ Singleton {
     readonly property alias quick: adapter.quick
     readonly property alias osd: adapter.osd
     readonly property alias wallpaper: adapter.wallpaper
-    readonly property alias terminal: adapter.terminal
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -164,16 +163,6 @@ Singleton {
             desc: "Wie lange die Regler nach einer Änderung sichtbar bleiben",
             min: 1, max: 10, step: 1, unit: "s", requires: "osd.enabled"
         },
-        // Starship-Prompt und fastfetch (modules/services/system/TerminalTheme.qml)
-        "terminal.theme": {
-            title: "An Theme anpassen",
-            desc: "Prompt und fastfetch nehmen die Farben des aktuellen Schemas. Aus: immer der Vocaloid-Look"
-        },
-        "terminal.folderLooks": {
-            title: "Wallpaper-Ordner mit eigenem Look",
-            desc: "Liegt das Wallpaper in einem Ordner mit eigenem fastfetch-Look (Miku, Cyberpunk-Edgerunners, Lord-of-the-Mysteries), zeigt das Terminal diesen statt der Schema-Farben",
-            requires: "terminal.theme"
-        },
         "quick.columns": {
             title: "Raster",
             desc: "Spalten des Kachel-Rasters; eine Kachel kann mehrere belegen",
@@ -188,7 +177,7 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "wallpaper", "terminal", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
@@ -196,7 +185,6 @@ Singleton {
         "notch": "web_asset",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
-        "terminal": "terminal",
         "notifications": "notifications",
         "vpn": "vpn_key"
     })
@@ -209,7 +197,6 @@ Singleton {
         "vpn": "VPN",
         "appearance": "Darstellung",
         "wallpaper": "Wallpaper",
-        "terminal": "Terminal",
         "notch": "Notch-Layout"
     })
 
@@ -294,7 +281,31 @@ Singleton {
     }
 
     function save(): void {
+        saveDelay.stop();
         file.writeAdapter();
+    }
+
+    // Schieberegler rufen set() bei jedem Rasterschritt – sofort schreiben
+    // hiesse: Datei schreiben, Watcher, JSON neu parsen, alles neu binden,
+    // dutzendfach pro Sekunde. Der Adapter und `raw` haben den Wert schon,
+    // auf die Platte geht er gesammelt.
+    Timer {
+        id: saveDelay
+
+        interval: 300
+        onTriggered: root.save()
+    }
+
+    Component.onDestruction: if (saveDelay.running) file.writeAdapter()
+
+    // Schluessel sortiert serialisieren: die Datei kommt alphabetisch zurueck,
+    // `raw` in Einfuege-Reihenfolge – fuer den Vergleich in reread()
+    function canonical(v: var): string {
+        if (Array.isArray(v))
+            return "[" + v.map(x => root.canonical(x)).join(",") + "]";
+        if (typeof v === "object" && v !== null)
+            return "{" + Object.keys(v).sort().map(k => JSON.stringify(k) + ":" + root.canonical(v[k])).join(",") + "}";
+        return JSON.stringify(v);
     }
 
     // Wert setzen, ohne den Namen fest zu verdrahten
@@ -311,7 +322,13 @@ Singleton {
         next[section][key] = value;
         root.raw = next;
 
-        root.save();
+        // Zahlen kommen von Schiebereglern (viele Schritte pro Sekunde) –
+        // gesammelt schreiben. Alles andere sofort: QuickLayout rechnet mit
+        // seinem 400-ms-Schutz ab dem Aufruf.
+        if (typeof value === "number")
+            saveDelay.restart();
+        else
+            root.save();
     }
 
     function get(section: string, key: string): var {
@@ -339,12 +356,17 @@ Singleton {
     }
 
     function reread(): void {
+        let parsed;
         try {
-            root.raw = JSON.parse(file.text());
+            parsed = JSON.parse(file.text());
         } catch (e) {
             // Halb geschriebene Datei o.ae. – beim naechsten Mal wieder
             return;
         }
+        // Meist ist das nur das Echo des eigenen Schreibens: dann `raw` nicht
+        // neu setzen, sonst baut z.B. das Einstellungs-Fenster jede Zeile neu
+        if (root.canonical(parsed) !== root.canonical(root.raw))
+            root.raw = parsed;
 
         if (!root.normalised) {
             root.normalised = true;
@@ -412,11 +434,6 @@ Singleton {
                 property string randomScope: "alle"
             }
 
-            // Look von Starship-Prompt und fastfetch (siehe TerminalTheme.qml)
-            property JsonObject terminal: JsonObject {
-                property bool theme: true
-                property bool folderLooks: true
-            }
 
             property JsonObject bar: JsonObject {
                 property bool workspaces: true

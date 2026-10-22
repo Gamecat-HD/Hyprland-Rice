@@ -94,9 +94,10 @@ Singleton {
 
     // Ruhiger Grundtakt – nur noch Rückfallebene für Recorder, die ganz an
     // der CLI vorbei gestartet wurden, und für einen abgestürzten Recorder.
-    // Vorher alle 2 s: ~30 pidof-Starts pro Minute, dauerhaft.
+    // Vorher alle 2 s: ~30 pidof-Starts pro Minute, dauerhaft; dann 10 s.
+    // Starts ueber die CLI meldet ohnehin der FolderListModel oben.
     Timer {
-        interval: 10000
+        interval: 30000
         running: true
         repeat: true
         triggeredOnStart: true

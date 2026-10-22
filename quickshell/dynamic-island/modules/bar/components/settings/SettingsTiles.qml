@@ -9,6 +9,7 @@ import qs.modules.services.bluetooth
 import qs.modules.services.brightness
 import qs.modules.services.core
 import qs.modules.services.network
+import qs.modules.services.plugins
 import qs.modules.services.record
 import qs.modules.services.system
 import qs.modules.services.vpn
@@ -1150,15 +1151,60 @@ ColumnLayout {
             Repeater {
                 model: tileRow.modelData
 
+                // Eingebaute Kacheln kommen aus tileComponents, Plugin-Kacheln
+                // ("<plugin>.<kachel>") als QML-Datei aus Plugins.tiles – die
+                // bekommt `plugin` (Kontext) und, wenn sie es kennt, `tileId`
+                // (QuickTile in modules/widgets hat beides).
                 Loader {
                     id: slot
 
                     required property var modelData     // { id, span }
 
+                    readonly property string tileId: slot.modelData.id
+                    // Nur der Pfad als Abhaengigkeit: Plugins.tiles wird bei
+                    // jeder Plugin-Aenderung neu gebaut, die Kachel soll aber
+                    // nur neu laden, wenn ihre Datei wechselt
+                    readonly property string pluginUrl: Plugins.tiles[slot.tileId]?.url ?? ""
+
                     Layout.fillWidth: false
                     Layout.preferredWidth: root.cellWidth(slot.modelData.span)
                     Layout.preferredHeight: slot.item?.implicitHeight ?? 54
-                    sourceComponent: root.tileComponents[slot.modelData.id] ?? null
+
+                    function rebuild(): void {
+                        if (slot.pluginUrl !== "")
+                            slot.setSource(slot.pluginUrl, { plugin: Plugins.tiles[slot.tileId].plugin });
+                        else
+                            slot.sourceComponent = root.tileComponents[slot.tileId] ?? null;
+                    }
+
+                    Component.onCompleted: slot.rebuild()
+                    onPluginUrlChanged: slot.rebuild()
+                    onLoaded: {
+                        if (slot.pluginUrl !== "" && slot.item && "tileId" in slot.item)
+                            slot.item.tileId = slot.tileId.slice(slot.tileId.indexOf(".") + 1);
+                    }
+                    onStatusChanged: {
+                        if (slot.status === Loader.Error) {
+                            console.warn(`Kachel ${slot.tileId}: ${slot.pluginUrl} laedt nicht`);
+                            slot.sourceComponent = brokenTile;
+                        }
+                    }
+
+                    // Ersatz fuer eine Plugin-Kachel, deren QML-Datei nicht
+                    // laedt – das Raster behaelt seinen Platz, und man sieht,
+                    // welche Kachel es ist
+                    Component {
+                        id: brokenTile
+
+                        Tile {
+                            icon: "error"
+                            title: Plugins.tiles[slot.tileId]?.label ?? slot.tileId
+                            subtitle: "Kachel lädt nicht"
+                            active: false
+                            tapEnabled: false
+                            opacity: 0.6
+                        }
+                    }
                 }
             }
 

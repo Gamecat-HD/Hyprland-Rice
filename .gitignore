@@ -15,6 +15,8 @@
 # Shell-Einstellungen: pro Rechner, die Vorgaben stehen im Code
 # (quickshell/dynamic-island/modules/services/config/Config.qml)
 /dynamic-island/shell.json
+# Plugins an/aus + Einstellungswerte: ebenfalls pro Rechner
+/dynamic-island/plugins.json
 
 # lokale/privates
 .claude/

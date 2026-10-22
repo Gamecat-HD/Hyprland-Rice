@@ -1,0 +1,70 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "dynamic-island Plugin-Manifest (plugin.json)",
+    "type": "object",
+    "required": ["id", "name", "api"],
+    "properties": {
+        "$schema": { "type": "string" },
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,47}$", "description": "Gleich dem Ordnernamen" },
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" },
+        "api": { "type": "integer", "minimum": 1, "description": "Benoetigte Plugin-API" },
+        "description": { "type": "string" },
+        "author": { "type": "string" },
+        "homepage": { "type": "string" },
+        "icon": { "type": "string", "description": "Material-Symbols-Name" },
+        "defaultEnabled": { "type": "boolean" },
+        "main": { "type": "string", "pattern": "^[^/].*\\.qml$" },
+        "migrateFrom": { "type": "string", "description": "Gruppe in shell.json, deren Werte einmalig uebernommen werden" },
+        "settings": {
+            "type": "object",
+            "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_]*$" },
+            "additionalProperties": {
+                "type": "object",
+                "required": ["default"],
+                "properties": {
+                    "default": {},
+                    "title": { "type": "string" },
+                    "desc": { "type": "string" },
+                    "options": { "type": "array", "items": { "type": "string" } },
+                    "min": { "type": "number" },
+                    "max": { "type": "number" },
+                    "step": { "type": "number" },
+                    "unit": { "type": "string" },
+                    "requires": {
+                        "oneOf": [
+                            { "type": "string" },
+                            { "type": "object" }
+                        ]
+                    }
+                }
+            }
+        },
+        "tiles": {
+            "type": "object",
+            "propertyNames": { "pattern": "^[a-z0-9][a-z0-9-]*$" },
+            "additionalProperties": {
+                "type": "object",
+                "required": ["component"],
+                "properties": {
+                    "label": { "type": "string" },
+                    "icon": { "type": "string" },
+                    "kind": { "enum": ["pill", "circle", "wide"] },
+                    "component": { "type": "string", "pattern": "^[^/].*\\.qml$" }
+                }
+            }
+        },
+        "files": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["path"],
+                "properties": {
+                    "path": { "type": "string", "pattern": "^~/" },
+                    "optional": { "type": "boolean" },
+                    "note": { "type": "string" }
+                }
+            }
+        }
+    }
+}
