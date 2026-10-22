@@ -31,7 +31,7 @@ Singleton {
             url: root.dir + "/ClockWidget.qml",
             size: [10, 6],
             options: {
-                style: { title: "Stil", values: ["digital", "split", "gestapelt", "analog", "worte"], default: "gestapelt" },
+                style: { title: "Stil", values: ["sperrbildschirm", "insel", "kontrast", "gestapelt", "analog", "worte"], default: "sperrbildschirm" },
                 date: { title: "Datum", bool: true, default: true }
             }
         },
@@ -39,9 +39,9 @@ Singleton {
             title: "Visualiser",
             icon: "graphic_eq",
             url: root.dir + "/VisualizerWidget.qml",
-            size: [24, 6],
+            size: [26, 7],
             options: {
-                style: { title: "Stil", values: ["saeulen", "spiegel", "punkte", "welle"], default: "saeulen" },
+                style: { title: "Stil", values: ["insel", "kapseln", "welle"], default: "insel" },
                 bars: { title: "Balken", values: [16, 24, 32, 48], default: 32 },
                 idle: { title: "Ohne Musik", values: ["ausblenden", "ruhig"], default: "ausblenden" }
             }

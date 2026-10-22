@@ -5,23 +5,23 @@
       {
         "id": "wclo00",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.17,
-        "size": 1.3,
+        "x": 0.14,
+        "y": 0.14,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
-          "style": "split",
+          "style": "insel",
           "date": true,
-          "color": "#fcee0a",
-          "accent": "#00f0ff"
+          "color": "#ffffff",
+          "accent": "#fcee0a"
         }
       },
       {
         "id": "wlyr01",
         "type": "lyrics",
-        "x": 0.5,
-        "y": 0.86,
-        "size": 1,
+        "x": 0.8,
+        "y": 0.79,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
           "lines": 3,
@@ -33,16 +33,16 @@
       {
         "id": "wvis02",
         "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
+        "x": 0.8,
+        "y": 0.9,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
-          "style": "spiegel",
+          "style": "insel",
           "bars": 48,
           "idle": "ausblenden",
           "color": "#fcee0a",
-          "accent": "#ff003c"
+          "accent": "#fcee0a"
         }
       }
     ],
@@ -55,10 +55,10 @@
         "size": 1.2,
         "monitor": "*",
         "opts": {
-          "style": "split",
+          "style": "sperrbildschirm",
           "date": true,
-          "color": "#fcee0a",
-          "accent": "#00f0ff"
+          "color": "#ffffff",
+          "accent": "#fcee0a"
         }
       },
       {
@@ -115,10 +115,10 @@
         "size": 0.8,
         "monitor": "*",
         "opts": {
-          "style": "saeulen",
-          "bars": 32,
+          "style": "kapseln",
+          "bars": 24,
           "idle": "ausblenden",
-          "color": "#fcee0a",
+          "color": "#ffffff",
           "accent": "#fcee0a"
         }
       },
@@ -178,10 +178,10 @@
         "size": 1,
         "monitor": "*",
         "opts": {
-          "style": "digital",
+          "style": "sperrbildschirm",
           "date": true,
-          "color": "#7dff3a",
-          "accent": "#fcee0a"
+          "color": "#ffffff",
+          "accent": "#7dff3a"
         }
       }
     ],
@@ -226,7 +226,7 @@
         "size": 1.1,
         "monitor": "*",
         "opts": {
-          "style": "split",
+          "style": "kontrast",
           "date": true,
           "color": "#ffffff",
           "accent": "#ff2bd6"
@@ -256,7 +256,7 @@
         "size": 1.2,
         "monitor": "*",
         "opts": {
-          "style": "gestapelt",
+          "style": "sperrbildschirm",
           "date": true,
           "color": "hell",
           "accent": "primary"
@@ -314,8 +314,8 @@
         "size": 1,
         "monitor": "*",
         "opts": {
-          "style": "spiegel",
-          "bars": 48,
+          "style": "welle",
+          "bars": 24,
           "idle": "ausblenden",
           "color": "#39c5bb",
           "accent": "#39c5bb"
@@ -331,10 +331,10 @@
         "size": 1.1,
         "monitor": "*",
         "opts": {
-          "style": "digital",
+          "style": "sperrbildschirm",
           "date": true,
           "color": "#f0f0f0",
-          "accent": "#9a9a9a"
+          "accent": "#bdbdbd"
         }
       },
       {
@@ -394,7 +394,7 @@
         "size": 1.3,
         "monitor": "*",
         "opts": {
-          "style": "gestapelt",
+          "style": "kontrast",
           "date": true,
           "color": "#2b2440",
           "accent": "#e0568c"
@@ -419,15 +419,15 @@
       {
         "id": "wclo27",
         "type": "clock",
-        "x": 0.22,
-        "y": 0.17,
-        "size": 1.2,
+        "x": 0.2,
+        "y": 0.15,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
-          "style": "split",
+          "style": "insel",
           "date": true,
-          "color": "#1c2a3a",
-          "accent": "#1f8f9c"
+          "color": "#ffffff",
+          "accent": "#39c5bb"
         }
       },
       {
