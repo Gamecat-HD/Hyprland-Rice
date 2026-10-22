@@ -549,13 +549,29 @@
       {
         "id": "wlyr01g1y6",
         "type": "lyrics",
-        "x": 0.5,
-        "y": 0.88,
+        "x": 0.865,
+        "y": 0.7,
         "size": 0.9,
         "monitor": "*",
         "opts": {
           "lines": 3,
           "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      },
+      {
+        "id": "wvis2yg",
+        "type": "visualizer",
+        "x": 0.865,
+        "y": 0.56,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 32,
+          "order": "mitte",
+          "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#fcee0a"
         }
