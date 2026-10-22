@@ -17,8 +17,10 @@ from dynamic_island.utils.paths import (
     compute_hash,
     get_config,
     wallpaper_link_path,
+    atomic_dump,
     wallpaper_path_path,
     wallpaper_thumbnail_path,
+    wallpaper_variants_path,
     wallpapers_cache_dir,
 )
 from dynamic_island.utils.scheme import Scheme, get_scheme
@@ -40,6 +42,55 @@ def get_wallpaper() -> str | None:
         return wallpaper_path_path.read_text()
     except IOError:
         return None
+
+
+# ---- Stil je Wallpaper ----
+# Ein im Menue gewaehlter Stil gilt nur fuer das Bild, auf dem er gewaehlt wurde:
+# Schluessel ist der absolute Pfad. Bilder ohne Eintrag bekommen den Stil, den
+# get_smart_opts aus der Farbigkeit ableitet ("auto").
+def get_wall_variants() -> dict[str, str]:
+    try:
+        data = json.loads(wallpaper_variants_path.read_text())
+        return data if isinstance(data, dict) else {}
+    except (IOError, json.JSONDecodeError):
+        return {}
+
+
+def get_wall_variant(wall: Path | str) -> str | None:
+    return get_wall_variants().get(str(Path(wall).resolve()))
+
+
+def set_wall_variant(wall: Path | str, variant: str | None) -> None:
+    variants = get_wall_variants()
+    key = str(Path(wall).resolve())
+    if variant is None:
+        variants.pop(key, None)
+    else:
+        variants[key] = variant
+    wallpaper_variants_path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_dump(wallpaper_variants_path, dict(sorted(variants.items())))
+
+
+def apply_wall_variant(variant: str | None, wall: Path | str | None = None) -> None:
+    """Stil fuer ein Bild festlegen (None = wieder automatisch).
+
+    Ist das Bild das aktuelle und haengt das Schema am Wallpaper, faerbt es
+    gleich um; sonst wirkt der Stil erst beim naechsten Setzen des Bilds.
+    """
+    current = get_wallpaper()
+    wall = Path(wall or current or "").resolve()
+    set_wall_variant(wall, variant)
+
+    if not current or Path(current).resolve() != wall:
+        return
+    scheme = get_scheme()
+    if scheme.name != "dynamic":
+        return
+    if variant is None:
+        wall_cache = convert_gif(wall) if wall.suffix.lower() == ".gif" else wall
+        variant = get_smart_opts(wall_cache, wallpapers_cache_dir / compute_hash(wall_cache))["variant"]
+    scheme.variant = variant
+    apply_colours(scheme.colours, scheme.mode)
 
 
 def get_wallpapers(args: Namespace) -> list[Path]:
@@ -101,33 +152,37 @@ def get_smart_opts(wall: Path, cache: Path) -> dict:
     return opts
 
 
-def get_colours_for_wall(wall: Path | str, no_smart: bool) -> None:
+def get_colours_for_wall(wall: Path | str, no_smart: bool) -> dict:
     wall = Path(wall)
     scheme = get_scheme()
     cache = wallpapers_cache_dir / compute_hash(wall)
+    pinned = get_wall_variant(wall)
 
     if wall.suffix.lower() == ".gif":
         wall = convert_gif(wall)
 
     name = "dynamic"
 
+    mode, variant = scheme.mode, scheme.variant
     if not no_smart:
         smart_opts = get_smart_opts(wall, cache)
-        scheme = Scheme(
-            {
-                "name": name,
-                "flavour": scheme.flavour,
-                "mode": smart_opts["mode"],
-                "variant": smart_opts["variant"],
-                "colours": scheme.colours,
-            }
-        )
+        mode, variant = smart_opts["mode"], smart_opts["variant"]
+    scheme = Scheme(
+        {
+            "name": name,
+            "flavour": scheme.flavour,
+            "mode": mode,
+            "variant": pinned or variant,
+            "colours": scheme.colours,
+        }
+    )
 
     return {
         "name": name,
         "flavour": scheme.flavour,
         "mode": scheme.mode,
         "variant": scheme.variant,
+        "pinned": pinned is not None,
         "colours": get_colours_for_image(get_thumb(wall, cache), scheme),
     }
 
@@ -181,10 +236,15 @@ def set_wallpaper(wall: Path, no_smart: bool) -> None:
     # scheme.json nur einmal mit dem fertigen Stand geschrieben wird statt bis
     # zu dreimal (Modus, Variante, Farben) - jedes Mal faerbt sich die Shell um.
     with scheme.batch():
-        if scheme.name == "dynamic" and not no_smart:
-            smart_opts = get_smart_opts(wall_cache, cache)
-            scheme.mode = smart_opts["mode"]
-            scheme.variant = smart_opts["variant"]
+        # Ein fest gewaehlter Stil des Bilds schlaegt den ausgerechneten
+        if scheme.name == "dynamic":
+            pinned = get_wall_variant(wall)
+            if not no_smart:
+                smart_opts = get_smart_opts(wall_cache, cache)
+                scheme.mode = smart_opts["mode"]
+                scheme.variant = pinned or smart_opts["variant"]
+            elif pinned:
+                scheme.variant = pinned
 
         # Update colours
         scheme.update_colours()

@@ -167,6 +167,15 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
         action="store_true",
         help="do not automatically change the scheme mode based on wallpaper colour",
     )
+    wallpaper_parser.add_argument(
+        "-v",
+        "--variant",
+        choices=["auto", *scheme_variants],
+        help="pin the scheme variant for a wallpaper (auto = derive it from the image)",
+    )
+    wallpaper_parser.add_argument(
+        "--for", dest="target", metavar="PATH", help="the wallpaper --variant applies to (default: current)"
+    )
 
     # Create parser for resizer opts
     resizer_parser = command_parser.add_parser("resizer", help="window resizer daemon")

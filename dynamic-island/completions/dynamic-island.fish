@@ -117,6 +117,8 @@ complete -c dynamic-island -n "$seen wallpaper" -s 'p' -l 'print' -d 'Print the 
 complete -c dynamic-island -n "$seen wallpaper" -s 'r' -l 'random' -d 'Switch to a random wallpaper' -rF
 complete -c dynamic-island -n "$seen wallpaper" -s 'f' -l 'file' -d 'The file to switch to' -rF
 complete -c dynamic-island -n "$seen wallpaper" -s 'n' -l 'no-filter' -d 'Do not filter by size'
+complete -c dynamic-island -n "$seen wallpaper" -s 'v' -l 'variant' -d 'Pin the scheme variant for a wallpaper' -xa 'auto tonalspot vibrant expressive fidelity fruitsalad monochrome neutral rainbow content'
+complete -c dynamic-island -n "$seen wallpaper" -l 'for' -d 'Wallpaper the variant applies to' -rF
 complete -c dynamic-island -n "$seen wallpaper" -s 't' -l 'threshold' -d 'The threshold to filter by' -r
 complete -c dynamic-island -n "$seen wallpaper" -s 'N' -l 'no-smart' -d 'Disable smart mode switching'
 

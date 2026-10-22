@@ -68,13 +68,6 @@ Singleton {
     // beide Monitore dieselbe zeigen, ohne sich abzusprechen.
     readonly property var transitions: ["blende", "wischen", "schieben", "kreis", "zoom"]
 
-    // Den Uebergang einmal auf dem aktuellen Bild vorfuehren (WallpaperStage)
-    signal replayRequested
-
-    function replay(): void {
-        root.replayRequested();
-    }
-
     function transitionFor(path: string): string {
         const chosen = Config.wallpaper.transition;
         if (chosen !== "zufall")
@@ -83,6 +76,69 @@ Singleton {
         for (let i = 0; i < path.length; i++)
             h = (h * 31 + path.charCodeAt(i)) | 0;
         return root.transitions[Math.abs(h) % root.transitions.length];
+    }
+
+    // ---- Stil je Bild ----
+    // Die Material-Variante, mit der aus einem Bild die Palette wird, haengt am
+    // Bild: die CLI merkt sich eine feste Wahl je Pfad (variants.json), Bilder
+    // ohne Eintrag bekommen den Stil, den sie aus der Farbigkeit ausrechnet
+    // ("auto"). Wirkt nur beim dynamischen Schema.
+    readonly property string variantsPath: Quickshell.env("HOME") + "/.local/state/dynamic-island/wallpaper/variants.json"
+    property var variants: ({})
+
+    // Was die Vorschau fuer das gerade markierte Bild ergeben hat – bei "auto"
+    // der ausgerechnete Stil
+    property string previewVariant: ""
+
+    // Feste Wahl fuer ein Bild, leer = auto
+    function variantFor(path: string): string {
+        return root.variants[path] ?? "";
+    }
+
+    // Stil fuer ein Bild festlegen ("auto" nimmt die Wahl zurueck). Ist es das
+    // aktuelle Bild, faerbt die CLI gleich um; sonst gilt er beim naechsten
+    // Setzen. Die Vorschau rechnet danach mit dem neuen Stil nach.
+    function setVariant(path: string, variant: string): void {
+        if (path === "")
+            return;
+        const next = Object.assign({}, root.variants);
+        if (variant === "auto")
+            delete next[path];
+        else
+            next[path] = variant;
+        root.variants = next;           // sofort, die Datei zieht gleich nach
+
+        variantProc.running = false;
+        variantProc.command = [root.cli, "wallpaper", "--variant", variant, "--for", path];
+        variantProc.path = path;
+        variantProc.running = true;
+    }
+
+    Process {
+        id: variantProc
+
+        property string path: ""
+
+        onExited: {
+            if (root.showPreview && root.previewPath === variantProc.path)
+                root.preview(variantProc.path);
+        }
+    }
+
+    FileView {
+        path: root.variantsPath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                const data = JSON.parse(text());
+                root.variants = typeof data === "object" && data ? data : {};
+            } catch (e) {
+                root.variants = {};
+            }
+        }
+        onLoadFailed: root.variants = {}
     }
 
     // ---- Liste ----
@@ -244,6 +300,8 @@ Singleton {
     // Schema (catppuccin, tokyonight, ...) aendert ein Bildwechsel die Farben
     // nicht, die Vorschau wuerde also etwas zeigen, was nie eintritt.
     function preview(path: string): void {
+        if (root.previewPath !== path)
+            root.previewVariant = "";
         root.previewPath = path;
         root.showPreview = true;
 
@@ -258,6 +316,7 @@ Singleton {
     function stopPreview(): void {
         root.showPreview = false;
         root.previewPath = "";
+        root.previewVariant = "";
         colourPreview.running = false;
         Colors.clearPreview();
     }
@@ -274,8 +333,14 @@ Singleton {
                 // Wer inzwischen weitergeblaettert oder zugemacht hat, soll
                 // nicht die Farben von vorhin bekommen. Leer = der Prozess
                 // wurde fuer das naechste Bild abgebrochen.
-                if (text.trim() !== "" && root.showPreview && colourPreview.wall === root.previewPath)
+                if (text.trim() !== "" && root.showPreview && colourPreview.wall === root.previewPath) {
                     Colors.loadPreview(text);
+                    try {
+                        root.previewVariant = JSON.parse(text).variant ?? "";
+                    } catch (e) {
+                        root.previewVariant = "";
+                    }
+                }
             }
         }
     }

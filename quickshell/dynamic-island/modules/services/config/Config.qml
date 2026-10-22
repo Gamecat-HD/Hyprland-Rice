@@ -122,8 +122,7 @@ Singleton {
         },
         "appearance.shadow": { title: "Schatten", desc: "Weicher Schatten unter Pillen und Karten" },
         "appearance.clock": { title: "Uhrzeit", desc: "Anzeigeformat der Uhr in der Notch", options: ["24h", "12h"] },
-        // Uebergang beim Wallpaperwechsel (modules/window/WallpaperStage.qml);
-        // dieselbe Auswahl steht als Chip-Reihe in der Wallpaper-Auswahl
+        // Uebergang beim Wallpaperwechsel (modules/window/WallpaperStage.qml)
         "wallpaper.transition": {
             title: "Übergang",
             desc: "Wie das neue Wallpaper erscheint. Zufall würfelt je Bild",

@@ -34,6 +34,9 @@ wallpapers_dir: Path = Path(os.getenv("DYNAMIC_ISLAND_WALLPAPERS_DIR", pictures_
 wallpaper_path_path: Path = c_state_dir / "wallpaper/path.txt"
 wallpaper_link_path: Path = c_state_dir / "wallpaper/current"
 wallpaper_thumbnail_path: Path = c_state_dir / "wallpaper/thumbnail.jpg"
+# Fest gewaehlter Stil (Material-Variante) je Wallpaper; fehlt ein Bild, rechnet
+# "smart" ihn aus dem Bild aus
+wallpaper_variants_path: Path = c_state_dir / "wallpaper/variants.json"
 wallpapers_cache_dir: Path = c_cache_dir / "wallpapers"
 
 screenshots_dir: Path = Path(os.getenv("DYNAMIC_ISLAND_SCREENSHOTS_DIR", pictures_dir / "Screenshots"))

@@ -11,7 +11,7 @@ import qs.modules.services.wallpaper
 //
 // Welches Bild gilt, sagt der Wallpapers-Dienst: das gesetzte oder – waehrend
 // man in der Auswahl blaettert – das vorgeschaute. Welche Animation, sagt
-// Config.wallpaper.transition (Auswahl im Wallpaper-Panel und im Menue).
+// Config.wallpaper.transition (Auswahl im Menue).
 //
 // Frueher hing der Hintergrund hier manchmal auf einem alten Bild: kam der
 // Pfad auf ein Bild zurueck, das die verdeckte Ebene noch fertig geladen
@@ -86,20 +86,6 @@ Item {
         stage.play(Wallpapers.showPreview ? Math.min(full, 350) : full);
     }
 
-    // Vorfuehrung (Klick auf einen Uebergang in der Auswahl): das aktuelle
-    // Bild noch einmal ueber dem leeren Hintergrund aufbauen
-    function replay(): void {
-        if (anim.running) {
-            anim.stop();
-            stage.settle();
-        }
-        if (!stage.front.ready)
-            return;
-        stage.back.load("");
-        stage.kind = Wallpapers.transitionFor(stage.front.path);
-        stage.play(Math.max(300, Config.wallpaper.duration));
-    }
-
     function play(duration: int): void {
         if (stage.kind === "aus" || duration <= 0) {
             stage.settle();
@@ -111,14 +97,6 @@ Item {
         anim.easing.type = stage.kind === "blende" || stage.kind === "zoom" ? Easing.OutCubic
                                                                            : Easing.InOutCubic;
         anim.restart();
-    }
-
-    Connections {
-        target: Wallpapers
-
-        function onReplayRequested(): void {
-            stage.replay();
-        }
     }
 
     // Uebergang fertig: vorne steht das neue Bild, das alte wird freigegeben

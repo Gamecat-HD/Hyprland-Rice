@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import qs.modules.services.theme
 import qs.modules.services.wallpaper
 
 import qs
@@ -38,29 +39,30 @@ Item {
     implicitWidth: 1000
     // Kachelbreite; die Hoehe darunter haengt daran (16:9 + Beschriftung)
     readonly property real imageWidth: 175
-    implicitHeight: searchRow.height + 1 + listWrapper.implicitHeight + 1 + transitionRow.height
+    implicitHeight: searchRow.height + 1 + listWrapper.implicitHeight + 1 + styleRow.height
 
-    // Die Uebergaenge der Chip-Reihe unten (Werte wie Config.wallpaper.transition)
-    readonly property var transitions: [
-        { id: "blende", label: "Blende", icon: "transition_fade" },
-        { id: "wischen", label: "Wischen", icon: "swipe_right" },
-        { id: "schieben", label: "Schieben", icon: "transition_push" },
-        { id: "kreis", label: "Kreis", icon: "trip_origin" },
-        { id: "zoom", label: "Zoom", icon: "zoom_in" },
-        { id: "aus", label: "Aus", icon: "motion_photos_off" },
-        { id: "zufall", label: "Zufall", icon: "casino" }
-    ]
+    // Stil-Reihe unten: "auto" und die Material-Varianten. Sie gilt fuer das
+    // markierte Bild, nicht fuer alle – die CLI merkt sich die Wahl je Bild.
+    readonly property string targetPath: walls.item?.currentPath ?? ""
+    readonly property var styles: [{ name: "auto", icon: "auto_awesome" }].concat(Themes.variants)
 
-    // Uebergang waehlen und gleich einmal vorfuehren
-    function pickTransition(id: string): void {
-        Config.set("wallpaper", "transition", id);
-        Wallpapers.replay();
+    // Feste Wahl des markierten Bilds, sonst "auto"
+    readonly property string pinnedStyle: Wallpapers.variantFor(panel.targetPath) || "auto"
+
+    // Was "auto" fuer das markierte Bild ergibt: aus der Vorschau, beim
+    // gerade gesetzten Bild ohne Vorschau aus scheme.json
+    readonly property string resolvedStyle: Wallpapers.previewPath === panel.targetPath && Wallpapers.previewVariant !== ""
+        ? Wallpapers.previewVariant
+        : panel.targetPath === Wallpapers.actualCurrent ? Themes.currentVariant : ""
+
+    function pickStyle(name: string): void {
+        Wallpapers.setVariant(panel.targetPath, name);
     }
 
-    function cycleTransition(delta: int): void {
-        const ids = panel.transitions.map(t => t.id);
-        const at = Math.max(0, ids.indexOf(Config.wallpaper.transition));
-        panel.pickTransition(ids[(at + delta + ids.length) % ids.length]);
+    function cycleStyle(delta: int): void {
+        const names = panel.styles.map(v => v.name);
+        const at = Math.max(0, names.indexOf(panel.pinnedStyle));
+        panel.pickStyle(names[(at + delta + names.length) % names.length]);
     }
 
     anchors {
@@ -129,16 +131,16 @@ Item {
             Keys.onEnterPressed: walls.item?.apply()
             // Die Pfeile blaettern hier im Karussell statt den Textcursor zu
             // bewegen – im Suchfeld steht ohnehin nur ein Filterwort.
-            // Mit Strg waehlen sie den Uebergang.
+            // Mit Strg waehlen sie den Stil des markierten Bilds.
             Keys.onLeftPressed: event => {
                 if (event.modifiers & Qt.ControlModifier)
-                    panel.cycleTransition(-1);
+                    panel.cycleStyle(-1);
                 else
                     walls.item?.moveBy(-1);
             }
             Keys.onRightPressed: event => {
                 if (event.modifiers & Qt.ControlModifier)
-                    panel.cycleTransition(1);
+                    panel.cycleStyle(1);
                 else
                     walls.item?.moveBy(1);
             }
@@ -272,12 +274,15 @@ Item {
         color: Colors.alpha(Colors.outline, 0.35)
     }
 
-    // ---- Uebergang ----
-    // Wie das naechste Wallpaper erscheint. Ein Klick waehlt und fuehrt den
-    // Uebergang gleich auf dem aktuellen Bild vor; Strg+Pfeile im Suchfeld
-    // schalten durch. Dieselbe Einstellung steht auch im Menue.
+    // ---- Stil ----
+    // Wie aus dem markierten Bild die Palette wird. Ein Klick legt den Stil
+    // fuer dieses Bild fest (beim aktuellen faerbt es gleich um, sonst zeigt
+    // die Vorschau ihn); "auto" rechnet ihn aus der Farbigkeit aus, der
+    // ausgerechnete Stil ist dann duenn umrandet. Strg+Pfeile im Suchfeld
+    // schalten durch. Wirkt nur beim dynamischen Schema – sonst bleibt die
+    // Reihe sichtbar, aber zurueckgenommen (wie in der Theme-Auswahl).
     Item {
-        id: transitionRow
+        id: styleRow
 
         anchors {
             top: separator2.bottom
@@ -286,57 +291,81 @@ Item {
         }
         height: 46
 
+        opacity: Themes.currentName === "dynamic" ? 1 : 0.45
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160 }
+        }
+
         Text {
-            id: transitionIcon
+            id: styleIcon
 
             anchors {
                 left: parent.left
                 leftMargin: 16
                 verticalCenter: parent.verticalCenter
             }
-            text: "transition_slide"
+            text: "palette"
             font.family: "Material Symbols Outlined"
             font.pixelSize: 19
             color: Colors.primary
         }
 
-        Text {
-            id: transitionLabel
-
-            anchors {
-                left: transitionIcon.right
-                leftMargin: 12
-                verticalCenter: parent.verticalCenter
-            }
-            text: "Übergang"
-            color: Colors.fgSurfaceVariant
-            font.family: Config.font
-            font.pixelSize: 13
-        }
-
+        // Die Chips behalten ihre natuerliche Breite, der Abstand dazwischen
+        // verteilt den Rest (wie in ThemePanel.qml)
         Row {
+            id: chips
+
             anchors {
-                left: transitionLabel.right
-                leftMargin: 18
+                left: styleIcon.right
+                leftMargin: 14
+                right: parent.right
+                rightMargin: 14
                 verticalCenter: parent.verticalCenter
             }
-            spacing: 6
+
+            property var widths: ({})
+            readonly property real naturalWidth: {
+                let sum = 0;
+                for (const key in chips.widths)
+                    sum += chips.widths[key];
+                return sum;
+            }
+
+            function report(index: int, width: real): void {
+                const next = Object.assign({}, chips.widths);
+                next[index] = width;
+                chips.widths = next;
+            }
+
+            spacing: Math.max(4, (chips.width - chips.naturalWidth) / (panel.styles.length - 1))
 
             Repeater {
-                model: panel.transitions
+                model: panel.styles
 
                 delegate: Rectangle {
                     id: chip
 
+                    required property int index
                     required property var modelData
-                    readonly property bool selected: Config.wallpaper.transition === chip.modelData.id
 
-                    width: chipContent.implicitWidth + 24
-                    height: 30
+                    readonly property bool selected: panel.pinnedStyle === chip.modelData.name
+                    // Bei "auto": der Stil, den das Bild tatsaechlich bekommt
+                    readonly property bool resolved: panel.pinnedStyle === "auto"
+                        && panel.resolvedStyle === chip.modelData.name
+
+                    implicitWidth: chipContent.implicitWidth + 20
+                    implicitHeight: 28
+
+                    onImplicitWidthChanged: chips.report(chip.index, chip.implicitWidth)
+                    Component.onCompleted: chips.report(chip.index, chip.implicitWidth)
+
                     radius: height / 2
                     color: chip.selected ? Colors.primary
                         : chipArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08)
                         : Colors.alpha(Colors.fgSurface, 0.04)
+                    border.width: chip.resolved ? 1 : 0
+                    border.color: Colors.alpha(Colors.primary, 0.6)
 
                     Behavior on color {
                         ColorAnimation { duration: 120 }
@@ -346,22 +375,26 @@ Item {
                         id: chipContent
 
                         anchors.centerIn: parent
-                        spacing: 6
+                        spacing: 5
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: chip.modelData.icon
                             font.family: "Material Symbols Outlined"
-                            font.pixelSize: 16
-                            color: chip.selected ? Colors.fgPrimary : Colors.fgSurfaceVariant
+                            font.pixelSize: 14
+                            color: chip.selected ? Colors.fgPrimary
+                                : chip.resolved ? Colors.primary
+                                : Colors.fgSurfaceVariant
                         }
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: chip.modelData.label
+                            text: chip.modelData.name
                             font.family: Config.font
-                            font.pixelSize: 12
-                            color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
+                            font.pixelSize: 11
+                            color: chip.selected ? Colors.fgPrimary
+                                : chip.resolved ? Colors.primary
+                                : Colors.fgSurface
                         }
                     }
 
@@ -371,24 +404,10 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: panel.pickTransition(chip.modelData.id)
+                        onClicked: panel.pickStyle(chip.modelData.name)
                     }
                 }
             }
-        }
-
-        // Dauer zum Nachsehen; eingestellt wird sie im Menue
-        Text {
-            anchors {
-                right: parent.right
-                rightMargin: 18
-                verticalCenter: parent.verticalCenter
-            }
-            visible: Config.wallpaper.transition !== "aus"
-            text: `${Config.wallpaper.duration} ms`
-            color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
-            font.family: Config.font
-            font.pixelSize: 11
         }
     }
 }
