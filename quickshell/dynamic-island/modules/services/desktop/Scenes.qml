@@ -376,8 +376,23 @@ Singleton {
                 if (parsed && typeof parsed.scenes === "object")
                     root.data = parsed;
             } catch (e) {
-                console.warn("Scenes: scenes.json nicht lesbar:", e);
+                // Oft nur halb geschrieben (Editor, Skript) – gleich nochmal
+                if (retry.tries++ < 5)
+                    retry.restart();
+                else
+                    console.warn("Scenes: scenes.json nicht lesbar:", e);
+                return;
             }
+            retry.tries = 0;
         }
+    }
+
+    Timer {
+        id: retry
+
+        property int tries: 0
+
+        interval: 250
+        onTriggered: file.reload()
     }
 }
