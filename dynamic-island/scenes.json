@@ -550,28 +550,12 @@
         "id": "wlyr01g1y6",
         "type": "lyrics",
         "x": 0.5,
-        "y": 0.8,
+        "y": 0.88,
         "size": 0.9,
         "monitor": "*",
         "opts": {
           "lines": 3,
           "align": "mitte",
-          "color": "#ffffff",
-          "accent": "#fcee0a"
-        }
-      },
-      {
-        "id": "wbot01",
-        "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
-        "monitor": "*",
-        "opts": {
-          "style": "unten",
-          "bars": 64,
-          "order": "mitte",
-          "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#fcee0a"
         }
