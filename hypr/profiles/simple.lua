@@ -245,6 +245,19 @@ hl.window_rule({
 	float = true,
 })
 
+-- Einstellungs-Fenster der Shell: schwebt mittig, Rand/Schatten/Rundung
+-- zeichnet die Karte selbst (das Fenster ist rundum 28 px transparent)
+hl.window_rule({
+	match = { class = "org.quickshell", title = "dynamic-island-settings" },
+	float = true,
+	center = true,
+	opaque = true,
+	no_blur = true,
+	no_shadow = true,
+	border_size = 0,
+	rounding = 0,
+})
+
 -- Spiele: kein Tearing-Limit, kein Idle
 hl.window_rule({
 	match = { class = "(steam_app_(default|[0-9]+))|gamescope" },
@@ -399,12 +412,7 @@ bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), desc("Standby", { locke
 
 -- Fenster
 group = "Fenster"
--- SUPER + C: ist das Einstellungs-Fenster der Shell offen, schliesst es das
--- (die Shell meldet "true"), sonst wie gewohnt das aktive Fenster.
-bind("SUPER + C", hl.dsp.exec_cmd(
-	"sh -c '[ \"$(qs -c dynamic-island ipc call settings dismiss 2>/dev/null)\" = true ] "
-	.. "|| hyprctl dispatch \"hl.dsp.window.close()\"'"
-), desc("Schließen"))
+bind("SUPER + C", hl.dsp.window.close(), desc("Schließen"))
 bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }), desc("Vollbild"))
 bind("SUPER + ALT + F", hl.dsp.window.fullscreen({ mode = "maximized" }), desc("Maximieren"))
 bind("SUPER + ALT + space", hl.dsp.window.float(), desc("Schwebend an/aus"))

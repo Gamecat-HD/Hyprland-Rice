@@ -1,44 +1,47 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
-import Quickshell.Wayland
 
-// Einstellungs-Fenster, mittig auf dem Bildschirm. Der Inhalt – Gruppen-
-// leiste, Zeilen, Plugin-Verwaltung – ist SettingsCard.qml; hier steht nur
-// die Layer-Oberflaeche, die sie traegt.
+// Einstellungs-Fenster. Der Inhalt – Gruppenleiste, Zeilen, Plugin-
+// Verwaltung – ist SettingsCard.qml; hier steht nur das Fenster, das sie
+// traegt.
 //
-// Bewusst keine Anker: eine Layer-Oberflaeche ohne Anker setzt der Compositor
-// mittig – genau das, was hier gebraucht wird. Das Fenster ist etwas groesser
-// als die Karte, damit deren Schatten Platz hat.
+// Ein normales schwebendes Fenster (xdg-toplevel), keine Layer-Oberflaeche:
+// es bekommt Fokus wie jede App, laesst sich mit SUPER + Ziehen verschieben,
+// und SUPER + C schliesst es nur, wenn es selbst das aktive Fenster ist.
+// Hyprland setzt es schwebend und mittig und laesst Rand, Schatten und
+// Transparenz weg (Fenster-Regel "dynamic-island-settings" in
+// profiles/simple.lua). Das Fenster ist etwas groesser als die Karte, damit
+// deren Schatten Platz hat; Klicks nimmt nur die Karte an (mask).
 //
-// Gebaut wird es erst beim Oeffnen und nur auf dem Ziel-Monitor (LazyLoader) –
-// frueher lebte es je Monitor versteckt mit, samt Gruppenleiste und Zeilen.
+// Gebaut wird es erst beim Oeffnen (LazyLoader) und beim Schliessen wieder
+// verworfen.
 LazyLoader {
-    active: SettingsState.open && SettingsState.screen !== null
+    active: SettingsState.open
 
-    PanelWindow {
+    FloatingWindow {
         id: win
 
-        readonly property ShellScreen modelData: SettingsState.screen
-
         readonly property real inset: 28
-
-        screen: win.modelData
-        visible: SettingsState.open && SettingsState.screen === win.modelData
-
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "dynamic-island-settings"
-        // Fuers Suchfeld. Exclusive, weil das Fenster ueber einen Klick in der
-        // Leiste aufgeht – es gibt keinen Klick, der ihm den Fokus gaebe.
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-        exclusionMode: ExclusionMode.Ignore
-        color: "transparent"
-
         // Etwas hoeher als frueher (580): die Gruppenleiste traegt jetzt auch
         // die Plugins
-        implicitWidth: 880 + inset * 2
-        implicitHeight: 640 + inset * 2
+        readonly property size fixedSize: Qt.size(880 + inset * 2, 640 + inset * 2)
 
+        title: "dynamic-island-settings"
+        color: "transparent"
+
+        implicitWidth: win.fixedSize.width
+        implicitHeight: win.fixedSize.height
+        // Feste Groesse – Hyprland soll es nicht in die Kacheln ziehen
+        minimumSize: win.fixedSize
+        maximumSize: win.fixedSize
+
+        mask: Region {
+            item: card
+        }
+
+        // Vom Compositor geschlossen (SUPER + C, Fenster-Menue …)
+        onClosed: SettingsState.close()
         onVisibleChanged: {
             if (visible)
                 card.reset();
