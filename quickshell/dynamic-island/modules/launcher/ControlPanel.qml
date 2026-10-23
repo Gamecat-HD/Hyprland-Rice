@@ -17,8 +17,12 @@ ViewPanel {
 
     // Fuer Bar.qml: Tastaturfokus beim WLAN-Passwort/BT-PIN, Pairing-Anfragen
     readonly property alias settings: embeddedSettings
+    // Der Kachel-Bearbeitungsmodus zaehlt mit: er braucht die Tastatur fuer
+    // Esc (beendet den Modus statt die Notch zu schliessen)
     readonly property bool typing: embeddedSettings.typingPassword || embeddedSettings.typingPin
-    readonly property bool hasTray: SystemTray.items.values.length > 0
+                                   || embeddedSettings.editing
+    // Beim Bearbeiten der Kacheln weicht das Tray – das gibt dem Editor Platz
+    readonly property bool hasTray: SystemTray.items.values.length > 0 && !embeddedSettings.editing
     // Tray-Kacheln plus Abstand zu den Schnelleinstellungen
     readonly property real trayHeight: root.hasTray ? trayGrid.implicitHeight + 10 : 0
 
@@ -41,6 +45,7 @@ ViewPanel {
         embeddedSettings.wifiOpen = false;
         embeddedSettings.bluetoothOpen = false;
         embeddedSettings.audioOpen = false;
+        embeddedSettings.finishEditing();
     }
 
     // Tray als Kachel-Reihe (Name + Symbol, Rechtsklick = Menue)

@@ -203,6 +203,20 @@ Singleton {
         root.save(cur);
     }
 
+    // Ganze Reihe verschieben (Layout-Modus der Steuerung): Reihe `from`
+    // landet an Position `to` (Index im Ergebnis)
+    function moveRow(from: int, to: int): void {
+        const cur = root.copy();
+        if (from < 0 || from >= cur.length)
+            return;
+        const target = Math.max(0, Math.min(to, cur.length - 1));
+        if (target === from)
+            return;
+        const row = cur.splice(from, 1)[0];
+        cur.splice(target, 0, row);
+        root.save(cur);
+    }
+
     // Breite aendern – hoechstens so weit, wie die Reihe noch Platz hat
     function resize(id: string, span: int): void {
         const cur = root.copy();

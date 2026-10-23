@@ -45,6 +45,13 @@ Surface {
     property bool audioOpen: false
     readonly property bool typingPassword: wifiOpen && (wifi?.passwordSsid ?? "") !== ""
     readonly property bool typingPin: bluetoothOpen && (bluetooth?.pairingInputOpen ?? false)
+    // Bearbeitungsmodus der Kacheln (nur eingebettet, siehe SettingsTiles):
+    // ControlPanel meldet ihn als `typing`, damit Esc in der Notch ankommt
+    readonly property bool editing: tiles.edit.editing
+
+    function finishEditing(): void {
+        tiles.edit.finish();
+    }
 
     // Unterseiten: in der Pille erst beim Oeffnen gebaut (und nach dem
     // Ausblenden wieder weg). Eingebettet (Steuerungs-Untermenue) leben sie
@@ -367,20 +374,30 @@ Surface {
             right: parent.right
             margins: 10
         }
+        // Nur die eingebettete Steuerung laesst sich umbauen
+        editable: settings.embedded
         opacity: settings.expanded && !settings.wifiOpen && !settings.bluetoothOpen && !settings.audioOpen ? 1 : 0
         visible: opacity > 0
 
+        // Waehrend des Bearbeitens fuehren die Pfeile nirgends hin (das
+        // Loslassen nach dem langen Druck auf einen Pfeil kaeme sonst hier an)
         onOpenWifi: {
+            if (settings.editing)
+                return;
             settings.bluetoothOpen = false;
             settings.audioOpen = false;
             settings.wifiOpen = true;
         }
         onOpenBluetooth: {
+            if (settings.editing)
+                return;
             settings.wifiOpen = false;
             settings.audioOpen = false;
             settings.bluetoothOpen = true;
         }
         onOpenAudio: {
+            if (settings.editing)
+                return;
             settings.wifiOpen = false;
             settings.bluetoothOpen = false;
             settings.audioOpen = true;
