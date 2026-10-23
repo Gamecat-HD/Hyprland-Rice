@@ -285,85 +285,6 @@ Surface {
     // wenn die Auswahl oder die Bibliothek einmal offen war)
     Component.onCompleted: Wallpapers.ensureLoaded()
 
-    // Eine Karte der Liste: Titel (Gruppe bzw. bei "Alle"/Suche auch der
-    // Bereich) und ihre Zeilen
-    component GroupCard: Rectangle {
-        id: gcard
-
-        // { section, group, rows, wide } aus card.groupCards
-        required property var group
-
-        readonly property var rows: gcard.group?.rows ?? []
-        readonly property string sectionLabel: card.searching || card.section === ""
-                                               ? card.sectionTitle(gcard.group?.section ?? "") : ""
-        // Eine einzelne Zeile, die schon so heisst wie ihre Gruppe, braucht
-        // keinen Titel darueber
-        readonly property string groupLabel: {
-            const g = gcard.group?.group ?? "";
-            if (g === "" || (gcard.rows.length === 1 && card.entries[gcard.rows[0]]?.title === I18n.tr(g)))
-                return "";
-            return I18n.tr(g);
-        }
-        readonly property bool titled: gcard.sectionLabel !== "" || gcard.groupLabel !== ""
-
-        height: cardColumn.implicitHeight + 8
-        radius: 16
-        color: Colors.alpha(Colors.fgSurface, 0.035)
-        border.width: 1
-        border.color: Colors.alpha(Colors.outline, 0.14)
-
-        Column {
-            id: cardColumn
-
-            anchors {
-                left: parent.left
-                right: parent.right
-                top: parent.top
-                margins: 4
-            }
-
-            Row {
-                visible: gcard.titled
-                height: gcard.titled ? 30 : 0
-                leftPadding: 14
-                spacing: 6
-
-                Text {
-                    anchors.bottom: parent.bottom
-                    bottomPadding: 4
-                    visible: gcard.sectionLabel !== ""
-                    text: gcard.sectionLabel
-                    color: Colors.fgSurface
-                    font.family: Config.font
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                }
-
-                Text {
-                    anchors.bottom: parent.bottom
-                    bottomPadding: 4
-                    visible: gcard.groupLabel !== ""
-                    text: (gcard.sectionLabel !== "" ? "· " : "") + gcard.groupLabel
-                    color: Colors.fgSurfaceVariant
-                    font.family: Config.font
-                    font.pixelSize: 11
-                    font.weight: gcard.sectionLabel !== "" ? Font.Normal : Font.DemiBold
-                }
-            }
-
-            Repeater {
-                model: gcard.rows
-
-                SettingsRow {
-                    required property int modelData
-
-                    width: cardColumn.width
-                    entry: card.entries[modelData] ?? null
-                }
-            }
-        }
-    }
-
     // ================= Linke Leiste =================
     Item {
         id: sidebar
@@ -1104,6 +1025,9 @@ Surface {
                                         // Waehrend des Filterns sind Indizes
                                         // und Liste kurz auseinander
                                         group: card.groupCards[modelData] ?? null
+                                        entries: card.entries
+                                        sectionLabel: card.searching || card.section === ""
+                                                      ? card.sectionTitle(group?.section ?? "") : ""
                                     }
                                 }
                             }
