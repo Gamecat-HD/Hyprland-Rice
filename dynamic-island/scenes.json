@@ -343,8 +343,8 @@
       {
         "id": "wclo21",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.18,
+        "x": 0.78,
+        "y": 0.17,
         "size": 1.1,
         "monitor": "*",
         "opts": {
@@ -390,8 +390,8 @@
       {
         "id": "wlyr24",
         "type": "lyrics",
-        "x": 0.78,
-        "y": 0.8,
+        "x": 0.84,
+        "y": 0.6,
         "size": 0.9,
         "monitor": "*",
         "opts": {
@@ -579,148 +579,132 @@
     ],
     "Cyberpunk-Edgerunners/edgerunners-p933r3.jpg": [
       {
-        "id": "wclo0033r3",
+        "id": "wclo008p",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.17,
-        "size": 1.2,
+        "x": 0.62,
+        "y": 0.14,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
           "date": true,
           "color": "#ffffff",
-          "accent": "#fcee0a"
+          "accent": "#3dffb0"
         }
       },
       {
-        "id": "wlyr0133r3",
+        "id": "wlyr009p",
         "type": "lyrics",
-        "x": 0.5,
-        "y": 0.8,
-        "size": 0.9,
+        "x": 0.55,
+        "y": 0.92,
+        "size": 0.85,
         "monitor": "*",
         "opts": {
-          "lines": 3,
+          "lines": 1,
           "align": "mitte",
           "color": "#ffffff",
-          "accent": "#fcee0a"
-        }
-      },
-      {
-        "id": "wbot03",
-        "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
-        "monitor": "*",
-        "opts": {
-          "style": "unten",
-          "bars": 64,
-          "order": "mitte",
-          "idle": "ausblenden",
-          "color": "#ffffff",
-          "accent": "#fcee0a"
+          "accent": "#ff5c8a"
         }
       }
     ],
     "Cyberpunk-Edgerunners/edgerunners-qzm9y5.jpg": [
       {
-        "id": "wclo00m9y5",
+        "id": "wclo015p",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.17,
-        "size": 1.2,
+        "x": 0.3,
+        "y": 0.6,
+        "size": 1.1,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
           "date": true,
           "color": "#ffffff",
-          "accent": "#fcee0a"
+          "accent": "#39ff14"
         }
       },
       {
-        "id": "wlyr01m9y5",
+        "id": "wvis016p",
+        "type": "visualizer",
+        "x": 0.3,
+        "y": 0.71,
+        "size": 0.7,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#39ff14"
+        }
+      },
+      {
+        "id": "wlyr017p",
         "type": "lyrics",
-        "x": 0.5,
-        "y": 0.8,
-        "size": 0.9,
+        "x": 0.3,
+        "y": 0.79,
+        "size": 0.75,
         "monitor": "*",
         "opts": {
           "lines": 3,
           "align": "mitte",
           "color": "#ffffff",
-          "accent": "#fcee0a"
-        }
-      },
-      {
-        "id": "wbot04",
-        "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
-        "monitor": "*",
-        "opts": {
-          "style": "unten",
-          "bars": 64,
-          "order": "mitte",
-          "idle": "ausblenden",
-          "color": "#ffffff",
-          "accent": "#fcee0a"
+          "accent": "#ff2bd6"
         }
       }
     ],
     "Cyberpunk-Edgerunners/edgerunners-rr33kj.jpg": [
       {
-        "id": "wclo0033kj",
+        "id": "wclo018p",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.17,
-        "size": 1.2,
+        "x": 0.68,
+        "y": 0.16,
+        "size": 1.3,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
           "date": true,
           "color": "#ffffff",
-          "accent": "#fcee0a"
+          "accent": "#ff3d8b"
         }
       },
       {
-        "id": "wlyr0133kj",
-        "type": "lyrics",
-        "x": 0.5,
-        "y": 0.8,
-        "size": 0.9,
-        "monitor": "*",
-        "opts": {
-          "lines": 3,
-          "align": "mitte",
-          "color": "#ffffff",
-          "accent": "#fcee0a"
-        }
-      },
-      {
-        "id": "wbot05",
+        "id": "wvis019p",
         "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
+        "x": 0.68,
+        "y": 0.27,
+        "size": 0.8,
         "monitor": "*",
         "opts": {
-          "style": "unten",
-          "bars": 64,
+          "style": "kapseln",
+          "bars": 24,
           "order": "mitte",
           "idle": "ausblenden",
           "color": "#ffffff",
-          "accent": "#fcee0a"
+          "accent": "#ff3d8b"
+        }
+      },
+      {
+        "id": "wlyr020p",
+        "type": "lyrics",
+        "x": 0.68,
+        "y": 0.33,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#ff3d8b"
         }
       }
     ],
     "Cyberpunk-Edgerunners/edgerunners-rrxz57.jpg": [
       {
-        "id": "wclo00xz57",
+        "id": "wclo021p",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.17,
+        "x": 0.14,
+        "y": 0.22,
         "size": 1.2,
         "monitor": "*",
         "opts": {
@@ -731,31 +715,15 @@
         }
       },
       {
-        "id": "wlyr01xz57",
+        "id": "wlyr022p",
         "type": "lyrics",
-        "x": 0.5,
-        "y": 0.8,
-        "size": 0.9,
+        "x": 0.82,
+        "y": 0.86,
+        "size": 0.85,
         "monitor": "*",
         "opts": {
-          "lines": 3,
-          "align": "mitte",
-          "color": "#ffffff",
-          "accent": "#fcee0a"
-        }
-      },
-      {
-        "id": "wbot06",
-        "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
-        "monitor": "*",
-        "opts": {
-          "style": "unten",
-          "bars": 64,
-          "order": "mitte",
-          "idle": "ausblenden",
+          "lines": 1,
+          "align": "rechts",
           "color": "#ffffff",
           "accent": "#fcee0a"
         }
@@ -763,9 +731,557 @@
     ],
     "Cyberpunk-Edgerunners/edgerunners2-jel29y.jpg": [
       {
-        "id": "wclo00l29y",
+        "id": "wclo027p",
         "type": "clock",
-        "x": 0.13,
+        "x": 0.86,
+        "y": 0.35,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#e0455a"
+        }
+      },
+      {
+        "id": "wlyr028p",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.5,
+        "size": 0.75,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#e0455a"
+        }
+      }
+    ],
+    "Miku/wallhaven-2edkyg_2560x1440.png": [
+      {
+        "id": "wclo071p",
+        "type": "clock",
+        "x": 0.8,
+        "y": 0.38,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ffd23f"
+        }
+      },
+      {
+        "id": "wvis072p",
+        "type": "visualizer",
+        "x": 0.8,
+        "y": 0.52,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#31d0ff"
+        }
+      },
+      {
+        "id": "wlyr073p",
+        "type": "lyrics",
+        "x": 0.8,
+        "y": 0.62,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#ffd23f"
+        }
+      }
+    ],
+    "Miku/wallhaven-3q6kmd_2560x1440.png": [
+      {
+        "id": "wclo074p",
+        "type": "clock",
+        "x": 0.08,
+        "y": 0.22,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff2a2a"
+        }
+      },
+      {
+        "id": "wlyr075p",
+        "type": "lyrics",
+        "x": 0.89,
+        "y": 0.85,
+        "size": 0.6,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#ff2a2a"
+        }
+      }
+    ],
+    "Miku/wallhaven-5ykdq8_2560x1440.png": [
+      {
+        "id": "wclo079p",
+        "type": "clock",
+        "x": 0.07,
+        "y": 0.2,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#6ab8e8"
+        }
+      },
+      {
+        "id": "wlyr080p",
+        "type": "lyrics",
+        "x": 0.88,
+        "y": 0.93,
+        "size": 0.7,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#6ab8e8"
+        }
+      }
+    ],
+    "Miku/wallhaven-8o8l8k_2560x1440.png": [
+      {
+        "id": "wclo081p",
+        "type": "clock",
+        "x": 0.15,
+        "y": 0.18,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff7a1a"
+        }
+      },
+      {
+        "id": "wsys082p",
+        "type": "system",
+        "x": 0.85,
+        "y": 0.2,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "ringe",
+          "gpu": true,
+          "temps": true,
+          "disk": false,
+          "color": "#ffffff",
+          "accent": "#ff7a1a"
+        }
+      },
+      {
+        "id": "wvis083p",
+        "type": "visualizer",
+        "x": 0.18,
+        "y": 0.82,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#3dff6e"
+        }
+      },
+      {
+        "id": "wlyr084p",
+        "type": "lyrics",
+        "x": 0.82,
+        "y": 0.82,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#ff7a1a"
+        }
+      }
+    ],
+    "Miku/wallhaven-y8k1k7_2560x1440.png": [
+      {
+        "id": "wclo092p",
+        "type": "clock",
+        "x": 0.14,
+        "y": 0.3,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#bfe9ff"
+        }
+      },
+      {
+        "id": "wvis093p",
+        "type": "visualizer",
+        "x": 0.15,
+        "y": 0.65,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#bfe9ff"
+        }
+      },
+      {
+        "id": "wlyr094p",
+        "type": "lyrics",
+        "x": 0.15,
+        "y": 0.75,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#bfe9ff"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-2yggp6.jpg": [
+      {
+        "id": "wclo000p",
+        "type": "clock",
+        "x": 0.12,
+        "y": 0.15,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff2bd6"
+        }
+      },
+      {
+        "id": "wvis001p",
+        "type": "visualizer",
+        "x": 0.18,
+        "y": 0.74,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#29e6ff"
+        }
+      },
+      {
+        "id": "wlyr002p",
+        "type": "lyrics",
+        "x": 0.18,
+        "y": 0.84,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#ff2bd6"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-2yr2vm.jpg": [
+      {
+        "id": "wclo003p",
+        "type": "clock",
+        "x": 0.15,
+        "y": 0.17,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ffb347"
+        }
+      },
+      {
+        "id": "wlyr004p",
+        "type": "lyrics",
+        "x": 0.19,
+        "y": 0.9,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#ffb347"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-p933q3.jpg": [
+      {
+        "id": "wclo005p",
+        "type": "clock",
+        "x": 0.14,
+        "y": 0.3,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      },
+      {
+        "id": "wvis006p",
+        "type": "visualizer",
+        "x": 0.84,
+        "y": 0.22,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      },
+      {
+        "id": "wlyr007p",
+        "type": "lyrics",
+        "x": 0.84,
+        "y": 0.33,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-p973dj.jpg": [
+      {
+        "id": "wclo010p",
+        "type": "clock",
+        "x": 0.62,
+        "y": 0.18,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#39ff88"
+        }
+      },
+      {
+        "id": "wlyr011p",
+        "type": "lyrics",
+        "x": 0.62,
+        "y": 0.29,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#39ff88"
+        }
+      },
+      {
+        "id": "wvis012p",
+        "type": "visualizer",
+        "x": 0.5,
+        "y": 0.95,
+        "size": 1,
+        "monitor": "*",
+        "opts": {
+          "style": "unten",
+          "bars": 64,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#39ff88"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners-pkr6mp.jpg": [
+      {
+        "id": "wclo013p",
+        "type": "clock",
+        "x": 0.17,
+        "y": 0.72,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#7fe9ff"
+        }
+      },
+      {
+        "id": "wlyr014p",
+        "type": "lyrics",
+        "x": 0.8,
+        "y": 0.84,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#7fe9ff"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners2-3q7mo3.jpg": [
+      {
+        "id": "wclo023p",
+        "type": "clock",
+        "x": 0.87,
+        "y": 0.18,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#f0d264"
+        }
+      },
+      {
+        "id": "wlyr024p",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.85,
+        "size": 0.75,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#f0d264"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners2-5ypel5.jpg": [
+      {
+        "id": "wclo025p",
+        "type": "clock",
+        "x": 0.34,
+        "y": 0.14,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#f0d264"
+        }
+      },
+      {
+        "id": "wlyr026p",
+        "type": "lyrics",
+        "x": 0.85,
+        "y": 0.9,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#f0d264"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners2-lyjgo2.jpg": [
+      {
+        "id": "wclo029p",
+        "type": "clock",
+        "x": 0.14,
+        "y": 0.15,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      }
+    ],
+    "Cyberpunk-Edgerunners/edgerunners2-vp28xp.jpg": [
+      {
+        "id": "wclo030p",
+        "type": "clock",
+        "x": 0.36,
+        "y": 0.14,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#e0455a"
+        }
+      },
+      {
+        "id": "wlyr031p",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.52,
+        "size": 0.75,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#e0455a"
+        }
+      }
+    ],
+    "Graphite/ayanami.png": [
+      {
+        "id": "wclo032p",
+        "type": "clock",
+        "x": 0.15,
         "y": 0.17,
         "size": 1.2,
         "monitor": "*",
@@ -773,25 +1289,1003 @@
           "style": "sperrbildschirm",
           "date": true,
           "color": "#ffffff",
-          "accent": "#fcee0a"
+          "accent": "#ff5a1f"
         }
       },
       {
-        "id": "wlyr01l29y",
+        "id": "wsys033p",
+        "type": "system",
+        "x": 0.85,
+        "y": 0.17,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "zeilen",
+          "gpu": true,
+          "temps": true,
+          "disk": false,
+          "color": "#ffffff",
+          "accent": "#ff5a1f"
+        }
+      },
+      {
+        "id": "wlyr034p",
+        "type": "lyrics",
+        "x": 0.18,
+        "y": 0.84,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#ff5a1f"
+        }
+      },
+      {
+        "id": "wvis035p",
+        "type": "visualizer",
+        "x": 0.84,
+        "y": 0.84,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#ff5a1f"
+        }
+      }
+    ],
+    "Graphite/gachikuta.png": [
+      {
+        "id": "wclo036p",
+        "type": "clock",
+        "x": 0.13,
+        "y": 0.8,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#e01b2f"
+        }
+      },
+      {
+        "id": "wlyr037p",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.82,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#e01b2f"
+        }
+      }
+    ],
+    "Graphite/gojo.png": [
+      {
+        "id": "wclo038p",
+        "type": "clock",
+        "x": 0.8,
+        "y": 0.14,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#8fd3ff"
+        }
+      },
+      {
+        "id": "wvis039p",
+        "type": "visualizer",
+        "x": 0.25,
+        "y": 0.76,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#8fd3ff"
+        }
+      },
+      {
+        "id": "wlyr040p",
+        "type": "lyrics",
+        "x": 0.25,
+        "y": 0.86,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#8fd3ff"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-3720334.jpg": [
+      {
+        "id": "wclo041p",
+        "type": "clock",
+        "x": 0.14,
+        "y": 0.16,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#d8b56a"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-3726430.jpg": [
+      {
+        "id": "wclo042p",
+        "type": "clock",
+        "x": 0.3,
+        "y": 0.18,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#e05a7a"
+        }
+      },
+      {
+        "id": "wlyr043p",
+        "type": "lyrics",
+        "x": 0.3,
+        "y": 0.3,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#e05a7a"
+        }
+      },
+      {
+        "id": "wwea044p",
+        "type": "weather",
+        "x": 0.7,
+        "y": 0.18,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "aktuell",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#e05a7a"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-3934498.jpg": [
+      {
+        "id": "wclo045p",
+        "type": "clock",
+        "x": 0.18,
+        "y": 0.84,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#d23a3a"
+        }
+      },
+      {
+        "id": "wlyr046p",
+        "type": "lyrics",
+        "x": 0.82,
+        "y": 0.86,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#d23a3a"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-4025935.jpg": [
+      {
+        "id": "wclo047p",
+        "type": "clock",
+        "x": 0.14,
+        "y": 0.86,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#e7c27d"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-4219909.jpg": [
+      {
+        "id": "wclo048p",
+        "type": "clock",
+        "x": 0.86,
+        "y": 0.42,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#1a1a1a",
+          "accent": "#c98a00"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-4235565.jpg": [
+      {
+        "id": "wclo049p",
+        "type": "clock",
+        "x": 0.5,
+        "y": 0.82,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#c9c9c9"
+        }
+      },
+      {
+        "id": "wlyr050p",
         "type": "lyrics",
         "x": 0.5,
+        "y": 0.92,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#ffffff",
+          "accent": "#c9c9c9"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-4235672.jpg": [
+      {
+        "id": "wclo051p",
+        "type": "clock",
+        "x": 0.86,
+        "y": 0.14,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#6fe3c3"
+        }
+      },
+      {
+        "id": "wlyr052p",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.24,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#6fe3c3"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-4235688.jpg": [
+      {
+        "id": "wclo053p",
+        "type": "clock",
+        "x": 0.14,
+        "y": 0.16,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#f2c14e"
+        }
+      },
+      {
+        "id": "wlyr054p",
+        "type": "lyrics",
+        "x": 0.8,
+        "y": 0.9,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#f2c14e"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-4279005.jpg": [
+      {
+        "id": "wclo055p",
+        "type": "clock",
+        "x": 0.8,
+        "y": 0.17,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff9a3c"
+        }
+      },
+      {
+        "id": "wvis056p",
+        "type": "visualizer",
+        "x": 0.82,
+        "y": 0.75,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#ff9a3c"
+        }
+      },
+      {
+        "id": "wlyr057p",
+        "type": "lyrics",
+        "x": 0.82,
+        "y": 0.85,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#ff9a3c"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-5037984.jpg": [
+      {
+        "id": "wclo058p",
+        "type": "clock",
+        "x": 0.86,
+        "y": 0.86,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#f2c94c"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-5358540.jpg": [
+      {
+        "id": "wclo059p",
+        "type": "clock",
+        "x": 0.15,
+        "y": 0.25,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#e02424"
+        }
+      },
+      {
+        "id": "wwea060p",
+        "type": "weather",
+        "x": 0.87,
+        "y": 0.42,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "aktuell",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#e02424"
+        }
+      },
+      {
+        "id": "wvis061p",
+        "type": "visualizer",
+        "x": 0.84,
+        "y": 0.74,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#e02424"
+        }
+      },
+      {
+        "id": "wlyr062p",
+        "type": "lyrics",
+        "x": 0.84,
+        "y": 0.84,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#e02424"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-5797481.jpg": [
+      {
+        "id": "wclo063p",
+        "type": "clock",
+        "x": 0.18,
+        "y": 0.18,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#c0303a"
+        }
+      },
+      {
+        "id": "wlyr064p",
+        "type": "lyrics",
+        "x": 0.2,
+        "y": 0.88,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#c0303a"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-7046851.jpg": [
+      {
+        "id": "wclo065p",
+        "type": "clock",
+        "x": 0.6,
+        "y": 0.86,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#fff3e0",
+          "accent": "#ffcc66"
+        }
+      }
+    ],
+    "Lord-of-the-Mysteries/lotm-xelpvo.jpg": [
+      {
+        "id": "wclo066p",
+        "type": "clock",
+        "x": 0.15,
+        "y": 0.15,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#9fd0e0"
+        }
+      },
+      {
+        "id": "wlyr067p",
+        "type": "lyrics",
+        "x": 0.82,
+        "y": 0.14,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#9fd0e0"
+        }
+      }
+    ],
+    "Miku/UYYHlS6 - Imgur.jpg": [
+      {
+        "id": "wclo068p",
+        "type": "clock",
+        "x": 0.17,
+        "y": 0.15,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#7fd6ff"
+        }
+      },
+      {
+        "id": "wlyr069p",
+        "type": "lyrics",
+        "x": 0.2,
+        "y": 0.28,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#7fd6ff"
+        }
+      },
+      {
+        "id": "wwea070p",
+        "type": "weather",
+        "x": 0.86,
+        "y": 0.16,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "aktuell",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#7fd6ff"
+        }
+      }
+    ],
+    "Miku/wallhaven-3q6m6y_2560x1440.png": [
+      {
+        "id": "wclo076p",
+        "type": "clock",
+        "x": 0.72,
+        "y": 0.85,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#1a0a12",
+          "accent": "#ffffff"
+        }
+      },
+      {
+        "id": "wlyr077p",
+        "type": "lyrics",
+        "x": 0.72,
+        "y": 0.16,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#1a0a12",
+          "accent": "#ffffff"
+        }
+      }
+    ],
+    "Miku/wallhaven-3zjo7d_2560x1440.png": [
+      {
+        "id": "wclo078p",
+        "type": "clock",
+        "x": 0.64,
+        "y": 0.12,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#1b2a44",
+          "accent": "#1f8f9c"
+        }
+      }
+    ],
+    "Miku/wallhaven-9oog5d_1804x2500.png": [
+      {
+        "id": "wclo085p",
+        "type": "clock",
+        "x": 0.86,
+        "y": 0.18,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#1c1c1c",
+          "accent": "#e0242c"
+        }
+      },
+      {
+        "id": "wlyr086p",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.32,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#1c1c1c",
+          "accent": "#e0242c"
+        }
+      }
+    ],
+    "Miku/wallhaven-lydv3p.png": [
+      {
+        "id": "wclo087p",
+        "type": "clock",
+        "x": 0.36,
+        "y": 0.3,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#12324a",
+          "accent": "#0f7f9a"
+        }
+      },
+      {
+        "id": "wwea088p",
+        "type": "weather",
+        "x": 0.36,
+        "y": 0.4,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "style": "kompakt",
+          "details": true,
+          "place": true,
+          "color": "#12324a",
+          "accent": "#0f7f9a"
+        }
+      }
+    ],
+    "Miku/wallhaven-weyw9p_2560x1440.png": [
+      {
+        "id": "wclo089p",
+        "type": "clock",
+        "x": 0.8,
+        "y": 0.78,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#1a1a1a",
+          "accent": "#d0303a"
+        }
+      },
+      {
+        "id": "wcal090p",
+        "type": "calendar",
+        "x": 0.86,
+        "y": 0.2,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "monat",
+          "weeks": true,
+          "holidays": "NW",
+          "upcoming": true,
+          "color": "#1a1a1a",
+          "accent": "#d0303a"
+        }
+      },
+      {
+        "id": "wlyr091p",
+        "type": "lyrics",
+        "x": 0.5,
+        "y": 0.88,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "mitte",
+          "color": "#1a1a1a",
+          "accent": "#d0303a"
+        }
+      }
+    ],
+    "Oxocarbon/gojo.png": [
+      {
+        "id": "wclo095p",
+        "type": "clock",
+        "x": 0.15,
+        "y": 0.17,
+        "size": 1.2,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff2a6d"
+        }
+      },
+      {
+        "id": "wlyr096p",
+        "type": "lyrics",
+        "x": 0.17,
+        "y": 0.32,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#ff2a6d"
+        }
+      },
+      {
+        "id": "wvis097p",
+        "type": "visualizer",
+        "x": 0.84,
+        "y": 0.86,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#ff2a6d"
+        }
+      }
+    ],
+    "Oxocarbon/haa.jpg": [
+      {
+        "id": "wclo098p",
+        "type": "clock",
+        "x": 0.06,
+        "y": 0.75,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#c38bff"
+        }
+      }
+    ],
+    "Rimuru/wallhaven-j3w7o5_2560x1440.png": [
+      {
+        "id": "wclo099p",
+        "type": "clock",
+        "x": 0.86,
+        "y": 0.13,
+        "size": 1.1,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#1a2a44",
+          "accent": "#3aa8ff"
+        }
+      },
+      {
+        "id": "wlyr100p",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.24,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#1a2a44",
+          "accent": "#3aa8ff"
+        }
+      }
+    ],
+    "Rimuru/wallhaven-og2p6p_2560x1440.png": [
+      {
+        "id": "wclo101p",
+        "type": "clock",
+        "x": 0.12,
+        "y": 0.16,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      }
+    ],
+    "Rimuru/wallhaven-qzmvvq_2560x1440.png": [
+      {
+        "id": "wclo102p",
+        "type": "clock",
+        "x": 0.86,
+        "y": 0.14,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#1e2a3a",
+          "accent": "#ff6f91"
+        }
+      },
+      {
+        "id": "wlyr103p",
+        "type": "lyrics",
+        "x": 0.15,
+        "y": 0.85,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#1e2a3a",
+          "accent": "#ff6f91"
+        }
+      }
+    ],
+    "Rimuru/wallhaven-z8ozzj_2560x1440.png": [
+      {
+        "id": "wclo104p",
+        "type": "clock",
+        "x": 0.18,
+        "y": 0.2,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#4fd6e6"
+        }
+      },
+      {
+        "id": "wvis105p",
+        "type": "visualizer",
+        "x": 0.2,
+        "y": 0.7,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#4fd6e6"
+        }
+      },
+      {
+        "id": "wlyr106p",
+        "type": "lyrics",
+        "x": 0.2,
         "y": 0.8,
         "size": 0.9,
         "monitor": "*",
         "opts": {
           "lines": 3,
-          "align": "mitte",
+          "align": "links",
           "color": "#ffffff",
-          "accent": "#fcee0a"
+          "accent": "#4fd6e6"
         }
       },
       {
-        "id": "wbot08",
+        "id": "wwea107p",
+        "type": "weather",
+        "x": 0.85,
+        "y": 0.16,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "aktuell",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#4fd6e6"
+        }
+      }
+    ],
+    "Rimuru/wallhaven-zymo5o_2560x1440.png": [
+      {
+        "id": "wclo108p",
+        "type": "clock",
+        "x": 0.8,
+        "y": 0.88,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff7eb6"
+        }
+      }
+    ],
+    "Rosepine/clowscape.jpg": [
+      {
+        "id": "wclo109p",
+        "type": "clock",
+        "x": 0.2,
+        "y": 0.17,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#e0def4",
+          "accent": "#ebbcba"
+        }
+      },
+      {
+        "id": "wlyr110p",
+        "type": "lyrics",
+        "x": 0.2,
+        "y": 0.3,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "mitte",
+          "color": "#e0def4",
+          "accent": "#ebbcba"
+        }
+      },
+      {
+        "id": "wwea111p",
+        "type": "weather",
+        "x": 0.88,
+        "y": 0.12,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "style": "kompakt",
+          "details": true,
+          "place": true,
+          "color": "#e0def4",
+          "accent": "#ebbcba"
+        }
+      },
+      {
+        "id": "wvis112p",
         "type": "visualizer",
         "x": 0.5,
         "y": 0.95,
@@ -802,42 +2296,42 @@
           "bars": 64,
           "order": "mitte",
           "idle": "ausblenden",
-          "color": "#ffffff",
-          "accent": "#fcee0a"
+          "color": "#e0def4",
+          "accent": "#ebbcba"
         }
       }
     ],
-    "Miku/wallhaven-2edkyg_2560x1440.png": [
+    "Rosepine/dominik-mayer.jpg": [
       {
-        "id": "wclo161440",
+        "id": "wclo113p",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.2,
+        "x": 0.15,
+        "y": 0.17,
         "size": 1.2,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
           "date": true,
-          "color": "hell",
-          "accent": "primary"
+          "color": "#e0def4",
+          "accent": "#f6c177"
         }
       },
       {
-        "id": "wlyr171440",
+        "id": "wlyr114p",
         "type": "lyrics",
-        "x": 0.5,
-        "y": 0.8,
-        "size": 1,
+        "x": 0.84,
+        "y": 0.17,
+        "size": 0.85,
         "monitor": "*",
         "opts": {
           "lines": 3,
-          "align": "mitte",
-          "color": "hell",
-          "accent": "primary"
+          "align": "rechts",
+          "color": "#e0def4",
+          "accent": "#f6c177"
         }
       },
       {
-        "id": "wbot10",
+        "id": "wvis115p",
         "type": "visualizer",
         "x": 0.5,
         "y": 0.95,
@@ -848,192 +2342,285 @@
           "bars": 64,
           "order": "mitte",
           "idle": "ausblenden",
-          "color": "#ffffff",
-          "accent": "primary"
+          "color": "#e0def4",
+          "accent": "#f6c177"
         }
       }
     ],
-    "Miku/wallhaven-3q6kmd_2560x1440.png": [
+    "Rosepine/shougan2.png": [
       {
-        "id": "wclo161440",
+        "id": "wclo116p",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.2,
-        "size": 1.2,
+        "x": 0.14,
+        "y": 0.15,
+        "size": 1.1,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
           "date": true,
-          "color": "hell",
-          "accent": "primary"
+          "color": "#e0def4",
+          "accent": "#c4a7e7"
         }
       },
       {
-        "id": "wlyr171440",
+        "id": "wlyr117p",
         "type": "lyrics",
-        "x": 0.5,
-        "y": 0.8,
-        "size": 1,
+        "x": 0.16,
+        "y": 0.26,
+        "size": 0.85,
         "monitor": "*",
         "opts": {
-          "lines": 3,
-          "align": "mitte",
-          "color": "hell",
-          "accent": "primary"
-        }
-      },
-      {
-        "id": "wbot11",
-        "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
-        "monitor": "*",
-        "opts": {
-          "style": "unten",
-          "bars": 64,
-          "order": "mitte",
-          "idle": "ausblenden",
-          "color": "#ffffff",
-          "accent": "primary"
+          "lines": 1,
+          "align": "links",
+          "color": "#e0def4",
+          "accent": "#c4a7e7"
         }
       }
     ],
-    "Miku/wallhaven-5ykdq8_2560x1440.png": [
+    "Rosepine/windows-error.jpg": [
       {
-        "id": "wclo161440",
+        "id": "wclo118p",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.2,
-        "size": 1.2,
+        "x": 0.82,
+        "y": 0.17,
+        "size": 1.3,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
           "date": true,
-          "color": "hell",
-          "accent": "primary"
+          "color": "#e0def4",
+          "accent": "#eb6f92"
         }
       },
       {
-        "id": "wlyr171440",
-        "type": "lyrics",
-        "x": 0.5,
-        "y": 0.8,
-        "size": 1,
+        "id": "wcal119p",
+        "type": "calendar",
+        "x": 0.87,
+        "y": 0.6,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
-          "lines": 3,
-          "align": "mitte",
-          "color": "hell",
-          "accent": "primary"
+          "style": "monat",
+          "weeks": true,
+          "holidays": "NW",
+          "upcoming": true,
+          "color": "#e0def4",
+          "accent": "#eb6f92"
         }
       },
       {
-        "id": "wbot12",
-        "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
+        "id": "wsys120p",
+        "type": "system",
+        "x": 0.2,
+        "y": 0.85,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
-          "style": "unten",
-          "bars": 64,
-          "order": "mitte",
-          "idle": "ausblenden",
-          "color": "#ffffff",
-          "accent": "primary"
+          "style": "zeilen",
+          "gpu": true,
+          "temps": true,
+          "disk": false,
+          "color": "#e0def4",
+          "accent": "#eb6f92"
         }
       }
     ],
-    "Miku/wallhaven-8o8l8k_2560x1440.png": [
+    "Slatemist/an_astronaut_in_space_with_a_satellite.png": [
       {
-        "id": "wclo161440",
+        "id": "wclo121p",
         "type": "clock",
-        "x": 0.13,
+        "x": 0.87,
         "y": 0.2,
-        "size": 1.2,
+        "size": 1.1,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
           "date": true,
-          "color": "hell",
-          "accent": "primary"
+          "color": "#dfe6ea",
+          "accent": "#9cc9d6"
         }
       },
       {
-        "id": "wlyr171440",
+        "id": "wvis122p",
+        "type": "visualizer",
+        "x": 0.87,
+        "y": 0.7,
+        "size": 0.7,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "order": "mitte",
+          "idle": "ausblenden",
+          "color": "#dfe6ea",
+          "accent": "#9cc9d6"
+        }
+      },
+      {
+        "id": "wlyr123p",
         "type": "lyrics",
-        "x": 0.5,
+        "x": 0.87,
         "y": 0.8,
-        "size": 1,
+        "size": 0.8,
         "monitor": "*",
         "opts": {
           "lines": 3,
-          "align": "mitte",
-          "color": "hell",
-          "accent": "primary"
-        }
-      },
-      {
-        "id": "wbot13",
-        "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
-        "monitor": "*",
-        "opts": {
-          "style": "unten",
-          "bars": 64,
-          "order": "mitte",
-          "idle": "ausblenden",
-          "color": "#ffffff",
-          "accent": "primary"
+          "align": "rechts",
+          "color": "#dfe6ea",
+          "accent": "#9cc9d6"
         }
       }
     ],
-    "Miku/wallhaven-y8k1k7_2560x1440.png": [
+    "Slatemist/girl-with-cat.png": [
       {
-        "id": "wclo161440",
+        "id": "wclo124p",
         "type": "clock",
-        "x": 0.13,
-        "y": 0.2,
-        "size": 1.2,
+        "x": 0.89,
+        "y": 0.14,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
           "date": true,
-          "color": "hell",
-          "accent": "primary"
+          "color": "#2a2f33",
+          "accent": "#c97b6b"
         }
       },
       {
-        "id": "wlyr171440",
+        "id": "wlyr125p",
         "type": "lyrics",
-        "x": 0.5,
-        "y": 0.8,
-        "size": 1,
+        "x": 0.85,
+        "y": 0.88,
+        "size": 0.75,
         "monitor": "*",
         "opts": {
           "lines": 3,
-          "align": "mitte",
-          "color": "hell",
-          "accent": "primary"
+          "align": "rechts",
+          "color": "#2a2f33",
+          "accent": "#c97b6b"
+        }
+      }
+    ],
+    "Tactical/wallhaven-x1rvj3_2560x1440.png": [
+      {
+        "id": "wclo126p",
+        "type": "clock",
+        "x": 0.14,
+        "y": 0.14,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "kontrast",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#c7d0d8"
         }
       },
       {
-        "id": "wbot14",
-        "type": "visualizer",
-        "x": 0.5,
-        "y": 0.95,
-        "size": 1,
+        "id": "wwea127p",
+        "type": "weather",
+        "x": 0.14,
+        "y": 0.26,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
-          "style": "unten",
-          "bars": 64,
+          "style": "kompakt",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#c7d0d8"
+        }
+      }
+    ],
+    "Tactical/wallhaven-yq9z1x_2560x1440.png": [
+      {
+        "id": "wclo128p",
+        "type": "clock",
+        "x": 0.8,
+        "y": 0.16,
+        "size": 1.3,
+        "monitor": "*",
+        "opts": {
+          "style": "sperrbildschirm",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff2a6d"
+        }
+      },
+      {
+        "id": "wsys129p",
+        "type": "system",
+        "x": 0.82,
+        "y": 0.33,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "balken",
+          "gpu": true,
+          "temps": true,
+          "disk": false,
+          "color": "#ffffff",
+          "accent": "#ff2a6d"
+        }
+      },
+      {
+        "id": "wvis130p",
+        "type": "visualizer",
+        "x": 0.8,
+        "y": 0.68,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
           "order": "mitte",
           "idle": "ausblenden",
           "color": "#ffffff",
-          "accent": "primary"
+          "accent": "#ff2a6d"
+        }
+      },
+      {
+        "id": "wlyr131p",
+        "type": "lyrics",
+        "x": 0.8,
+        "y": 0.8,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#ff2a6d"
+        }
+      }
+    ],
+    "Wallhaven/wallhaven-w533px.png": [
+      {
+        "id": "wclo132p",
+        "type": "clock",
+        "x": 0.9,
+        "y": 0.45,
+        "size": 1.0,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#3ce8ff"
+        }
+      },
+      {
+        "id": "wlyr133p",
+        "type": "lyrics",
+        "x": 0.86,
+        "y": 0.88,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "lines": 1,
+          "align": "rechts",
+          "color": "#ffffff",
+          "accent": "#3ce8ff"
         }
       }
     ]
