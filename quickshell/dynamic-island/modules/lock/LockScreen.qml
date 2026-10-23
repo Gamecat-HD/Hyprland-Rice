@@ -26,6 +26,10 @@ Item {
     required property LockContext context
     property bool leaving: false
     property bool primary: true
+    // Nur auf dem aktiven Monitor klappt die Notch auf (Lock.activeName).
+    // `activated` meldet: hier wurde getippt oder der Zeiger ist hier.
+    property bool active: true
+    signal activated
     // file://-URL des Desktop-Fotos dieses Monitors ("" = Wallpaper nehmen)
     property string snapshot: ""
     // Dauer des Abgangs; Lock.qml gibt die Sperre erst danach frei
@@ -62,6 +66,7 @@ Item {
     }
 
     Keys.onPressed: event => {
+        view.activated();
         view.context.handleKey(event);
         event.accepted = true;
     }
@@ -232,6 +237,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         y: 0
         context: view.context
+        active: view.active
         shown: view.entered
         leaving: view.gone
         exitMode: view.exitMode
@@ -257,6 +263,10 @@ Item {
         Behavior on opacity {
             NumberAnimation { duration: view.exitMode ? view.overlayOut : view.sceneDuration; easing.type: Easing.OutCubic }
         }
+    }
+
+    HoverHandler {
+        onHoveredChanged: if (hovered) view.activated()
     }
 
     // Klick irgendwohin holt den Tastaturfokus zurueck

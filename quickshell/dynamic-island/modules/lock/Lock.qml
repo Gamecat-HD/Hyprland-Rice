@@ -29,6 +29,9 @@ Scope {
     property bool leaving: false
     // Monitor, der beim Sperren fokussiert war: dort steht die Medien-Karte
     property string primaryName: ""
+    // Monitor, auf dem gerade getippt bzw. der Zeiger ist: nur dort klappt
+    // die Notch auf. Der Puffer (LockContext) gilt fuer alle Monitore.
+    property string activeName: ""
     // Waehrend grim fotografiert – ein zweites lock() wartet nicht noch einmal
     property bool capturing: false
 
@@ -46,6 +49,7 @@ Scope {
         if (sessionLock.locked || root.capturing)
             return;
         root.primaryName = Hyprland.focusedMonitor?.name ?? "";
+        root.activeName = root.primaryName;
         root.leaving = false;
         context.reset();
         root.capturing = true;

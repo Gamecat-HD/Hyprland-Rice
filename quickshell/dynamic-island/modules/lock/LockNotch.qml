@@ -36,7 +36,9 @@ Item {
     // Unter dem Zeiger offen; nach dem Verlassen kurz nachhalten, damit sie
     // nicht flattert, wenn der Zeiger knapp an der Kante entlangfaehrt
     property bool hoverOpen: false
-    readonly property bool open: !notch.leaving && notch.shown
+    // Auf den anderen Monitoren bleibt sie eingeklappt, auch waehrend getippt wird
+    property bool active: true
+    readonly property bool open: !notch.leaving && notch.shown && notch.active
                                  && (notch.context.phase !== "idle" || notch.hoverOpen)
     readonly property bool hasMessage: notch.open && notch.context.message !== ""
 
