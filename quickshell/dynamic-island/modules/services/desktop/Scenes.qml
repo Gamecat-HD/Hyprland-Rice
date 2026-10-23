@@ -88,6 +88,8 @@ Singleton {
     property string editScreen: ""
     property string target: ""
     property string selected: ""
+    // Liste "Widget hinzufuegen" in der Leiste offen (Esc/Klick ins Leere schliesst)
+    property bool adding: false
     readonly property var selectedWidget: root.widgets.find(w => w.id === root.selected) ?? null
 
     // Ein auf einen Monitor festgelegtes Widget wird gerade ueber den Rand
@@ -133,12 +135,14 @@ Singleton {
         root.target = root.currentKey !== "" ? root.currentKey : root.chainFor(root.wallpaper)[0];
         root.editScreen = screenName || (Hyprland.focusedMonitor?.name ?? "");
         root.selected = "";
+        root.adding = false;
         root.editing = true;
         root.analyse();
     }
 
     function done(): void {
         root.crossing = null;
+        root.adding = false;
         root.editing = false;
         root.selected = "";
         root.flush();
@@ -151,6 +155,7 @@ Singleton {
             root.save();
         }
         root.crossing = null;
+        root.adding = false;
         root.editing = false;
         root.selected = "";
         root.flush();
@@ -221,6 +226,7 @@ Singleton {
             w.opts.color = spot.dark ? "dunkel" : "hell";
         }
         root.writeScene(root.target, [...root.widgets, w]);
+        root.adding = false;
         root.selected = w.id;
     }
 

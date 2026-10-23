@@ -75,6 +75,26 @@ PanelWindow {
 
         // Ausgewaehltes Widget (setzt WidgetHost) – fuer "Klick ins Leere"
         property Item selectedHost: null
+        // Oberstes Widget an einem Punkt (Buehnenkoordinaten): das ausgewaehlte
+        // zuerst (es liegt oben, samt Griff und Optionsfeld), sonst wie
+        // gezeichnet von oben nach unten. Ueberlappende Widgets bekommen einen
+        // Druck alle – auswaehlen darf sich nur dieses (WidgetHost)
+        function hostAt(x: real, y: real): Item {
+            const sel = stage.selectedHost;
+            if (sel && sel.selected && sel.owns(x, y))
+                return sel;
+            const kids = stage.children;
+            for (let i = kids.length - 1; i >= 0; i--) {
+                const c = kids[i];
+                if (c !== sel && typeof c.owns === "function" && c.owns(x, y))
+                    return c;
+            }
+            return null;
+        }
+
+        // Maus ueber Leiste oder Optionsfeld: Widgets darunter nehmen nichts an
+        readonly property bool overUi: (barLoader.item?.hovered ?? false)
+                                       || (stage.selectedHost?.panelHovered ?? false)
 
         // Esc: erst Auswahl weg, dann Abbrechen (alles zurueck). Enter: Fertig.
         Keys.onPressed: event => {
@@ -83,7 +103,10 @@ PanelWindow {
             const sel = Scenes.selectedWidget;
             const step = event.modifiers & Qt.ShiftModifier ? 0.02 : 0.004;
             if (event.key === Qt.Key_Escape) {
-                if (Scenes.selected !== "")
+                // Erst die Widget-Liste zu, dann die Auswahl weg, dann Abbrechen
+                if (Scenes.adding)
+                    Scenes.adding = false;
+                else if (Scenes.selected !== "")
                     Scenes.selected = "";
                 else
                     Scenes.cancel();
@@ -118,15 +141,20 @@ PanelWindow {
             color: Colors.alpha("#000000", 0.28)
 
             // Nur ein Klick auf freie Flaeche hebt die Auswahl auf – nicht auf
-            // ein Widget, sein Optionsfeld oder die Leiste
+            // ein Widget samt Rahmen, Groessen-Griff und Optionsfeld (die
+            // liegen ausserhalb seiner Grenzen, childAt saehe dort nur den
+            // Hintergrund) und nicht auf die Leiste. Ist die Widget-Liste
+            // offen, schliesst der Klick erst sie.
             TapHandler {
                 onTapped: point => {
                     const x = point.position.x, y = point.position.y;
-                    const hit = stage.childAt(x, y);
-                    if (hit && hit !== backdrop)
+                    for (const child of stage.children)
+                        if (typeof child.owns === "function" && child.owns(x, y))
+                            return;
+                    if (Scenes.adding) {
+                        Scenes.adding = false;
                         return;
-                    if (stage.selectedHost && stage.selectedHost.optionsContain(x, y))
-                        return;
+                    }
                     Scenes.selected = "";
                 }
             }
@@ -220,6 +248,7 @@ PanelWindow {
                 unit: win.unit
                 active: win.active
                 editing: win.editingHere
+                blocked: stage.overUi
                 guideX: guideX
                 guideY: guideY
             }
@@ -262,6 +291,8 @@ PanelWindow {
 
         // Bearbeitungsleiste unten mittig
         Loader {
+            id: barLoader
+
             active: win.editingHere
             // ueber den Widgets (auch ueber dem Visualiser "unten")
             z: 20

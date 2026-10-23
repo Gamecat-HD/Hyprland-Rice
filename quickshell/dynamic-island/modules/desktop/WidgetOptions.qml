@@ -10,8 +10,9 @@ import qs.modules.services.desktop
 // setzt Lage und die Ecke, die am Rahmen anliegt). Gleicher Rand wie der
 // Rahmen, damit beides als eine Flaeche liest.
 //
-// Inhalt: Kopf (Typ, Duplizieren, Loeschen), je Option eine Chip-Reihe,
-// Farbe/Akzent, Monitor.
+// Inhalt: Kopf (Typ, Duplizieren, Loeschen mit Rueckfrage), je Option eine
+// Chip-Reihe (Schalter als "an | aus"), Groesse, Farbe/Akzent (die gewaehlte
+// mit Namen), Monitor.
 Rectangle {
     id: pop
 
@@ -19,12 +20,41 @@ Rectangle {
     property string screenName: ""
 
     readonly property var info: pop.widget ? DesktopWidgets.info(pop.widget.type) : null
+    readonly property real size: pop.widget?.size ?? 1
+    // Breite der Beschriftungsspalte ("Wachsen zeigen" passt gerade so)
+    readonly property real labelWidth: 100
+
+    // Loeschen ist zweistufig: erster Klick fragt, 3 s lang
+    property bool deleteArmed: false
+
+    readonly property var colorLabels: ({
+        "hell": "Hell", "primary": "Primär", "secondary": "Sekundär",
+        "tertiary": "Tertiär", "weiss": "Weiß", "dunkel": "Dunkel"
+    })
+
+    function setSize(value: real): void {
+        Scenes.patch(pop.widget.id, { size: Number(Math.max(0.3, Math.min(8, value)).toFixed(3)) });
+    }
+
+    Timer {
+        id: disarm
+
+        interval: 3000
+        onTriggered: pop.deleteArmed = false
+    }
 
     implicitWidth: Math.max(300, rows.implicitWidth + 28)
     implicitHeight: rows.implicitHeight + 24
     color: Colors.alpha(Colors.background, 0.96)
     border.width: 2
     border.color: Colors.primary
+
+    // Maus ueber dem Feld: Widgets darunter sperren (WidgetHost.blocked)
+    readonly property bool hovered: popHover.hovered
+
+    HoverHandler {
+        id: popHover
+    }
 
     // Klicks bleiben hier (nicht zum Desktop durch = Auswahl aufheben)
     MouseArea {
@@ -67,9 +97,18 @@ Rectangle {
             }
 
             EditChip {
-                icon: "delete"
+                icon: pop.deleteArmed ? "check" : "delete"
+                text: pop.deleteArmed ? "Löschen?" : ""
                 danger: true
-                onClicked: Scenes.remove(pop.widget.id)
+                armed: pop.deleteArmed
+                onClicked: {
+                    if (pop.deleteArmed) {
+                        Scenes.remove(pop.widget.id);
+                    } else {
+                        pop.deleteArmed = true;
+                        disarm.restart();
+                    }
+                }
             }
         }
 
@@ -88,14 +127,20 @@ Rectangle {
 
                 EditLabel {
                     text: optRow.option.title ?? optRow.modelData
-                    Layout.preferredWidth: 72
+                    Layout.preferredWidth: pop.labelWidth
                 }
 
-                EditChip {
-                    visible: optRow.option.bool === true
-                    text: optRow.value ? "an" : "aus"
-                    on: !!optRow.value
-                    onClicked: Scenes.setOpt(pop.widget.id, optRow.modelData, !optRow.value)
+                // Schalter: beide Zustaende sichtbar, der aktive hervorgehoben
+                Repeater {
+                    model: optRow.option.bool === true ? [true, false] : []
+
+                    EditChip {
+                        required property bool modelData
+
+                        text: modelData ? "an" : "aus"
+                        on: !!optRow.value === modelData
+                        onClicked: Scenes.setOpt(pop.widget.id, optRow.modelData, modelData)
+                    }
                 }
 
                 Flow {
@@ -119,6 +164,33 @@ Rectangle {
             }
         }
 
+        // ---- Groesse (auch: Griff an der Ecke, Tasten + / -) ----
+        RowLayout {
+            spacing: 6
+            visible: pop.widget !== null
+
+            EditLabel {
+                text: "Größe"
+                Layout.preferredWidth: pop.labelWidth
+            }
+
+            EditChip {
+                icon: "remove"
+                onClicked: pop.setSize(pop.size / 1.1)
+            }
+
+            EditChip {
+                text: Math.round(pop.size * 100) + " %"
+                Layout.preferredWidth: 64
+                onClicked: pop.setSize(1)
+            }
+
+            EditChip {
+                icon: "add"
+                onClicked: pop.setSize(pop.size * 1.1)
+            }
+        }
+
         // ---- Farben ----
         Repeater {
             model: [["color", "Farbe", "hell"], ["accent", "Akzent", "primary"]]
@@ -133,7 +205,7 @@ Rectangle {
 
                 EditLabel {
                     text: colorRow.modelData[1]
-                    Layout.preferredWidth: 72
+                    Layout.preferredWidth: pop.labelWidth
                 }
 
                 Repeater {
@@ -144,6 +216,8 @@ Rectangle {
 
                         swatch: DesktopWidgets.color(modelData, "transparent")
                         on: colorRow.current === modelData
+                        // Name nur an der gewaehlten Farbe, sonst wird die Reihe zu breit
+                        text: on ? (pop.colorLabels[modelData] ?? modelData) : ""
                         onClicked: Scenes.setOpt(pop.widget.id, colorRow.modelData[0], modelData)
                     }
                 }
@@ -152,6 +226,7 @@ Rectangle {
                 EditChip {
                     visible: colorRow.current.startsWith("#")
                     swatch: colorRow.current.startsWith("#") ? colorRow.current : "transparent"
+                    text: "Eigene"
                     on: true
                 }
             }
@@ -163,7 +238,7 @@ Rectangle {
 
             EditLabel {
                 text: "Monitor"
-                Layout.preferredWidth: 72
+                Layout.preferredWidth: pop.labelWidth
             }
 
             EditChip {

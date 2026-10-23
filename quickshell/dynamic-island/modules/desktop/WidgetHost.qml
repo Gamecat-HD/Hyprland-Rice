@@ -33,6 +33,12 @@ Item {
     property bool active: true
     property bool editing: false
     property Item guideX
+    // Maus liegt ueber Optionsfeld oder Leiste (DesktopScreen): Qt 6 reicht
+    // einen Druck auch an die Handler darunterliegender Elemente weiter,
+    // obwohl oben schon eine MouseArea ihn angenommen hat – ohne Sperre
+    // waehlte ein Klick ins Optionsfeld das Widget darunter aus (das Feld
+    // war weg) und der Bonsai darunter wuchs neu
+    property bool blocked: false
     property Item guideY
 
     readonly property var info: DesktopWidgets.info(host.widget?.type ?? "")
@@ -77,6 +83,10 @@ Item {
         id: loader
 
         anchors.centerIn: parent
+        // Eigene Handler der Widgets ebenfalls – und beim Bearbeiten nur am
+        // ausgewaehlten Widget, sonst reagierte ein Widget schon beim
+        // Auswaehlen oder unter einem anderen
+        enabled: !host.blocked && (!host.editing || host.selected)
         active: host.info !== null
         source: host.info?.url ?? ""
         asynchronous: false
@@ -186,19 +196,34 @@ Item {
         }
     }
 
+    // Rahmen (host.frame) gehoert zum Widget: Hover, Antippen und Ziehen
+    // greifen auch dort, nicht nur auf dem Widget selbst
     HoverHandler {
         id: hoverArea
 
-        enabled: host.editing
+        enabled: host.editing && !host.blocked
+        margin: host.frame
         cursorShape: host.dock !== "" ? Qt.PointingHandCursor
                    : dragger.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
     }
 
     // Auswahl schon beim Druecken – das Optionsfeld ist sofort da
     TapHandler {
-        enabled: host.editing
+        id: tap
+
+        enabled: host.editing && (!host.blocked || tap.pressed)
+        margin: host.frame
         gesturePolicy: TapHandler.DragThreshold
-        onPressedChanged: if (pressed) host.select()
+        // Ueberlappen sich Widgets, bekommen alle den Druck – waehlen darf
+        // sich nur das, das an der Stelle oben liegt (DesktopScreen.hostAt)
+        onPressedChanged: {
+            if (!tap.pressed)
+                return;
+            const p = host.mapToItem(host.parent, tap.point.position.x, tap.point.position.y);
+            const top = typeof host.parent?.hostAt === "function" ? host.parent.hostAt(p.x, p.y) : host;
+            if (top === null || top === host)
+                host.select();
+        }
     }
 
     // Optionsfeld: unter dem Rahmen, sonst darueber; linksbuendig mit dem
@@ -219,26 +244,107 @@ Item {
             readonly property real fy: host.y - host.frame
             readonly property real fw: host.width + host.frame * 2
             readonly property real fh: host.height + host.frame * 2
-            readonly property bool below: pop.fy + pop.fh + pop.height + 16 <= host.areaH
-            readonly property real px: host.dock !== "" ? Math.round((host.areaW - pop.width) / 2)
-                                     : Math.max(16, Math.min(host.areaW - pop.width - 16, pop.fx))
-            readonly property bool aligned: host.dock === "" && pop.px === pop.fx
+            readonly property bool fits: pop.fy + pop.fh + pop.height + 16 <= host.areaH
+
+            // Angedockte Lage (am Rahmen, unten wenn Platz ist)
+            readonly property real dockX: host.dock !== "" ? Math.round((host.areaW - pop.width) / 2)
+                                        : Math.max(16, Math.min(host.areaW - pop.width - 16, pop.fx))
+            function dockY(below: bool): real {
+                return below ? pop.fy + pop.fh - 2 : pop.fy - pop.height + 2;
+            }
+
+            // Lage festhalten, solange das Widget ausgewaehlt bleibt: aendert
+            // eine Option seine Groesse (Stil, Zeilen …), bliebe das Feld sonst
+            // nicht unter der Maus, sondern sprang mit oder auf die andere
+            // Seite. Neu angedockt wird nach dem Ziehen (das Feld entsteht dann
+            // neu), wenn das Widget ins Feld waechst, sich weit entfernt oder
+            // das Feld aus dem Bild ragt.
+            property real heldX: NaN
+            property real heldY: NaN
+            property bool heldBelow: true
+            readonly property bool holding: !isNaN(pop.heldY)
+            readonly property bool below: pop.holding ? pop.heldBelow : pop.fits
+            readonly property real sx: pop.holding ? pop.heldX : pop.dockX
+            readonly property real sy: pop.holding ? pop.heldY : pop.dockY(pop.below)
+
+            // Beim Neu-Andocken bleibt das Feld auf seiner Seite, solange es
+            // dort noch Platz hat – sonst wechselte es bei jedem Wachsen
+            property bool sideKnown: false
+
+            function hold(): void {
+                const fitsAbove = pop.fy - pop.height - 16 >= 0;
+                pop.heldBelow = !pop.sideKnown ? pop.fits
+                              : pop.heldBelow ? (pop.fits || !fitsAbove)
+                              : (!fitsAbove && pop.fits);
+                pop.sideKnown = true;
+                pop.heldX = pop.dockX;
+                pop.heldY = pop.dockY(pop.heldBelow);
+            }
+            function redock(): void {
+                pop.heldX = NaN;
+                pop.heldY = NaN;
+                Qt.callLater(pop.hold);
+            }
+
+            readonly property bool misplaced: {
+                if (!pop.holding)
+                    return false;
+                // Ueberlappt den Rahmen (4 px Toleranz fuer das Andocken)
+                const overlap = pop.sx < pop.fx + pop.fw && pop.sx + pop.width > pop.fx
+                                && pop.sy + 4 < pop.fy + pop.fh && pop.sy + pop.height - 4 > pop.fy;
+                // Weit weg vom Rahmen
+                const gap = pop.below ? pop.sy - (pop.fy + pop.fh) : pop.fy - (pop.sy + pop.height);
+                const apart = gap > 80 || pop.sx > pop.fx + pop.fw - 40 || pop.sx + pop.width < pop.fx + 40;
+                // Ragt aus dem Bild
+                const outside = pop.sy < 8 || pop.sy + pop.height > host.areaH - 8;
+                return overlap || (host.dock === "" && apart) || outside;
+            }
+            // Erst nach der Auswertung umsetzen: redock aendert, wovon
+            // `misplaced` abhaengt (sonst Binding-Schleife)
+            onMisplacedChanged: if (pop.misplaced) Qt.callLater(pop.redock)
+            Component.onCompleted: Qt.callLater(pop.hold)
+            Connections {
+                target: host
+
+                function onDockChanged(): void {
+                    pop.redock();
+                }
+            }
+
+            // Liegt das Feld buendig am Rahmen, verschmelzen die Ecken
+            readonly property bool touching: Math.abs(pop.sy - pop.dockY(pop.below)) < 1
+            readonly property bool aligned: host.dock === "" && pop.touching && Math.abs(pop.sx - pop.fx) < 1
             readonly property bool flushBelow: pop.aligned && pop.below
             readonly property bool flushAbove: pop.aligned && !pop.below
 
             width: implicitWidth
             height: implicitHeight
             // 2 px Ueberlappung: Rand von Rahmen und Feld fallen zusammen
-            x: pop.px - host.x
-            y: (pop.below ? pop.fy + pop.fh - 2 : pop.fy - pop.height + 2) - host.y
+            x: pop.sx - host.x
+            y: pop.sy - host.y
             radius: 14
             // Angedockt (volle Breite): sitzt wie ein Reiter auf dem Rahmen
-            topLeftRadius: pop.flushBelow || (host.dock !== "" && pop.below) ? 0 : 14
-            topRightRadius: host.dock !== "" && pop.below ? 0 : 14
-            bottomLeftRadius: pop.flushAbove || (host.dock !== "" && !pop.below) ? 0 : 14
-            bottomRightRadius: host.dock !== "" && !pop.below ? 0 : 14
+            topLeftRadius: pop.flushBelow || (host.dock !== "" && pop.touching && pop.below) ? 0 : 14
+            topRightRadius: host.dock !== "" && pop.touching && pop.below ? 0 : 14
+            bottomLeftRadius: pop.flushAbove || (host.dock !== "" && pop.touching && !pop.below) ? 0 : 14
+            bottomRightRadius: host.dock !== "" && pop.touching && !pop.below ? 0 : 14
         }
     }
+
+    // Gehoert ein Punkt (Koordinaten der Buehne) zu diesem Widget – Rahmen,
+    // Groessen-Griff oder Optionsfeld? Dann ist ein Klick dort kein Klick ins
+    // Leere (DesktopScreen hebt sonst die Auswahl auf)
+    function owns(px: real, py: real): bool {
+        if (!host.visible || !host.editing)
+            return false;
+        // Rahmen plus Platz fuer den Griff, der aussen an der Ecke sitzt
+        const m = host.frame + (host.selected ? 16 : 0);
+        if (px >= host.x - m && py >= host.y - m && px <= host.x + host.width + m && py <= host.y + host.height + m)
+            return true;
+        return host.optionsContain(px, py);
+    }
+
+    readonly property bool panelHovered: options.item?.hovered ?? false
 
     // Liegt ein Punkt (Koordinaten der Buehne) auf dem Optionsfeld?
     function optionsContain(px: real, py: real): bool {
@@ -276,7 +382,9 @@ Item {
     DragHandler {
         id: dragger
 
-        enabled: host.editing && host.dock === ""
+        // Ein laufendes Ziehen nicht abbrechen, wenn es ueber die Leiste geht
+        enabled: host.editing && host.dock === "" && (!host.blocked || dragger.active)
+        margin: host.frame
         target: null
         dragThreshold: 4
 
@@ -344,9 +452,11 @@ Item {
         }
     }
 
-    // Groesse: Griff unten rechts
+    // Groesse: Griff unten rechts – ueber dem angedockten Optionsfeld (z 10),
+    // sonst deckt dessen Kante den Griff halb zu
     Rectangle {
         visible: host.selected
+        z: 11
         x: parent.width - (host.dock !== "" ? 40 : -8) - width / 2
         y: (host.dock === "unten" ? -8 : parent.height + 8) - height / 2
         width: 16
