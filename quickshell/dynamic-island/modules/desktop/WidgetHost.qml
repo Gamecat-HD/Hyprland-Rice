@@ -671,22 +671,26 @@ Item {
                         host.liveSize = Math.max(0.3, Math.min(8, sizer.startSize * r));
                         return;
                     }
-                    // px je Groesseneinheit, jedes Mal frisch gemessen: Widgets
-                    // wachsen nicht ganz linear mit `size` (Raender, Rundung,
-                    // Mindestbreite) – mit dem Startwert rastete es daneben ein
-                    const kw = Math.max(1, host.width) / host.liveSize;
-                    const kh = Math.max(1, host.height) / host.liveSize;
+                    // px je Groesseneinheit, beim Start gemessen. NICHT bei
+                    // jeder Bewegung neu: Column & Co. rechnen ihre Groesse
+                    // erst beim naechsten Frame, eine schnelle Maus schickt
+                    // mehrere Ereignisse je Frame – alte Breite / neue Groesse
+                    // schaukelte sich auf (Uhr sprang zwischen winzig und riesig)
+                    const kw = sizer.startW / sizer.startSize;
+                    const kh = sizer.startH / sizer.startSize;
                     // Groesse, bei der die Rahmenkante je Achse unter der Maus
-                    // laege. Das Seitenverhaeltnis ist fest, also gewinnt die
-                    // Achse, auf der weiter gezogen wurde – dort klebt die Ecke
-                    // an der Maus, egal wie schraeg man zieht (eine Mittelung
-                    // liess waagerechtes Ziehen an hohen Widgets fast nichts
-                    // tun). Zeigen die Achsen in verschiedene Richtungen,
-                    // heben sie sich auf: so springt es beim Wechsel nie
+                    // laege (a waagerecht, b senkrecht). Das Seitenverhaeltnis
+                    // ist fest, also zaehlt die Achse, auf der die Maus weiter
+                    // gewandert ist – gewichtet mit der 4. Potenz der Pixel:
+                    // zieht man ungefaehr waagerecht, klebt die Kante an der
+                    // Maus und etwas Drift nach oben/unten stoert nicht; schraeg
+                    // wird stufenlos gemischt, nie gesprungen. (Gemittelt bzw.
+                    // gegenlaeufig addiert liess wenig Drift viel kosten.)
                     const s0 = sizer.startSize;
                     const a = (sizer.startW + grip.dx * m.x) / kw - s0;
                     const b = (sizer.startH + grip.dy * m.y) / kh - s0;
-                    let s = s0 + (a * b < 0 ? a + b : Math.abs(a) > Math.abs(b) ? a : b);
+                    const wa = Math.pow(m.x, 4), wb = Math.pow(m.y, 4);
+                    let s = s0 + (wa + wb > 0 ? (a * wa + b * wb) / (wa + wb) : 0);
                     let lineX = -1, lineY = -1, match = null;
                     if (!host.free(sizer)) {
                         const sx = host.snapResize(s, host.anchorX, grip.dx, kw, sizer.linesX, sizer.widths);
