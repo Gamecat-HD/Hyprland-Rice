@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Quickshell
 
 import qs
 import qs.modules.services.config
@@ -11,6 +12,8 @@ import qs.modules.services.desktop
 //
 // Beim Bearbeiten: Rahmen, Ziehen mit Einrasten (Drittel, Mitte, Raender),
 // Ecke unten rechts = Groesse. Gespeichert wird erst beim Loslassen.
+// Ein auf einen Monitor festgelegtes Widget laesst sich ueber den Rand auf
+// den anderen Monitor ziehen (Vorschau dort, s. Scenes.crossing).
 //
 // Vertrag fuer Widget-Komponenten (eingebaut wie aus Plugins):
 //   property real unit      Grundeinheit in px (16 bei 1440p * size)
@@ -25,6 +28,7 @@ Item {
 
     property var widget: null
     property string screenName: ""
+    property ShellScreen shellScreen: null
     property real unit: 16
     property bool active: true
     property bool editing: false
@@ -33,6 +37,8 @@ Item {
 
     readonly property var info: DesktopWidgets.info(host.widget?.type ?? "")
     readonly property bool selected: host.editing && Scenes.selected === (host.widget?.id ?? "")
+    // Nur auf einem Monitor ("Nur <name>") – darf auf einen anderen wechseln
+    readonly property bool pinned: (host.widget?.monitor ?? "*") !== "*"
 
     // Waehrend des Ziehens lokale Werte, danach wieder die aus der Szene
     property bool dragging: dragger.active || sizer.active
@@ -255,6 +261,18 @@ Item {
         return { v: value, line: -1 };
     }
 
+    // Anderer Monitor unter dem Punkt (lokale Koordinaten), sonst null
+    function otherScreenAt(lx: real, ly: real): var {
+        const own = host.shellScreen;
+        if (!own || (lx >= 0 && ly >= 0 && lx < host.areaW && ly < host.areaH))
+            return null;
+        const gx = own.x + lx, gy = own.y + ly;
+        for (const s of Quickshell.screens)
+            if (s.name !== own.name && gx >= s.x && gx < s.x + s.width && gy >= s.y && gy < s.y + s.height)
+                return s;
+        return null;
+    }
+
     DragHandler {
         id: dragger
 
@@ -276,6 +294,12 @@ Item {
             }
             host.guideX.at = -1;
             host.guideY.at = -1;
+            const cross = Scenes.crossing;
+            if (cross && cross.id === host.widget.id) {
+                // Erst nach dem Handler umziehen: der Host verschwindet dabei
+                Qt.callLater(() => Scenes.moveTo(cross.id, cross.screen, cross.x, cross.y));
+                return;
+            }
             const pw = host.parent.width, ph = host.parent.height;
             Scenes.patch(host.widget.id, {
                 x: Number(Math.max(0, Math.min(1, host.dragX / pw)).toFixed(4)),
@@ -287,6 +311,30 @@ Item {
             if (!dragger.active)
                 return;
             const pw = host.parent.width, ph = host.parent.height;
+            const other = host.pinned ? host.otherScreenAt(dragger.startX + dragger.translation.x,
+                                                           dragger.startY + dragger.translation.y) : null;
+            if (other) {
+                // Auf dem anderen Monitor: hier ungerastet weiter (wird am
+                // Rand abgeschnitten), dort die Vorschau
+                host.dragX = dragger.startX + dragger.translation.x;
+                host.dragY = dragger.startY + dragger.translation.y;
+                host.guideX.at = -1;
+                host.guideY.at = -1;
+                const gx = host.shellScreen.x + host.dragX - other.x;
+                const gy = host.shellScreen.y + host.dragY - other.y;
+                Scenes.crossing = {
+                    id: host.widget.id,
+                    title: host.info?.title ?? host.widget.type,
+                    screen: other.name,
+                    x: gx / other.width,
+                    y: gy / other.height,
+                    w: host.width,
+                    h: host.height
+                };
+                return;
+            }
+            if (Scenes.crossing)
+                Scenes.crossing = null;
             const sx = host.snap(dragger.startX + dragger.translation.x, host.width, pw, false);
             const sy = host.snap(dragger.startY + dragger.translation.y, host.height, ph, true);
             host.dragX = sx.v;

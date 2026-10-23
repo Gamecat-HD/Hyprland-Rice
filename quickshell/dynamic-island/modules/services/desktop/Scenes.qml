@@ -35,7 +35,9 @@ import qs.modules.services.wallpaper
 Singleton {
     id: root
 
-    readonly property string path: Quickshell.env("HOME") + "/.config/dynamic-island/scenes.json"
+    // DYNAMIC_ISLAND_SCENES_FILE: andere Datei (Tests mit einer Kopie der Shell)
+    readonly property string path: Quickshell.env("DYNAMIC_ISLAND_SCENES_FILE")
+                                   || Quickshell.env("HOME") + "/.config/dynamic-island/scenes.json"
     readonly property string wallsDir: Wallpapers.wallsDir
 
     property var data: ({ version: 1, scenes: {} })
@@ -88,6 +90,24 @@ Singleton {
     property string selected: ""
     readonly property var selectedWidget: root.widgets.find(w => w.id === root.selected) ?? null
 
+    // Ein auf einen Monitor festgelegtes Widget wird gerade ueber den Rand
+    // gezogen: { id, title, screen, x, y, w, h } (x/y Mittelpunkt als Anteil,
+    // w/h in px). Der Zielmonitor zeigt dort eine Vorschau (DesktopScreen).
+    property var crossing: null
+
+    // Loslassen auf dem anderen Monitor: Widget zieht um, die Bearbeitung
+    // wechselt mit (Auswahl bleibt)
+    function moveTo(id: string, screenName: string, x: real, y: real): void {
+        root.crossing = null;
+        root.patch(id, {
+            monitor: screenName,
+            x: Number(Math.max(0, Math.min(1, x)).toFixed(4)),
+            y: Number(Math.max(0, Math.min(1, y)).toFixed(4))
+        });
+        root.editScreen = screenName;
+        root.selected = id;
+    }
+
     // Wohin Aenderungen gehen koennen: [{ key, label, own }]
     readonly property var targets: {
         const out = [];
@@ -118,6 +138,7 @@ Singleton {
     }
 
     function done(): void {
+        root.crossing = null;
         root.editing = false;
         root.selected = "";
         root.flush();
@@ -129,6 +150,7 @@ Singleton {
             root.data = JSON.parse(root.snapshot);
             root.save();
         }
+        root.crossing = null;
         root.editing = false;
         root.selected = "";
         root.flush();

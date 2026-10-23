@@ -30,6 +30,8 @@ PanelWindow {
 
     readonly property string screenName: win.modelData.name
     readonly property bool editingHere: Scenes.editing && Scenes.editScreen === win.screenName
+    // Ein Widget wird von einem anderen Monitor hierher gezogen
+    readonly property var incoming: Scenes.crossing?.screen === win.screenName ? Scenes.crossing : null
     // Grundeinheit: 16 px bei 1440p
     readonly property real unit: 16 * win.modelData.height / 1440
 
@@ -43,7 +45,9 @@ PanelWindow {
     readonly property bool active: Scenes.editing || !win.covered
 
     screen: win.modelData
-    WlrLayershell.layer: win.editingHere ? WlrLayer.Top : WlrLayer.Bottom
+    // Beim Hereinziehen auch nach oben (Vorschau ueber den Fenstern), aber
+    // ohne Eingabe – die bleibt beim ziehenden Monitor
+    WlrLayershell.layer: win.editingHere || win.incoming ? WlrLayer.Top : WlrLayer.Bottom
     WlrLayershell.namespace: "dynamic-island-desktop"
     WlrLayershell.keyboardFocus: win.editingHere ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
@@ -212,11 +216,47 @@ PanelWindow {
 
                 widget: stage.shown.find(w => w.id === wid) ?? null
                 screenName: win.screenName
+                shellScreen: win.modelData
                 unit: win.unit
                 active: win.active
                 editing: win.editingHere
                 guideX: guideX
                 guideY: guideY
+            }
+        }
+
+        // Vorschau fuer ein Widget, das gerade von einem anderen Monitor
+        // hierher gezogen wird
+        Rectangle {
+            visible: win.incoming !== null
+            z: 15
+            x: Math.round((win.incoming?.x ?? 0) * parent.width - width / 2)
+            y: Math.round((win.incoming?.y ?? 0) * parent.height - height / 2)
+            width: (win.incoming?.w ?? 0) + 16
+            height: (win.incoming?.h ?? 0) + 16
+            radius: 12
+            color: Colors.alpha(Colors.primary, 0.14)
+            border.width: 2
+            border.color: Colors.primary
+
+            Rectangle {
+                x: 10
+                y: -height / 2
+                width: ghostLabel.implicitWidth + 12
+                height: 18
+                radius: 9
+                color: Colors.primary
+
+                Text {
+                    id: ghostLabel
+
+                    anchors.centerIn: parent
+                    text: (win.incoming?.title ?? "") + " → " + win.screenName
+                    color: Colors.fgPrimary
+                    font.family: Config.font
+                    font.pixelSize: 10
+                    font.weight: Font.DemiBold
+                }
             }
         }
 
