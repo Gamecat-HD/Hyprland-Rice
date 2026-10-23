@@ -40,4 +40,5 @@ ShellRoot {
     Lock {}
     IdleDim {}
     ScreenshotOverlay {}
+    LockEditor {}
 }

@@ -34,6 +34,13 @@ Item {
     property string snapshot: ""
     // Dauer des Abgangs; Lock.qml gibt die Sperre erst danach frei
     property int exitDuration: Math.round(Appearance.morphDuration * 1.4)
+    // Vorschau im Anordnungs-Editor (LockEditor): Medien-Karte auch ohne
+    // Musik, keine Szenen-Animationen (sonst hinge die Uhr beim Ziehen
+    // hinterher). Uhr und Karte sind ueber clockItem/mediaItem erreichbar,
+    // ihre Lage kommt aus LockLayout (leer = das Bild wie bisher).
+    property bool preview: false
+    readonly property Item clockItem: clockBlock
+    readonly property Item mediaItem: media
 
     // Kurz nach dem Erscheinen true: alle Eingangs-Animationen haengen daran
     property bool entered: false
@@ -51,7 +58,7 @@ Item {
         view.gone = view.leaving;
     }
 
-    readonly property int sceneDuration: Math.round(Appearance.morphDuration * 2.2)
+    readonly property int sceneDuration: view.preview ? 0 : Math.round(Appearance.morphDuration * 2.2)
     // Hintergrund: rein weich auslaufend, raus gleichmaessig bis zum Ende –
     // sonst ist das Bild nach der halben Zeit fast fertig und "steht"
     readonly property int sceneTime: view.exitMode ? view.exitDuration : view.sceneDuration
@@ -157,15 +164,16 @@ Item {
         return view.use12h ? String(h % 12 || 12) : String(h).padStart(2, "0");
     }
     readonly property string minutes: String(clock.date.getMinutes()).padStart(2, "0")
-    readonly property real clockSize: Math.round(Math.min(view.width * 0.13, view.height * 0.22, 230))
+    readonly property real clockSize: Math.round(Math.min(view.width * 0.13, view.height * 0.22, 230) * LockLayout.scale("clock"))
 
     Item {
         id: clockBlock
 
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenterOffset: LockLayout.offsetX("clock", view.width)
         // Rein: von oben herabsinken. Raus: an Ort und Stelle leicht
         // schrumpfen und verblassen, als sinke sie ins Bild zurueck
-        y: Math.round(view.height * 0.2) + (view.entered ? 0 : -40)
+        y: LockLayout.top("clock", view.height, height) + (view.entered ? 0 : -40)
         width: clockColumn.width
         height: clockColumn.height
         opacity: view.shown ? 1 : 0
@@ -248,12 +256,14 @@ Item {
     LockMedia {
         id: media
 
-        readonly property bool wanted: view.primary && Config.lock.media && Media.available
+        readonly property bool wanted: view.preview || (view.primary && Config.lock.media && Media.available)
 
         anchors.horizontalCenter: parent.horizontalCenter
-        y: view.height - height - 56 + (view.entered && media.wanted ? 0 : 36)
+        anchors.horizontalCenterOffset: LockLayout.offsetX("media", view.width)
+        y: LockLayout.top("media", view.height, height) + (view.entered && media.wanted ? 0 : 36)
         width: Math.min(implicitWidth, view.width - 48)
         height: implicitHeight
+        scale: LockLayout.scale("media")
         opacity: view.shown && media.wanted ? 1 : 0
         visible: opacity > 0
 

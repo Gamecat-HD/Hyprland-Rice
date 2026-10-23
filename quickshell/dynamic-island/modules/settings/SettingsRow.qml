@@ -493,6 +493,7 @@ Item {
             active: row.isEditor
             sourceComponent: row.entry?.editor === "quick" ? quickEditor
                            : row.entry?.editor === "desktop" ? desktopEditor
+                           : row.entry?.editor === "lock" ? lockEditor
                            : null
         }
 
@@ -500,6 +501,12 @@ Item {
             id: quickEditor
 
             QuickLayoutEditor {}
+        }
+
+        Component {
+            id: lockEditor
+
+            LockLayoutEditor {}
         }
 
         Component {
