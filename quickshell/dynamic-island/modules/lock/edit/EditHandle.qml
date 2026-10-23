@@ -22,12 +22,14 @@ Item {
     property string title: ""
     // Das Element in der Vorschau (LockScreen.clockItem / mediaItem)
     property Item target: null
-    // Der andere Griff: seine Kanten und Mitte sind Einrast-Linien
-    property Item other: null
+    // Die anderen Griffe: ihre Kanten und Mitten sind Einrast-Linien
+    property var others: []
     // Maus liegt ueber der Leiste (EditStage)
     property bool blocked: false
     // Element steht leer da (Karte ohne Musik): zurueckgenommen zeichnen
     property bool placeholder: false
+    // Ausgeblendet (LockLayout.hidden): bleibt als blasser Platzhalter greifbar
+    readonly property bool hiddenHere: LockLayout.hidden(handle.name)
     property Item guideX
     property Item guideY
 
@@ -50,10 +52,13 @@ Item {
 
     property bool resizing: false
     property real liveSize: 1
+    // Ziehen oder Skalieren laeuft (Optionsfeld solange weg)
+    readonly property bool busy: dragger.active || handle.resizing
 
     // Gewaehlt wird schon beim Druecken; ein anderes gewaehltes Element
     // tritt zurueck, ein leeres (Platzhalter) immer
     readonly property real dimLevel: (handle.otherSelected ? 0.45 : 1) * (handle.placeholder ? 0.55 : 1)
+                                     * (handle.hiddenHere ? 0.25 : 1)
     property real dim: handle.dimLevel
 
     Behavior on dim {
@@ -91,7 +96,7 @@ Item {
     // + / -: um den Faktor vergroessern, Mitte bleibt
     function grow(f: real): void {
         const e = handle.entry();
-        e.size = Math.max(LockLayout.minSize, Math.min(LockLayout.maxSize, e.size * f));
+        e.size = handle.clampSize(e.size * f);
         LockLayout.set(handle.name, e);
     }
 
@@ -114,7 +119,7 @@ Item {
         color: handle.selected ? Colors.alpha(Colors.primary, 0.08) : "transparent"
         border.width: handle.selected ? 2 : 1
         border.color: handle.selected ? Colors.primary
-                    : Colors.alpha("#ffffff", hoverArea.hovered ? 0.6 : 0.3)
+                    : Colors.alpha("#ffffff", (hoverArea.hovered ? 0.6 : 0.3) * (handle.hiddenHere ? 0.5 : 1))
 
         // Etikett oben links; beim Skalieren mit der Groesse in Prozent
         Rectangle {
@@ -174,8 +179,9 @@ Item {
             { at: margin, center: false },
             { at: total - margin, center: false }
         ];
-        const o = handle.other;
-        if (o && o.visible) {
+        for (const o of handle.others) {
+            if (!o || o === handle || !o.visible)
+                continue;
             const a = vertical ? o.y : o.x;
             const len = vertical ? o.height : o.width;
             lines.push({ at: a - handle.frame, center: false },
@@ -230,7 +236,7 @@ Item {
     }
 
     function clampSize(s: real): real {
-        return Math.max(LockLayout.minSize, Math.min(LockLayout.maxSize, s));
+        return Math.max(LockLayout.minOf(handle.name), Math.min(LockLayout.maxOf(handle.name), s));
     }
 
     DragHandler {

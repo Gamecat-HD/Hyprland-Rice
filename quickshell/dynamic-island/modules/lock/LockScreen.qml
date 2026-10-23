@@ -176,7 +176,10 @@ Item {
         y: LockLayout.top("clock", view.height, height) + (view.entered ? 0 : -40)
         width: clockColumn.width
         height: clockColumn.height
-        opacity: view.shown ? 1 : 0
+        // Ausgeblendet (LockLayout.hidden) – im Editor bleibt sie als
+        // Platzhalter stehen, den Griff dimmt EditHandle
+        opacity: view.shown && (view.preview || !LockLayout.hidden("clock")) ? 1 : 0
+        visible: opacity > 0
         scale: view.gone ? 0.96 : 1
 
         Behavior on y {
@@ -256,7 +259,7 @@ Item {
     LockMedia {
         id: media
 
-        readonly property bool wanted: view.preview || (view.primary && Config.lock.media && Media.available)
+        readonly property bool wanted: view.preview || (view.primary && !LockLayout.hidden("media") && Media.available)
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.horizontalCenterOffset: LockLayout.offsetX("media", view.width)
@@ -272,6 +275,72 @@ Item {
         }
         Behavior on opacity {
             NumberAnimation { duration: view.exitMode ? view.overlayOut : view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+    }
+
+    // ---- Widgets (LockLayout.widgets, nur Hauptmonitor) ----
+    // ListModel statt des Arrays: jede Aenderung am Layout (auch waehrend
+    // des Ziehens im Editor) baute sonst alle Widgets neu auf
+    ListModel {
+        id: widgetModel
+    }
+
+    function syncWidgets(): void {
+        const ids = (view.primary || view.preview) ? LockLayout.widgets.map(w => w.id) : [];
+        for (let i = widgetModel.count - 1; i >= 0; i--)
+            if (!ids.includes(widgetModel.get(i).wid))
+                widgetModel.remove(i);
+        for (const id of ids) {
+            let found = false;
+            for (let i = 0; i < widgetModel.count; i++)
+                if (widgetModel.get(i).wid === id)
+                    found = true;
+            if (!found)
+                widgetModel.append({ wid: id });
+        }
+    }
+
+    Connections {
+        target: LockLayout
+        function onWidgetsChanged(): void {
+            view.syncWidgets();
+        }
+    }
+    onPrimaryChanged: view.syncWidgets()
+    Component.onCompleted: view.syncWidgets()
+
+    // Fuer den Editor: Element eines Widgets (EditHandle.target)
+    property int widgetRevision: 0
+
+    function widgetItem(id: string): Item {
+        for (let i = 0; i < widgetRepeater.count; i++) {
+            const it = widgetRepeater.itemAt(i);
+            if (it && it.wid === id)
+                return it;
+        }
+        return null;
+    }
+
+    Item {
+        id: widgetLayer
+
+        anchors.fill: parent
+        opacity: view.shown ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: view.exitMode ? view.overlayOut : view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+
+        Repeater {
+            id: widgetRepeater
+
+            model: widgetModel
+            onItemAdded: view.widgetRevision++
+            onItemRemoved: view.widgetRevision++
+
+            LockWidget {
+                active: view.shown
+            }
         }
     }
 

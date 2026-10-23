@@ -18,6 +18,11 @@ Rectangle {
 
     required property var widget
     property string screenName: ""
+    // Wohin die Aenderungen gehen: Scenes (Desktop) oder LockLayout
+    // (Sperrbildschirm) – beide haben patch/setOpt/duplicate/remove
+    property var store: Scenes
+    // Zeile "Monitor" (nur der Desktop kennt Widgets je Monitor)
+    property bool monitors: true
 
     readonly property var info: pop.widget ? DesktopWidgets.info(pop.widget.type) : null
     readonly property real size: pop.widget?.size ?? 1
@@ -33,7 +38,7 @@ Rectangle {
     })
 
     function setSize(value: real): void {
-        Scenes.patch(pop.widget.id, { size: Number(Math.max(0.3, Math.min(8, value)).toFixed(3)) });
+        pop.store.patch(pop.widget.id, { size: Number(Math.max(0.3, Math.min(8, value)).toFixed(3)) });
     }
 
     Timer {
@@ -93,7 +98,7 @@ Rectangle {
 
             EditChip {
                 icon: "content_copy"
-                onClicked: Scenes.duplicate(pop.widget.id)
+                onClicked: pop.store.duplicate(pop.widget.id)
             }
 
             EditChip {
@@ -103,7 +108,7 @@ Rectangle {
                 armed: pop.deleteArmed
                 onClicked: {
                     if (pop.deleteArmed) {
-                        Scenes.remove(pop.widget.id);
+                        pop.store.remove(pop.widget.id);
                     } else {
                         pop.deleteArmed = true;
                         disarm.restart();
@@ -139,7 +144,7 @@ Rectangle {
 
                         text: modelData ? I18n.tr("an") : I18n.tr("aus")
                         on: !!optRow.value === modelData
-                        onClicked: Scenes.setOpt(pop.widget.id, optRow.modelData, modelData)
+                        onClicked: pop.store.setOpt(pop.widget.id, optRow.modelData, modelData)
                     }
                 }
 
@@ -158,7 +163,7 @@ Rectangle {
                             // Werte sind Config-Schluessel; nur Woerter werden uebersetzt
                             text: typeof modelData === "string" ? I18n.tr(modelData) : String(modelData)
                             on: optRow.value === modelData
-                            onClicked: Scenes.setOpt(pop.widget.id, optRow.modelData, modelData)
+                            onClicked: pop.store.setOpt(pop.widget.id, optRow.modelData, modelData)
                         }
                     }
                 }
@@ -219,7 +224,7 @@ Rectangle {
                         on: colorRow.current === modelData
                         // Name nur an der gewaehlten Farbe, sonst wird die Reihe zu breit
                         text: on ? I18n.tr(pop.colorLabels[modelData] ?? modelData) : ""
-                        onClicked: Scenes.setOpt(pop.widget.id, colorRow.modelData[0], modelData)
+                        onClicked: pop.store.setOpt(pop.widget.id, colorRow.modelData[0], modelData)
                     }
                 }
 
@@ -235,6 +240,7 @@ Rectangle {
 
         // ---- Monitor ----
         RowLayout {
+            visible: pop.monitors
             spacing: 6
 
             EditLabel {
@@ -245,13 +251,13 @@ Rectangle {
             EditChip {
                 text: I18n.tr("Beide")
                 on: !pop.widget?.monitor || pop.widget.monitor === "*"
-                onClicked: Scenes.patch(pop.widget.id, { monitor: "*" })
+                onClicked: pop.store.patch(pop.widget.id, { monitor: "*" })
             }
 
             EditChip {
                 text: I18n.tr("Nur %1").arg(pop.screenName)
                 on: pop.widget?.monitor === pop.screenName
-                onClicked: Scenes.patch(pop.widget.id, { monitor: pop.screenName })
+                onClicked: pop.store.patch(pop.widget.id, { monitor: pop.screenName })
             }
         }
     }

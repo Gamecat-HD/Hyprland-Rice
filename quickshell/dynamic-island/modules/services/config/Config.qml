@@ -49,6 +49,7 @@ Singleton {
     //          min, max, step     Zahl mit Schieberegler; `unit` haengt hinten dran
     //          requires           Zeile nur aktiv, wenn erfuellt: "bar.battery"
     //                             (Wahrheitswert) oder { "appearance.layout": "notch" }
+    //          hidden             nicht im Menue (wird anderswo bedient)
     readonly property var meta: ({
         "bar.workspaces": { title: "Workspace-Punkte" },
         "bar.workspaceCount": {
@@ -109,7 +110,9 @@ Singleton {
         },
         // Sperrbildschirm (modules/lock)
         "lock.blur": { title: "Wallpaper unscharf" },
-        "lock.media": { title: "Medien-Karte" },
+        // Sichtbarkeit von Uhr/Karte steht im Anordnungs-Editor (lock.layout
+        // hidden); der alte Schalter gilt nur noch als Vorgabe dafuer
+        "lock.media": { title: "Medien-Karte", hidden: true },
         "lock.notifications": { title: "Nachrichten-Zaehler" },
         "lock.layout": { title: "Anordnung", editor: "lock" },
         // Inaktivitaet (services/idle), ersetzt hypridle

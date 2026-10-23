@@ -6,9 +6,9 @@ import qs
 import qs.modules.desktop
 import qs.modules.lock
 
-// Leiste des Anordnungs-Editors (EditStage.qml): Zuruecksetzen auf die
-// Vorgabe (fragt einmal nach), Abbrechen (alles seit dem Start zurueck),
-// Fertig. Gleicher Bau wie die Leiste der Desktop-Widgets (EditBar.qml).
+// Leiste des Anordnungs-Editors (EditStage.qml): Widget hinzufuegen,
+// Zuruecksetzen von Uhr und Karte auf die Vorgabe (fragt einmal nach),
+// Abbrechen (alles seit dem Start zurueck), Fertig. Gleicher Bau wie die Leiste der Desktop-Widgets (EditBar.qml).
 Rectangle {
     id: bar
 
@@ -52,6 +52,28 @@ Rectangle {
 
         anchors.centerIn: parent
         spacing: 6
+
+        EditChip {
+            icon: "add"
+            text: I18n.tr("Widget")
+            on: LockLayout.adding
+            onClicked: {
+                if (LockLayout.adding) {
+                    LockLayout.adding = false;
+                } else {
+                    LockLayout.selected = "";
+                    LockLayout.openPicker(null);
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.preferredWidth: 1
+            Layout.preferredHeight: 18
+            Layout.leftMargin: 4
+            Layout.rightMargin: 4
+            color: Colors.alpha(Colors.outline, 0.5)
+        }
 
         EditChip {
             icon: bar.resetArmed ? "check" : "restart_alt"

@@ -146,6 +146,9 @@ Surface {
             for (const key of keys) {
                 const id = `${section}.${key}`;
                 const meta = Plugins.metaFor(id);
+                // Schluessel, die woanders bedient werden (meta.hidden)
+                if (meta?.hidden)
+                    continue;
                 const entry = {
                     id,
                     section,

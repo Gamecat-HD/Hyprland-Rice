@@ -12,7 +12,7 @@ import qs.modules.lock.edit
 // (LockLayout.qml), Esc/Abbrechen stellt den Stand vom Anfang wieder her.
 //
 // Start: LockLayout.edit(), Einstellungen > Sperrbildschirm > Anordnung
-//        oder  qs -c dynamic-island ipc call lockedit edit|done|cancel|toggle
+//        oder  qs -c dynamic-island ipc call lockedit edit|done|cancel|toggle|add <typ>
 Scope {
     LazyLoader {
         active: LockLayout.editing
@@ -34,6 +34,10 @@ Scope {
         }
         function toggle(): void {
             LockLayout.toggleEdit(Hyprland.focusedMonitor?.name ?? "");
+        }
+        // Widget hinzufuegen (nur waehrend des Bearbeitens), z.B. "weather"
+        function add(type: string): void {
+            LockLayout.add(type);
         }
     }
 }

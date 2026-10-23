@@ -19,6 +19,12 @@ import qs.modules.services.desktop
 Rectangle {
     id: picker
 
+    // Wohin hinzugefuegt wird: Scenes (Desktop) oder LockLayout
+    // (Sperrbildschirm) – beide haben add/widgets/adding/addAt
+    property var store: Scenes
+    // Typen, die hier nicht angeboten werden
+    property var exclude: []
+
     readonly property real tileW: 216
     readonly property real gap: 8
     readonly property real pad: 16
@@ -26,7 +32,7 @@ Rectangle {
 
     // Maus ueber der Auswahl: Widgets darunter sperren (WidgetHost.blocked)
     readonly property bool hovered: pickerHover.hovered
-    readonly property bool here: Scenes.addAt !== null
+    readonly property bool here: picker.store.addAt !== null
 
     property string query: ""
     property int current: 0
@@ -37,7 +43,7 @@ Rectangle {
         const out = [];
         for (const t of DesktopWidgets.typeNames) {
             const i = DesktopWidgets.info(t);
-            if (!i)
+            if (!i || picker.exclude.includes(t))
                 continue;
             out.push({
                 type: t,
@@ -65,7 +71,7 @@ Rectangle {
     // Wie oft jeder Typ schon in der Szene steht
     readonly property var counts: {
         const out = {};
-        for (const w of Scenes.widgets)
+        for (const w of picker.store.widgets)
             out[w.type] = (out[w.type] ?? 0) + 1;
         return out;
     }
@@ -77,7 +83,7 @@ Rectangle {
     // galte er als Klick ins Leere und hoebe die Auswahl des neuen Widgets
     // gleich wieder auf
     function pick(type: string): void {
-        Qt.callLater(() => Scenes.add(type));
+        Qt.callLater(() => picker.store.add(type));
     }
 
     function move(delta: int): void {
@@ -248,7 +254,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 icon: "close"
-                onClicked: Scenes.adding = false
+                onClicked: picker.store.adding = false
             }
         }
 
