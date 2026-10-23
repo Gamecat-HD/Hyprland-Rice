@@ -138,16 +138,17 @@
         }
       },
       {
-        "id": "wwea571",
-        "type": "weather",
-        "x": 0.105,
-        "y": 0.42,
+        "id": "wnp571",
+        "type": "nowplaying",
+        "x": 0.87,
+        "y": 0.6,
         "size": 0.8,
         "monitor": "*",
         "opts": {
-          "style": "aktuell",
-          "details": true,
-          "place": true,
+          "style": "vinyl",
+          "progress": true,
+          "tint": true,
+          "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#fcee0a"
         }
