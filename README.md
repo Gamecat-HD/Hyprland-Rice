@@ -10,10 +10,19 @@
 > directories, color scheme files for GTK/Qt/btop/Discord) — read it before
 > you run it.
 
-My Hyprland config with its own Quickshell interface ("dynamic-island"): a
-bar with a notch, media card, wallpaper and theme picker, Wi-Fi settings —
-plus the `dynamic-island` CLI (color schemes, wallpapers, screenshots,
-recordings).
+My personal Hyprland config with its own Quickshell interface
+("dynamic-island"): a black notch at the top center that expands into a media
+player, quick settings, app menu, system monitor, wallpaper and theme picker.
+The colors follow the wallpaper (Material You), and every wallpaper can have
+its own desktop widgets. On top of that, the `dynamic-island` CLI handles
+color schemes, wallpapers, screenshots and screen recording.
+
+This is the config exactly as it runs on my machines — including my monitor
+names and two profiles that need shells not included here (see
+[Profiles](#profiles)).
+
+The interface speaks **English** (default) and **German** — switch it under
+Settings > Appearance > Language.
 
 ![Desktop with the notch, clock and visualizer widgets](screenshots/desktop.jpg)
 
@@ -33,7 +42,7 @@ recordings).
 </table>
 
 ![Keybind overview](screenshots/tastenkuerzel.jpg)
-<sub><b>Keybind overview</b> (<code>SUPER + K</code>) — live from Hyprland, click to run</sub>
+<sub><b>Keybind overview</b> (<code>SUPER + K</code>) — live from Hyprland, click to run, keybinds can be rebound right there</sub>
 
 <sub>The screenshots show the German interface.</sub>
 
@@ -50,11 +59,6 @@ into `~/.config` — as symlinks by default, so a `git pull` in the clone
 applies right away. Whatever is already there is moved to `~/backups/` first;
 nothing is deleted.
 
-It also puts the bundled wallpapers into `~/Pictures/Wallpapers` (existing
-files are left alone). Only my own are included — the big collection the
-rest of the folder comes from is at `github.com/krishna4a6av/Wallpapers` and
-can be cloned next to it if you want.
-
 Then:
 
 ```sh
@@ -64,6 +68,16 @@ dynamic-island shell -d   # start the shell
 
 It doesn't matter where the clone lives. If you'd rather use the clone *as*
 `~/.config`, that works too — then there's nothing to place.
+
+### Options
+
+| Option | Effect |
+| --- | --- |
+| `--install-deps` | also install missing packages with `paru`/`yay` |
+| `--copy` | copy instead of symlink (run again after `git pull`) |
+| `--check` | only check, change nothing |
+| `--dry-run` | show what would happen |
+| `-y` | run without asking |
 
 ## First steps after installing
 
@@ -115,19 +129,25 @@ keybinds launch: `kitty` (terminal), `zen-browser`, `codium` (editor),
 you're missing or replace it with your own program — otherwise the keybind
 simply does nothing.
 
+### 4. Wallpapers
+
+This repo ships **no wallpapers**. Put your own images into
+`~/Pictures/Wallpapers` (subfolders work too) and pick one with `>wallpaper`
+in the app menu, `dynamic-island wallpaper -f IMAGE` or the Wallhaven search
+(`SUPER + ALT + W`). The color scheme is generated from the image.
+
 ## Keybinds
 
-`SUPER` is the Windows key. Applies to the `simple` profile.
+`SUPER` is the Windows key. Applies to the `simple` profile. `SUPER + K`
+shows all keybinds — you can also rebind or disable them there.
 
 | Keybind | What happens |
 | --- | --- |
 | `SUPER` (alone) | the shell's app menu |
 | `SUPER + Space` | fuzzel launcher |
-| `SUPER + Q` | terminal |
-| `SUPER + W` | browser |
-| `SUPER + E` | file manager |
-| `SUPER + P` | editor |
+| `SUPER + Q` / `W` / `E` / `P` | terminal / browser / file manager / editor |
 | `SUPER + C` | close window |
+| `ALT + TAB` | next window |
 | `SUPER + F` / `SUPER + ALT + F` | fullscreen / maximize |
 | `SUPER + ALT + Space` | toggle floating |
 | `SUPER + arrow keys` | move focus |
@@ -137,21 +157,53 @@ simply does nothing.
 | `SUPER + ALT + 1…0` | move window to workspace 1–10 |
 | `CTRL + SUPER + ←/→` | previous / next workspace |
 | `SUPER + S` | toggle scratchpad workspace |
-| `SUPER + M` | Spotify workspace |
+| `SUPER + M` | Spotify workspace (starts Spotify if needed) |
 | `SUPER + D` | Discord workspace |
-| `CTRL + SHIFT + Esc` | system monitor |
+| `CTRL + SHIFT + Esc` | system monitor (btop) |
 | `SUPER + A` / `N` / `I` / `X` | controls / notifications / system / power |
-| `SUPER + L` | lock screen |
+| `SUPER + K` | keybind overview |
+| `SUPER + L` / `SUPER + SHIFT + L` | lock screen / suspend |
 | `SUPER + V` | clipboard history |
 | `SUPER + .` | emoji picker |
 | `Print` / `SUPER + SHIFT + S` | screenshot of the whole screen / a region |
 | `SUPER + SHIFT + C` | color picker |
 | `CTRL + ALT + R` | start/stop screen recording |
 | `SUPER + SHIFT + W` | random wallpaper |
-| `CTRL + SUPER + ALT + R` | restart the shell (bar) |
+| `CTRL + SUPER + SHIFT + T` | random color scheme |
+| `SUPER + ALT + W` | search wallpapers on wallhaven.cc |
+| `SUPER + ALT + D` | arrange desktop widgets (`Esc` = done) |
+| `CTRL + SUPER + ALT + R` | restart the shell |
 
-All keybinds are at the bottom of `hypr/profiles/simple.lua` under
-`Keybinds` — you can change them there too.
+The defaults are at the bottom of `hypr/profiles/simple.lua` under
+`Keybinds`; changes made in the overview are stored in
+`~/.config/dynamic-island/keybinds.json`.
+
+## Desktop widgets and plugins
+
+The desktop widgets belong to the wallpaper: `dynamic-island/scenes.json`
+maps each image (or a whole folder, keys ending in `/`) to a list of widgets
+with position and style. The bundled file is arranged for my own wallpapers;
+for yours, press `SUPER + ALT + D`, move widgets with the mouse and
+right-click to add new ones.
+
+Widgets and a few extras are plugins (`quickshell/dynamic-island/plugins/`),
+turned on and off under Settings > Plugins:
+
+| Plugin | What it does |
+| --- | --- |
+| Desktop widgets | the widget layer itself, plus clock, visualizer and lyrics |
+| Calendar, Weather, System monitor, Now playing | more desktop widgets (weather from open-meteo, no API key) |
+| Matrix rain, Bonsai, Terminal widget | eye candy: GPU-shader matrix, ASCII bonsai, any terminal program (cmatrix, cava, btop …) in a transparent kitty panel |
+| Wallhaven | search wallhaven.cc right in the wallpaper picker, with live preview |
+| Terminal looks | starship prompt and fastfetch follow the color scheme or the wallpaper folder's look (off by default) |
+
+Plugins can be exported and imported as `.dip` packages, from the settings or
+with `dynamic-island plugin export|import`. To write your own: start with
+`dynamic-island plugin new <id>`; the format is documented in
+[`quickshell/dynamic-island/plugins/README.md`](quickshell/dynamic-island/plugins/README.md).
+
+The shell itself is configured in the settings window (`>settings` in the
+app menu) — it writes `~/.config/dynamic-island/shell.json`.
 
 ## Updating
 
@@ -173,8 +225,10 @@ own changes on GitHub: click **Fork** at the top right, then clone your fork.
 
 ## When something doesn't work
 
+* **What's missing?** `./dynamic-island/install.sh --check`
 * **No bar / no wallpaper:** `hypr-profile status` shows what's running.
-  Usually `hypr-profile simple` or `CTRL + SUPER + ALT + R` helps.
+  Usually `hypr-profile simple` or `CTRL + SUPER + ALT + R` helps. Error
+  messages: `qs -c dynamic-island log`.
 * **Profile switcher:** `CTRL + SUPER + SHIFT + P` cycles through
   `caelestia`, `simple` and `shell2`. The other two are my tinkering profiles
   and need shells that aren't in this repo — only `simple` makes sense for
@@ -182,6 +236,10 @@ own changes on GitHub: click **Fork** at the top right, then clone your fork.
 * **Error in `simple.lua`:** Hyprland then falls back to the `caelestia`
   profile automatically (windows work, the bar is missing). Fix the error,
   then run `hypr-profile simple`.
+* **Empty boxes instead of icons:** the Material Symbols font is missing
+  (`ttf-material-symbols-variable-git` from the AUR).
+* **Notifications don't arrive:** another daemon (mako, dunst, swaync) owns
+  the DBus name — turn it off, the shell brings its own.
 * **Screen sharing (Discord, OBS) doesn't work:** Hyprland starts
   `hyprland-session.target` at login. You don't have that file yet, create it
   once:
@@ -200,17 +258,6 @@ own changes on GitHub: click **Fork** at the top right, then clone your fork.
   ```
 
   Then log out and back in once.
-* **What else is missing?** `./dynamic-island/install.sh --check`
-
-### Options
-
-| Option | Effect |
-| --- | --- |
-| `--install-deps` | also install missing packages with `paru`/`yay` |
-| `--copy` | copy instead of symlink (run again after `git pull`) |
-| `--check` | only check, change nothing |
-| `--dry-run` | show what would happen |
-| `-y` | run without asking |
 
 ## Requirements
 
@@ -225,9 +272,6 @@ Several indicators depend on system services the shell talks to over DBus:
 media player), `ddcutil` (brightness via DDC/CI), `nordvpn` and `warp-cli`
 (selectable providers for the VPN tile) — without them only that particular
 feature is missing.
-
-The shell brings its own notifications; any other daemon (mako, dunst,
-swaync) must be off, otherwise it takes the DBus name.
 
 `./dynamic-island/install.sh --check` tells you what's missing.
 

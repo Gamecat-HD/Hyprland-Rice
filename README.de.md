@@ -10,16 +10,25 @@
 > System an (Symlinks, Verzeichnisse, Farbschema-Dateien fuer GTK/Qt/btop/
 > Discord) — lies es durch, bevor du es laufen laesst.
 
-Meine Hyprland-Konfiguration mit eigener Quickshell-Oberflaeche
-("dynamic-island"): Leiste mit Notch, Medien-Karte, Wallpaper- und
-Theme-Auswahl, WLAN-Einstellungen — dazu die CLI `dynamic-island`
-(Farbschemata, Wallpaper, Screenshots, Aufnahmen).
+Meine persoenliche Hyprland-Konfiguration mit eigener Quickshell-Oberflaeche
+("dynamic-island"): eine schwarze Notch oben in der Mitte, die sich zu
+Medien-Player, Schnelleinstellungen, App-Menue, Systemmonitor, Wallpaper- und
+Theme-Auswahl aufklappt. Die Farben folgen dem Wallpaper (Material You), und
+jedes Wallpaper kann eigene Desktop-Widgets haben. Dazu kommt die CLI
+`dynamic-island` fuer Farbschemata, Wallpaper, Screenshots und Aufnahmen.
+
+Das ist die Config genau so, wie sie auf meinen Rechnern laeuft — inklusive
+meiner Monitornamen und zwei Profilen, die Shells brauchen, die hier nicht
+drin sind (siehe [Profile](#profile)).
+
+Die Oberflaeche spricht **Englisch** (Vorgabe) und **Deutsch** — umschalten
+unter Einstellungen > Darstellung > Sprache.
 
 ![Desktop mit Notch, Uhr- und Visualiser-Widget](screenshots/desktop.jpg)
 
 <table>
   <tr>
-    <td width="50%"><img src="screenshots/medien.jpg" alt="Medien-Panel"><br><sub><b>Medien</b> — Cover, Songtext, Warteschlange (ueber die Notch oder <code>&gt;medien</code>)</sub></td>
+    <td width="50%"><img src="screenshots/medien.jpg" alt="Medien-Panel"><br><sub><b>Medien</b> — Cover, Songtext, Warteschlange (ueber die Notch)</sub></td>
     <td width="50%"><img src="screenshots/steuerung.jpg" alt="Steuerung"><br><sub><b>Steuerung</b> — Schnelleinstellungen wie bei Android (<code>SUPER + A</code>)</sub></td>
   </tr>
   <tr>
@@ -33,7 +42,7 @@ Theme-Auswahl, WLAN-Einstellungen — dazu die CLI `dynamic-island`
 </table>
 
 ![Tastenkuerzel-Uebersicht](screenshots/tastenkuerzel.jpg)
-<sub><b>Tastenkuerzel-Uebersicht</b> (<code>SUPER + K</code>) — live aus Hyprland, Klick fuehrt aus</sub>
+<sub><b>Tastenkuerzel-Uebersicht</b> (<code>SUPER + K</code>) — live aus Hyprland, Klick fuehrt aus, Kuerzel lassen sich dort neu belegen</sub>
 
 ## Installieren
 
@@ -48,11 +57,6 @@ Das Skript verteilt `hypr/`, `quickshell/dynamic-island/` und
 `git pull` im Klon sofort gilt. Was dort schon liegt, wandert vorher nach
 `~/backups/`, nichts wird geloescht.
 
-Dabei landen auch die mitgelieferten Wallpaper in `~/Pictures/Wallpapers`
-(vorhandene Dateien bleiben unangetastet). Es sind nur die eigenen — die grosse
-Sammlung, aus der der Rest des Ordners stammt, liegt unter
-`github.com/krishna4a6av/Wallpapers` und laesst sich bei Bedarf daneben klonen.
-
 Danach:
 
 ```sh
@@ -62,6 +66,16 @@ dynamic-island shell -d   # Shell starten
 
 Wo der Klon liegt, ist egal. Wer den Klon lieber *als* `~/.config` haben will,
 kann das auch — dann faellt das Verteilen weg.
+
+### Optionen
+
+| Option | Wirkung |
+| --- | --- |
+| `--install-deps` | fehlende Pakete per `paru`/`yay` mitinstallieren |
+| `--copy` | kopieren statt verlinken (nach `git pull` erneut ausfuehren) |
+| `--check` | nur pruefen, nichts aendern |
+| `--dry-run` | zeigen, was passieren wuerde |
+| `-y` | ohne Rueckfrage durchlaufen |
 
 ## Erste Schritte nach der Installation
 
@@ -114,19 +128,25 @@ Tastenkuerzel starten: `kitty` (Terminal), `zen-browser`, `codium` (Editor),
 installiert hast, entweder installieren oder durch dein Programm ersetzen —
 sonst passiert beim Kuerzel einfach nichts.
 
+### 4. Wallpaper
+
+In diesem Repo sind **keine Wallpaper**. Eigene Bilder nach
+`~/Pictures/Wallpapers` legen (auch in Unterordner) und per `>wallpaper` im
+App-Menue, `dynamic-island wallpaper -f BILD` oder ueber die Wallhaven-Suche
+(`SUPER + ALT + W`) setzen. Das Farbschema entsteht dabei aus dem Bild.
+
 ## Tastenkuerzel
 
-`SUPER` ist die Windows-Taste. Gilt fuer das Profil `simple`.
+`SUPER` ist die Windows-Taste. Gilt fuer das Profil `simple`. Alle Kuerzel
+zeigt `SUPER + K` — dort kann man sie auch neu belegen oder abschalten.
 
 | Kuerzel | Was passiert |
 | --- | --- |
 | `SUPER` (allein) | App-Menue der Shell |
 | `SUPER + Space` | fuzzel-Launcher |
-| `SUPER + Q` | Terminal |
-| `SUPER + W` | Browser |
-| `SUPER + E` | Dateimanager |
-| `SUPER + P` | Editor |
+| `SUPER + Q` / `W` / `E` / `P` | Terminal / Browser / Dateimanager / Editor |
 | `SUPER + C` | Fenster schliessen |
+| `ALT + TAB` | naechstes Fenster |
 | `SUPER + F` / `SUPER + ALT + F` | Vollbild / maximieren |
 | `SUPER + ALT + Space` | Fenster schwebend (floating) |
 | `SUPER + Pfeiltasten` | Fokus wechseln |
@@ -136,21 +156,52 @@ sonst passiert beim Kuerzel einfach nichts.
 | `SUPER + ALT + 1…0` | Fenster auf Workspace 1–10 schieben |
 | `CTRL + SUPER + ←/→` | vorheriger / naechster Workspace |
 | `SUPER + S` | Scratchpad-Workspace ein/aus |
-| `SUPER + M` | Spotify-Workspace |
+| `SUPER + M` | Spotify-Workspace (startet Spotify bei Bedarf) |
 | `SUPER + D` | Discord-Workspace |
-| `CTRL + SHIFT + Esc` | Systemmonitor |
+| `CTRL + SHIFT + Esc` | Systemmonitor (btop) |
 | `SUPER + A` / `N` / `I` / `X` | Steuerung / Benachrichtigungen / System / Power |
-| `SUPER + L` | Bildschirm sperren |
+| `SUPER + K` | Tastenkuerzel-Uebersicht |
+| `SUPER + L` / `SUPER + SHIFT + L` | Bildschirm sperren / Standby |
 | `SUPER + V` | Zwischenablage-Verlauf |
 | `SUPER + .` | Emoji-Picker |
 | `Druck` / `SUPER + SHIFT + S` | Screenshot ganzer Bildschirm / Bereich |
 | `SUPER + SHIFT + C` | Farbpipette |
 | `CTRL + ALT + R` | Bildschirmaufnahme starten/stoppen |
 | `SUPER + SHIFT + W` | zufaelliges Wallpaper |
-| `CTRL + SUPER + ALT + R` | Shell (Leiste) neu starten |
+| `CTRL + SUPER + SHIFT + T` | zufaelliges Farbschema |
+| `SUPER + ALT + W` | Wallpaper von wallhaven.cc suchen |
+| `SUPER + ALT + D` | Desktop-Widgets anordnen (`Esc` = fertig) |
+| `CTRL + SUPER + ALT + R` | Shell neu starten |
 
-Alle Kuerzel stehen unten in `hypr/profiles/simple.lua` unter `Keybinds` —
-dort kannst du sie auch aendern.
+Die Vorgaben stehen unten in `hypr/profiles/simple.lua` unter `Keybinds`;
+Aenderungen aus der Uebersicht landen in `~/.config/dynamic-island/keybinds.json`.
+
+## Desktop-Widgets und Plugins
+
+Die Desktop-Widgets haengen am Wallpaper: `dynamic-island/scenes.json` ordnet
+jedem Bild (oder ganzen Ordner, Schluessel mit `/` am Ende) eine Liste von
+Widgets mit Position und Stil zu. Die mitgelieferte Datei ist fuer meine
+eigenen Wallpaper angeordnet; fuer deine: `SUPER + ALT + D`, Widgets per Maus
+verschieben, Rechtsklick fuegt neue hinzu.
+
+Widgets und ein paar Extras sind Plugins (`quickshell/dynamic-island/plugins/`),
+an- und abschalten unter Einstellungen > Plugins:
+
+| Plugin | Was es macht |
+| --- | --- |
+| Desktop-Widgets | die Widget-Ebene selbst, dazu Uhr, Visualiser und Songtext |
+| Kalender, Wetter, Systemmonitor, Jetzt laeuft | weitere Desktop-Widgets (Wetter von open-meteo, ohne API-Key) |
+| Matrix-Regen, Bonsai, Terminal-Widget | Deko: Matrix als GPU-Shader, ASCII-Bonsai, beliebiges Terminal-Programm (cmatrix, cava, btop …) in einem durchsichtigen kitty-Panel |
+| Wallhaven | wallhaven.cc direkt in der Wallpaper-Auswahl durchsuchen, mit Live-Vorschau |
+| Terminal-Looks | starship-Prompt und fastfetch folgen dem Farbschema oder dem Look des Wallpaper-Ordners (standardmaessig aus) |
+
+Plugins lassen sich als `.dip`-Paket exportieren und importieren, in den
+Einstellungen oder per `dynamic-island plugin export|import`. Eigene Plugins:
+mit `dynamic-island plugin new <id>` anfangen, das Format steht (englisch) in
+[`quickshell/dynamic-island/plugins/README.md`](quickshell/dynamic-island/plugins/README.md).
+
+Die Shell selbst stellt man im Einstellungsfenster ein (`>settings` im
+App-Menue) — das schreibt `~/.config/dynamic-island/shell.json`.
 
 ## Updates holen
 
@@ -173,8 +224,10 @@ deinen Fork klonen.
 
 ## Wenn was nicht geht
 
+* **Was fehlt?** `./dynamic-island/install.sh --check`
 * **Keine Leiste / kein Wallpaper:** `hypr-profile status` zeigt, was laeuft.
   Meistens hilft `hypr-profile simple` oder `CTRL + SUPER + ALT + R`.
+  Fehlermeldungen: `qs -c dynamic-island log`.
 * **Profil-Umschalter:** `CTRL + SUPER + SHIFT + P` schaltet zwischen
   `caelestia`, `simple` und `shell2` durch. Die anderen beiden sind meine
   Bastel-Profile und brauchen Shells, die nicht im Repo sind — fuer dich ist
@@ -182,6 +235,10 @@ deinen Fork klonen.
 * **Fehler in `simple.lua`:** Dann springt Hyprland automatisch auf das
   Profil `caelestia` zurueck (Fenster gehen, Leiste fehlt). Fehler beheben,
   danach `hypr-profile simple`.
+* **Leere Kaestchen statt Icons:** die Schrift Material Symbols fehlt
+  (`ttf-material-symbols-variable-git` aus dem AUR).
+* **Benachrichtigungen kommen nicht an:** ein anderer Daemon (mako, dunst,
+  swaync) belegt den DBus-Namen — abschalten, die Shell bringt ihren eigenen mit.
 * **Bildschirm teilen (Discord, OBS) geht nicht:** Hyprland startet beim
   Login `hyprland-session.target`. Die Datei fehlt bei dir noch, einmal
   anlegen:
@@ -200,17 +257,6 @@ deinen Fork klonen.
   ```
 
   Danach einmal ab- und wieder anmelden.
-* **Was fehlt sonst?** `./dynamic-island/install.sh --check`
-
-### Optionen
-
-| Option | Wirkung |
-| --- | --- |
-| `--install-deps` | fehlende Pakete per `paru`/`yay` mitinstallieren |
-| `--copy` | kopieren statt verlinken (nach `git pull` erneut ausfuehren) |
-| `--check` | nur pruefen, nichts aendern |
-| `--dry-run` | zeigen, was passieren wuerde |
-| `-y` | ohne Rueckfrage durchlaufen |
 
 ## Voraussetzungen
 
@@ -223,11 +269,8 @@ Mehrere Anzeigen haengen an Systemdiensten, mit denen die Shell ueber DBus
 redet: **NetworkManager** (WLAN), **bluez** (Bluetooth), **upower** (Akku) und
 **power-profiles-daemon** (Energieprofile). Optional sind `cava` (Balken im
 Medien-Player), `ddcutil` (Helligkeit ueber DDC/CI), `nordvpn` und `warp-cli`
-(waehlbare Anbieter der VPN-Kachel) —
-ohne sie faellt nur die jeweilige Einzelheit aus.
-
-Benachrichtigungen bringt die Shell selbst mit; ein zweiter Daemon (mako, dunst,
-swaync) muss aus sein, sonst belegt er den DBus-Namen.
+(waehlbare Anbieter der VPN-Kachel) — ohne sie faellt nur die jeweilige
+Einzelheit aus.
 
 `./dynamic-island/install.sh --check` sagt, was davon fehlt.
 
