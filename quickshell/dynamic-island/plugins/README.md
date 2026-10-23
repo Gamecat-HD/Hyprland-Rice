@@ -1,70 +1,70 @@
 # Plugins
 
-Ein Plugin ist ein Ordner `plugins/<id>/` neben `shell.qml`. Die Shell findet
-neue Ordner selbst (kein Neustart), Ordner mit `_` oder `.` am Anfang werden
-übersprungen (`_example/` ist die Vorlage für `dynamic-island plugin new`).
+A plugin is a folder `plugins/<id>/` next to `shell.qml`. The shell picks up
+new folders on its own (no restart); folders starting with `_` or `.` are
+skipped (`_example/` is the template for `dynamic-island plugin new`).
 
 ```
 plugins/
   terminal/
-    plugin.json     Manifest (Pflicht)
-    Main.qml        Dienst, läuft solange das Plugin an ist (optional)
-    Tile.qml        Schnellkachel (optional, beliebig viele)
-    Section.qml     Sektion in einer Ansicht der Shell (optional, je Ansicht eine)
+    plugin.json     manifest (required)
+    Main.qml        service, runs while the plugin is enabled (optional)
+    Tile.qml        quick settings tile (optional, any number)
+    Section.qml     section in one of the shell's views (optional, one per view)
 ```
 
-Kern: `modules/services/plugins/Plugins.qml` (Singleton) + `PluginHost.qml`
-(je Plugin). Zustand pro Rechner: `~/.config/dynamic-island/plugins.json`
-(nicht im Git, wie `shell.json`).
+Core: `modules/services/plugins/Plugins.qml` (singleton) + `PluginHost.qml`
+(one per plugin). Per-machine state: `~/.config/dynamic-island/plugins.json`
+(not in Git, like `shell.json`).
 
 ## Manifest `plugin.json`
 
-| Feld | Pflicht | Bedeutung |
+| Field | Required | Meaning |
 |---|---|---|
-| `id` | ja | `a-z 0-9 -`, max. 48 Zeichen, **gleich dem Ordnernamen** |
-| `name` | ja | Anzeigename |
-| `api` | ja | Plugin-API, die das Plugin braucht (aktuell `1`; größere werden nicht geladen) |
-| `version` | – | Semver-artig, wird beim Import verglichen |
-| `description`, `author`, `homepage` | – | Text für die Verwaltung |
-| `icon` | – | Material-Symbols-Name (Standard `extension`) |
-| `defaultEnabled` | – | An, solange `plugins.json` nichts anderes sagt. Importierte Plugins sind trotzdem erst einmal **aus**. |
-| `main` | – | QML-Datei des Dienstes (relativ) |
-| `settings` | – | Einstellungen, s.u. |
-| `tiles` | – | Schnellkacheln, s.u. |
-| `panels` | – | Sektionen in Ansichten der Shell (bisher: Wallpaper-Auswahl), s.u. |
-| `widgets` | – | Desktop-Widgets (Typen für die Szenen je Wallpaper), s.u. |
-| `keybinds` | – | Tastenkürzel in Hyprland, solange das Plugin an ist, s.u. |
-| `files` | – | Dateien außerhalb des Plugin-Ordners, die dazugehören (für Export/Import) |
-| `migrateFrom` | – | Gruppe in `shell.json`, deren Werte einmalig übernommen werden (`enabled: false` dort = Plugin bleibt aus) |
-| `parent` | – | Komponente eines anderen Plugins, s.u. |
-| `components` | – | Untermenü für die eigenen Komponenten: `{ "title", "icon", "desc" }` |
-| `builtin` | – | Gehört zur Shell: in der Verwaltung nur an/aus, `plugin remove` nur mit `--force` |
+| `id` | yes | `a-z 0-9 -`, max. 48 characters, **same as the folder name** |
+| `name` | yes | display name |
+| `api` | yes | plugin API the plugin needs (currently `1`; higher ones are not loaded) |
+| `version` | – | semver-like, compared on import |
+| `description`, `author`, `homepage` | – | text for the plugin manager |
+| `icon` | – | Material Symbols name (default `extension`) |
+| `defaultEnabled` | – | on, unless `plugins.json` says otherwise. Imported plugins still start out **off**. |
+| `main` | – | QML file of the service (relative) |
+| `settings` | – | settings, see below |
+| `tiles` | – | quick settings tiles, see below |
+| `panels` | – | sections in the shell's views (so far: wallpaper picker), see below |
+| `widgets` | – | desktop widgets (types for the per-wallpaper scenes), see below |
+| `keybinds` | – | Hyprland keybinds while the plugin is enabled, see below |
+| `files` | – | files outside the plugin folder that belong to it (for export/import) |
+| `migrateFrom` | – | group in `shell.json` whose values are taken over once (`enabled: false` there = plugin stays off) |
+| `parent` | – | component of another plugin, see below |
+| `components` | – | submenu for its own components: `{ "title", "icon", "desc" }` |
+| `builtin` | – | part of the shell: only on/off in the manager, `plugin remove` only with `--force` |
 
-Schema für Editoren: `plugins/plugin.schema.json` (`"$schema": "../plugin.schema.json"`).
+Schema for editors: `plugins/plugin.schema.json` (`"$schema": "../plugin.schema.json"`).
 
 ### `settings`
 
-Gleiche Felder wie `Config.meta`, plus `default` (Pflicht – der Typ der
-Vorgabe bestimmt das Bedienelement):
+Same fields as `Config.meta`, plus `default` (required – the type of the
+default decides the control):
 
 ```json
 "settings": {
-    "theme":   { "default": true, "title": "An Theme anpassen", "desc": "…" },
-    "style":   { "default": "kurz", "options": ["kurz", "lang"], "title": "Stil" },
-    "size":    { "default": 12, "min": 8, "max": 32, "step": 1, "unit": " px", "title": "Größe" },
+    "theme":   { "default": true, "title": "Follow theme", "desc": "…" },
+    "style":   { "default": "short", "options": ["short", "long"], "title": "Style" },
+    "size":    { "default": 12, "min": 8, "max": 32, "step": 1, "unit": " px", "title": "Size" },
     "looks":   { "default": true, "title": "…", "requires": "theme" }
 }
 ```
 
-`editor` (`"quick"`, `"desktop"`) setzt statt des Bedienelements einen
-eingebauten Editor in die Zeile (so zeigt `desktop` seinen Szenen-Block).
+`editor` (`"quick"`, `"desktop"`) puts a built-in editor into the row instead
+of the control (that's how `desktop` shows its scenes block).
 
-`requires` ohne Punkt meint eine Einstellung desselben Plugins, mit Punkt eine
-Shell-Einstellung (`"bar.battery"`) oder ein anderes Plugin
-(`"plugin:<id>.<key>"`); als Objekt `{ "theme": true }` für einen bestimmten Wert.
+`requires` without a dot refers to a setting of the same plugin, with a dot to
+a shell setting (`"bar.battery"`) or another plugin (`"plugin:<id>.<key>"`);
+as an object `{ "theme": true }` for a specific value.
 
-Im Menü erscheint jedes aktive Plugin mit Einstellungen als eigene Gruppe
-`plugin:<id>` unter „Plugins“.
+In the menu, every enabled plugin with settings shows up as its own group
+`plugin:<id>` under "Plugins".
 
 ### `tiles`
 
@@ -74,10 +74,9 @@ Im Menü erscheint jedes aktive Plugin mit Einstellungen als eigene Gruppe
 }
 ```
 
-`kind`: `pill` (2 Spalten), `circle` (1), `wide` (volle Breite). Die Kachel
-heißt im Raster `<plugin>.<kachel>` und taucht nach dem Einschalten im
-Kachel-Editor unter „Ausgeblendet“ auf. Vertrag der Komponente: siehe
-Abschnitt „Kacheln“ unten.
+`kind`: `pill` (2 columns), `circle` (1), `wide` (full width). In the grid the
+tile is called `<plugin>.<tile>` and, once the plugin is enabled, shows up in
+the tile editor under "Hidden". Component contract: see "Tiles" below.
 
 ### `panels`
 
@@ -87,225 +86,229 @@ Abschnitt „Kacheln“ unten.
 }
 ```
 
-Hängt eine Sektion in eine Ansicht der Shell, je Ansicht höchstens eine pro
-Plugin. Bisher einzige Ansicht: `wallpaper`, die Wallpaper-Auswahl der Notch
-(aufklappbar unter der lokalen Reihe und der Stil-Reihe). `icon` (Vorgabe:
-Plugin-Icon) wird zum Knopf in deren Suchzeile. Hat das Plugin einen Dienst
-(`main`), erscheint die Sektion erst, wenn er läuft. Vertrag der Komponente:
-Abschnitt „Sektionen“ unten.
+Adds a section to one of the shell's views, at most one per view per plugin.
+The only view so far: `wallpaper`, the notch's wallpaper picker (expands below
+the local row and the style row). `icon` (default: plugin icon) becomes a
+button in its search bar. If the plugin has a service (`main`), the section
+only appears once it is running. Component contract: "Sections" below.
 
 ### `widgets`
 
-Desktop-Widgets, die in den Szenen (`~/.config/dynamic-island/scenes.json`,
-siehe `modules/services/desktop/Scenes.qml`) platziert werden können. Sie
-erscheinen nur, solange das Plugin `desktop` an ist – ein Widget-Paket also
-als Komponente bauen (`"parent": "desktop"`, s.u.). Je Typ:
+Desktop widgets that can be placed in the scenes
+(`~/.config/dynamic-island/scenes.json`, see
+`modules/services/desktop/Scenes.qml`). They only appear while the `desktop`
+plugin is enabled – so build a widget pack as a component
+(`"parent": "desktop"`, see below). Per type:
 
 ```json
 "widgets": {
     "matrix": {
         "title": "Matrix",
-        "desc": "Fallende Zeichen als GPU-Shader",
+        "desc": "Falling characters as a GPU shader",
         "icon": "code",
         "component": "MatrixWidget.qml",
         "size": [30, 20],
         "options": {
-            "speed": { "title": "Tempo", "values": ["langsam", "mittel", "schnell"], "default": "mittel" },
-            "trails": { "title": "Spuren", "bool": true, "default": true }
+            "speed": { "title": "Speed", "values": ["slow", "medium", "fast"], "default": "medium" },
+            "trails": { "title": "Trails", "bool": true, "default": true }
         }
     }
 }
 ```
 
-`desc` = eine Zeile für die Widget-Auswahl (Leiste „Widget“ bzw. Rechtsklick
-beim Bearbeiten). `size` = ungefähre Größe in Grundeinheiten (16 px bei 1440p) für die
-automatische Platzierung; `options` erscheinen als Chips in der
-Bearbeitungsleiste (`values` = Auswahl, `bool` = Schalter) und landen in
-`opts`. Farbe und Akzent hat jedes Widget von selbst.
+`desc` = one line for the widget picker ("Widget" bar or right-click while
+editing). `size` = rough size in base units (16 px at 1440p) for automatic
+placement; `options` show up as chips in the edit bar (`values` = choice,
+`bool` = switch) and end up in `opts`. Every widget gets color and accent
+automatically.
 
-Die Komponente bekommt vom Host (`modules/desktop/WidgetHost.qml`):
+The component receives from the host (`modules/desktop/WidgetHost.qml`):
 
-| Property | Bedeutung |
+| Property | Meaning |
 |---|---|
-| `unit` | Grundeinheit in px (16 · Monitorhöhe/1440 · Größe des Widgets) |
-| `active` | `false` = Desktop verdeckt (Fenster, Vollbild, Game-Mode): nichts rechnen, nichts animieren |
-| `editing` | Bearbeitungsmodus läuft |
-| `opts` | Optionen aus der Szene, Vorgaben schon eingesetzt |
-| `color`, `accent` | Textfarbe und Akzent |
-| `fps` | (optional deklarieren) Obergrenze für eigene Animationen, Einstellung `fps` des Plugins `desktop` |
-| `plugin` | (optional deklarieren) Kontext des Plugins, wie bei Kacheln |
+| `unit` | base unit in px (16 · monitor height/1440 · widget size) |
+| `active` | `false` = desktop covered (windows, fullscreen, game mode): compute nothing, animate nothing |
+| `editing` | edit mode is running |
+| `opts` | options from the scene, defaults already filled in |
+| `color`, `accent` | text color and accent |
+| `fps` | (declare optionally) cap for your own animations, setting `fps` of the `desktop` plugin |
+| `plugin` | (declare optionally) plugin context, like for tiles |
 
-Größe setzt das Widget selbst über `implicitWidth`/`implicitHeight`. Regeln:
-dauerhafte Bewegung nur per `Timer` mit `fps` (eine `Animation` liefe mit der
-Monitorrate), bei `active: false` alles anhalten, Bedarf an Diensten
-(`Cava.demand`, `Lyrics.demand`) nur solange `active`. `opts` kommt bei jeder
-Änderung des Widgets (auch beim Verschieben) als neues Objekt – teure Neuberechnung
-nur, wenn sich der Inhalt wirklich ändert. Beispiele: `desktop/widgets/`, `matrix/`, `bonsai/`, `tui/`.
+The widget sets its own size via `implicitWidth`/`implicitHeight`. Rules:
+continuous motion only via a `Timer` driven by `fps` (an `Animation` would run
+at the monitor's refresh rate), stop everything when `active: false`, demand
+services (`Cava.demand`, `Lyrics.demand`) only while `active`. `opts` arrives
+as a new object on every change to the widget (moving it, too) – only do
+expensive recomputation when the content actually changed. Examples:
+`desktop/widgets/`, `matrix/`, `bonsai/`, `tui/`.
 
 ### `keybinds`
 
 ```json
 "keybinds": {
-    "open":    { "keys": "SUPER + ALT + W", "title": "Wallhaven-Suche", "group": "Werkzeuge", "ipc": "open" },
-    "arrange": { "keys": "SUPER + ALT + D", "title": "Desktop-Widgets anordnen", "exec": "qs -c dynamic-island ipc call desktop toggle" }
+    "open":    { "keys": "SUPER + ALT + W", "title": "Wallhaven search", "group": "Werkzeuge", "ipc": "open" },
+    "arrange": { "keys": "SUPER + ALT + D", "title": "Arrange desktop widgets", "exec": "qs -c dynamic-island ipc call desktop toggle" }
 }
 ```
 
-Die Shell bindet sie, sobald das Plugin an ist, und nimmt sie beim Ausschalten
-wieder heraus – in Hyprland und in der Übersicht (SUPER+K). Aktion ist genau
-eins von `ipc` (ruft `ipc(cmd, arg)` des Main-Objekts, `arg` Vorgabe `"_"`)
-oder `exec` (Shell-Befehl). `keys` ist nur die Vorgabe: in der Übersicht lässt
-sich jeder Bind neu belegen oder abschalten (gespeichert in
-`~/.config/dynamic-island/keybinds.json` unter `plugin:<id>.<bind>`).
-`group` (Vorgabe: Plugin-Name) = Gruppe in der Übersicht, `title` = Zeile;
-beide ohne `|`. Optional `release`, `repeating`, `locked` wie bei `hl.bind`.
+The shell binds them as soon as the plugin is enabled and removes them again
+when it is disabled – in Hyprland and in the overview (SUPER+K). The action is
+exactly one of `ipc` (calls `ipc(cmd, arg)` on the main object, `arg` defaults
+to `"_"`) or `exec` (shell command). `keys` is only the default: in the
+overview every bind can be rebound or disabled (stored in
+`~/.config/dynamic-island/keybinds.json` under `plugin:<id>.<bind>`).
+`group` (default: plugin name) = group in the overview, `title` = row; neither
+may contain `|`. Both go through `I18n.tr`, and the shell's own group names
+are German source strings – `"Werkzeuge"` joins the built-in "Tools" group.
+Optional `release`, `repeating`, `locked` as with `hl.bind`.
 
-Technik: `modules/services/hypr/Keybinds.qml` schreibt alle Plugin- und
-eigenen Binds samt Änderungen nach `~/.local/state/dynamic-island/keybinds.lua`,
-`hypr/hyprland.lua` wendet die Datei mit `sync_keybinds()` an (beim Laden der
-Config und live per `hyprctl eval`). Nur Hypr-Profile mit
-`keybinds_from_shell = true` (simple) nehmen sie.
+Under the hood: `modules/services/hypr/Keybinds.qml` writes all plugin and
+custom binds including changes to `~/.local/state/dynamic-island/keybinds.lua`,
+`hypr/hyprland.lua` applies the file with `sync_keybinds()` (when the config
+loads and live via `hyprctl eval`). Only Hypr profiles with
+`keybinds_from_shell = true` (simple) use them.
 
-### `parent` – Komponenten
+### `parent` – components
 
 ```json
 { "id": "bonsai", "parent": "desktop", "widgets": { … } }
 ```
 
-Eine Komponente ist ein ganz normales Plugin (eigener Ordner, eigenes
-`.dip`, eigener Schalter), das zu einem anderen gehört:
+A component is a perfectly normal plugin (own folder, own `.dip`, own switch)
+that belongs to another one:
 
-- Sie läuft nur, solange ihr Plugin an ist. Ist sie selbst an, das Plugin
-  aber aus, steht sie auf „Wartet“ (`status: "blocked"`).
-- In der Verwaltung steht sie nicht oben, sondern im Untermenü ihres Plugins
-  (Knopf auf dessen Karte, Titel aus `components.title`). Der Import dort
-  nimmt nur Pakete mit passendem `parent` an (`plugin import --parent <id>`).
-- Nur eine Ebene: ein Plugin mit eigenem `parent` kann keine Komponenten
-  haben. Fehlt das Plugin, bleibt die Komponente aus und steht oben mit
-  Hinweis.
+- It only runs while its plugin is enabled. If it is on but the plugin is
+  off, it shows "Waiting" (`status: "blocked"`).
+- In the manager it isn't listed at the top but in its plugin's submenu
+  (button on that plugin's card, title from `components.title`). Importing
+  there only accepts packages with a matching `parent`
+  (`plugin import --parent <id>`).
+- One level only: a plugin that has a `parent` itself can't have components.
+  If the plugin is missing, the component stays off and is listed at the top
+  with a notice.
 
-So sind die Desktop-Widgets gebaut: `desktop/` bringt die Ebene und
-Uhr/Visualiser/Songtext mit, `bonsai/`, `matrix/`, `tui/` sind Komponenten.
+That's how the desktop widgets are built: `desktop/` provides the layer and
+clock/visualizer/lyrics, `bonsai/`, `matrix/`, `tui/` are components.
 
 ### `files`
 
 ```json
 "files": [
     { "path": "~/.config/fish/functions/fastfetch.fish" },
-    { "path": "~/.config/fastfetch", "optional": true, "note": "Looks + Bilder" }
+    { "path": "~/.config/fastfetch", "optional": true, "note": "Looks + images" }
 ]
 ```
 
-Nur Pfade unter `~/`. Ordner werden komplett mitgenommen. Die Shell selbst
-fasst diese Dateien nie an – sie sind nur für `export`/`import` da.
+Only paths under `~/`. Folders are taken along completely. The shell itself
+never touches these files – they only exist for `export`/`import`.
 
 ## Main.qml
 
 ```qml
 import QtQuick
 import Quickshell
-import qs.modules.services.config     // alle qs.*-Module der Shell gehen
+import qs.modules.services.config     // all of the shell's qs.* modules work
 
 QtObject {
-    required property var plugin       // Kontext, s.u.
+    required property var plugin       // context, see below
 
-    // optional: Launcher-Aktionen (">" im Launcher), Format wie LauncherActions
+    // optional: launcher actions (">" in the launcher), same format as LauncherActions
     readonly property var actions: [
-        { name: "Etwas tun", desc: "…", icon: "bolt", run: () => console.log("hi") }
+        { name: "Do something", desc: "…", icon: "bolt", run: () => console.log("hi") }
     ]
 
     // optional: qs -c dynamic-island ipc call plugins call <id> <cmd> <arg>
     function ipc(cmd: string, arg: string): string { return "ok"; }
 
-    // optional: nur beim echten Ausschalten (nicht bei Shell-Ende/Reload).
-    // Hier nach aussen sichtbare Spuren zuruecknehmen (Dateien, Modi …).
-    // Das Objekt wird direkt danach zerstoert – nichts Asynchrones anfangen,
-    // das es noch braucht (Quickshell.execDetached ist ok).
+    // optional: only on a real disable (not on shell exit/reload).
+    // Undo anything visible outside the plugin here (files, modes …).
+    // The object is destroyed right afterwards – don't start anything
+    // asynchronous that still needs it (Quickshell.execDetached is fine).
     function onDisable(): void {}
 }
 ```
 
-Wurzel darf jeder Typ sein (`QtObject`, `Scope`, `Item` …). Das Objekt
-entsteht beim Einschalten und wird beim Ausschalten zerstört. Nicht-visuelle
-Kinder an einem `QtObject` als `property FileView x: FileView {}` anhängen
-(oder `Scope` als Wurzel nehmen).
+The root can be any type (`QtObject`, `Scope`, `Item` …). The object is
+created when the plugin is enabled and destroyed when it is disabled. Attach
+non-visual children to a `QtObject` as `property FileView x: FileView {}`
+(or use `Scope` as the root).
 
-### Kontext `plugin`
+### Context `plugin`
 
 | | |
 |---|---|
-| `id`, `name`, `version`, `dir`, `manifest`, `enabled` | Infos |
-| `settings` | aktuelle Werte (`{ key: value }`), neues Objekt bei jeder Änderung → bindbar |
-| `setting(key)` / `set(key, value)` | lesen / schreiben (landet in `plugins.json`) |
-| `main` | das Objekt aus `main`, solange es läuft (sonst `null`) – Kacheln und Sektionen greifen so auf den Dienst zu |
-| `url(rel)` | Pfad einer Datei im Plugin-Ordner (`.qml` mit `?v=<Ladezeit>` dahinter, damit Qt nach Änderungen nicht den alten Stand aus seinem Komponenten-Cache nimmt – für `Loader.setSource`/`Qt.createComponent` immer diese URL nehmen) |
-| `statePath(rel)`, `cachePath(rel)` | `~/.local/state/dynamic-island/plugins/<id>/…`, `~/.cache/…` (nicht angelegt) |
-| `log(msg)` | `console.info` mit Präfix |
+| `id`, `name`, `version`, `dir`, `manifest`, `enabled` | info |
+| `settings` | current values (`{ key: value }`), new object on every change → bindable |
+| `setting(key)` / `set(key, value)` | read / write (ends up in `plugins.json`) |
+| `main` | the object from `main` while it is running (otherwise `null`) – that's how tiles and sections reach the service |
+| `url(rel)` | path of a file in the plugin folder (`.qml` with `?v=<load time>` appended, so Qt doesn't serve a stale version from its component cache after changes – always use this URL for `Loader.setSource`/`Qt.createComponent`) |
+| `statePath(rel)`, `cachePath(rel)` | `~/.local/state/dynamic-island/plugins/<id>/…`, `~/.cache/…` (not created) |
+| `log(msg)` | `console.info` with a prefix |
 
-## Kacheln
+## Tiles
 
-Am einfachsten mit dem fertigen Widget `QuickTile` (Optik der eingebauten
-Kacheln: aktiv = ganze Kachel in Akzentfarbe, unter 150 px nur das Symbol):
+Easiest with the ready-made `QuickTile` widget (looks like the built-in
+tiles: active = whole tile in the accent color, below 150 px only the icon):
 
 ```qml
 import qs.modules.widgets
 
 QuickTile {
     id: tile
-    active: tile.plugin.settings.lamp === true     // Kachel in Akzentfarbe
-    subtitle: tile.active ? "An" : "Aus"
-    icon: tile.active ? "lightbulb" : "light_off"  // optional, sonst aus dem Manifest
+    active: tile.plugin.settings.lamp === true     // tile in accent color
+    subtitle: tile.active ? "On" : "Off"
+    icon: tile.active ? "lightbulb" : "light_off"  // optional, otherwise from the manifest
     onToggled: tile.plugin.set("lamp", !tile.active)
 }
 ```
 
-Die Schnelleinstellungen laden die Datei aus `tiles.<id>.component` mit
-`plugin` (Kontext) als Anfangswert und setzen danach `tileId`, wenn die
-Wurzel diese Property hat. Ein eigenes Wurzel-Item geht also auch, braucht
-dann `required property var plugin`.
+Quick settings load the file from `tiles.<id>.component` with `plugin`
+(context) as the initial value and then set `tileId` if the root has that
+property. A custom root item works too, it then needs
+`required property var plugin`.
 
-`QuickTile`: `plugin`, `tileId`, `meta` (nur lesen: Manifest-Eintrag),
-`icon` (Vorgabe meta.icon → Plugin-Icon), `title` (Vorgabe meta.label),
-`subtitle`, `active`, `accent`/`onAccent` (Vorgabe primary/fgPrimary),
-`tapEnabled` (false = eigener TapHandler); nur lesen: `compact`
-(Breite < 150), `fg`, `fgDim`, `controlColor`, `controlHover` (für eigene
-Knöpfe); Signal `toggled()`; Kinder landen auf der Kachel. Höhe 54, die
-Breite gibt das Raster vor. Lädt die Datei nicht, steht dort eine
-Ersatzkachel „Kachel lädt nicht“ (Grund im Log).
+`QuickTile`: `plugin`, `tileId`, `meta` (read-only: manifest entry), `icon`
+(default meta.icon → plugin icon), `title` (default meta.label), `subtitle`,
+`active`, `accent`/`onAccent` (default primary/fgPrimary), `tapEnabled`
+(false = your own TapHandler); read-only: `compact` (width < 150), `fg`,
+`fgDim`, `controlColor`, `controlHover` (for your own buttons); signal
+`toggled()`; children are placed on the tile. Height 54, the grid decides the
+width. If the file doesn't load, a fallback tile "Tile failed to load" is
+shown instead (reason in the log).
 
-**Imports:** Plugin-QML kann alle `qs.*`-Module importieren, die die Shell
-selbst schon lädt (config, widgets, services/…, `qs` für Colors/Appearance).
-Ein Modul, das nirgends in der Shell importiert wird, gilt als „not installed“.
-Dateien im Plugin-Ordner sehen sich untereinander **nicht** als Typen („X is
-not a type“ – die Shell lädt sie über ihr `qs:`-Schema, das keinen
-Verzeichnis-Import kennt). Eine zweite QML-Datei des Plugins also über den
-Pfad laden: `Loader { Component.onCompleted: setSource(plugin.url("Liste.qml"),
-{ wert: 1 }) }` und Bindungen in `onLoaded` nachziehen (so macht es
-`plugins/wallhaven/Section.qml` mit `WallhavenList.qml`).
+**Imports:** plugin QML can import every `qs.*` module the shell already
+loads itself (config, widgets, services/…, `qs` for Colors/Appearance). A
+module that isn't imported anywhere in the shell counts as "not installed".
+Files in the plugin folder do **not** see each other as types ("X is not a
+type" – the shell loads them through its `qs:` scheme, which has no directory
+import). So load a second QML file of the plugin by path:
+`Loader { Component.onCompleted: setSource(plugin.url("List.qml"), { value: 1 }) }`
+and hook up bindings in `onLoaded` (that's what `plugins/wallhaven/Section.qml`
+does with `WallhavenList.qml`).
 
-**Neue Dateien:** Die Shell sieht Dateien, die nach ihrem Start in den
-Plugin-Ordner kommen, erst nach einem Neustart (`dynamic-island shell -k`,
-`-d`) – „File not found“ im Log, obwohl die Datei da ist. Importierte Plugins
-sind davon nicht betroffen, sie liegen vor dem Einschalten komplett da.
+**New files:** files added to the plugin folder after the shell started are
+only seen after a restart (`dynamic-island shell -k`, `-d`) – "File not found"
+in the log even though the file is there. Imported plugins aren't affected,
+they are complete before they get enabled.
 
-## Sektionen
+## Sections
 
-Eine Sektion (Manifest `panels.<ansicht>`) ist ein `Item`, das die Ansicht
-beim Aufklappen lädt und beim Zuklappen wieder zerstört – zugeklappt gibt es
-also keine Sektion, keine Timer, keine Prozesse. Was das Zuklappen überleben
-soll (Suchtext, Treffer), gehört in den Dienst (`plugin.main`). Vorbild:
+A section (manifest `panels.<view>`) is an `Item` that the view loads when it
+expands and destroys again when it collapses – so while collapsed there's no
+section, no timers, no processes. Anything that should survive collapsing
+(search text, results) belongs in the service (`plugin.main`). Reference:
 `plugins/wallhaven/Section.qml`.
 
 ```qml
 Item {
     id: section
 
-    required property var plugin        // Kontext, s.o.
-    required property var host          // was die Ansicht anbietet, s.u.
+    required property var plugin        // context, see above
+    required property var host          // what the view offers, see below
 
-    implicitHeight: 190                 // so weit wächst die Karte
+    implicitHeight: 190                 // how far the card grows
 
-    // Die Tastatur kommt – kann beim Erzeugen schon so sein
+    // keyboard focus arrives – may already be the case on creation
     readonly property bool focused: section.host.focused
     onFocusedChanged: if (focused) input.forceActiveFocus()
     Component.onCompleted: if (focused) input.forceActiveFocus()
@@ -325,48 +328,47 @@ Item {
 }
 ```
 
-Ansicht `wallpaper` (`modules/launcher/WallpaperPanel.qml`): offen ist
-höchstens eine Sektion, welche, merkt sich `LauncherState.wallpaperSection`
-(Plugin-id, bleibt über das Schließen der Auswahl hinweg). Auf/zu geht über
-den Knopf in der Suchzeile, Strg+W (erste auf, dann die nächste, nach der
-letzten zu) und `LauncherState.showWallpaperSection(screen, id)` bzw.
-`toggleWallpaperSection` (öffnet die Auswahl mit aufgeklappter Sektion und
-der Tastatur darin – so macht es `ipc("open")` des Wallhaven-Plugins). Die
-Tastatur hat entweder die lokale Reihe oder die Sektion; Hoch/Runter
-wechseln. Die Sektion belegt die Tasten in ihrem Suchfeld selbst.
+View `wallpaper` (`modules/launcher/WallpaperPanel.qml`): at most one section
+is open; which one is remembered in `LauncherState.wallpaperSection` (plugin
+id, survives closing the picker). Open/close via the button in the search
+bar, Ctrl+W (opens the first, then the next, closes after the last) and
+`LauncherState.showWallpaperSection(screen, id)` or `toggleWallpaperSection`
+(opens the picker with the section expanded and keyboard focus in it – that's
+what the Wallhaven plugin's `ipc("open")` does). The keyboard belongs either
+to the local row or to the section; Up/Down switch. The section handles the
+keys in its own search field.
 
-`host` der Wallpaper-Auswahl:
+`host` of the wallpaper picker:
 
 | | |
 |---|---|
-| `listHeight`, `imageWidth` | Maße der lokalen Reihe (Karussellhöhe, Kachelbreite) |
-| `focused` | die Sektion hat die Tastatur → Suchfeld fokussieren, eigene Vorschau zeigen |
-| `takeFocus()` | die Sektion will die Tastatur (Klick/Rad auf eine Kachel) |
-| `leaveFocus()` | Tastatur zurück in die lokale Reihe (Hoch/Runter) |
-| `toggle()` | Strg+W: nächste Sektion bzw. zu |
-| `close()` | Auswahl schließen (Esc) |
-| `cycleStyle(delta)` | Strg+Links/Rechts: Stil des markierten lokalen Bilds |
+| `listHeight`, `imageWidth` | dimensions of the local row (carousel height, tile width) |
+| `focused` | the section has the keyboard → focus the search field, show your own preview |
+| `takeFocus()` | the section wants the keyboard (click/scroll on a tile) |
+| `leaveFocus()` | keyboard back to the local row (Up/Down) |
+| `toggle()` | Ctrl+W: next section or close |
+| `close()` | close the picker (Esc) |
+| `cycleStyle(delta)` | Ctrl+Left/Right: style of the selected local image |
 
-Hintergrund-Vorschau: `Wallpapers.preview(pfad)` wie die lokale Reihe,
-`Wallpapers.previewThumb(pfad)` für ein kleines Bild (wird nur hochgezogen,
-nicht auf Bildschirmgröße dekodiert). Verliert die Sektion die Tastatur,
-stellt die Ansicht die Vorschau der lokalen Reihe selbst wieder her; beim
-Schließen der Auswahl nimmt die lokale Reihe die Vorschau zurück. Eine
-Sektion ruft `Wallpapers.stopPreview()` deshalb nicht selbst – höchstens der
-Dienst in `onDisable()`, wenn der Hintergrund gerade eines seiner Bilder
-zeigt. Setzt die Sektion ein Wallpaper, schließt sie die Auswahl mit
-`LauncherState.close()` (bzw. `host.close()`).
+Background preview: `Wallpapers.preview(path)` like the local row,
+`Wallpapers.previewThumb(path)` for a small image (only scaled up, not decoded
+at screen size). When the section loses the keyboard, the view restores the
+local row's preview itself; when the picker closes, the local row takes the
+preview back. So a section never calls `Wallpapers.stopPreview()` itself – at
+most the service does in `onDisable()`, if the background is currently
+showing one of its images. When the section sets a wallpaper, it closes the
+picker with `LauncherState.close()` (or `host.close()`).
 
-## Austauschformate
+## Exchange formats
 
-### Plugin-Paket `<id>-<version>.dip`
+### Plugin package `<id>-<version>.dip`
 
-tar.gz mit:
+tar.gz containing:
 
 ```
-dip.json          Paketkopf
-plugin/…          der Plugin-Ordner (ohne __pycache__, .qmlls.ini, .git)
-files/<n>[/…]     externe Dateien aus manifest.files (Ordner als Unterbaum)
+dip.json          package header
+plugin/…          the plugin folder (without __pycache__, .qmlls.ini, .git)
+files/<n>[/…]     external files from manifest.files (folders as a subtree)
 ```
 
 `dip.json`:
@@ -377,7 +379,7 @@ files/<n>[/…]     externe Dateien aus manifest.files (Ordner als Unterbaum)
   "formatVersion": 1,
   "plugin": { "id": "terminal", "name": "Terminal-Looks", "version": "1.0.0", "api": 1 },
   "created": "2026-10-22T11:44:48+02:00",
-  "generator": "dynamic-island plugin export (rechner)",
+  "generator": "dynamic-island plugin export (hostname)",
   "enabled": true,
   "settings": { "theme": true, "folderLooks": true },
   "files": [ { "path": "~/.config/starship.toml", "archive": "files/9", "type": "file", "optional": false } ],
@@ -385,12 +387,12 @@ files/<n>[/…]     externe Dateien aus manifest.files (Ordner als Unterbaum)
 }
 ```
 
-Beim Import geprüft: nur relative Pfade unter `dip.json`/`plugin/`/`files/`,
-nur Dateien und Ordner (keine Links/Geräte), ≤ 5000 Einträge, ≤ 512 MB,
-jede Datei mit stimmender SHA-256, Manifest nach denselben Regeln wie in der
-Shell, Zielpfade nur unter `~/`.
+Checked on import: only relative paths under `dip.json`/`plugin/`/`files/`,
+only files and folders (no links/devices), ≤ 5000 entries, ≤ 512 MB, every
+file with a matching SHA-256, manifest by the same rules as in the shell,
+target paths only under `~/`.
 
-### Einstellungen `<id>-settings.json`
+### Settings `<id>-settings.json`
 
 ```json
 {
@@ -402,32 +404,32 @@ Shell, Zielpfade nur unter `~/`.
 }
 ```
 
-Unbekannte Schlüssel werden beim Import ignoriert.
+Unknown keys are ignored on import.
 
 ## CLI
 
 ```
-dynamic-island plugin list                     ● an  ○ aus  ✗ kaputt, Komponenten mit └ darunter
+dynamic-island plugin list                     ● on  ○ off  ✗ broken, components with └ below
 dynamic-island plugin info <id>
 dynamic-island plugin enable|disable <id>
-dynamic-island plugin new <id> [--name N]      aus plugins/_example
-dynamic-island plugin validate <ordner|.dip>
-dynamic-island plugin export <id> [-o pfad] [--no-settings] [--no-files] [--skip-optional]
-dynamic-island plugin export <id> --settings-only [-o pfad]
-dynamic-island plugin import <datei.dip|.json> [--enable] [--files] [--settings|--no-settings]
+dynamic-island plugin new <id> [--name N]      from plugins/_example
+dynamic-island plugin validate <folder|.dip>
+dynamic-island plugin export <id> [-o path] [--no-settings] [--no-files] [--skip-optional]
+dynamic-island plugin export <id> --settings-only [-o path]
+dynamic-island plugin import <file.dip|.json> [--enable] [--files] [--settings|--no-settings]
                                                [--force] [--overwrite-files] [--parent <id>] [-y]
 dynamic-island plugin remove <id> [--keep-settings] [--force] [-y]
 ```
 
-Alle Befehle können `--json` (eine Zeile `{ ok, message, … }`, so ruft die
-Shell sie auf). Standardziel beim Export ist `~/Downloads`.
+Every command supports `--json` (one line `{ ok, message, … }`, that's how the
+shell calls them). The default export target is `~/Downloads`.
 
-Import-Regeln: Fremder Code läuft nie ungefragt – ein neu importiertes Plugin
-ist aus, außer mit `--enable`. Gleiche oder ältere Version über eine
-installierte nur mit `--force`. Mitgelieferte Einstellungen gelten nur, wenn
-für das Plugin noch keine gespeichert sind (`--settings` erzwingt). Externe
-Dateien nur mit `--files`; abweichende vorhandene Dateien bleiben, außer mit
-`--overwrite-files`. Ersetzte Plugins/Dateien landen in
+Import rules: foreign code never runs without asking – a freshly imported
+plugin is off unless you pass `--enable`. The same or an older version over
+an installed one only with `--force`. Bundled settings only apply if none
+are stored for the plugin yet (`--settings` forces them). External files only
+with `--files`; existing files that differ are kept unless you pass
+`--overwrite-files`. Replaced plugins/files go to
 `~/.cache/dynamic-island/plugin-backups/`.
 
 ## IPC

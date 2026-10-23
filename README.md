@@ -1,39 +1,43 @@
 # Hyprland-Rice — Dynamic Island
 
+**English** · [Deutsch](README.de.md)
+
 > [!WARNING]
-> **KI-Hinweis:** Ein grosser Teil dieses Repos — die Quickshell-Oberflaeche,
-> die CLI, das Installationsskript und auch diese README — wurde mit KI
-> (Claude Code) geschrieben. Ich nutze das selbst taeglich, aber es ist ein
-> Hobby-Projekt ohne Review durch Dritte. Das Installationsskript fasst dein
-> System an (Symlinks, Verzeichnisse, Farbschema-Dateien fuer GTK/Qt/btop/
-> Discord) — lies es durch, bevor du es laufen laesst.
+> **AI notice:** A large part of this repo — the Quickshell interface, the
+> CLI, the install script and this README — was written with AI
+> (Claude Code). I use it every day myself, but it is a hobby project that
+> nobody else has reviewed. The install script changes your system (symlinks,
+> directories, color scheme files for GTK/Qt/btop/Discord) — read it before
+> you run it.
 
-Meine Hyprland-Konfiguration mit eigener Quickshell-Oberflaeche
-("dynamic-island"): Leiste mit Notch, Medien-Karte, Wallpaper- und
-Theme-Auswahl, WLAN-Einstellungen — dazu die CLI `dynamic-island`
-(Farbschemata, Wallpaper, Screenshots, Aufnahmen).
+My Hyprland config with its own Quickshell interface ("dynamic-island"): a
+bar with a notch, media card, wallpaper and theme picker, Wi-Fi settings —
+plus the `dynamic-island` CLI (color schemes, wallpapers, screenshots,
+recordings).
 
-![Desktop mit Notch, Uhr- und Visualiser-Widget](screenshots/desktop.jpg)
+![Desktop with the notch, clock and visualizer widgets](screenshots/desktop.jpg)
 
 <table>
   <tr>
-    <td width="50%"><img src="screenshots/medien.jpg" alt="Medien-Panel"><br><sub><b>Medien</b> — Cover, Songtext, Warteschlange (ueber die Notch oder <code>&gt;medien</code>)</sub></td>
-    <td width="50%"><img src="screenshots/steuerung.jpg" alt="Steuerung"><br><sub><b>Steuerung</b> — Schnelleinstellungen wie bei Android (<code>SUPER + A</code>)</sub></td>
+    <td width="50%"><img src="screenshots/medien.jpg" alt="Media panel"><br><sub><b>Media</b> — cover, lyrics, queue (via the notch)</sub></td>
+    <td width="50%"><img src="screenshots/steuerung.jpg" alt="Controls"><br><sub><b>Controls</b> — Android-style quick settings (<code>SUPER + A</code>)</sub></td>
   </tr>
   <tr>
-    <td><img src="screenshots/launcher.jpg" alt="App-Menue"><br><sub><b>App-Menue</b> — <code>&gt;</code> fuer Aktionen (<code>SUPER</code>)</sub></td>
-    <td><img src="screenshots/system.jpg" alt="System"><br><sub><b>System</b> — CPU, GPU, RAM, Temperaturen (<code>SUPER + I</code>)</sub></td>
+    <td><img src="screenshots/launcher.jpg" alt="App menu"><br><sub><b>App menu</b> — <code>&gt;</code> for actions (<code>SUPER</code>)</sub></td>
+    <td><img src="screenshots/system.jpg" alt="System"><br><sub><b>System</b> — CPU, GPU, RAM, temperatures (<code>SUPER + I</code>)</sub></td>
   </tr>
   <tr>
-    <td><img src="screenshots/wallpaper.jpg" alt="Wallpaper-Auswahl"><br><sub><b>Wallpaper</b> — Farbschema folgt dem Bild</sub></td>
-    <td><img src="screenshots/themes.jpg" alt="Theme-Auswahl"><br><sub><b>Themes</b> — fertige und generierte Schemata</sub></td>
+    <td><img src="screenshots/wallpaper.jpg" alt="Wallpaper picker"><br><sub><b>Wallpapers</b> — the color scheme follows the image</sub></td>
+    <td><img src="screenshots/themes.jpg" alt="Theme picker"><br><sub><b>Themes</b> — ready-made and generated schemes</sub></td>
   </tr>
 </table>
 
-![Tastenkuerzel-Uebersicht](screenshots/tastenkuerzel.jpg)
-<sub><b>Tastenkuerzel-Uebersicht</b> (<code>SUPER + K</code>) — live aus Hyprland, Klick fuehrt aus</sub>
+![Keybind overview](screenshots/tastenkuerzel.jpg)
+<sub><b>Keybind overview</b> (<code>SUPER + K</code>) — live from Hyprland, click to run</sub>
 
-## Installieren
+<sub>The screenshots show the German interface.</sub>
+
+## Installing
 
 ```sh
 git clone https://github.com/Gamecat-HD/Hyprland-Rice.git
@@ -41,58 +45,57 @@ cd Hyprland-Rice
 ./dynamic-island/install.sh --install-deps
 ```
 
-Das Skript verteilt `hypr/`, `quickshell/dynamic-island/` und
-`dynamic-island/` nach `~/.config` — standardmaessig als Symlinks, damit ein
-`git pull` im Klon sofort gilt. Was dort schon liegt, wandert vorher nach
-`~/backups/`, nichts wird geloescht.
+The script places `hypr/`, `quickshell/dynamic-island/` and `dynamic-island/`
+into `~/.config` — as symlinks by default, so a `git pull` in the clone
+applies right away. Whatever is already there is moved to `~/backups/` first;
+nothing is deleted.
 
-Dabei landen auch die mitgelieferten Wallpaper in `~/Pictures/Wallpapers`
-(vorhandene Dateien bleiben unangetastet). Es sind nur die eigenen — die grosse
-Sammlung, aus der der Rest des Ordners stammt, liegt unter
-`github.com/krishna4a6av/Wallpapers` und laesst sich bei Bedarf daneben klonen.
+It also puts the bundled wallpapers into `~/Pictures/Wallpapers` (existing
+files are left alone). Only my own are included — the big collection the
+rest of the folder comes from is at `github.com/krishna4a6av/Wallpapers` and
+can be cloned next to it if you want.
 
-Danach:
-
-```sh
-hyprctl reload            # Hyprland liest die neue Config
-dynamic-island shell -d   # Shell starten
-```
-
-Wo der Klon liegt, ist egal. Wer den Klon lieber *als* `~/.config` haben will,
-kann das auch — dann faellt das Verteilen weg.
-
-## Erste Schritte nach der Installation
-
-Die Config ist auf meinen Rechner zugeschnitten. Ein paar Stellen musst du
-fast sicher anpassen. Durch die Symlinks ist `~/.config/hypr` derselbe Ordner
-wie `hypr/` im Klon — egal wo du bearbeitest, es ist dieselbe Datei.
-Nach jeder Aenderung: `hyprctl reload`. Tippfehler meldet Hyprland oben als
-rote Leiste.
-
-### 1. Monitore (wichtigster Punkt)
-
-Erst nachschauen, wie deine Bildschirme heissen:
+Then:
 
 ```sh
-hyprctl monitors    # Namen wie HDMI-A-1, DP-1, eDP-1 + moegliche Aufloesungen
+hyprctl reload            # Hyprland reads the new config
+dynamic-island shell -d   # start the shell
 ```
 
-In `hypr/hyprland.lua` stehen oben meine drei (`HDMI-A-1` links, `DP-2`
-rechts, `eDP-1` = Laptop). Trag dort deine Namen, Aufloesung, Hz-Zahl und
-Position ein, ueberzaehlige Bloecke loeschen. Beispiel fuer einen Monitor:
+It doesn't matter where the clone lives. If you'd rather use the clone *as*
+`~/.config`, that works too — then there's nothing to place.
+
+## First steps after installing
+
+The config is tailored to my machine. You'll almost certainly have to adjust
+a few things. Thanks to the symlinks, `~/.config/hypr` is the same folder as
+`hypr/` in the clone — wherever you edit, it's the same file. After every
+change: `hyprctl reload`. Hyprland reports typos as a red bar at the top.
+
+### 1. Monitors (most important)
+
+First check what your screens are called:
+
+```sh
+hyprctl monitors    # names like HDMI-A-1, DP-1, eDP-1 + available resolutions
+```
+
+The top of `hypr/hyprland.lua` has my three (`HDMI-A-1` left, `DP-2` right,
+`eDP-1` = laptop). Enter your names, resolution, refresh rate and position
+there and delete the extra blocks. Example for one monitor:
 
 ```lua
 hl.monitor({
-    output   = "DP-1",            -- Name aus `hyprctl monitors`
-    mode     = "1920x1080@144",   -- oder "preferred"
+    output   = "DP-1",            -- name from `hyprctl monitors`
+    mode     = "1920x1080@144",   -- or "preferred"
     position = "0x0",
     scale    = 1,
 })
 ```
 
-Dann in `hypr/profiles/simple.lua` bei `wsMonitorOffset` dieselben Namen
-eintragen. Jeder Monitor bekommt seine eigenen Workspaces 1–10; der erste
-hat Offset `0`, ein zweiter `10`. Bei nur einem Monitor:
+Then enter the same names under `wsMonitorOffset` in
+`hypr/profiles/simple.lua`. Every monitor gets its own workspaces 1–10; the
+first has offset `0`, a second one `10`. With a single monitor:
 
 ```lua
 wsMonitorOffset = {
@@ -100,89 +103,88 @@ wsMonitorOffset = {
 },
 ```
 
-### 2. Tastatur
+### 2. Keyboard
 
-`kbLayout = "de"` in `hypr/profiles/simple.lua` — fuer US-Tastatur `"us"`.
+`kbLayout = "de"` in `hypr/profiles/simple.lua` — `"us"` for a US keyboard.
 
-### 3. Programme
+### 3. Programs
 
-Ganz oben in `hypr/profiles/simple.lua` (Block `cfg`) steht, welche Apps die
-Tastenkuerzel starten: `kitty` (Terminal), `zen-browser`, `codium` (Editor),
-`dolphin` (Dateien), `pavucontrol` (Audio), `fuzzel` (Launcher). Was du nicht
-installiert hast, entweder installieren oder durch dein Programm ersetzen —
-sonst passiert beim Kuerzel einfach nichts.
+The top of `hypr/profiles/simple.lua` (the `cfg` block) defines which apps the
+keybinds launch: `kitty` (terminal), `zen-browser`, `codium` (editor),
+`dolphin` (files), `pavucontrol` (audio), `fuzzel` (launcher). Install what
+you're missing or replace it with your own program — otherwise the keybind
+simply does nothing.
 
-## Tastenkuerzel
+## Keybinds
 
-`SUPER` ist die Windows-Taste. Gilt fuer das Profil `simple`.
+`SUPER` is the Windows key. Applies to the `simple` profile.
 
-| Kuerzel | Was passiert |
+| Keybind | What happens |
 | --- | --- |
-| `SUPER` (allein) | App-Menue der Shell |
-| `SUPER + Space` | fuzzel-Launcher |
-| `SUPER + Q` | Terminal |
-| `SUPER + W` | Browser |
-| `SUPER + E` | Dateimanager |
-| `SUPER + P` | Editor |
-| `SUPER + C` | Fenster schliessen |
-| `SUPER + F` / `SUPER + ALT + F` | Vollbild / maximieren |
-| `SUPER + ALT + Space` | Fenster schwebend (floating) |
-| `SUPER + Pfeiltasten` | Fokus wechseln |
-| `SUPER + SHIFT + Pfeiltasten` | Fenster verschieben |
-| `SUPER + linke Maustaste` / `rechte` | Fenster ziehen / Groesse aendern |
-| `SUPER + 1…0` | Workspace 1–10 (des Monitors unter dem Fokus) |
-| `SUPER + ALT + 1…0` | Fenster auf Workspace 1–10 schieben |
-| `CTRL + SUPER + ←/→` | vorheriger / naechster Workspace |
-| `SUPER + S` | Scratchpad-Workspace ein/aus |
-| `SUPER + M` | Spotify-Workspace |
-| `SUPER + D` | Discord-Workspace |
-| `CTRL + SHIFT + Esc` | Systemmonitor |
-| `SUPER + A` / `N` / `I` / `X` | Steuerung / Benachrichtigungen / System / Power |
-| `SUPER + L` | Bildschirm sperren |
-| `SUPER + V` | Zwischenablage-Verlauf |
-| `SUPER + .` | Emoji-Picker |
-| `Druck` / `SUPER + SHIFT + S` | Screenshot ganzer Bildschirm / Bereich |
-| `SUPER + SHIFT + C` | Farbpipette |
-| `CTRL + ALT + R` | Bildschirmaufnahme starten/stoppen |
-| `SUPER + SHIFT + W` | zufaelliges Wallpaper |
-| `CTRL + SUPER + ALT + R` | Shell (Leiste) neu starten |
+| `SUPER` (alone) | the shell's app menu |
+| `SUPER + Space` | fuzzel launcher |
+| `SUPER + Q` | terminal |
+| `SUPER + W` | browser |
+| `SUPER + E` | file manager |
+| `SUPER + P` | editor |
+| `SUPER + C` | close window |
+| `SUPER + F` / `SUPER + ALT + F` | fullscreen / maximize |
+| `SUPER + ALT + Space` | toggle floating |
+| `SUPER + arrow keys` | move focus |
+| `SUPER + SHIFT + arrow keys` | move window |
+| `SUPER + left mouse` / `right` | drag window / resize |
+| `SUPER + 1…0` | workspace 1–10 (of the focused monitor) |
+| `SUPER + ALT + 1…0` | move window to workspace 1–10 |
+| `CTRL + SUPER + ←/→` | previous / next workspace |
+| `SUPER + S` | toggle scratchpad workspace |
+| `SUPER + M` | Spotify workspace |
+| `SUPER + D` | Discord workspace |
+| `CTRL + SHIFT + Esc` | system monitor |
+| `SUPER + A` / `N` / `I` / `X` | controls / notifications / system / power |
+| `SUPER + L` | lock screen |
+| `SUPER + V` | clipboard history |
+| `SUPER + .` | emoji picker |
+| `Print` / `SUPER + SHIFT + S` | screenshot of the whole screen / a region |
+| `SUPER + SHIFT + C` | color picker |
+| `CTRL + ALT + R` | start/stop screen recording |
+| `SUPER + SHIFT + W` | random wallpaper |
+| `CTRL + SUPER + ALT + R` | restart the shell (bar) |
 
-Alle Kuerzel stehen unten in `hypr/profiles/simple.lua` unter `Keybinds` —
-dort kannst du sie auch aendern.
+All keybinds are at the bottom of `hypr/profiles/simple.lua` under
+`Keybinds` — you can change them there too.
 
-## Updates holen
+## Updating
 
 ```sh
-cd Hyprland-Rice   # dein Klon
+cd Hyprland-Rice   # your clone
 git pull
 hyprctl reload
 ```
 
-Hast du selbst Dateien geaendert (z. B. die Monitore), kann `git pull`
-meckern. Dann so:
+If you changed files yourself (e.g. the monitors), `git pull` may complain.
+Then:
 
 ```sh
 git stash && git pull && git stash pop
 ```
 
-Pushen geht nicht, das Repo ist fuer andere nur lesbar. Wenn du deine
-Aenderungen selbst auf GitHub sichern willst: oben rechts auf **Fork**, dann
-deinen Fork klonen.
+You can't push — the repo is read-only for others. If you want to keep your
+own changes on GitHub: click **Fork** at the top right, then clone your fork.
 
-## Wenn was nicht geht
+## When something doesn't work
 
-* **Keine Leiste / kein Wallpaper:** `hypr-profile status` zeigt, was laeuft.
-  Meistens hilft `hypr-profile simple` oder `CTRL + SUPER + ALT + R`.
-* **Profil-Umschalter:** `CTRL + SUPER + SHIFT + P` schaltet zwischen
-  `caelestia`, `simple` und `shell2` durch. Die anderen beiden sind meine
-  Bastel-Profile und brauchen Shells, die nicht im Repo sind — fuer dich ist
-  nur `simple` sinnvoll. Aus Versehen gewechselt? `hypr-profile simple`.
-* **Fehler in `simple.lua`:** Dann springt Hyprland automatisch auf das
-  Profil `caelestia` zurueck (Fenster gehen, Leiste fehlt). Fehler beheben,
-  danach `hypr-profile simple`.
-* **Bildschirm teilen (Discord, OBS) geht nicht:** Hyprland startet beim
-  Login `hyprland-session.target`. Die Datei fehlt bei dir noch, einmal
-  anlegen:
+* **No bar / no wallpaper:** `hypr-profile status` shows what's running.
+  Usually `hypr-profile simple` or `CTRL + SUPER + ALT + R` helps.
+* **Profile switcher:** `CTRL + SUPER + SHIFT + P` cycles through
+  `caelestia`, `simple` and `shell2`. The other two are my tinkering profiles
+  and need shells that aren't in this repo — only `simple` makes sense for
+  you. Switched by accident? `hypr-profile simple`.
+* **Error in `simple.lua`:** Hyprland then falls back to the `caelestia`
+  profile automatically (windows work, the bar is missing). Fix the error,
+  then run `hypr-profile simple`.
+* **Screen sharing (Discord, OBS) doesn't work:** Hyprland starts
+  `hyprland-session.target` at login. You don't have that file yet, create it
+  once:
 
   ```sh
   mkdir -p ~/.config/systemd/user
@@ -197,45 +199,51 @@ deinen Fork klonen.
   systemctl --user daemon-reload
   ```
 
-  Danach einmal ab- und wieder anmelden.
-* **Was fehlt sonst?** `./dynamic-island/install.sh --check`
+  Then log out and back in once.
+* **What else is missing?** `./dynamic-island/install.sh --check`
 
-### Optionen
+### Options
 
-| Option | Wirkung |
+| Option | Effect |
 | --- | --- |
-| `--install-deps` | fehlende Pakete per `paru`/`yay` mitinstallieren |
-| `--copy` | kopieren statt verlinken (nach `git pull` erneut ausfuehren) |
-| `--check` | nur pruefen, nichts aendern |
-| `--dry-run` | zeigen, was passieren wuerde |
-| `-y` | ohne Rueckfrage durchlaufen |
+| `--install-deps` | also install missing packages with `paru`/`yay` |
+| `--copy` | copy instead of symlink (run again after `git pull`) |
+| `--check` | only check, change nothing |
+| `--dry-run` | show what would happen |
+| `-y` | run without asking |
 
-## Voraussetzungen
+## Requirements
 
-Hyprland **mit Lua-Konfiguration** (getestet mit 0.56) — die Config ist
-`hypr/hyprland.lua`, keine `hyprland.conf`. Dazu Quickshell (getestet mit
-0.3.1), Python mit `pillow` und `materialyoucolor`, die Material-Symbols-
-Schrift und die ueblichen Wayland-Werkzeuge.
+Hyprland **with the Lua config** (tested with 0.56) — the config is
+`hypr/hyprland.lua`, not a `hyprland.conf`. Plus Quickshell (tested with
+0.3.1), Python with `pillow` and `materialyoucolor`, the Material Symbols
+font and the usual Wayland tools.
 
-Mehrere Anzeigen haengen an Systemdiensten, mit denen die Shell ueber DBus
-redet: **NetworkManager** (WLAN), **bluez** (Bluetooth), **upower** (Akku) und
-**power-profiles-daemon** (Energieprofile). Optional sind `cava` (Balken im
-Medien-Player), `ddcutil` (Helligkeit ueber DDC/CI), `nordvpn` und `warp-cli`
-(waehlbare Anbieter der VPN-Kachel) —
-ohne sie faellt nur die jeweilige Einzelheit aus.
+Several indicators depend on system services the shell talks to over DBus:
+**NetworkManager** (Wi-Fi), **bluez** (Bluetooth), **upower** (battery) and
+**power-profiles-daemon** (power profiles). Optional: `cava` (bars in the
+media player), `ddcutil` (brightness via DDC/CI), `nordvpn` and `warp-cli`
+(selectable providers for the VPN tile) — without them only that particular
+feature is missing.
 
-Benachrichtigungen bringt die Shell selbst mit; ein zweiter Daemon (mako, dunst,
-swaync) muss aus sein, sonst belegt er den DBus-Namen.
+The shell brings its own notifications; any other daemon (mako, dunst,
+swaync) must be off, otherwise it takes the DBus name.
 
-`./dynamic-island/install.sh --check` sagt, was davon fehlt.
+`./dynamic-island/install.sh --check` tells you what's missing.
 
-## Profile
+## Profiles
 
-`~/.config/hypr/profile` entscheidet, welches Profil Hyprland laedt:
+`~/.config/hypr/profile` decides which profile Hyprland loads:
 
-* `simple` — diese Rice mit der dynamic-island-Shell
-* `caelestia` — die volle Config mit der Caelestia-Shell (die liegt nicht in
-  diesem Repo)
-* `shell2` — Testprofil fuer eine neue Shell (liegt ebenfalls nicht hier)
+* `simple` — this rice with the dynamic-island shell
+* `caelestia` — the full config with the Caelestia shell (not in this repo)
+* `shell2` — test profile for a new shell (not in here either)
 
-Umschalten: `hypr-profile toggle` oder `CTRL + SUPER + SHIFT + P`.
+Switch: `hypr-profile toggle` or `CTRL + SUPER + SHIFT + P`.
+
+## Credits and license
+
+* The CLI in `dynamic-island/` is derived from
+  [caelestia-cli](https://github.com/caelestia-dots/cli) and, like it, is
+  licensed under the **GPL-3.0** ([`dynamic-island/LICENSE`](dynamic-island/LICENSE)).
+* The look of the notch is inspired by saneAspect's "Dynamite".
