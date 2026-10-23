@@ -48,8 +48,22 @@ Item {
 
     // Wie Morph, nur beim Abgang ohne Nachschwingen: dort soll sie ruhig
     // zusammengehen, nicht noch einmal federn
-    Behavior on width { NotchMorph {} }
-    Behavior on height { NotchMorph {} }
+    Behavior on width {
+        NumberAnimation {
+            duration: notch.exitMode ? notch.fadeDuration : Appearance.morphDuration
+            easing.type: notch.exitMode ? Easing.InOutCubic
+                       : Appearance.overshoot > 0 ? Easing.OutBack : Easing.OutCubic
+            easing.overshoot: Appearance.overshoot
+        }
+    }
+    Behavior on height {
+        NumberAnimation {
+            duration: notch.exitMode ? notch.fadeDuration : Appearance.morphDuration
+            easing.type: notch.exitMode ? Easing.InOutCubic
+                       : Appearance.overshoot > 0 ? Easing.OutBack : Easing.OutCubic
+            easing.overshoot: Appearance.overshoot
+        }
+    }
 
     opacity: notch.leaving ? 0 : 1
 
@@ -290,13 +304,6 @@ Item {
     }
 
     // ---- Bausteine ----
-
-    component NotchMorph: NumberAnimation {
-        duration: notch.exitMode ? notch.fadeDuration : Appearance.morphDuration
-        easing.type: notch.exitMode ? Easing.InOutCubic
-                   : Appearance.overshoot > 0 ? Easing.OutBack : Easing.OutCubic
-        easing.overshoot: Appearance.overshoot
-    }
 
     component Icon: Text {
         property real size: 18
