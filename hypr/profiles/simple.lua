@@ -374,6 +374,9 @@ end
 -- Gruppe wird zu einer Zeile mit mehreren Kuerzeln zusammengefasst.
 -- bind() merkt sich die Aktion beschriebener Binds, damit die Uebersicht sie
 -- per Klick ausloesen kann (bind_described/run_keybind in ../hyprland.lua).
+-- Neu belegte/abgeschaltete Binds und die Binds der Plugins kommen aus der
+-- Shell (keybinds_from_shell, sync_keybinds() in ../hyprland.lua).
+keybinds_from_shell = true
 local bind = bind_described
 local group = ""
 local function desc(text, opts, label)
@@ -544,10 +547,8 @@ bind("SUPER + Period", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island emoji -p"
 
 -- Wallpaper und Farbschema
 bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("dynamic-island wallpaper -r"), desc("Zufälliges Wallpaper"))
--- Wallpaper-Auswahl direkt mit aufgeklappter Wallhaven-Suche (Plugin `wallhaven`)
-bind("SUPER + ALT + W", hl.dsp.exec_cmd("qs -c dynamic-island ipc call plugins call wallhaven open _"), desc("Wallhaven-Suche"))
--- Desktop-Widgets des aktuellen Wallpapers anordnen (modules/desktop, Esc = fertig)
-bind("SUPER + ALT + D", hl.dsp.exec_cmd("qs -c dynamic-island ipc call desktop toggle"), desc("Desktop-Widgets anordnen"))
+-- Wallhaven-Suche (SUPER + ALT + W) und Desktop-Widgets anordnen (SUPER + ALT + D)
+-- bringen die Plugins `wallhaven`/`desktop` selbst mit (Manifest `keybinds`)
 bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("dynamic-island scheme set -r"), desc("Zufälliges Farbschema"))
 
 -- Shell dieses Profils neu starten / beenden (wie im Caelestia-Profil belegt)

@@ -16,6 +16,10 @@ import Quickshell.Io
 // Gelesen wird beim Oeffnen der Uebersicht (refresh) und nach jedem
 // `hyprctl reload`, solange schon einmal gelesen wurde.
 //
+// Setzen: Keybinds.qml haelt Aenderungen (neu belegt, abgeschaltet) und die
+// Binds der Plugins/eigenen Kuerzel; jede Taste einer Zeile traegt dafuer ihre
+// Ref. Nach jedem Sync dort (Keybinds.revision) wird neu gelesen.
+//
 // Ausfuehren (run): hypr/hyprland.lua legt die Aktion jedes beschriebenen
 // Binds unter seiner Beschreibung ab, `hyprctl eval` ruft sie im laufenden
 // Hyprland auf. Nicht anklickbar sind Maus-Binds (Ziehen/Groesse) und
@@ -24,12 +28,24 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // [{ name, entries: [{ text, id, clickable, combos: [["Super", "Q"], ...] }] }]
+    // [{ name, entries: [{ text, id, clickable, editable, disabled, changed,
+    //    source, pluginName, combos: [{ keys: ["Super", "Q"], ref, canon,
+    //    editable, disabled, changed, source }] }] }]
+    // source: "config" | "plugin" | "custom"; disabled = alle Tasten aus
     property var groups: []
     property bool loaded: false
 
+    // Alle Binds der Grundebene (auch unbeschriebene) fuer die
+    // Konfliktpruefung: [{ canon, text, ref }]
+    property var all: []
+
+    // Kommt waehrend des Lesens eine Aenderung, danach gleich noch einmal
+    property bool stale: false
+
     function refresh(): void {
-        if (!proc.running)
+        if (proc.running)
+            root.stale = true;
+        else
             proc.running = true;
     }
 
@@ -72,6 +88,20 @@ Singleton {
         return key.length === 1 ? key.toUpperCase() : key;
     }
 
+    // Wie die Ref in hypr/hyprland.lua: "<modmask>:<taste klein>"
+    function canonOf(bind: var): string {
+        return bind.key === "" ? `${bind.modmask}:code:${bind.keycode}` : `${bind.modmask}:${bind.key.toLowerCase()}`;
+    }
+
+    // Wer die Kombination schon hat (abgeschaltete zaehlen nicht), ausser
+    // der Bind `exceptRef` selbst. "" = frei
+    function conflict(canon: string, exceptRef: string): string {
+        for (const b of root.all)
+            if (b.canon === canon && b.ref !== exceptRef && !Keybinds.stateOf(b.ref).disabled)
+                return b.text;
+        return "";
+    }
+
     function combo(bind: var, label: string): var {
         const keys = root.modBits.filter(m => bind.modmask & m.bit).map(m => m.name);
         const key = label || root.keyLabel(bind.key);
@@ -91,13 +121,20 @@ Singleton {
 
         const order = [];
         const byName = {};
+        const all = [];
         for (const bind of binds) {
-            if (!bind.description)
+            if (bind.submap !== "")
                 continue;
-            const parts = bind.description.split("|");
-            if (parts.length < 2)
+            const canon = root.canonOf(bind);
+            const parts = (bind.description ?? "").split("|");
+            if (parts.length < 2) {
+                all.push({ canon, text: "einem Bind ohne Beschreibung", ref: "" });
                 continue;
+            }
             const [groupName, text, label] = parts;
+            const ref = Keybinds.refFor(bind.description, canon);
+            const state = Keybinds.stateOf(ref);
+            all.push({ canon, text: `${groupName} › ${text}`, ref });
 
             let group = byName[groupName];
             if (!group) {
@@ -105,19 +142,39 @@ Singleton {
                 order.push(group);
             }
 
-            const keys = root.combo(bind, label ?? "");
+            // Sammelzeilen ("1 … 0") stehen fuer mehrere Binds, nur einer
+            // traegt die Beschreibung – neu belegen wuerde nur ihn treffen
+            const combo = {
+                keys: root.combo(bind, label ?? ""),
+                ref,
+                canon,
+                editable: !label && !bind.mouse,
+                disabled: state.disabled,
+                changed: state.changed,
+                source: state.source
+            };
             const entry = group.entries.find(e => e.text === text);
             if (entry)
-                entry.combos.push(keys);
+                entry.combos.push(combo);
             else
                 group.entries.push({
                     text,
                     id: bind.description,
                     clickable: !label && !bind.mouse,
-                    combos: [keys]
+                    source: state.source,
+                    pluginName: state.pluginName ?? "",
+                    combos: [combo]
                 });
         }
 
+        for (const group of order)
+            for (const entry of group.entries) {
+                entry.editable = entry.combos.some(c => c.editable);
+                entry.disabled = entry.combos.every(c => c.disabled);
+                entry.changed = entry.combos.some(c => c.changed || c.disabled);
+            }
+
+        root.all = all;
         root.groups = order;
         root.loaded = true;
     }
@@ -128,7 +185,22 @@ Singleton {
         command: ["hyprctl", "binds", "-j"]
 
         stdout: StdioCollector {
-            onStreamFinished: root.parse(this.text)
+            onStreamFinished: {
+                root.parse(this.text);
+                if (root.stale) {
+                    root.stale = false;
+                    Qt.callLater(root.refresh);
+                }
+            }
+        }
+    }
+
+    Connections {
+        target: Keybinds
+
+        function onRevisionChanged(): void {
+            if (root.loaded)
+                root.refresh();
         }
     }
 

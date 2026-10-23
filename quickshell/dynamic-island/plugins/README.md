@@ -33,6 +33,7 @@ Kern: `modules/services/plugins/Plugins.qml` (Singleton) + `PluginHost.qml`
 | `tiles` | – | Schnellkacheln, s.u. |
 | `panels` | – | Sektionen in Ansichten der Shell (bisher: Wallpaper-Auswahl), s.u. |
 | `widgets` | – | Desktop-Widgets (Typen für die Szenen je Wallpaper), s.u. |
+| `keybinds` | – | Tastenkürzel in Hyprland, solange das Plugin an ist, s.u. |
 | `files` | – | Dateien außerhalb des Plugin-Ordners, die dazugehören (für Export/Import) |
 | `migrateFrom` | – | Gruppe in `shell.json`, deren Werte einmalig übernommen werden (`enabled: false` dort = Plugin bleibt aus) |
 | `parent` | – | Komponente eines anderen Plugins, s.u. |
@@ -140,6 +141,30 @@ Monitorrate), bei `active: false` alles anhalten, Bedarf an Diensten
 (`Cava.demand`, `Lyrics.demand`) nur solange `active`. `opts` kommt bei jeder
 Änderung des Widgets (auch beim Verschieben) als neues Objekt – teure Neuberechnung
 nur, wenn sich der Inhalt wirklich ändert. Beispiele: `desktop/widgets/`, `matrix/`, `bonsai/`, `tui/`.
+
+### `keybinds`
+
+```json
+"keybinds": {
+    "open":    { "keys": "SUPER + ALT + W", "title": "Wallhaven-Suche", "group": "Werkzeuge", "ipc": "open" },
+    "arrange": { "keys": "SUPER + ALT + D", "title": "Desktop-Widgets anordnen", "exec": "qs -c dynamic-island ipc call desktop toggle" }
+}
+```
+
+Die Shell bindet sie, sobald das Plugin an ist, und nimmt sie beim Ausschalten
+wieder heraus – in Hyprland und in der Übersicht (SUPER+K). Aktion ist genau
+eins von `ipc` (ruft `ipc(cmd, arg)` des Main-Objekts, `arg` Vorgabe `"_"`)
+oder `exec` (Shell-Befehl). `keys` ist nur die Vorgabe: in der Übersicht lässt
+sich jeder Bind neu belegen oder abschalten (gespeichert in
+`~/.config/dynamic-island/keybinds.json` unter `plugin:<id>.<bind>`).
+`group` (Vorgabe: Plugin-Name) = Gruppe in der Übersicht, `title` = Zeile;
+beide ohne `|`. Optional `release`, `repeating`, `locked` wie bei `hl.bind`.
+
+Technik: `modules/services/hypr/Keybinds.qml` schreibt alle Plugin- und
+eigenen Binds samt Änderungen nach `~/.local/state/dynamic-island/keybinds.lua`,
+`hypr/hyprland.lua` wendet die Datei mit `sync_keybinds()` an (beim Laden der
+Config und live per `hyprctl eval`). Nur Hypr-Profile mit
+`keybinds_from_shell = true` (simple) nehmen sie.
 
 ### `parent` – Komponenten
 

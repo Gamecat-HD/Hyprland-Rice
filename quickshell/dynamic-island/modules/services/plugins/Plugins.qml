@@ -6,6 +6,7 @@ import Quickshell.Io
 import Qt.labs.folderlistmodel
 
 import qs.modules.services.config
+import qs.modules.services.hypr
 
 // Plugin-System der Shell.
 //
@@ -21,7 +22,8 @@ import qs.modules.services.config
 //                 Wallpaper-Auswahl), files (externe Dateien, die zum Plugin
 //                 gehoeren – fuer Export/Import ueber `dynamic-island plugin`),
 //                 parent (Komponente eines anderen Plugins, laeuft nur mit
-//                 diesem und steht in der Verwaltung in dessen Untermenue)
+//                 diesem und steht in der Verwaltung in dessen Untermenue),
+//                 keybinds (Tastenkuerzel in Hyprland, solange das Plugin an ist)
 //
 // Zustand (an/aus + Einstellungswerte) liegt pro Rechner in
 //   ~/.config/dynamic-island/plugins.json
@@ -310,6 +312,49 @@ Singleton {
             }
         }
         return out;
+    }
+
+    // Tastenkuerzel aktiver Plugins (Manifest `keybinds`): Keybinds.qml
+    // schreibt sie nach Hyprland und nimmt sie beim Ausschalten wieder raus.
+    // `ipc` wird zum Aufruf von ipc(cmd, arg) im Main-Objekt, `exec` ist ein
+    // Shell-Befehl.
+    readonly property var keybinds: {
+        const out = [];
+        const quote = s => "'" + String(s).replace(/'/g, "'\\''") + "'";
+        for (const h of root.hosts) {
+            if (!h.enabled || !h.valid)
+                continue;
+            const binds = h.manifest.keybinds ?? {};
+            for (const bid in binds) {
+                const b = binds[bid];
+                const exec = b.exec ?? `qs -c dynamic-island ipc call plugins call ${h.pluginId} ${quote(b.ipc)} ${quote(b.arg ?? "_")}`;
+                out.push({
+                    ref: `plugin:${h.pluginId}.${bid}`,
+                    pluginId: h.pluginId,
+                    pluginName: h.name,
+                    group: b.group ?? h.name,
+                    title: b.title,
+                    keys: b.keys,
+                    exec,
+                    release: b.release === true,
+                    repeating: b.repeating === true,
+                    locked: b.locked === true
+                });
+            }
+        }
+        return out;
+    }
+
+    Binding {
+        target: Keybinds
+        property: "pluginBinds"
+        value: root.keybinds
+    }
+
+    Binding {
+        target: Keybinds
+        property: "pluginsReady"
+        value: root.stateLoaded && root.folderNames.length > 0 && root.hosts.length === root.folderNames.length
     }
 
     // Launcher-Aktionen aus `actions` der Main-Objekte (gleiches Format wie

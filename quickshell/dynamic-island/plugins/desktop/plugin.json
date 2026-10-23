@@ -16,6 +16,9 @@
         "icon": "widgets",
         "desc": "Zusätzliche Desktop-Widgets. Jedes ist ein eigenes Paket (.dip) mit \"parent\": \"desktop\" und läuft nur, solange die Desktop-Widgets an sind."
     },
+    "keybinds": {
+        "arrange": { "keys": "SUPER + ALT + D", "title": "Desktop-Widgets anordnen", "group": "Werkzeuge", "exec": "qs -c dynamic-island ipc call desktop toggle" }
+    },
     "settings": {
         "scenes": {
             "default": "",

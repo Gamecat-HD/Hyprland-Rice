@@ -18,6 +18,8 @@
 /dynamic-island/shell.json
 # Plugins an/aus + Einstellungswerte: ebenfalls pro Rechner
 /dynamic-island/plugins.json
+# Neu belegte/abgeschaltete und eigene Tastenkuerzel (SUPER+K, Bearbeiten)
+/dynamic-island/keybinds.json
 
 # lokale/privates
 .claude/

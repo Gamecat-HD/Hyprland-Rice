@@ -66,6 +66,27 @@
                 }
             }
         },
+        "keybinds": {
+            "type": "object",
+            "description": "Tastenkuerzel in Hyprland, solange das Plugin an ist (in der Uebersicht SUPER+K neu belegbar)",
+            "propertyNames": { "pattern": "^[a-z0-9][a-z0-9-]*$" },
+            "additionalProperties": {
+                "type": "object",
+                "required": ["keys", "title"],
+                "oneOf": [{ "required": ["ipc"] }, { "required": ["exec"] }],
+                "properties": {
+                    "keys": { "type": "string", "minLength": 1, "description": "Vorgabe wie in Hyprland, z.B. \"SUPER + ALT + W\"" },
+                    "title": { "type": "string", "pattern": "^[^|]+$" },
+                    "group": { "type": "string", "pattern": "^[^|]+$", "description": "Gruppe in der Uebersicht (Vorgabe: Plugin-Name)" },
+                    "ipc": { "type": "string", "description": "Kommando an ipc(cmd, arg) im Main-Objekt" },
+                    "arg": { "type": "string", "description": "Argument fuer ipc (Vorgabe \"_\")" },
+                    "exec": { "type": "string", "description": "Shell-Befehl" },
+                    "release": { "type": "boolean" },
+                    "repeating": { "type": "boolean" },
+                    "locked": { "type": "boolean" }
+                }
+            }
+        },
         "panels": {
             "type": "object",
             "description": "Sektionen in Ansichten der Shell, je Ansicht eine (bisher nur \"wallpaper\")",

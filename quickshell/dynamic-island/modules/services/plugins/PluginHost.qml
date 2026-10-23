@@ -127,6 +127,12 @@ Scope {
         settingsCount: root.settingKeys.length,
         tiles: Object.keys(root.manifest?.tiles ?? {}),
         panels: Object.keys(root.manifest?.panels ?? {}),
+        // Tastenkuerzel: [{ id, keys, title }]
+        keybinds: Object.keys(root.manifest?.keybinds ?? {}).map(k => ({
+            id: k,
+            keys: root.manifest.keybinds[k].keys,
+            title: root.manifest.keybinds[k].title
+        })),
         actions: root.instance?.actions?.length ?? 0,
         files: (root.manifest?.files ?? []).length,
         main: root.manifest?.main ?? "",
@@ -263,6 +269,19 @@ Scope {
             const w = m.widgets[type];
             if (!/^[a-z][a-z0-9-]*$/.test(type) || typeof w?.component !== "string" || w.component.includes(".."))
                 return `widgets.${type}: Typ oder component ungueltig`;
+        }
+        for (const bid in m.keybinds ?? {}) {
+            const b = m.keybinds[bid];
+            if (!/^[a-z0-9][a-z0-9-]*$/.test(bid) || typeof b !== "object" || b === null)
+                return `keybinds.${bid}: id ungueltig`;
+            if (typeof b.keys !== "string" || b.keys.trim() === "")
+                return `keybinds.${bid}: keys fehlt`;
+            if (typeof b.title !== "string" || b.title === "" || b.title.includes("|"))
+                return `keybinds.${bid}: title fehlt oder enthaelt |`;
+            if (b.group !== undefined && (typeof b.group !== "string" || b.group === "" || b.group.includes("|")))
+                return `keybinds.${bid}: group darf kein | enthalten`;
+            if ((typeof b.ipc === "string") === (typeof b.exec === "string"))
+                return `keybinds.${bid}: genau eins von ipc oder exec`;
         }
         return "";
     }

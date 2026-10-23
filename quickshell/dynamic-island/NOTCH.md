@@ -517,3 +517,9 @@ formate und CLI stehen in `plugins/README.md`.
   in `plugins/desktop/widgets/`. Bonsai, Matrix und Terminal-Widget sind
   Komponenten (`"parent": "desktop"`): laufen nur mit dem Plugin und stehen in
   der Verwaltung in dessen Untermenue „Widgets“, mit eigenem Import.
+- Tastenkuerzel (seit 2026-10-23): Manifest `keybinds` → `Plugins.keybinds` →
+  `Keybinds.pluginBinds` (Binding, wieder nur plugins → hypr). `Keybinds.qml`
+  haelt auch die Aenderungen aus der Uebersicht (SUPER+K, Bearbeiten) in
+  `keybinds.json`, erzeugt `~/.local/state/dynamic-island/keybinds.lua` und
+  ruft `hyprctl eval 'sync_keybinds()'` (hypr/hyprland.lua). IPC `keybinds`
+  (list/set/disable/enable/reset/add/remove).

@@ -11,6 +11,9 @@
     "defaultEnabled": true,
     "main": "Main.qml",
     "migrateFrom": "wallhaven",
+    "keybinds": {
+        "open": { "keys": "SUPER + ALT + W", "title": "Wallhaven-Suche", "group": "Werkzeuge", "ipc": "open" }
+    },
     "panels": {
         "wallpaper": { "component": "Section.qml", "icon": "travel_explore" }
     },

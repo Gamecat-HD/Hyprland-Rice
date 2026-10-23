@@ -127,6 +127,22 @@ def check_manifest(m: Any, folder: str | None = None) -> str:
         comp = widget.get("component") if isinstance(widget, dict) else None
         if not re.match(r"^[a-z][a-z0-9-]*$", wtype) or not isinstance(comp, str) or ".." in comp:
             return f"widgets.{wtype}: Typ oder component ungueltig"
+    keybinds = m.get("keybinds", {})
+    if not isinstance(keybinds, dict):
+        return "keybinds muss ein Objekt sein"
+    for bid, bind in keybinds.items():
+        if not re.match(r"^[a-z0-9][a-z0-9-]*$", bid) or not isinstance(bind, dict):
+            return f"keybinds.{bid}: id ungueltig"
+        if not isinstance(bind.get("keys"), str) or not bind["keys"].strip():
+            return f"keybinds.{bid}: keys fehlt"
+        title = bind.get("title")
+        if not isinstance(title, str) or not title or "|" in title:
+            return f"keybinds.{bid}: title fehlt oder enthaelt |"
+        group = bind.get("group")
+        if group is not None and (not isinstance(group, str) or not group or "|" in group):
+            return f"keybinds.{bid}: group darf kein | enthalten"
+        if isinstance(bind.get("ipc"), str) == isinstance(bind.get("exec"), str):
+            return f"keybinds.{bid}: genau eins von ipc oder exec"
     files = m.get("files", [])
     if not isinstance(files, list):
         return "files muss eine Liste sein"
@@ -597,6 +613,10 @@ class Import(Command):
             lines = [f"{m['name']} ({pid}) {version}" + (f", ersetzt {old_version}" if old_version else "")]
             if m.get("main") or m.get("tiles"):
                 lines.append("  Enthaelt QML-Code, der in der Shell laeuft – nur aus vertrauenswuerdiger Quelle!")
+            commands = [b["exec"] for b in m.get("keybinds", {}).values() if "exec" in b]
+            if commands:
+                lines.append("  Tastenkuerzel mit Shell-Befehlen (laufen erst, wenn das Plugin an ist):")
+                lines += [f"    {c}" for c in commands]
             if files:
                 verb = "werden installiert" if self.args.files else "liegen bei (mit --files installieren)"
                 lines.append(f"  {len(files)} externe Dateien {verb}:")

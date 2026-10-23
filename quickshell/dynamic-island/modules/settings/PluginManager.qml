@@ -563,6 +563,12 @@ Item {
                 }
 
                 FeatureChip {
+                    visible: pcard.info.keybinds.length > 0
+                    icon: "keyboard"
+                    label: pcard.info.keybinds.map(k => k.keys).join(", ")
+                }
+
+                FeatureChip {
                     visible: pcard.info.files > 0
                     icon: "folder_copy"
                     label: pcard.info.files === 1 ? "1 externe Datei" : `${pcard.info.files} externe Dateien`
