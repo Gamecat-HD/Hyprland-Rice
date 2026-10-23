@@ -30,8 +30,8 @@ import qs
 //
 // Breite: das Fenster laesst sich frei ziehen. Unter `compact` schrumpft
 // die Leiste zur Symbolspalte (Name beim Zeigen daneben), die Zeilen
-// fuellen eine Spalte bis 900 px, und ab `listColumns` 2 stehen sie in zwei
-// unabhaengigen Spalten – ganze Gruppen (bzw. die Zeilen einer einzelnen
+// fuellen eine Spalte bis 820 px, und ab `listColumns` 2 stehen sie in zwei
+// unabhaengigen Spalten (nur wenn eine Spalte nicht reicht) – ganze Gruppen (bzw. die Zeilen einer einzelnen
 // Gruppe) werden oben nach unten erst links, dann rechts verteilt, damit
 // eine aufgeklappte Auswahl nur ihre eigene Spalte verschiebt.
 Surface {
@@ -194,14 +194,17 @@ Surface {
         });
         const block = (section, rows, header) => ({ section, rows, header });
 
-        if (card.listColumns === 1 || groups.length === 0)
-            return [groups.map(g => block(g.section, g.rows, headers))];
-
         // Grobe Hoehe je Zeile, um die Trennstelle zu finden
         const weight = i => {
             const e = card.entries[i];
             return e.editor !== "" ? 320 : e.desc !== "" ? 54 : 46;
         };
+        // Zwei Spalten nur, wenn eine nicht reicht – acht Zeilen auf zwei
+        // halbe Spalten verteilt reissen Titel und Wert nur weit auseinander
+        const needed = card.entries.reduce((s, e, i) => s + weight(i), 0) + (headers ? groups.length * 26 : 0);
+        if (card.listColumns === 1 || groups.length === 0 || needed <= card.height - 100)
+            return [groups.map(g => block(g.section, g.rows, headers))];
+
         // Mehrere Gruppen: ganze Gruppen verteilen; eine einzelne: ihre Zeilen
         const single = groups.length === 1;
         const units = single ? groups[0].rows.map(i => ({ rows: [i], w: weight(i) }))
@@ -862,18 +865,20 @@ Surface {
         }
 
         // ---- Plugin-Verwaltung statt der Liste ----
-        // Mittig; die Seite stellt ihre Karten ab ~850 px selbst in zwei Spalten
+        // Linksbuendig unter dem Titel; die Seite stellt ihre Karten ab
+        // ~850 px selbst in zwei Spalten
         Loader {
             id: manager
 
             anchors {
-                horizontalCenter: parent.horizontalCenter
+                left: parent.left
                 top: searchBox.bottom
                 bottom: parent.bottom
+                leftMargin: 22
                 topMargin: 12
                 bottomMargin: 16
             }
-            width: Math.min(parent.width - 24, 1400)
+            width: Math.min(parent.width - 46, 1400)
             active: card.managing
             visible: active
 
@@ -891,8 +896,8 @@ Surface {
                 right: parent.right
                 top: searchBox.bottom
                 bottom: parent.bottom
-                leftMargin: 12
-                rightMargin: 12
+                leftMargin: 24
+                rightMargin: 16
                 topMargin: 12
                 bottomMargin: 16
             }
@@ -905,23 +910,25 @@ Surface {
         }
 
         // ---- Die Liste ----
-        // Eine Spalte bis 900 px, mittig; zwei Spalten ab card.listColumns 2.
+        // Eine Spalte bis 820 px, zwei Spalten (je bis 900 px) wenn noetig;
+        // linksbuendig unter dem Titel, damit Kopf und Zeilen eine Kante haben.
         // Jede Spalte waechst fuer sich (eine aufgeklappte Auswahl schiebt
         // nur ihre Nachbarn darunter).
         Flickable {
             id: list
 
             readonly property real gap: 16
-            readonly property int columns: card.listColumns
+            readonly property int columns: card.layoutColumns.length
 
             anchors {
-                horizontalCenter: parent.horizontalCenter
+                left: parent.left
                 top: searchBox.bottom
                 bottom: parent.bottom
+                leftMargin: 10
                 topMargin: 12
                 bottomMargin: 16
             }
-            width: Math.min(parent.width - 24, list.columns === 2 ? 2 * 900 + list.gap : 900)
+            width: Math.min(parent.width - 22, list.columns === 2 ? 2 * 900 + list.gap : 820)
             visible: !card.managing && !card.browsing
             clip: true
             contentWidth: width

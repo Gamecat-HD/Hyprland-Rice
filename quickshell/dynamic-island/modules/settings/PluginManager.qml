@@ -612,7 +612,6 @@ Item {
                 Row {
                     anchors {
                         left: parent.left
-                        leftMargin: 12
                         verticalCenter: parent.verticalCenter
                     }
                     spacing: 6
@@ -639,14 +638,39 @@ Item {
                     }
                 }
 
-                // Rechts: Zaehler oder "laeuft"
+                // Rechts: Einstellungswerte in den Export mitnehmen, Zaehler
+                // oder "laeuft"
                 Row {
                     anchors {
                         right: parent.right
-                        rightMargin: 14
+                        rightMargin: 4
                         verticalCenter: parent.verticalCenter
                     }
                     spacing: 6
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: Plugins.plugins.length > 0 && page.subPage === "" && !page.busy
+                        font.family: Config.font
+                        text: I18n.tr("Einstellungswerte mitnehmen")
+                        color: Colors.fgSurfaceVariant
+                        font.pixelSize: 10
+                    }
+
+                    Toggle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: Plugins.plugins.length > 0 && page.subPage === "" && !page.busy
+                        checked: page.exportWithSettings
+                        onToggled: page.exportWithSettings = !page.exportWithSettings
+                    }
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: Plugins.plugins.length > 0 && page.subPage === "" && !page.busy
+                        width: 1
+                        height: 14
+                        color: Colors.alpha(Colors.outline, 0.3)
+                    }
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -1300,36 +1324,6 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: I18n.tr("Ein Paket importieren oder einen Ordner nach %1 legen").arg(page.shortPath(Plugins.dir))
                         color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
-                        font.pixelSize: 10
-                    }
-                }
-            }
-
-            // ---- Fuss: Einstellungswerte in den Export mitnehmen ----
-            Item {
-                width: parent.width
-                height: 30
-                visible: Plugins.plugins.length > 0
-
-                Row {
-                    anchors {
-                        left: parent.left
-                        leftMargin: 14
-                        verticalCenter: parent.verticalCenter
-                    }
-                    spacing: 8
-
-                    Toggle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        checked: page.exportWithSettings
-                        onToggled: page.exportWithSettings = !page.exportWithSettings
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        font.family: Config.font
-                        text: I18n.tr("Einstellungswerte mitnehmen")
-                        color: Colors.fgSurfaceVariant
                         font.pixelSize: 10
                     }
                 }
