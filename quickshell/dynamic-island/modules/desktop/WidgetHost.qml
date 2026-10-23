@@ -210,14 +210,14 @@ Item {
             Text {
                 id: label
 
-                readonly property string title: host.info?.title ?? host.widget?.type ?? ""
+                readonly property string title: I18n.tr(host.info?.title ?? host.widget?.type ?? "")
 
                 anchors.centerIn: parent
                 // Beim Skalieren: Groesse in Prozent, eingerastet auch woran
-                text: host.matchedAxis !== "" ? `${label.title} · gleiche ${host.matchedAxis === "breite" ? "Breite" : "Höhe"}`
+                text: host.matchedAxis !== "" ? (host.matchedAxis === "breite" ? I18n.tr("%1 · gleiche Breite") : I18n.tr("%1 · gleiche Höhe")).arg(label.title)
                     : !host.resizing ? label.title
                     : `${label.title} · ${Math.round(host.liveSize * 100)} %`
-                      + (host.sizeMatch ? ` · ${host.sizeMatch.axis === "breite" ? "Breite" : "Höhe"} wie ${host.sizeMatch.title}` : "")
+                      + (host.sizeMatch ? (host.sizeMatch.axis === "breite" ? I18n.tr(" · Breite wie %1") : I18n.tr(" · Höhe wie %1")).arg(I18n.tr(host.sizeMatch.title)) : "")
                 color: host.selected || host.matchedAxis !== "" ? Colors.fgPrimary : "#ffffff"
                 font.family: Config.font
                 font.pixelSize: 10

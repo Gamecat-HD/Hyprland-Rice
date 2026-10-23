@@ -5,6 +5,8 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 
+import qs
+
 // Tastenkuerzel aus Hyprland fuer die Uebersicht (KeybindsPanel).
 //
 // Quelle ist `hyprctl binds -j`, nicht eine eigene Liste: die Binds tragen in
@@ -81,7 +83,7 @@ Singleton {
     function keyLabel(key: string): string {
         const known = root.keyNames[key.toLowerCase()];
         if (known)
-            return known;
+            return I18n.tr(known);
         // Modifier allein (SUPER loslassen): die Modmaske nennt ihn schon
         if (/^(super|control|alt|shift)_[lr]$/i.test(key))
             return "";
@@ -103,8 +105,8 @@ Singleton {
     }
 
     function combo(bind: var, label: string): var {
-        const keys = root.modBits.filter(m => bind.modmask & m.bit).map(m => m.name);
-        const key = label || root.keyLabel(bind.key);
+        const keys = root.modBits.filter(m => bind.modmask & m.bit).map(m => I18n.tr(m.name));
+        const key = label ? I18n.tr(label) : root.keyLabel(bind.key);
         if (key)
             keys.push(key);
         return keys;
@@ -128,13 +130,13 @@ Singleton {
             const canon = root.canonOf(bind);
             const parts = (bind.description ?? "").split("|");
             if (parts.length < 2) {
-                all.push({ canon, text: "einem Bind ohne Beschreibung", ref: "" });
+                all.push({ canon, text: I18n.tr("einem Bind ohne Beschreibung"), ref: "" });
                 continue;
             }
             const [groupName, text, label] = parts;
             const ref = Keybinds.refFor(bind.description, canon);
             const state = Keybinds.stateOf(ref);
-            all.push({ canon, text: `${groupName} › ${text}`, ref });
+            all.push({ canon, text: `${I18n.tr(groupName)} › ${I18n.tr(text)}`, ref });
 
             let group = byName[groupName];
             if (!group) {

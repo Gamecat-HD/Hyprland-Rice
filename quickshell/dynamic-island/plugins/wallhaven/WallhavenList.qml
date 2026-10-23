@@ -384,7 +384,7 @@ Carousel {
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: item.phase === "error" ? "Fehler" : "lädt…"
+                        text: item.phase === "error" ? I18n.tr("Fehler") : I18n.tr("lädt…")
                         font.family: Config.font
                         font.pixelSize: 10
                         color: "#ffffff"

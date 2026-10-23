@@ -64,10 +64,10 @@ ColumnLayout {
     // sollen dasselbe zeigen und nicht je eigene Poller/Inhibitoren starten.
     readonly property bool wifiOn: WifiStatus.radioOn
     readonly property string wifiStatus: !WifiStatus.loaded ? "…"
-        : !WifiStatus.radioOn ? "Aus"
+        : !WifiStatus.radioOn ? I18n.tr("Aus")
         : WifiStatus.connecting ? (WifiStatus.connectingSsid !== ""
-                                   ? `Verbinde mit ${WifiStatus.connectingSsid}…` : "Verbinde…")
-        : !WifiStatus.connected ? "Getrennt"
+                                   ? I18n.tr("Verbinde mit %1…").arg(WifiStatus.connectingSsid) : I18n.tr("Verbinde…"))
+        : !WifiStatus.connected ? I18n.tr("Getrennt")
         : WifiStatus.ssid + " · " + WifiStatus.signal + "%"
 
     readonly property bool btOn: BluetoothService.enabled
@@ -445,9 +445,9 @@ ColumnLayout {
             tapEnabled: false
             icon: root.btOn ? "bluetooth" : "bluetooth_disabled"
             title: "Bluetooth"
-            subtitle: !root.btOn ? "Aus"
+            subtitle: !root.btOn ? I18n.tr("Aus")
                       : BluetoothService.adapter?.devices?.values.some(device => device.connected)
-                        ? "Verbunden" : "An"
+                        ? I18n.tr("Verbunden") : I18n.tr("An")
             active: root.btOn
             onToggled: root.toggleBt()
 
@@ -664,10 +664,10 @@ ColumnLayout {
 
             icon: "coffee"
             title: "No Sleep"
-            subtitle: !root.noSleep ? "Aus"
-                     : root.sleepDurationSec === -1 ? "Aktiv (unbegrenzt)"
-                     : root.sleepDurationSec === 0 ? "Unendlich"
-                     : "Noch " + root.fmtRemaining(root.sleepRemaining)
+            subtitle: !root.noSleep ? I18n.tr("Aus")
+                     : root.sleepDurationSec === -1 ? I18n.tr("Aktiv (unbegrenzt)")
+                     : root.sleepDurationSec === 0 ? I18n.tr("Unendlich")
+                     : I18n.tr("Noch %1").arg(root.fmtRemaining(root.sleepRemaining))
             active: root.noSleep
             onToggled: root.toggleNoSleep()
 
@@ -854,11 +854,11 @@ ColumnLayout {
             tapEnabled: false   // Toggle macht der bewachte TapHandler unten
 
             icon: Recorder.active ? "stop_circle" : "screen_record"
-            title: "Aufnahme"
+            title: I18n.tr("Aufnahme")
             subtitle: Recorder.active
-                      ? "Läuft · " + Recorder.elapsedLabel
-                      : (Recorder.region ? "Bereich" : "Vollbild")
-                        + (Recorder.sound ? " · mit Ton" : " · ohne Ton")
+                      ? I18n.tr("Läuft · %1").arg(Recorder.elapsedLabel)
+                      : I18n.tr(Recorder.sound ? "%1 · mit Ton" : "%1 · ohne Ton")
+                        .arg(I18n.tr(Recorder.region ? "Bereich" : "Vollbild"))
             active: Recorder.active
             accent: Colors.record
             onAccent: Colors.fgRecord
@@ -914,7 +914,7 @@ ColumnLayout {
         id: volumeComponent
 
         LevelSlider {
-            title: "Lautstärke"
+            title: I18n.tr("Lautstärke")
             icon: Audio.muted ? "volume_off"
                                : Audio.volume >= 0.5 ? "volume_up" : "volume_down"
             value: Audio.volume
@@ -934,7 +934,7 @@ ColumnLayout {
         id: micComponent
 
         LevelSlider {
-            title: "Mikrofon"
+            title: I18n.tr("Mikrofon")
             icon: Audio.sourceMuted ? "mic_off" : "mic"
             value: Audio.sourceVolume
             accent: Audio.sourceMuted ? Colors.error : Colors.secondary
@@ -965,8 +965,8 @@ ColumnLayout {
                 : Power.profiles.filter(p => p.value !== PowerProfile.Performance)
 
             icon: current.icon
-            title: "Energie"
-            subtitle: usable ? current.label : "Nur mit Akku"
+            title: I18n.tr("Energie")
+            subtitle: usable ? current.label : I18n.tr("Nur mit Akku")
             active: usable && Power.profile !== PowerProfile.Balanced
             tapEnabled: usable
             opacity: usable ? 1 : 0.45
@@ -1118,7 +1118,7 @@ ColumnLayout {
         id: brightnessComponent
 
         LevelSlider {
-            title: "Helligkeit"
+            title: I18n.tr("Helligkeit")
             icon: "brightness_6"
             value: Brightness.value
             accent: Brightness.value > 0.5
@@ -1199,7 +1199,7 @@ ColumnLayout {
                         Tile {
                             icon: "error"
                             title: Plugins.tiles[slot.tileId]?.label ?? slot.tileId
-                            subtitle: "Kachel lädt nicht"
+                            subtitle: I18n.tr("Kachel lädt nicht")
                             active: false
                             tapEnabled: false
                             opacity: 0.6

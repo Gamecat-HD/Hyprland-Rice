@@ -51,7 +51,7 @@ Item {
     property string subPage: ""
     readonly property var subInfo: page.subPage !== "" ? Plugins.plugins.find(p => p.id === page.subPage) ?? null : null
     readonly property var subChildren: page.subPage !== "" ? Plugins.childrenOf(page.subPage) : []
-    readonly property string subTitle: page.subInfo?.components?.title ?? "Komponenten"
+    readonly property string subTitle: I18n.tr(page.subInfo?.components?.title ?? "Komponenten")
     // Plugin verschwunden (entfernt, Manifest kaputt) -> zurueck zur Uebersicht
     onSubInfoChanged: if (page.subPage !== "" && page.subInfo === null) page.subPage = ""
 
@@ -99,7 +99,7 @@ Item {
     }
 
     function statusLabel(s: string): string {
-        return ({ ready: "Aktiv", off: "Aus", blocked: "Wartet", loading: "Lädt", error: "Fehler", invalid: "Ungültig" })[s] ?? s;
+        return ({ ready: I18n.tr("Aktiv"), off: I18n.tr("Aus"), blocked: I18n.tr("Wartet"), loading: I18n.tr("Lädt"), error: I18n.tr("Fehler"), invalid: I18n.tr("Ungültig") })[s] ?? s;
     }
 
     function statusColor(s: string): color {
@@ -110,7 +110,7 @@ Item {
     }
 
     function opLabel(op: string): string {
-        return ({ "import": "Import", "export": "Export", "remove": "Entfernen" })[op] ?? op;
+        return ({ "import": "Import", "export": "Export", "remove": I18n.tr("Entfernen") })[op] ?? op;
     }
 
     function formatSize(bytes: real): string {
@@ -122,7 +122,8 @@ Item {
     }
 
     function pluginName(id: string): string {
-        return Plugins.plugins.find(p => p.id === id)?.name ?? id;
+        const name = Plugins.plugins.find(p => p.id === id)?.name;
+        return name ? I18n.tr(name) : id;
     }
 
     function shortPath(p: string): string {
@@ -415,7 +416,7 @@ Item {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             font.family: Config.font
-                            text: pcard.info.name
+                            text: I18n.tr(pcard.info.name)
                             color: Colors.fgBackground
                             font.pixelSize: 13
                             font.weight: Font.DemiBold
@@ -444,7 +445,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             font.family: Config.font
                             visible: pcard.info.author !== ""
-                            text: "von " + pcard.info.author
+                            text: I18n.tr("von %1").arg(pcard.info.author)
                             color: Colors.fgSurfaceVariant
                             font.pixelSize: 10
                         }
@@ -454,7 +455,7 @@ Item {
                         Layout.fillWidth: true
                         font.family: Config.font
                         visible: text !== ""
-                        text: pcard.info.description
+                        text: I18n.tr(pcard.info.description)
                         color: Colors.fgSurfaceVariant
                         font.pixelSize: 10
                         wrapMode: Text.WordWrap
@@ -519,7 +520,7 @@ Item {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             font.family: Config.font
-                            text: pcard.info.status === "blocked" ? page.pluginName(pcard.info.parent) + " aus"
+                            text: pcard.info.status === "blocked" ? I18n.tr("%1 aus").arg(page.pluginName(pcard.info.parent))
                                 : page.statusLabel(pcard.info.status)
                             color: pcard.statusTint
                             font.pixelSize: 10
@@ -547,19 +548,19 @@ Item {
                 FeatureChip {
                     visible: pcard.info.settingsCount > 0
                     icon: "tune"
-                    label: pcard.info.settingsCount === 1 ? "1 Einstellung" : `${pcard.info.settingsCount} Einstellungen`
+                    label: pcard.info.settingsCount === 1 ? I18n.tr("1 Einstellung") : I18n.tr("%1 Einstellungen").arg(pcard.info.settingsCount)
                 }
 
                 FeatureChip {
                     visible: pcard.info.tiles.length > 0
                     icon: "dashboard_customize"
-                    label: pcard.info.tiles.length === 1 ? "1 Kachel" : `${pcard.info.tiles.length} Kacheln`
+                    label: pcard.info.tiles.length === 1 ? I18n.tr("1 Kachel") : I18n.tr("%1 Kacheln").arg(pcard.info.tiles.length)
                 }
 
                 FeatureChip {
                     visible: pcard.info.actions > 0
                     icon: "bolt"
-                    label: pcard.info.actions === 1 ? "1 Launcher-Aktion" : `${pcard.info.actions} Launcher-Aktionen`
+                    label: pcard.info.actions === 1 ? I18n.tr("1 Launcher-Aktion") : I18n.tr("%1 Launcher-Aktionen").arg(pcard.info.actions)
                 }
 
                 FeatureChip {
@@ -571,26 +572,26 @@ Item {
                 FeatureChip {
                     visible: pcard.info.files > 0
                     icon: "folder_copy"
-                    label: pcard.info.files === 1 ? "1 externe Datei" : `${pcard.info.files} externe Dateien`
+                    label: pcard.info.files === 1 ? I18n.tr("1 externe Datei") : I18n.tr("%1 externe Dateien").arg(pcard.info.files)
                 }
 
                 FeatureChip {
                     visible: pcard.info.widgets.length > 0
                     icon: "widgets"
-                    label: pcard.info.widgets.length === 1 ? "1 Desktop-Widget" : `${pcard.info.widgets.length} Desktop-Widgets`
+                    label: pcard.info.widgets.length === 1 ? I18n.tr("1 Desktop-Widget") : I18n.tr("%1 Desktop-Widgets").arg(pcard.info.widgets.length)
                 }
 
                 FeatureChip {
                     visible: pcard.info.main !== ""
                     icon: "memory"
-                    label: "Dienst"
+                    label: I18n.tr("Dienst")
                 }
 
                 // Komponente, deren Plugin fehlt – steht deshalb oben
                 FeatureChip {
                     visible: pcard.info.parentMissing
                     icon: "link_off"
-                    label: `gehört zu „${pcard.info.parent}“ (nicht installiert)`
+                    label: I18n.tr("gehört zu „%1“ (nicht installiert)").arg(pcard.info.parent)
                 }
             }
 
@@ -605,7 +606,7 @@ Item {
                     visible: pcard.hasSub
                     filled: true
                     icon: pcard.info.components?.icon ?? "extension"
-                    label: `${pcard.info.components?.title ?? "Komponenten"} · ${pcard.components.length}`
+                    label: `${I18n.tr(pcard.info.components?.title ?? "Komponenten")} · ${pcard.components.length}`
                     onClicked: page.openSub(pcard.info.id)
                 }
 
@@ -613,7 +614,7 @@ Item {
                     visible: pcard.hasSettings
                     enabled: pcard.info.enabled
                     icon: "tune"
-                    label: "Einstellungen"
+                    label: I18n.tr("Einstellungen")
                     onClicked: page.openSection(pcard.section)
                 }
 
@@ -622,7 +623,7 @@ Item {
                     visible: !pcard.info.builtin
                     enabled: !page.busy && pcard.info.status !== "invalid"
                     icon: "upload"
-                    label: "Exportieren"
+                    label: I18n.tr("Exportieren")
                     onClicked: page.exportPlugin(pcard.info)
                 }
 
@@ -630,7 +631,7 @@ Item {
                     visible: pcard.hasSettings
                     enabled: pcard.changed
                     icon: "restart_alt"
-                    label: "Zurücksetzen"
+                    label: I18n.tr("Zurücksetzen")
                     onClicked: Plugins.resetPlugin(pcard.info.id)
                 }
 
@@ -640,7 +641,7 @@ Item {
                     visible: !pcard.info.builtin
                     enabled: !page.busy
                     icon: pcard.removeArmed ? "check" : "delete"
-                    label: pcard.removeArmed ? "Wirklich entfernen?" : "Entfernen"
+                    label: pcard.removeArmed ? I18n.tr("Wirklich entfernen?") : I18n.tr("Entfernen")
                     tint: pcard.removeArmed ? Colors.error : Colors.fgSurface
                     onClicked: {
                         if (pcard.removeArmed) {
@@ -706,13 +707,13 @@ Item {
                     ActionButton {
                         visible: page.subPage !== ""
                         icon: "arrow_back"
-                        label: "Alle Plugins"
+                        label: I18n.tr("Alle Plugins")
                         onClicked: page.openSub("")
                     }
 
                     ActionButton {
                         icon: page.importOpen ? "expand_less" : "download"
-                        label: "Importieren"
+                        label: I18n.tr("Importieren")
                         filled: page.importOpen
                         onClicked: page.importOpen = !page.importOpen
                     }
@@ -720,7 +721,7 @@ Item {
                     ActionButton {
                         visible: page.subPage === ""
                         icon: "folder_open"
-                        label: "Ordner öffnen"
+                        label: I18n.tr("Ordner öffnen")
                         onClicked: page.openFolder(Plugins.dir)
                     }
                 }
@@ -754,10 +755,12 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         font.family: Config.font
-                        text: page.busy ? "Bitte warten…"
+                        text: page.busy ? I18n.tr("Bitte warten…")
                             : page.listed.length === 0 ? ""
-                            : page.subPage !== "" ? `${page.listed.length} ${page.listed.length === 1 ? "Komponente" : "Komponenten"} · ${page.activeCount} aktiv`
-                            : `${page.listed.length} ${page.listed.length === 1 ? "Plugin" : "Plugins"} · ${page.activeCount} aktiv`
+                            : page.subPage !== "" ? (page.listed.length === 1 ? I18n.tr("1 Komponente · %1 aktiv").arg(page.activeCount)
+                                                     : I18n.tr("%1 Komponenten · %2 aktiv").arg(page.listed.length).arg(page.activeCount))
+                            : (page.listed.length === 1 ? I18n.tr("1 Plugin · %1 aktiv").arg(page.activeCount)
+                               : I18n.tr("%1 Plugins · %2 aktiv").arg(page.listed.length).arg(page.activeCount))
                         color: page.busy ? Colors.primary : Colors.alpha(Colors.fgSurfaceVariant, 0.8)
                         font.pixelSize: 10
                     }
@@ -813,7 +816,7 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             font.family: Config.font
-                            text: page.opLabel(page.result?.op ?? "") + (banner.ok ? " erledigt" : " fehlgeschlagen")
+                            text: I18n.tr(banner.ok ? "%1 erledigt" : "%1 fehlgeschlagen").arg(page.opLabel(page.result?.op ?? ""))
                             color: Colors.fgBackground
                             font.pixelSize: 12
                             font.weight: Font.DemiBold
@@ -846,7 +849,7 @@ Item {
                         Layout.alignment: Qt.AlignTop
                         visible: banner.ok && banner.path !== ""
                         icon: "folder_open"
-                        label: "Im Ordner zeigen"
+                        label: I18n.tr("Im Ordner zeigen")
                         onClicked: page.openFolder(banner.path.slice(0, banner.path.lastIndexOf("/")))
                     }
 
@@ -855,7 +858,7 @@ Item {
                         visible: banner.ok && page.result?.op === "import" && (page.result?.data?.id ?? "") !== ""
                                  && Plugins.sections.includes(Plugins.sectionPrefix + page.result.data.id)
                         icon: "tune"
-                        label: "Einstellungen"
+                        label: I18n.tr("Einstellungen")
                         onClicked: page.openSection(Plugins.sectionPrefix + page.result.data.id)
                     }
 
@@ -917,7 +920,7 @@ Item {
 
                     Text {
                         font.family: Config.font
-                        text: page.subPage !== "" ? `${page.subTitle} für ${page.subInfo?.name ?? ""} importieren` : "Paket importieren"
+                        text: page.subPage !== "" ? I18n.tr("%1 für %2 importieren").arg(page.subTitle).arg(I18n.tr(page.subInfo?.name ?? "")) : I18n.tr("Paket importieren")
                         color: Colors.fgBackground
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
@@ -926,8 +929,8 @@ Item {
                     Text {
                         width: parent.width
                         font.family: Config.font
-                        text: "Ein .dip-Paket aus Downloads, Home oder Dokumenten wählen – oder unten den Pfad eintragen."
-                              + (page.subPage !== "" ? ` Angenommen werden nur Komponenten (Manifest "parent": "${page.subPage}").` : "")
+                        text: I18n.tr("Ein .dip-Paket aus Downloads, Home oder Dokumenten wählen – oder unten den Pfad eintragen.")
+                              + (page.subPage !== "" ? " " + I18n.tr("Angenommen werden nur Komponenten (Manifest \"parent\": \"%1\").").arg(page.subPage) : "")
                         color: Colors.fgSurfaceVariant
                         font.pixelSize: 10
                         wrapMode: Text.WordWrap
@@ -1045,7 +1048,7 @@ Item {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 font.family: Config.font
-                                text: "Keine .dip-Pakete in ~/Downloads, ~ oder ~/Documents"
+                                text: I18n.tr("Keine .dip-Pakete in ~/Downloads, ~ oder ~/Documents")
                                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
                                 font.pixelSize: 10
                             }
@@ -1104,7 +1107,7 @@ Item {
                             Text {
                                 anchors.fill: parent
                                 visible: pathInput.text === ""
-                                text: "~/Downloads/mein-plugin-1.0.0.dip"
+                                text: I18n.tr("~/Downloads/mein-plugin-1.0.0.dip")
                                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.6)
                                 font: pathInput.font
                                 verticalAlignment: Text.AlignVCenter
@@ -1133,7 +1136,7 @@ Item {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 font.family: Config.font
-                                text: "Nach dem Import einschalten"
+                                text: I18n.tr("Nach dem Import einschalten")
                                 color: Colors.fgSurface
                                 font.pixelSize: 11
                             }
@@ -1147,7 +1150,7 @@ Item {
                             filled: true
                             enabled: page.importPath.trim() !== "" && !page.busy
                             icon: "download"
-                            label: "Importieren"
+                            label: I18n.tr("Importieren")
                             onClicked: page.runImport()
                         }
                     }
@@ -1210,7 +1213,7 @@ Item {
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     font.family: Config.font
-                                    text: page.subInfo?.name ?? ""
+                                    text: I18n.tr(page.subInfo?.name ?? "")
                                     color: Colors.fgSurfaceVariant
                                     font.pixelSize: 13
                                 }
@@ -1237,7 +1240,7 @@ Item {
                                 Layout.fillWidth: true
                                 font.family: Config.font
                                 visible: text !== ""
-                                text: page.subInfo?.components?.desc ?? ""
+                                text: I18n.tr(page.subInfo?.components?.desc ?? "")
                                 color: Colors.fgSurfaceVariant
                                 font.pixelSize: 10
                                 wrapMode: Text.WordWrap
@@ -1255,7 +1258,7 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             font.family: Config.font
-                            text: `${page.subInfo?.name ?? ""} ist aus – eingeschaltete Komponenten laufen erst, wenn es an ist.`
+                            text: I18n.tr("%1 ist aus – eingeschaltete Komponenten laufen erst, wenn es an ist.").arg(I18n.tr(page.subInfo?.name ?? ""))
                             color: Colors.secondary
                             font.pixelSize: 10
                             wrapMode: Text.WordWrap
@@ -1264,7 +1267,7 @@ Item {
                         ActionButton {
                             enabled: !page.busy && page.subInfo?.status !== "invalid"
                             icon: "power_settings_new"
-                            label: "Einschalten"
+                            label: I18n.tr("Einschalten")
                             onClicked: Plugins.setEnabled(page.subPage, true)
                         }
                     }
@@ -1278,7 +1281,7 @@ Item {
 
                         Text {
                             font.family: Config.font
-                            text: "Eingebaut"
+                            text: I18n.tr("Eingebaut")
                             color: Colors.fgSurfaceVariant
                             font.pixelSize: 10
                             font.weight: Font.DemiBold
@@ -1295,7 +1298,7 @@ Item {
                                     required property var modelData
 
                                     icon: modelData.icon
-                                    label: modelData.title
+                                    label: I18n.tr(modelData.title)
                                 }
                             }
                         }
@@ -1335,7 +1338,7 @@ Item {
                     Text {
                         font.family: Config.font
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: `Noch keine ${page.subTitle} installiert`
+                        text: I18n.tr("Noch keine %1 installiert").arg(page.subTitle)
                         color: Colors.fgSurfaceVariant
                         font.pixelSize: 12
                     }
@@ -1343,7 +1346,7 @@ Item {
                     Text {
                         font.family: Config.font
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Oben über „Importieren“ ein .dip-Paket hinzufügen"
+                        text: I18n.tr("Oben über „Importieren“ ein .dip-Paket hinzufügen")
                         color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                         font.pixelSize: 10
                     }
@@ -1371,7 +1374,7 @@ Item {
                     Text {
                         font.family: Config.font
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Keine Plugins gefunden"
+                        text: I18n.tr("Keine Plugins gefunden")
                         color: Colors.fgSurfaceVariant
                         font.pixelSize: 12
                     }
@@ -1379,7 +1382,7 @@ Item {
                     Text {
                         font.family: Config.font
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Ein Paket importieren oder einen Ordner nach " + page.shortPath(Plugins.dir) + " legen"
+                        text: I18n.tr("Ein Paket importieren oder einen Ordner nach %1 legen").arg(page.shortPath(Plugins.dir))
                         color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                         font.pixelSize: 10
                     }
@@ -1399,7 +1402,7 @@ Item {
                         verticalCenter: parent.verticalCenter
                     }
                     font.family: Config.font
-                    text: "Exporte landen in " + page.shortPath(page.exportDir) + "/<id>-<version>.dip"
+                    text: I18n.tr("Exporte landen in %1/<id>-<version>.dip").arg(page.shortPath(page.exportDir))
                     color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
                     font.pixelSize: 10
                 }
@@ -1415,7 +1418,7 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         font.family: Config.font
-                        text: "Einstellungswerte mitnehmen"
+                        text: I18n.tr("Einstellungswerte mitnehmen")
                         color: Colors.fgSurfaceVariant
                         font.pixelSize: 10
                     }

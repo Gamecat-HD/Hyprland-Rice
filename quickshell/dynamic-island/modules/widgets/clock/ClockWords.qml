@@ -33,17 +33,18 @@ Item {
             step = 0;
             h += 1;
         }
-        // Ab "fuenf vor halb" bezieht sich alles auf die naechste Stunde
-        const hour = root.hourWords[(h + (step >= 25 ? 1 : 0)) % 12];
+        // Ab "fuenf vor halb" bezieht sich alles auf die naechste Stunde –
+        // im Englischen erst ab "twenty-five to"
+        const hour = I18n.tr(root.hourWords[(h + (step >= (I18n.german ? 25 : 35) ? 1 : 0)) % 12]);
         const steps = {
             0: "punkt", 5: "fünf nach", 10: "zehn nach", 15: "viertel nach",
             20: "zwanzig nach", 25: "fünf vor halb", 30: "halb", 35: "fünf nach halb",
             40: "zwanzig vor", 45: "viertel vor", 50: "zehn vor", 55: "fünf vor"
         };
-        let words = steps[step];
+        let words = I18n.tr(steps[step]);
         const landmark = step % 15 === 0;
         if (landmark && rest !== 0) {
-            const near = rest < 0 ? "kurz vor" : "kurz nach";
+            const near = rest < 0 ? I18n.tr("kurz vor") : I18n.tr("kurz nach");
             words = step === 0 ? near : near + " " + words;
         }
         return [words, hour];

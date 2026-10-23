@@ -129,8 +129,8 @@ Item {
     function actionResults(): var {
         const hits = LauncherActions.search(panel.actionQuery).map(action => ({
             kind: "action",
-            name: action.name,
-            desc: action.desc,
+            name: I18n.tr(action.name),
+            desc: I18n.tr(action.desc),
             icon: action.icon,
             action
         }));
@@ -141,7 +141,7 @@ Item {
             hits.push({
                 kind: "command",
                 name: raw,
-                desc: "Als Befehl ausführen",
+                desc: I18n.tr("Als Befehl ausführen"),
                 icon: "terminal",
                 command: raw
             });
@@ -253,7 +253,7 @@ Item {
             Text {
                 anchors.fill: parent
                 visible: search.text === ""
-                text: panel.favoritesOnly ? "Favoriten durchsuchen…" : "Suchen…   >  für Aktionen"
+                text: panel.favoritesOnly ? I18n.tr("Favoriten durchsuchen…") : I18n.tr("Suchen…   >  für Aktionen")
                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                 font: search.font
                 verticalAlignment: Text.AlignVCenter
@@ -406,7 +406,7 @@ Item {
                 NumberAnimation { duration: 140 }
             }
 
-            text: panel.favoritesOnly ? "Noch keine Favoriten" : "Keine Treffer"
+            text: panel.favoritesOnly ? I18n.tr("Noch keine Favoriten") : I18n.tr("Keine Treffer")
             color: Colors.fgSurfaceVariant
             font.pixelSize: 12
         }

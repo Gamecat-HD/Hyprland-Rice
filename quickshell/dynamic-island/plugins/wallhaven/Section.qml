@@ -83,9 +83,9 @@ Item {
 
     // Sortierung als Chips – dieselben Werte wie die Einstellung `sorting`
     readonly property var sortings: [
-        { name: "relevanz", label: "Relevanz", icon: "manage_search" },
-        { name: "neu", label: "Neu", icon: "schedule" },
-        { name: "zufall", label: "Zufall", icon: "casino" },
+        { name: "relevanz", label: I18n.tr("Relevanz"), icon: "manage_search" },
+        { name: "neu", label: I18n.tr("Neu"), icon: "schedule" },
+        { name: "zufall", label: I18n.tr("Zufall"), icon: "casino" },
         { name: "views", label: "Views", icon: "visibility" },
         { name: "favoriten", label: "Favs", icon: "favorite" },
         { name: "top", label: "Top", icon: "trending_up" }
@@ -95,16 +95,16 @@ Item {
     // (Suche, keine Treffer, Fehler) stehen gross im Karussellbereich
     readonly property string status: {
         if (section.wh.downloading)
-            return "lädt herunter…";
+            return I18n.tr("lädt herunter…");
         if (section.wh.prefetching)
-            return "HQ-Vorschau lädt…";
+            return I18n.tr("HQ-Vorschau lädt…");
         if (section.wh.error !== "" && section.wh.items.count > 0)
             return section.wh.error;
         if (section.wh.items.count === 0)
             return "";
         const pages = Math.min(section.wh.lastPage, section.wh.maxPages);
-        return `${section.wh.total} Treffer · Seite ${section.wh.page}/${pages}`
-            + (section.wh.searching ? " · lädt…" : "");
+        return I18n.tr("%1 Treffer · Seite %2/%3").arg(section.wh.total).arg(section.wh.page).arg(pages)
+            + (section.wh.searching ? I18n.tr(" · lädt…") : "");
     }
 
     Item {
@@ -182,7 +182,7 @@ Item {
             Text {
                 anchors.fill: parent
                 visible: whSearch.text === ""
-                text: "Wallhaven durchsuchen…   tag, -tag, like:ID"
+                text: I18n.tr("Wallhaven durchsuchen…   tag, -tag, like:ID")
                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                 font: whSearch.font
                 verticalAlignment: Text.AlignVCenter
@@ -369,9 +369,9 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: section.wh.searching ? "Suche auf wallhaven.cc…"
+                text: section.wh.searching ? I18n.tr("Suche auf wallhaven.cc…")
                     : section.wh.error !== "" ? section.wh.error
-                    : section.wh.answered ? "Keine Treffer" : "Tippen, um zu suchen"
+                    : section.wh.answered ? I18n.tr("Keine Treffer") : I18n.tr("Tippen, um zu suchen")
                 font.family: Config.font
                 font.pixelSize: 12
                 color: section.wh.error !== "" ? Colors.error : Colors.fgSurfaceVariant

@@ -58,7 +58,7 @@ Item {
 
             anchors.horizontalCenter: parent.horizontalCenter
             visible: root.showDate
-            text: root.date.toLocaleDateString(Qt.locale(), "dddd, d. MMMM")
+            text: I18n.date(root.date, "dddd, d. MMMM", "dddd, MMMM d")
             color: root.color
             opacity: 0.7
             font.family: root.fontFamily

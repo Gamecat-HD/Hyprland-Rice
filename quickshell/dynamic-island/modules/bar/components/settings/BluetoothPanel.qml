@@ -301,9 +301,9 @@ Item {
                     {
                         action: "trust",
                         icon: row.modelData.trusted ? "heart_minus" : "favorite",
-                        label: row.modelData.trusted ? "Vertrauen entziehen" : "Vertrauen"
+                        label: row.modelData.trusted ? I18n.tr("Vertrauen entziehen") : I18n.tr("Vertrauen")
                     },
-                    { action: "forget", icon: "delete", label: "Entfernen", danger: true }
+                    { action: "forget", icon: "delete", label: I18n.tr("Entfernen"), danger: true }
                 ] : []
 
                 function runPrimary(): void {
@@ -340,7 +340,7 @@ Item {
                             leftMargin: 8
                             bottom: parent.bottom
                         }
-                        text: row.rareDevice ? "Selten genutzte Geräte" : "Geräte"
+                        text: row.rareDevice ? I18n.tr("Selten genutzte Geräte") : I18n.tr("Geräte")
                         color: Colors.fgSurfaceVariant
                         font.pixelSize: 10
                         font.weight: Font.DemiBold
@@ -404,15 +404,15 @@ Item {
                             text: {
                                 const parts = [];
                                 if (row.modelData.connected)
-                                    parts.push("Verbunden");
+                                    parts.push(I18n.tr("Verbunden"));
                                 else if (row.modelData.pairing)
-                                    parts.push("Kopplung läuft");
+                                    parts.push(I18n.tr("Kopplung läuft"));
                                 else if (row.modelData.paired)
-                                    parts.push("Gekoppelt");
+                                    parts.push(I18n.tr("Gekoppelt"));
                                 else
-                                    parts.push("Verfügbar");
+                                    parts.push(I18n.tr("Verfügbar"));
                                 if (row.modelData.trusted)
-                                    parts.push("vertraut");
+                                    parts.push(I18n.tr("vertraut"));
                                 if (row.modelData.batteryAvailable)
                                     parts.push(`${Math.round(row.modelData.battery * 100)}%`);
                                 return parts.join(" · ");
@@ -535,8 +535,8 @@ Item {
             font.family: Config.font
             anchors.centerIn: parent
             visible: list.count === 0 && !pairingDialog.visible
-            text: !BluetoothService.enabled ? "Bluetooth ist aus"
-                : BluetoothService.discovering ? "Suche nach Geräten…" : "Keine Geräte gefunden"
+            text: !BluetoothService.enabled ? I18n.tr("Bluetooth ist aus")
+                : BluetoothService.discovering ? I18n.tr("Suche nach Geräten…") : I18n.tr("Keine Geräte gefunden")
             color: Colors.fgSurfaceVariant
             font.pixelSize: 12
         }
@@ -616,7 +616,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: 134
                 visible: BluetoothService.pairingRequest === "display" && BluetoothService.pairingEntered > 0
-                text: `${BluetoothService.pairingEntered} von 6 Ziffern eingegeben`
+                text: I18n.tr("%1 von 6 Ziffern eingegeben").arg(BluetoothService.pairingEntered)
                 font.family: Config.font
                 font.pixelSize: 11
                 color: Colors.fgSurfaceVariant
@@ -664,7 +664,7 @@ Item {
                     Text {
                         anchors.fill: parent
                         visible: pinInput.text === ""
-                        text: BluetoothService.pairingRequest === "passkey" ? "Passkey (1–6 Ziffern)" : "PIN"
+                        text: BluetoothService.pairingRequest === "passkey" ? I18n.tr("Passkey (1–6 Ziffern)") : "PIN"
                         color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                         font: pinInput.font
                         verticalAlignment: Text.AlignVCenter
@@ -697,7 +697,7 @@ Item {
                 Text {
                     font.family: Config.font
                     anchors.centerIn: parent
-                    text: "Senden"
+                    text: I18n.tr("Senden")
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
                     color: !pinInput.acceptableInput ? Colors.fgSurfaceVariant : Colors.fgPrimary
@@ -728,7 +728,7 @@ Item {
                     Text {
                         font.family: Config.font
                         anchors.centerIn: parent
-                        text: BluetoothService.pairingRequest === "error" ? "Schließen" : "Abbrechen"
+                        text: BluetoothService.pairingRequest === "error" ? I18n.tr("Schließen") : I18n.tr("Abbrechen")
                         color: Colors.fgBackground
                         font.pixelSize: 11
                     }
@@ -750,7 +750,7 @@ Item {
                     Text {
                         font.family: Config.font
                         anchors.centerIn: parent
-                        text: BluetoothService.pairingRequest === "authorize" ? "Erlauben" : "Bestätigen"
+                        text: BluetoothService.pairingRequest === "authorize" ? I18n.tr("Erlauben") : I18n.tr("Bestätigen")
                         color: Colors.fgPrimary
                         font.pixelSize: 11
                         font.weight: Font.DemiBold

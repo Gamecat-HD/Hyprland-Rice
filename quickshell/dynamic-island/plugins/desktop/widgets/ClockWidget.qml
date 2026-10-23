@@ -42,7 +42,7 @@ Item {
     readonly property string display: Qt.fontFamilies().includes("Inter Display") ? "Inter Display" : Config.font
     readonly property string hours: Qt.formatDateTime(clock.date, root.use12h ? "h" : "HH")
     readonly property string minutes: Qt.formatDateTime(clock.date, "mm")
-    readonly property string dateLine: clock.date.toLocaleDateString(Qt.locale("de_DE"), "dddd · d. MMMM").toUpperCase()
+    readonly property string dateLine: I18n.date(clock.date, "dddd · d. MMMM", "dddd · MMMM d").toUpperCase()
 
     implicitWidth: root.island ? card.width : body.width
     implicitHeight: root.island ? card.height : body.height
@@ -307,7 +307,7 @@ Item {
                 spacing: root.unit * 0.15
 
                 Text {
-                    text: clock.date.toLocaleDateString(Qt.locale("de_DE"), "dddd")
+                    text: clock.date.toLocaleDateString(I18n.locale, "dddd")
                     color: "#f5f5f7"
                     font.family: Config.font
                     font.pixelSize: root.unit * 1.0
@@ -326,7 +326,7 @@ Item {
                     }
 
                     Text {
-                        text: clock.date.toLocaleDateString(Qt.locale("de_DE"), "d. MMMM")
+                        text: I18n.date(clock.date, "d. MMMM", "MMMM d")
                         color: Colors.alpha("#f5f5f7", 0.55)
                         font.family: Config.font
                         font.pixelSize: root.unit * 0.85

@@ -19,16 +19,16 @@ Column {
     readonly property string sceneLabel: {
         const key = Scenes.currentKey;
         if (key === "")
-            return "Keine Szene – der Desktop ist leer";
+            return I18n.tr("Keine Szene – der Desktop ist leer");
         if (key === "*")
-            return "Standard-Szene (gilt überall)";
-        return key.endsWith("/") ? `Ordner ${key.slice(0, -1)}` : `Bild ${key.split("/").pop()}`;
+            return I18n.tr("Standard-Szene (gilt überall)");
+        return key.endsWith("/") ? I18n.tr("Ordner %1").arg(key.slice(0, -1)) : I18n.tr("Bild %1").arg(key.split("/").pop());
     }
 
     Text {
         width: parent.width
         text: root.sceneLabel + (Scenes.widgets.length > 0
-            ? " · " + Scenes.widgets.map(w => DesktopWidgets.info(w.type)?.title ?? w.type).join(", ")
+            ? " · " + Scenes.widgets.map(w => I18n.tr(DesktopWidgets.info(w.type)?.title ?? w.type)).join(", ")
             : "")
         color: Colors.fgSurfaceVariant
         font.family: Config.font
@@ -61,7 +61,7 @@ Column {
                     id: editLabel
 
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "Auf dem Desktop anordnen"
+                    text: I18n.tr("Auf dem Desktop anordnen")
                     color: Colors.fgPrimary
                     font.family: Config.font
                     font.pixelSize: 11
@@ -82,7 +82,7 @@ Column {
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: "oder SUPER+ALT+D"
+            text: I18n.tr("oder SUPER+ALT+D")
             color: Colors.fgSurfaceVariant
             font.family: Config.font
             font.pixelSize: 10

@@ -5,6 +5,8 @@ import Quickshell
 import Quickshell.Bluetooth as QB
 import Quickshell.Io
 
+import qs
+
 Singleton {
     id: root
 
@@ -33,7 +35,7 @@ Singleton {
     property bool pairingLocallyStarted: false
 
     function deviceName(device: var): string {
-        return device?.name || device?.deviceName || device?.address || "Unbekanntes Gerät";
+        return device?.name || device?.deviceName || device?.address || I18n.tr("Unbekanntes Gerät");
     }
 
     function isRareDevice(device: var): bool {
@@ -121,10 +123,10 @@ Singleton {
         root.pairingLocallyStarted = true;
         root.pairingRequest = "waiting";
         root.pairingPasskey = "";
-        root.pairingMessage = "Kopplung wird gestartet…";
+        root.pairingMessage = I18n.tr("Kopplung wird gestartet…");
         if (!root.agentReady) {
             root.pairingRequest = "error";
-            root.pairingMessage = "Bluetooth-Agent ist noch nicht bereit";
+            root.pairingMessage = I18n.tr("Bluetooth-Agent ist noch nicht bereit");
             return;
         }
         sendAgent({ action: "pair", path: device.dbusPath });
@@ -135,7 +137,7 @@ Singleton {
             return;
         sendAgent({ action: "respond", value: pin });
         root.pairingRequest = "waiting";
-        root.pairingMessage = "PIN wird geprüft…";
+        root.pairingMessage = I18n.tr("PIN wird geprüft…");
     }
 
     function confirmPairing(accept: bool): void {
@@ -144,7 +146,7 @@ Singleton {
         sendAgent({ action: "respond", accept: accept });
         if (accept) {
             root.pairingRequest = "waiting";
-            root.pairingMessage = "Kopplung wird bestätigt…";
+            root.pairingMessage = I18n.tr("Kopplung wird bestätigt…");
             if (root.pairingDevice?.paired && !root.pairingLocallyStarted)
                 root.clearPairing();
         } else {
@@ -183,7 +185,7 @@ Singleton {
             root.agentReady = event.ready;
             if (!event.ready && root.pairingActive) {
                 root.pairingRequest = "error";
-                root.pairingMessage = "Bluetooth-Agent ist nicht verfügbar";
+                root.pairingMessage = I18n.tr("Bluetooth-Agent ist nicht verfügbar");
             }
         } else if (event.event === "request") {
             const device = QB.Bluetooth.devices.values.find(device => device.dbusPath === event.path);
@@ -194,11 +196,11 @@ Singleton {
             root.pairingDevice = device;
             root.pairingPasskey = event.passkey || "";
             root.pairingEntered = event.entered || 0;
-            root.pairingMessage = event.kind === "pin" ? "PIN des Geräts eingeben"
-                : event.kind === "passkey" ? "Passkey des Geräts eingeben (1–6 Ziffern)"
-                : event.kind === "confirm" ? "Stimmt dieser Code auf beiden Geräten überein?"
-                : event.kind === "display" ? "Diesen Code am anderen Gerät eingeben"
-                : "Verbindung bzw. Dienste dieses Geräts erlauben?";
+            root.pairingMessage = event.kind === "pin" ? I18n.tr("PIN des Geräts eingeben")
+                : event.kind === "passkey" ? I18n.tr("Passkey des Geräts eingeben (1–6 Ziffern)")
+                : event.kind === "confirm" ? I18n.tr("Stimmt dieser Code auf beiden Geräten überein?")
+                : event.kind === "display" ? I18n.tr("Diesen Code am anderen Gerät eingeben")
+                : I18n.tr("Verbindung bzw. Dienste dieses Geräts erlauben?");
             root.pairingRequest = event.kind;
         } else if (event.event === "paired") {
             if (root.pairingDevice?.dbusPath === event.path) {
@@ -217,7 +219,7 @@ Singleton {
             console.warn("Bluetooth-Agent:", event.message);
             if (root.pairingActive) {
                 root.pairingRequest = "error";
-                root.pairingMessage = "Kopplung fehlgeschlagen: " + event.message;
+                root.pairingMessage = I18n.tr("Kopplung fehlgeschlagen: %1").arg(event.message);
             }
         }
     }
@@ -248,7 +250,7 @@ Singleton {
             root.agentReady = false;
             if (root.pairingDevice) {
                 root.pairingRequest = "error";
-                root.pairingMessage = "Bluetooth-Agent wurde beendet";
+                root.pairingMessage = I18n.tr("Bluetooth-Agent wurde beendet");
             }
         }
 

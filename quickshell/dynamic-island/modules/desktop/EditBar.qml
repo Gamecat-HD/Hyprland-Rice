@@ -28,10 +28,10 @@ Rectangle {
     readonly property string scope: {
         const t = Scenes.target;
         if (t === "*")
-            return "Änderungen gelten überall, wo nichts Eigenes eingestellt ist";
+            return I18n.tr("Änderungen gelten überall, wo nichts Eigenes eingestellt ist");
         if (t.endsWith("/"))
-            return `Änderungen gelten für alle Bilder im Ordner ${t.slice(0, -1).split("/").pop()}`;
-        return "Änderungen gelten nur für dieses Bild";
+            return I18n.tr("Änderungen gelten für alle Bilder im Ordner %1").arg(t.slice(0, -1).split("/").pop());
+        return I18n.tr("Änderungen gelten nur für dieses Bild");
     }
 
     Timer {
@@ -81,7 +81,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
 
             EditLabel {
-                text: "Szene"
+                text: I18n.tr("Szene")
             }
 
             Repeater {
@@ -102,7 +102,7 @@ Rectangle {
             EditChip {
                 visible: Scenes.target !== "*" && Array.isArray(Scenes.scenes[Scenes.target])
                 icon: bar.dropArmed ? "check" : "layers_clear"
-                text: bar.dropArmed ? "Szene löschen?" : ""
+                text: bar.dropArmed ? I18n.tr("Szene löschen?") : ""
                 danger: true
                 armed: bar.dropArmed
                 onClicked: {
@@ -126,7 +126,7 @@ Rectangle {
 
             EditChip {
                 icon: "add"
-                text: "Widget"
+                text: I18n.tr("Widget")
                 on: bar.adding
                 // Auswahl ueber der Leiste (WidgetPicker, DesktopScreen)
                 onClicked: {
@@ -139,7 +139,7 @@ Rectangle {
 
             EditChip {
                 icon: "auto_awesome_mosaic"
-                text: "Anordnen"
+                text: I18n.tr("Anordnen")
                 visible: Scenes.widgets.length > 0 && Scenes.analysis !== null
                 onClicked: Scenes.arrange()
             }
@@ -154,13 +154,13 @@ Rectangle {
 
             EditChip {
                 icon: "close"
-                text: "Abbrechen"
+                text: I18n.tr("Abbrechen")
                 onClicked: Scenes.cancel()
             }
 
             EditChip {
                 icon: "check"
-                text: "Fertig"
+                text: I18n.tr("Fertig")
                 on: true
                 onClicked: Scenes.done()
             }
@@ -170,10 +170,10 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             Layout.maximumWidth: 760
-            text: `${bar.scope}  ·  Ziehen verschiebt, Ecke = Größe  ·  `
-                  + (Scenes.adding ? "Tippen filtert · Pfeile wählen · Enter fügt hinzu · Esc schließt"
-                     : Scenes.selected !== "" ? "Pfeile (+Shift) · + / − · Entf · Esc Auswahl aufheben"
-                     : "Rechtsklick: Widget hier einfügen · Enter fertig · Esc bricht ab")
+            text: `${bar.scope}  ·  ${I18n.tr("Ziehen verschiebt, Ecke = Größe")}  ·  `
+                  + (Scenes.adding ? I18n.tr("Tippen filtert · Pfeile wählen · Enter fügt hinzu · Esc schließt")
+                     : Scenes.selected !== "" ? I18n.tr("Pfeile (+Shift) · + / − · Entf · Esc Auswahl aufheben")
+                     : I18n.tr("Rechtsklick: Widget hier einfügen · Enter fertig · Esc bricht ab"))
             color: Colors.fgSurfaceVariant
             font.family: Config.font
             font.pixelSize: 10

@@ -92,12 +92,12 @@ Item {
         root.gpuTemp = s.gpuTemp;
         root.memText = s.memTotal > 0 ? `${s.formatBytes(s.memUsed)} / ${s.formatBytes(s.memTotal)}` : "";
         root.vramText = s.vramTotal > 0 ? `${s.formatBytes(s.vramUsed)} VRAM` : "";
-        root.diskText = s.diskTotal > 0 ? `${s.formatBytes(s.diskFree)} frei` : "";
+        root.diskText = s.diskTotal > 0 ? I18n.tr("%1 frei").arg(s.formatBytes(s.diskFree)) : "";
         const parts = [];
         for (const t of s.nvmeTemps)
             parts.push(`SSD ${Math.round(t)} °C`);
         if (s.waterTemp > 0)
-            parts.push(`Wasser ${Math.round(s.waterTemp)} °C`);
+            parts.push(I18n.tr("Wasser %1 °C").arg(Math.round(s.waterTemp)));
         root.extraTemps = parts.join("  ·  ");
     }
 
@@ -137,7 +137,7 @@ Item {
     }
 
     function labelOf(key: string): string {
-        return ({ cpu: "CPU", gpu: "GPU", mem: "RAM", disk: "PLATTE" })[key] ?? key;
+        return ({ cpu: "CPU", gpu: "GPU", mem: "RAM", disk: I18n.tr("PLATTE") })[key] ?? key;
     }
 
     // Kleine Zeile unter/neben dem Wert: Temperatur bei CPU/GPU (oder VRAM,

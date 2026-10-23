@@ -5,6 +5,8 @@ import Quickshell.Io
 import qs.modules.launcher
 import qs.modules.services.wallpaper
 
+import qs
+
 // Dienst des Plugins: Wallhaven-Suche fuer die Wallpaper-Auswahl – Treffer,
 // Seiten, Downloads. (Frueher modules/services/wallpaper/Wallhaven.qml.)
 //
@@ -64,8 +66,8 @@ Scope {
     // ipc open): Auswahl mit aufgeklappter Sektion und der Tastatur darin
     readonly property var actions: [
         {
-            name: "Wallhaven durchsuchen",
-            desc: "Wallpaper-Auswahl mit der Wallhaven-Suche",
+            name: I18n.tr("Wallhaven durchsuchen"),
+            desc: I18n.tr("Wallpaper-Auswahl mit der Wallhaven-Suche"),
             keepOpen: true,
             run: () => LauncherState.showWallpaperSection(LauncherState.screen, root.plugin.id)
         }
@@ -262,7 +264,7 @@ Scope {
                 else if (msg.type === "thumb")
                     root.patch(msg.id, { thumb: msg.thumb });
                 else if (msg.type === "error") {
-                    root.error = msg.message ?? "Fehler";
+                    root.error = msg.message ?? I18n.tr("Fehler");
                     root.searching = false;
                 }
             }
@@ -471,7 +473,7 @@ Scope {
                 if (msg.type === "done")
                     downloadProc.path = msg.path ?? "";
                 else if (msg.type === "error")
-                    root.error = msg.message ?? "Download fehlgeschlagen";
+                    root.error = msg.message ?? I18n.tr("Download fehlgeschlagen");
             }
         }
 
@@ -483,7 +485,7 @@ Scope {
             } else {
                 root.patch(downloadProc.wid, { phase: "error" });
                 if (root.error === "")
-                    root.error = "Download fehlgeschlagen";
+                    root.error = I18n.tr("Download fehlgeschlagen");
             }
         }
     }

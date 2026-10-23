@@ -181,7 +181,7 @@ Item {
                 verticalCenter: parent.verticalCenter
             }
             visible: !chip.narrow
-            text: chip.info.label ?? chip.tileId
+            text: chip.info.label ? I18n.tr(chip.info.label) : chip.tileId
             color: Colors.fgSurface
             font.pixelSize: 11
             font.weight: Font.DemiBold
@@ -471,7 +471,7 @@ Item {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     font.family: Config.font
-                    text: "Hierher ziehen für eine neue Reihe"
+                    text: I18n.tr("Hierher ziehen für eine neue Reihe")
                     color: Colors.fgSurfaceVariant
                     font.pixelSize: 10
                 }
@@ -489,7 +489,7 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
                 font.family: Config.font
-                text: "AUSGEBLENDET"
+                text: I18n.tr("AUSGEBLENDET")
                 color: Colors.fgSurfaceVariant
                 font.pixelSize: 9
                 font.weight: Font.Medium
@@ -529,7 +529,7 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         font.family: Config.font
-                        text: "Standard"
+                        text: I18n.tr("Standard")
                         color: Colors.fgSurface
                         font.pixelSize: 10
                     }
@@ -611,7 +611,7 @@ Item {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     font.family: Config.font
-                    text: "Kacheln hierher ziehen, um sie auszublenden"
+                    text: I18n.tr("Kacheln hierher ziehen, um sie auszublenden")
                     color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
                     font.pixelSize: 10
                 }
@@ -658,7 +658,7 @@ Item {
                 leftMargin: 8
                 verticalCenter: parent.verticalCenter
             }
-            text: ghost.info.label ?? ""
+            text: I18n.tr(ghost.info.label ?? "")
             color: Colors.fgPrimary
             font.pixelSize: 11
             font.weight: Font.DemiBold

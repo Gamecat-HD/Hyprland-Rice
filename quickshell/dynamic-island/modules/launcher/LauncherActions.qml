@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import qs.modules.services.wallpaper
 
+import qs
 import qs.modules.settings
 import qs.modules.services.plugins
 
@@ -115,6 +116,7 @@ Singleton {
         if (query === "")
             return root.all;
 
-        return root.all.filter(action => `${action.name} ${action.desc}`.toLowerCase().includes(query));
+        // Deutscher Text und Uebersetzung: die Suche trifft in beiden Sprachen
+        return root.all.filter(action => `${action.name} ${action.desc} ${I18n.tr(action.name)} ${I18n.tr(action.desc)}`.toLowerCase().includes(query));
     }
 }

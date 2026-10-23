@@ -1,5 +1,7 @@
 import QtQuick
 
+import qs
+
 // Dienst des Plugins (plugin.json: main). Lebt, solange das Plugin an ist –
 // hier gehoeren Prozesse, Timer, FileViews und die Launcher-Aktionen hin.
 //
@@ -20,8 +22,8 @@ QtObject {
     // Im Launcher unter ">" – gleiches Format wie LauncherActions
     readonly property var actions: [
         {
-            name: "Beispiel-Lampe umschalten",
-            desc: root.lamp ? "Jetzt: an" : "Jetzt: aus",
+            name: I18n.tr("Beispiel-Lampe umschalten"),
+            desc: root.lamp ? I18n.tr("Jetzt: an") : I18n.tr("Jetzt: aus"),
             keepOpen: true,
             run: () => root.plugin.set("lamp", !root.lamp)
         }

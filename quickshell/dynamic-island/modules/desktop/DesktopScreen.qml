@@ -326,7 +326,7 @@ PanelWindow {
                     id: ghostLabel
 
                     anchors.centerIn: parent
-                    text: (win.incoming?.title ?? "") + " → " + win.screenName
+                    text: I18n.tr(win.incoming?.title ?? "") + " → " + win.screenName
                     color: Colors.fgPrimary
                     font.family: Config.font
                     font.pixelSize: 10

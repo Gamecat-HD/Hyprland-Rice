@@ -146,7 +146,7 @@ Item {
                         Text {
                             font.family: Config.font
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: action.modelData.label
+                            text: I18n.tr(action.modelData.label)
                             color: action.hovered ? action.modelData.hue : Colors.fgSurfaceVariant
                             font.pixelSize: 11
                             font.weight: action.hovered ? Font.DemiBold : Font.Normal

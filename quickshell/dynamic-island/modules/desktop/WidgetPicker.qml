@@ -55,7 +55,8 @@ Rectangle {
         const q = picker.query.trim().toLowerCase();
         if (q === "")
             return picker.entries;
-        return picker.entries.filter(e => (e.title + " " + e.desc + " " + e.plugin + " " + e.type).toLowerCase().includes(q));
+        // Deutscher Text und Uebersetzung: die Suche trifft in beiden Sprachen
+        return picker.entries.filter(e => (e.title + " " + e.desc + " " + I18n.tr(e.title) + " " + I18n.tr(e.desc) + " " + e.plugin + " " + e.type).toLowerCase().includes(q));
     }
     readonly property var builtins: picker.shown.filter(e => e.builtin)
     readonly property var components: picker.shown.filter(e => !e.builtin)
@@ -167,7 +168,7 @@ Rectangle {
 
             Text {
                 width: parent.width
-                text: tile.modelData.title
+                text: I18n.tr(tile.modelData.title)
                 color: Colors.fgBackground
                 font.family: Config.font
                 font.pixelSize: 12
@@ -178,7 +179,7 @@ Rectangle {
             Text {
                 width: parent.width
                 visible: text !== ""
-                text: tile.modelData.desc
+                text: I18n.tr(tile.modelData.desc)
                 color: Colors.fgSurfaceVariant
                 font.family: Config.font
                 font.pixelSize: 10
@@ -255,7 +256,7 @@ Rectangle {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: picker.here ? "Widget hier einfügen" : "Widget hinzufügen"
+                    text: picker.here ? I18n.tr("Widget hier einfügen") : I18n.tr("Widget hinzufügen")
                     color: Colors.fgBackground
                     font.family: Config.font
                     font.pixelSize: 13
@@ -342,7 +343,7 @@ Rectangle {
                 Text {
                     anchors.fill: parent
                     visible: input.text === ""
-                    text: "Suchen – Enter fügt hinzu"
+                    text: I18n.tr("Suchen – Enter fügt hinzu")
                     color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                     font: input.font
                     verticalAlignment: Text.AlignVCenter
@@ -355,7 +356,7 @@ Rectangle {
         // ---- Grundausstattung ----
         Section {
             visible: picker.builtins.length > 0
-            text: "Grundausstattung"
+            text: I18n.tr("Grundausstattung")
         }
 
         Flow {
@@ -373,7 +374,7 @@ Rectangle {
         // ---- Komponenten ----
         Section {
             visible: picker.components.length > 0
-            text: "Komponenten"
+            text: I18n.tr("Komponenten")
         }
 
         Flow {
@@ -394,7 +395,7 @@ Rectangle {
             topPadding: 6
             bottomPadding: 6
             horizontalAlignment: Text.AlignHCenter
-            text: `Kein Widget passt zu „${picker.query}“`
+            text: I18n.tr("Kein Widget passt zu „%1“").arg(picker.query)
             color: Colors.fgSurfaceVariant
             font.family: Config.font
             font.pixelSize: 11
@@ -402,7 +403,7 @@ Rectangle {
 
         Text {
             width: parent.width
-            text: "Weitere Widgets: Einstellungen › Plugins › Desktop-Widgets › Widgets"
+            text: I18n.tr("Weitere Widgets: Einstellungen › Plugins › Desktop-Widgets › Widgets")
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.75)
             font.family: Config.font
             font.pixelSize: 10

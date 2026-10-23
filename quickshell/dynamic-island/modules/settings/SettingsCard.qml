@@ -75,10 +75,10 @@ Surface {
         if (s === card.managerKey)
             return "Plugins";
         if (s === card.wallsKey)
-            return "Bibliothek";
+            return I18n.tr("Bibliothek");
         if (Plugins.isPluginSection(s))
-            return Plugins.sectionTitle(s);
-        return Config.sectionMeta[s] ?? s;
+            return I18n.tr(Plugins.sectionTitle(s));
+        return I18n.tr(Config.sectionMeta[s] ?? s);
     }
 
     function valuesOf(s: string): var {
@@ -161,7 +161,7 @@ Surface {
                 top: parent.top
                 topMargin: 24
             }
-            text: "Einstellungen"
+            text: I18n.tr("Einstellungen")
             color: Colors.fgBackground
             font.pixelSize: 17
             font.weight: Font.DemiBold
@@ -308,7 +308,7 @@ Surface {
 
                 SectionButton {
                     key: ""
-                    label: "Alle"
+                    label: I18n.tr("Alle")
                     icon: "tune"
                 }
 
@@ -334,7 +334,7 @@ Surface {
                         SectionButton {
                             visible: sectionEntry.modelData === "wallpaper"
                             key: card.wallsKey
-                            label: "Bibliothek"
+                            label: I18n.tr("Bibliothek")
                             icon: "photo_library"
                             count: Wallpapers.list.length
                             sub: true
@@ -359,7 +359,7 @@ Surface {
 
                 SectionButton {
                     key: card.managerKey
-                    label: "Plugins verwalten"
+                    label: I18n.tr("Plugins verwalten")
                     icon: "extension"
                     count: Plugins.plugins.length
                 }
@@ -371,7 +371,7 @@ Surface {
                         required property string modelData
 
                         key: modelData
-                        label: Plugins.sectionTitle(modelData)
+                        label: I18n.tr(Plugins.sectionTitle(modelData))
                         icon: Plugins.sectionIcon(modelData)
                         count: card.countIn(modelData)
                         sub: true
@@ -477,7 +477,7 @@ Surface {
 
             FootButton {
                 icon: "open_in_new"
-                label: "shell.json öffnen"
+                label: I18n.tr("shell.json öffnen")
                 onClicked: {
                     Quickshell.execDetached(["xdg-open", Config.path]);
                     SettingsState.close();
@@ -493,7 +493,7 @@ Surface {
                 property bool armed: false
 
                 icon: armed ? "check" : "settings_backup_restore"
-                label: armed ? "Wirklich alles zurücksetzen?" : "Alles zurücksetzen"
+                label: armed ? I18n.tr("Wirklich alles zurücksetzen?") : I18n.tr("Alles zurücksetzen")
                 tint: armed ? Colors.error : Colors.fgSurfaceVariant
                 onClicked: {
                     if (resetAll.armed) {
@@ -537,9 +537,9 @@ Surface {
                 verticalCenter: searchBox.verticalCenter
             }
             width: 160
-            text: card.browsing ? "Bibliothek"
-                : card.searching ? "Suche"
-                : card.section === "" ? "Alle"
+            text: card.browsing ? I18n.tr("Bibliothek")
+                : card.searching ? I18n.tr("Suche")
+                : card.section === "" ? I18n.tr("Alle")
                 : card.sectionTitle(card.section)
             color: Colors.fgBackground
             font.pixelSize: 15
@@ -612,7 +612,7 @@ Surface {
                 Text {
                     anchors.fill: parent
                     visible: search.text === ""
-                    text: card.browsing ? "Bild suchen…" : "Einstellung suchen…"
+                    text: card.browsing ? I18n.tr("Bild suchen…") : I18n.tr("Einstellung suchen…")
                     color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                     font: search.font
                     verticalAlignment: Text.AlignVCenter
@@ -787,11 +787,12 @@ Surface {
                                 section,
                                 key,
                                 value: values[key],
-                                title: meta?.title ?? key,
+                                title: meta?.title ? I18n.tr(meta.title) : key,
                                 // Ohne Eintrag in der Tabelle: ehrlich sagen,
                                 // dass der Schluessel neu ist
-                                desc: meta?.desc ?? `Schlüssel "${key}" aus shell.json`,
+                                desc: meta?.desc ? I18n.tr(meta.desc) : I18n.tr("Schlüssel \"%1\" aus shell.json").arg(key),
                                 options: meta?.options ?? null,
+                                labels: meta?.labels ?? null,
                                 min: meta?.min,
                                 max: meta?.max,
                                 step: meta?.step,
@@ -873,7 +874,7 @@ Surface {
                 Text {
                     font.family: Config.font
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Nichts gefunden"
+                    text: I18n.tr("Nichts gefunden")
                     color: Colors.fgSurfaceVariant
                     font.pixelSize: 12
                 }
@@ -889,8 +890,8 @@ Surface {
                 bottom: parent.bottom
                 bottomMargin: 10
             }
-            text: card.browsing ? (card.searching ? `${walls.item?.images.length ?? 0} Treffer` : "")
-                : card.searching ? `${list.count} Treffer` : ""
+            text: card.browsing ? (card.searching ? I18n.tr("%1 Treffer").arg(walls.item?.images.length ?? 0) : "")
+                : card.searching ? I18n.tr("%1 Treffer").arg(list.count) : ""
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
             font.pixelSize: 10
         }

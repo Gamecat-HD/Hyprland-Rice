@@ -3,6 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+import qs
+
 // Welchen Look das Terminal zeigt: Starship-Prompt und fastfetch.
 // (Frueher modules/services/system/TerminalTheme.qml, jetzt ein Plugin.)
 //
@@ -29,13 +31,13 @@ QtObject {
     readonly property string mode: !root.plugin.settings.theme ? "miku"
                                    : root.plugin.settings.folderLooks ? "wallpaper" : "theme"
 
-    readonly property var labels: ({ wallpaper: "Wallpaper-Ordner", theme: "Farbschema", miku: "Vocaloid" })
+    readonly property var labels: ({ wallpaper: I18n.tr("Wallpaper-Ordner"), theme: I18n.tr("Farbschema"), miku: "Vocaloid" })
 
     // Im Launcher unter ">" – schaltet zwischen den drei Modi durch
     readonly property var actions: [
         {
-            name: "Terminal-Look wechseln",
-            desc: `Jetzt: ${root.labels[root.mode]} – Prompt und fastfetch`,
+            name: I18n.tr("Terminal-Look wechseln"),
+            desc: I18n.tr("Jetzt: %1 – Prompt und fastfetch").arg(root.labels[root.mode]),
             keepOpen: true,
             run: () => root.cycle()
         }

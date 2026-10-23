@@ -8,6 +8,8 @@ import Quickshell.Io
 
 import qs.modules.services.wallpaper
 
+import qs
+
 // Desktop-Widgets je Wallpaper ("Szenen").
 //
 // Datei: ~/.config/dynamic-island/scenes.json (im Dotfiles-Repo, wandert per
@@ -128,11 +130,11 @@ Singleton {
         for (const key of root.chainFor(root.wallpaper)) {
             let label;
             if (key === "*")
-                label = "Überall";
+                label = I18n.tr("Überall");
             else if (key === rel)
-                label = "Dieses Bild";
+                label = I18n.tr("Dieses Bild");
             else
-                label = "Ordner " + key.slice(0, -1).split("/").pop();
+                label = I18n.tr("Ordner %1").arg(key.slice(0, -1).split("/").pop());
             out.push({ key: key, label: label, own: Array.isArray(root.scenes[key]) });
         }
         return out;

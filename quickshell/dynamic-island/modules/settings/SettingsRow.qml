@@ -49,8 +49,18 @@ Item {
             return "";
         const id = typeof req === "string" ? req : Object.keys(req)[0];
         const title = Plugins.metaFor(id)?.title ?? id;
-        return typeof req === "string" ? `Braucht „${title}“`
-                                       : `Braucht „${title}“ = ${req[id]}`;
+        return typeof req === "string" ? I18n.tr("Braucht „%1“").arg(I18n.tr(title))
+                                       : I18n.tr("Braucht „%1“ = %2").arg(I18n.tr(title)).arg(row.optionLabel(req[id]));
+    }
+
+    // Anzeigename einer Option: meta.labels, sonst der Wert selbst –
+    // uebersetzt, Schriftnamen bleiben wie sie sind
+    function optionLabel(value: var): string {
+        const v = String(value ?? "");
+        const label = row.entry?.labels?.[v];
+        if (label !== undefined)
+            return label;
+        return row.isChoice && !row.isFont ? I18n.tr(v) : v;
     }
     readonly property bool changed: !Plugins.isDefault(row.entry?.section ?? "", row.entry?.key ?? "")
 
@@ -117,8 +127,8 @@ Item {
         verticalAlignment: Text.AlignBottom
 
         // Plugin-Gruppen heissen wie ihr Plugin
-        text: (Plugins.isPluginSection(row.section) ? Plugins.sectionTitle(row.section)
-               : Config.sectionMeta[row.section] ?? row.section).toUpperCase()
+        text: (Plugins.isPluginSection(row.section) ? I18n.tr(Plugins.sectionTitle(row.section))
+               : I18n.tr(Config.sectionMeta[row.section] ?? row.section)).toUpperCase()
         color: Colors.fgSurfaceVariant
         font.pixelSize: 9
         font.weight: Font.Medium
@@ -431,7 +441,7 @@ Item {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: String(row.entry?.value ?? "")
+                        text: row.optionLabel(row.entry?.value)
                         color: Colors.fgSurfaceVariant
                         font.family: row.isFont ? String(row.entry?.value ?? "") : Config.font
                         font.pixelSize: 11
@@ -547,7 +557,7 @@ Item {
                         anchors.bottom: chip.previewed ? parent.bottom : undefined
                         anchors.bottomMargin: 5
                         font.pixelSize: chip.previewed ? 9 : 11
-                        text: chip.modelData
+                        text: row.optionLabel(chip.modelData)
                         color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
                         font.family: row.isFont ? chip.modelData : Config.font
                     }

@@ -195,16 +195,16 @@ Item {
 
     function phaseText(phase: string): string {
         if (phase === "connect")
-            return "Verbinde…";
+            return I18n.tr("Verbinde…");
         if (phase === "disconnect")
-            return "Trenne…";
+            return I18n.tr("Trenne…");
         if (phase === "forget")
-            return "Wird vergessen…";
+            return I18n.tr("Wird vergessen…");
         if (phase === "failed")
-            return "Fehlgeschlagen";
+            return I18n.tr("Fehlgeschlagen");
         if (phase === "done")
-            return Network.doneKind === "disconnect" ? "Getrennt"
-                 : Network.doneKind === "forget" ? "Vergessen" : "Verbunden";
+            return Network.doneKind === "disconnect" ? I18n.tr("Getrennt")
+                 : Network.doneKind === "forget" ? I18n.tr("Netz vergessen") : I18n.tr("Verbunden");
         return "";
     }
 
@@ -385,7 +385,7 @@ Item {
         // uebrig bleibt (Fehlermeldung von nmcli) – sonst rutscht die ganze
         // Liste bei jedem Klick kurz nach unten
         visible: text !== "" && !Network.busy
-        color: text.startsWith("Error") || text.indexOf("Fehl") >= 0 ? Colors.error : Colors.fgSurfaceVariant
+        color: text.startsWith("Error") || text.indexOf("Fehl") >= 0 || text.startsWith("Failed") ? Colors.error : Colors.fgSurfaceVariant
         font.pixelSize: 11
         elide: Text.ElideRight
     }
@@ -624,12 +624,12 @@ Item {
                     const net = row.modelData;
                     const items = [];
                     if (net.saved && net.secured)
-                        items.push({ action: "password", icon: "key", label: "Passwort ändern" });
+                        items.push({ action: "password", icon: "key", label: I18n.tr("Passwort ändern") });
                     if (net.duplicate && net.stale.length > 0)
                         items.push({ action: "dropStale", icon: "cleaning_services",
-                                     label: `${net.stale.length} doppeltes Profil entfernen` });
+                                     label: I18n.tr("%1 doppeltes Profil entfernen").arg(net.stale.length) });
                     if (net.saved)
-                        items.push({ action: "forget", icon: "delete", label: "Vergessen", danger: true });
+                        items.push({ action: "forget", icon: "delete", label: I18n.tr("Vergessen"), danger: true });
                     return items;
                 }
 
@@ -756,15 +756,15 @@ Item {
                                 if (phase !== "")
                                     parts.push(phase);
                                 else if (net.active)
-                                    parts.push("Verbunden");
+                                    parts.push(I18n.tr("Verbunden"));
                                 else if (net.saved)
-                                    parts.push("Gespeichert");
+                                    parts.push(I18n.tr("Gespeichert"));
                                 if (!net.inRange)
-                                    parts.push("nicht in Reichweite");
+                                    parts.push(I18n.tr("nicht in Reichweite"));
                                 else
                                     parts.push(`${net.signal}%`);
                                 if (net.duplicate)
-                                    parts.push(`${net.profiles.length} Profile`);
+                                    parts.push(I18n.tr("%1 Profile").arg(net.profiles.length));
                                 return parts.join(" · ");
                             }
                             color: row.phase === "failed" || row.modelData.duplicate ? Colors.error
@@ -969,7 +969,7 @@ Item {
                         Text {
                             anchors.fill: parent
                             visible: password.text === ""
-                            text: "Passwort"
+                            text: I18n.tr("Passwort")
                             color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                             font: password.font
                             verticalAlignment: Text.AlignVCenter
@@ -1004,7 +1004,7 @@ Item {
                         Text {
                             font.family: Config.font
                             anchors.centerIn: parent
-                            text: "Verbinden"
+                            text: I18n.tr("Verbinden")
                             font.pixelSize: 11
                             font.weight: Font.DemiBold
                             color: password.text === "" ? Colors.fgSurfaceVariant : Colors.fgPrimary
@@ -1025,7 +1025,7 @@ Item {
             font.family: Config.font
             anchors.centerIn: parent
             visible: list.count === 0
-            text: Network.radioOn ? (Network.loaded ? "Keine Netze gefunden" : "Suche…") : "WLAN ist aus"
+            text: Network.radioOn ? (Network.loaded ? I18n.tr("Keine Netze gefunden") : I18n.tr("Suche…")) : I18n.tr("WLAN ist aus")
             color: Colors.fgSurfaceVariant
             font.pixelSize: 12
         }

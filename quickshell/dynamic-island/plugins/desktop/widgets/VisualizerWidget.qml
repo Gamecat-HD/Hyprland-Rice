@@ -322,7 +322,7 @@ Item {
 
             Text {
                 width: parent.width
-                text: Media.title || (root.editing ? "Titel" : "")
+                text: Media.title || (root.editing ? I18n.tr("Titel") : "")
                 color: "#f5f5f7"
                 font.family: Config.font
                 font.pixelSize: root.unit * 0.95
@@ -332,7 +332,7 @@ Item {
 
             Text {
                 width: parent.width
-                text: Media.artist || (root.editing ? "Interpret" : "")
+                text: Media.artist || (root.editing ? I18n.tr("Interpret") : "")
                 color: Colors.alpha("#f5f5f7", 0.55)
                 font.family: Config.font
                 font.pixelSize: root.unit * 0.8

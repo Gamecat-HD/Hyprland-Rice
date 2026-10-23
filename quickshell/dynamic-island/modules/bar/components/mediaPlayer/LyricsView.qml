@@ -124,7 +124,7 @@ Item {
                 verticalCenter: parent.verticalCenter
             }
             font.family: Config.font
-            text: "Songtext"
+            text: I18n.tr("Songtext")
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.75)
             font.pixelSize: 8
             font.weight: Font.DemiBold
@@ -140,8 +140,8 @@ Item {
                 verticalCenter: parent.verticalCenter
             }
             font.family: Config.font
-            text: Lyrics.status === "loading" ? "Lade Songtext…"
-                : Lyrics.status === "none" ? "Kein Songtext"
+            text: Lyrics.status === "loading" ? I18n.tr("Lade Songtext…")
+                : Lyrics.status === "none" ? I18n.tr("Kein Songtext")
                 : Lyrics.status === "ok" ? (Lyrics.source === "spotify" ? "Spotify" : "lrclib")
                 : ""
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.55)

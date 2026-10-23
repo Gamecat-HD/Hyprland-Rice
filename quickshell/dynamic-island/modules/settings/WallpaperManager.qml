@@ -79,7 +79,7 @@ Item {
     }
 
     function folderName(f: string): string {
-        return f === "" ? "Oberste Ebene" : f.slice(f.lastIndexOf("/") + 1);
+        return f === "" ? I18n.tr("Oberste Ebene") : f.slice(f.lastIndexOf("/") + 1);
     }
 
     function countIn(f: string): int {
@@ -110,11 +110,11 @@ Item {
     }
 
     function lookTitle(id: string): string {
-        return WallManager.lookInfo(id)?.title ?? id;
+        return I18n.tr(WallManager.lookInfo(id)?.title ?? id);
     }
 
     function sourceLabel(source: string): string {
-        return ({ bild: "fest für dieses Bild", ordner: "vom Ordner", name: "Ordner heißt wie der Look", schema: "Farbschema" })[source] ?? source;
+        return ({ bild: I18n.tr("fest für dieses Bild"), ordner: I18n.tr("vom Ordner"), name: I18n.tr("Ordner heißt wie der Look"), schema: I18n.tr("Farbschema") })[source] ?? source;
     }
 
     Component.onCompleted: WallManager.ensureLoaded()
@@ -667,7 +667,7 @@ Item {
 
         LookRow {
             enabled: picker.active
-            title: `Automatisch (${page.lookTitle(picker.fallback.id)})`
+            title: I18n.tr("Automatisch (%1)").arg(page.lookTitle(picker.fallback.id))
             desc: page.sourceLabel(picker.fallback.source)
             card: WallManager.lookInfo(picker.fallback.id)?.card ?? ""
             icon: "auto_awesome"
@@ -682,8 +682,8 @@ Item {
                 required property var modelData
 
                 enabled: picker.active
-                title: modelData.title
-                desc: modelData.cards > 0 ? page.plural(modelData.cards, "Karte", "Karten") : modelData.desc
+                title: I18n.tr(modelData.title)
+                desc: modelData.cards > 0 ? page.plural(modelData.cards, I18n.tr("Karte"), I18n.tr("Karten")) : I18n.tr(modelData.desc)
                 card: modelData.card
                 current: picker.hasOwn && picker.own === modelData.id
                 onClicked: WallManager.setLook(picker.key, modelData.id)
@@ -705,7 +705,7 @@ Item {
         spacing: 6
 
         Chip {
-            label: "Alle"
+            label: I18n.tr("Alle")
             icon: "photo_library"
             count: page.total
             current: page.folder === ""
@@ -728,7 +728,7 @@ Item {
 
         Chip {
             visible: !page.newFolderOpen
-            label: "Ordner"
+            label: I18n.tr("Ordner")
             icon: "create_new_folder"
             enabled: !page.busy
             onClicked: {
@@ -743,7 +743,7 @@ Item {
             width: 200
 
             sourceComponent: InlineField {
-                placeholder: "Neuer Ordner…"
+                placeholder: I18n.tr("Neuer Ordner…")
                 onAccepted: value => {
                     page.newFolderOpen = false;
                     WallManager.makeFolder(value);
@@ -1005,10 +1005,10 @@ Item {
             Text {
                 width: parent.width
                 font.family: Config.font
-                text: Wallpapers.loading && page.total === 0 ? "Bilder werden gesucht…"
-                    : page.filter.trim() !== "" ? "Nichts gefunden"
-                    : page.folder !== "" ? "Ordner ist leer"
-                    : "Keine Wallpaper gefunden"
+                text: Wallpapers.loading && page.total === 0 ? I18n.tr("Bilder werden gesucht…")
+                    : page.filter.trim() !== "" ? I18n.tr("Nichts gefunden")
+                    : page.folder !== "" ? I18n.tr("Ordner ist leer")
+                    : I18n.tr("Keine Wallpaper gefunden")
                 color: Colors.fgSurfaceVariant
                 font.pixelSize: 12
                 horizontalAlignment: Text.AlignHCenter
@@ -1019,8 +1019,8 @@ Item {
                 width: parent.width
                 visible: !Wallpapers.loading && page.filter.trim() === ""
                 font.family: Config.font
-                text: page.folder !== "" ? "Bilder aus anderen Ordnern hierher verschieben: Bild wählen, „Verschieben“"
-                    : "Bilder nach " + Wallpapers.wallsDir.replace(Quickshell.env("HOME"), "~") + " legen"
+                text: page.folder !== "" ? I18n.tr("Bilder aus anderen Ordnern hierher verschieben: Bild wählen, „Verschieben“")
+                    : I18n.tr("Bilder nach %1 legen").arg(Wallpapers.wallsDir.replace(Quickshell.env("HOME"), "~"))
                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                 font.pixelSize: 10
                 horizontalAlignment: Text.AlignHCenter
@@ -1118,7 +1118,7 @@ Item {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             font.family: Config.font
-                            text: page.selectedFolder === "" ? "Oberste Ebene" : page.selectedFolder
+                            text: page.selectedFolder === "" ? I18n.tr("Oberste Ebene") : page.selectedFolder
                             color: Colors.fgSurfaceVariant
                             font.pixelSize: 10
                         }
@@ -1136,7 +1136,7 @@ Item {
 
                                 anchors.centerIn: parent
                                 font.family: Config.font
-                                text: "Aktuell"
+                                text: I18n.tr("Aktuell")
                                 color: Colors.primary
                                 font.pixelSize: 9
                                 font.weight: Font.DemiBold
@@ -1154,7 +1154,7 @@ Item {
                         filled: true
                         enabled: !page.selectedIsCurrent
                         icon: "wallpaper"
-                        label: page.selectedIsCurrent ? "Gesetzt" : "Setzen"
+                        label: page.selectedIsCurrent ? I18n.tr("Gesetzt") : I18n.tr("Setzen")
                         onClicked: Wallpapers.set(page.selected)
                     }
 
@@ -1162,7 +1162,7 @@ Item {
                         enabled: !page.busy
                         filled: page.moveOpen
                         icon: page.moveOpen ? "expand_less" : "drive_file_move"
-                        label: "Verschieben"
+                        label: I18n.tr("Verschieben")
                         onClicked: {
                             const open = !page.moveOpen;
                             page.closeInline();
@@ -1174,7 +1174,7 @@ Item {
                     ActionButton {
                         enabled: !page.busy
                         icon: page.trashArmed ? "check" : "delete"
-                        label: page.trashArmed ? "Wirklich?" : "Papierkorb"
+                        label: page.trashArmed ? I18n.tr("Wirklich?") : I18n.tr("Papierkorb")
                         tint: page.trashArmed ? Colors.error : Colors.fgSurface
                         onClicked: {
                             if (page.trashArmed) {
@@ -1213,7 +1213,7 @@ Item {
                         SectionLabel {
                             leftPadding: 6
                             bottomPadding: 3
-                            text: "VERSCHIEBEN NACH"
+                            text: I18n.tr("VERSCHIEBEN NACH")
                         }
 
                         Repeater {
@@ -1256,7 +1256,7 @@ Item {
                                         verticalCenter: parent.verticalCenter
                                     }
                                     font.family: Config.font
-                                    text: target.modelData === "" ? "Oberste Ebene" : target.modelData
+                                    text: target.modelData === "" ? I18n.tr("Oberste Ebene") : target.modelData
                                     color: Colors.fgSurface
                                     font.pixelSize: 11
                                     elide: Text.ElideMiddle
@@ -1281,7 +1281,7 @@ Item {
                             visible: WallManager.folders.length === 0
                             leftPadding: 6
                             font.family: Config.font
-                            text: "Noch keine Ordner – oben „Ordner“ anlegen"
+                            text: I18n.tr("Noch keine Ordner – oben „Ordner“ anlegen")
                             color: Colors.fgSurfaceVariant
                             font.pixelSize: 10
                         }
@@ -1295,13 +1295,13 @@ Item {
                     spacing: 6
 
                     SectionLabel {
-                        text: "STIL"
+                        text: I18n.tr("STIL")
                     }
 
                     Hint {
                         visible: !page.dynamicScheme
                         width: parent.width
-                        text: `Wirkt nur beim dynamischen Schema – gerade ist „${Themes.currentName}“ gewählt.`
+                        text: I18n.tr("Wirkt nur beim dynamischen Schema – gerade ist „%1“ gewählt.").arg(Themes.currentName)
                     }
 
                     Flow {
@@ -1334,35 +1334,35 @@ Item {
                     spacing: 6
 
                     SectionLabel {
-                        text: "TERMINAL-LOOK"
+                        text: I18n.tr("TERMINAL-LOOK")
                     }
 
                     Hint {
                         visible: !page.terminalOn
                         width: parent.width
                         icon: "extension_off"
-                        text: "Das Plugin „Terminal-Looks“ ist aus."
+                        text: I18n.tr("Das Plugin „Terminal-Looks“ ist aus.")
                     }
 
                     Hint {
                         visible: page.terminalOn && !page.lookTheme
                         width: parent.width
                         icon: "block"
-                        text: "„An Theme anpassen“ ist in Terminal-Looks aus – das Terminal zeigt immer Vocaloid."
+                        text: I18n.tr("„An Theme anpassen“ ist in Terminal-Looks aus – das Terminal zeigt immer Vocaloid.")
                     }
 
                     Hint {
                         visible: page.terminalOn && page.lookTheme && !page.lookFolders
                         width: parent.width
                         icon: "block"
-                        text: "Ordner-Looks sind in Terminal-Looks ausgeschaltet – Zuordnungen gelten nicht."
+                        text: I18n.tr("Ordner-Looks sind in Terminal-Looks ausgeschaltet – Zuordnungen gelten nicht.")
                     }
 
                     Hint {
                         visible: page.terminalOn && page.lookTheme && page.lookFolders && page.hasSelection
                         width: parent.width
                         icon: "terminal"
-                        text: `Gilt: ${page.lookTitle(WallManager.lookFor(page.selected).id)} (${page.sourceLabel(WallManager.lookFor(page.selected).source)})`
+                        text: I18n.tr("Gilt: %1 (%2)").arg(page.lookTitle(WallManager.lookFor(page.selected).id)).arg(page.sourceLabel(WallManager.lookFor(page.selected).source))
                     }
 
                     Loader {
@@ -1418,8 +1418,8 @@ Item {
                         Text {
                             width: parent.width
                             font.family: Config.font
-                            text: page.plural(page.countIn(page.folder), "Bild", "Bilder")
-                                  + (page.folder.includes("/") ? " · in " + page.folder.slice(0, page.folder.lastIndexOf("/")) : "")
+                            text: page.plural(page.countIn(page.folder), I18n.tr("Bild"), I18n.tr("Bilder"))
+                                  + (page.folder.includes("/") ? " · " + I18n.tr("in %1").arg(page.folder.slice(0, page.folder.lastIndexOf("/"))) : "")
                             color: Colors.fgSurfaceVariant
                             font.pixelSize: 10
                             elide: Text.ElideRight
@@ -1435,7 +1435,7 @@ Item {
                     ActionButton {
                         enabled: !page.busy
                         icon: "edit"
-                        label: "Umbenennen"
+                        label: I18n.tr("Umbenennen")
                         onClicked: {
                             page.closeInline();
                             page.renameOpen = true;
@@ -1444,7 +1444,7 @@ Item {
 
                     ActionButton {
                         icon: "folder_open"
-                        label: "Im Dateimanager"
+                        label: I18n.tr("Im Dateimanager")
                         onClicked: {
                             Quickshell.execDetached(["xdg-open", Wallpapers.wallsDir + "/" + page.folder]);
                             // Das Fenster laege sonst ueber dem Dateimanager
@@ -1459,7 +1459,7 @@ Item {
                     width: parent.width
 
                     sourceComponent: InlineField {
-                        placeholder: "Neuer Name…"
+                        placeholder: I18n.tr("Neuer Name…")
                         text: page.folder
                         onAccepted: value => {
                             page.renameOpen = false;
@@ -1474,7 +1474,7 @@ Item {
                     visible: page.mode === "ordner"
                     width: parent.width
                     icon: "info"
-                    text: "Bilder in diesem Ordner anklicken, um sie zu setzen oder zu verschieben."
+                    text: I18n.tr("Bilder in diesem Ordner anklicken, um sie zu setzen oder zu verschieben.")
                 }
 
                 // Terminal-Look des Ordners
@@ -1484,35 +1484,35 @@ Item {
                     spacing: 6
 
                     SectionLabel {
-                        text: "ORDNER-LOOK"
+                        text: I18n.tr("ORDNER-LOOK")
                     }
 
                     Hint {
                         visible: !page.terminalOn
                         width: parent.width
                         icon: "extension_off"
-                        text: "Das Plugin „Terminal-Looks“ ist aus."
+                        text: I18n.tr("Das Plugin „Terminal-Looks“ ist aus.")
                     }
 
                     Hint {
                         visible: page.terminalOn && !page.lookTheme
                         width: parent.width
                         icon: "block"
-                        text: "„An Theme anpassen“ ist in Terminal-Looks aus – das Terminal zeigt immer Vocaloid."
+                        text: I18n.tr("„An Theme anpassen“ ist in Terminal-Looks aus – das Terminal zeigt immer Vocaloid.")
                     }
 
                     Hint {
                         visible: page.terminalOn && page.lookTheme && !page.lookFolders
                         width: parent.width
                         icon: "block"
-                        text: "Ordner-Looks sind in Terminal-Looks ausgeschaltet – Zuordnungen gelten nicht."
+                        text: I18n.tr("Ordner-Looks sind in Terminal-Looks ausgeschaltet – Zuordnungen gelten nicht.")
                     }
 
                     Hint {
                         visible: page.terminalOn && page.lookTheme && page.lookFolders
                         width: parent.width
                         icon: "terminal"
-                        text: "Gilt für alle Bilder des Ordners ohne eigenen Look."
+                        text: I18n.tr("Gilt für alle Bilder des Ordners ohne eigenen Look.")
                     }
 
                     Loader {
@@ -1563,7 +1563,7 @@ Item {
 
                             Text {
                                 font.family: Config.font
-                                text: "Bibliothek"
+                                text: I18n.tr("Bibliothek")
                                 color: Colors.fgBackground
                                 font.pixelSize: 12
                                 font.weight: Font.DemiBold
@@ -1571,7 +1571,7 @@ Item {
 
                             Text {
                                 font.family: Config.font
-                                text: page.plural(page.total, "Bild", "Bilder") + " · " + page.plural(WallManager.folders.length, "Ordner", "Ordner")
+                                text: page.plural(page.total, I18n.tr("Bild"), I18n.tr("Bilder")) + " · " + (WallManager.folders.length === 1 ? I18n.tr("1 Ordner") : I18n.tr("%1 Ordner").arg(WallManager.folders.length))
                                 color: Colors.fgSurfaceVariant
                                 font.pixelSize: 10
                             }
@@ -1581,32 +1581,32 @@ Item {
                     Hint {
                         width: parent.width
                         icon: "touch_app"
-                        text: "Bild anklicken für Details, Doppelklick setzt es als Hintergrund."
+                        text: I18n.tr("Bild anklicken für Details, Doppelklick setzt es als Hintergrund.")
                     }
 
                     Hint {
                         width: parent.width
                         icon: "folder"
-                        text: "Ein Ordner-Chip oben zeigt dessen Bilder, Umbenennen und Ordner-Look."
+                        text: I18n.tr("Ein Ordner-Chip oben zeigt dessen Bilder, Umbenennen und Ordner-Look.")
                     }
 
                     Hint {
                         visible: page.terminalOn
                         width: parent.width
                         icon: "terminal"
-                        text: "Terminal-Look: fest je Bild, sonst je Ordner, sonst nach Ordnername, sonst Farbschema."
+                        text: I18n.tr("Terminal-Look: fest je Bild, sonst je Ordner, sonst nach Ordnername, sonst Farbschema.")
                     }
 
                     Hint {
                         visible: !page.terminalOn
                         width: parent.width
                         icon: "extension_off"
-                        text: "Das Plugin „Terminal-Looks“ ist aus – Looks je Bild und Ordner stehen dann nicht zur Wahl."
+                        text: I18n.tr("Das Plugin „Terminal-Looks“ ist aus – Looks je Bild und Ordner stehen dann nicht zur Wahl.")
                     }
 
                     ActionButton {
                         icon: "folder_open"
-                        label: "Ordner im Dateimanager"
+                        label: I18n.tr("Ordner im Dateimanager")
                         onClicked: {
                             Quickshell.execDetached(["xdg-open", Wallpapers.wallsDir]);
                             SettingsState.close();
@@ -1639,7 +1639,7 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         font.family: Config.font
-                        text: "Bitte warten…"
+                        text: I18n.tr("Bitte warten…")
                         color: Colors.primary
                         font.pixelSize: 10
                     }

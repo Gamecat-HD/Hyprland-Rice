@@ -4,6 +4,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+import qs
+
 // Verwaltung der Wallpaper-Bibliothek fuer das Einstellungs-Fenster
 // (modules/settings/WallpaperManager.qml): Ordner, Verschieben, Papierkorb
 // und der Terminal-Look (fastfetch) je Bild oder Ordner.
@@ -181,11 +183,11 @@ Singleton {
         try {
             result = JSON.parse(text.trim().split("\n").pop());
         } catch (e) {
-            result = { ok: false, error: text.trim() || "wallmgr.py ohne Antwort" };
+            result = { ok: false, error: text.trim() || I18n.tr("wallmgr.py ohne Antwort") };
         }
 
         if (!result.ok) {
-            root.lastError = result.error ?? "Fehler";
+            root.lastError = result.error ?? I18n.tr("Fehler");
             // Optimistisch gesetzte Zuordnung zuruecknehmen
             if (op === "look")
                 assignFile.reload();

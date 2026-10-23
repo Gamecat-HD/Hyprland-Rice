@@ -42,6 +42,7 @@ Singleton {
     //
     // Felder:  title, desc        Beschriftung
     //          options: [...]     feste Auswahl (Chips) fuer Strings
+    //          labels: {...}      Anzeigenamen der Optionen (sonst I18n.tr(Wert))
     //          min, max, step     Zahl mit Schieberegler; `unit` haengt hinten dran
     //          requires           Zeile nur aktiv, wenn erfuellt: "bar.battery"
     //                             (Wahrheitswert) oder { "appearance.layout": "notch" }
@@ -118,6 +119,14 @@ Singleton {
             title: "Anzeigedauer",
             desc: "Wie lange eine neue Nachricht in der Leiste aufklappt, wenn sie keine eigene Dauer mitbringt",
             min: 2, max: 15, step: 1, unit: "s", requires: "bar.notifications"
+        },
+        // Sprache der Oberflaeche (I18n.qml). `labels` zeigt statt des Werts
+        // einen Namen – Sprachnamen stehen immer in ihrer eigenen Sprache
+        "appearance.language": {
+            title: "Sprache",
+            desc: "Sprache der Oberfläche",
+            options: ["en", "de"],
+            labels: { "en": "English", "de": "Deutsch" }
         },
         // `options` macht aus der Zeile eine Auswahl. Nicht installierte
         // Schriften blendet das Menue aus.
@@ -440,6 +449,8 @@ Singleton {
             }
 
             property JsonObject appearance: JsonObject {
+                // "en" oder "de" (I18n.qml); install.sh setzt es beim Einrichten
+                property string language: "en"
                 property string font: "SF Pro"
                 property string bounce: "mittel"
                 property string layout: "insel"

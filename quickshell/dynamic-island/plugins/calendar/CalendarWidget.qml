@@ -43,7 +43,7 @@ Item {
     readonly property string state: root.opts.holidays ?? "NW"
     readonly property bool showUpcoming: root.opts.upcoming ?? true
 
-    readonly property var locale: Qt.locale("de_DE")
+    readonly property var locale: I18n.locale
     readonly property string display: Qt.fontFamilies().includes("Inter Display") ? "Inter Display" : Config.font
     // Ziffer im Akzentkreis: dunkel auf hellem, hell auf dunklem Akzent
     readonly property color onAccent: root.accent.hslLightness > 0.6 ? "#161616" : "#fafafa"
@@ -153,7 +153,7 @@ Item {
     readonly property var upcoming: root.showUpcoming ? Holidays.upcoming(root.today, root.state, root.style === "streifen" ? 2 : 3) : []
 
     function inDays(n: int): string {
-        return n === 0 ? "heute" : n === 1 ? "morgen" : "in " + n + " Tagen";
+        return n === 0 ? I18n.tr("heute") : n === 1 ? I18n.tr("morgen") : I18n.tr("in %1 Tagen").arg(n);
     }
 
     readonly property string monthName: root.locale.standaloneMonthName(root.today.getMonth(), Locale.LongFormat).toUpperCase()
@@ -313,7 +313,7 @@ Item {
                     anchors.right: udays.left
                     anchors.rightMargin: root.unit * 0.6
                     anchors.verticalCenter: parent.verticalCenter
-                    text: urow.modelData.name
+                    text: I18n.tr(urow.modelData.name)
                     elide: Text.ElideRight
                     color: Colors.alpha(root.color, 0.85)
                     font.family: Config.font
@@ -519,7 +519,7 @@ Item {
                 }
 
                 Text {
-                    text: root.today.toLocaleDateString(root.locale, "d. MMMM yyyy")
+                    text: I18n.date(root.today, "d. MMMM yyyy", "MMMM d, yyyy")
                     color: Colors.alpha(root.color, 0.55)
                     font.family: root.display
                     font.pixelSize: root.unit * 1.1
@@ -561,7 +561,7 @@ Item {
 
             Caption {
                 text: root.monthName
-                dim: root.yearText + (root.showWeeks ? "  ·  KW " + root.currentWeek : "")
+                dim: root.yearText + (root.showWeeks ? "  ·  " + I18n.tr("KW %1").arg(root.currentWeek) : "")
                 px: root.unit * 0.7
             }
 
@@ -638,7 +638,7 @@ Item {
                     width: srow.width - root.unit * 0.8
                     elide: Text.ElideRight
                     textFormat: Text.StyledText
-                    text: root.upcoming.map(h => h.name + " <font color=\"" + Colors.alpha(root.color, 0.5) + "\">" + root.inDays(h.days) + "</font>").join("  ·  ")
+                    text: root.upcoming.map(h => I18n.tr(h.name) + " <font color=\"" + Colors.alpha(root.color, 0.5) + "\">" + root.inDays(h.days) + "</font>").join("  ·  ")
                     color: Colors.alpha(root.color, 0.85)
                     font.family: Config.font
                     font.pixelSize: root.unit * 0.75

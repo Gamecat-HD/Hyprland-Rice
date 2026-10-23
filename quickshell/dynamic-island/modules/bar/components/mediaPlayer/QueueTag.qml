@@ -19,7 +19,7 @@ Rectangle {
 
         anchors.centerIn: parent
         font.family: Config.font
-        text: "Warteschlange"
+        text: I18n.tr("Warteschlange")
         color: Colors.primary
         font.pixelSize: 8
         font.weight: Font.DemiBold

@@ -112,7 +112,7 @@ Item {
                         }
                         width: parent.width - 32
 
-                        text: Media.source || "Keine Quelle"
+                        text: Media.source || I18n.tr("Keine Quelle")
                         color: Colors.fgBackground
                         font.pixelSize: 10
                         font.weight: Font.DemiBold
@@ -341,7 +341,7 @@ Item {
             font.family: Config.font
             Layout.fillWidth: true
 
-            text: Media.title || "Nichts"
+            text: Media.title || I18n.tr("Nichts")
             color: Colors.fgBackground
             font.pixelSize: 12
             font.weight: Font.DemiBold
@@ -590,7 +590,7 @@ Item {
                 QueueRow {
                     visible: !!MediaQueue.previous
                     track: MediaQueue.previous
-                    caption: "Zuvor"
+                    caption: I18n.tr("Zuvor")
                     tint: panel.tint
                     // Spotifys "Zurueck" startet den laufenden Titel neu, wenn
                     // er schon ein paar Sekunden laeuft – erst an den Anfang,
@@ -604,7 +604,7 @@ Item {
                 QueueRow {
                     visible: !!MediaQueue.upcoming
                     track: MediaQueue.upcoming
-                    caption: "Als Nächstes"
+                    caption: I18n.tr("Als Nächstes")
                     tint: panel.tint
                     onTriggered: Media.next()
                 }
@@ -634,7 +634,7 @@ Item {
                             verticalCenter: parent.verticalCenter
                         }
                         font.family: Config.font
-                        text: "Warteschlange · " + queue.more + (queue.more === 1 ? " weiterer" : " weitere")
+                        text: I18n.tr(queue.more === 1 ? "Warteschlange · %1 weiterer" : "Warteschlange · %1 weitere").arg(queue.more)
                         color: Colors.alpha(Colors.fgSurfaceVariant, 0.75)
                         font.pixelSize: 8
                         font.weight: Font.DemiBold

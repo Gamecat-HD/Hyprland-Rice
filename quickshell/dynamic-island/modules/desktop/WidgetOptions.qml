@@ -83,7 +83,7 @@ Rectangle {
             }
 
             Text {
-                text: pop.info?.title ?? pop.widget?.type ?? ""
+                text: I18n.tr(pop.info?.title ?? pop.widget?.type ?? "")
                 color: Colors.fgBackground
                 font.family: Config.font
                 font.pixelSize: 12
@@ -98,7 +98,7 @@ Rectangle {
 
             EditChip {
                 icon: pop.deleteArmed ? "check" : "delete"
-                text: pop.deleteArmed ? "Löschen?" : ""
+                text: pop.deleteArmed ? I18n.tr("Löschen?") : ""
                 danger: true
                 armed: pop.deleteArmed
                 onClicked: {
@@ -126,7 +126,7 @@ Rectangle {
                 spacing: 6
 
                 EditLabel {
-                    text: optRow.option.title ?? optRow.modelData
+                    text: I18n.tr(optRow.option.title ?? optRow.modelData)
                     Layout.preferredWidth: pop.labelWidth
                 }
 
@@ -137,7 +137,7 @@ Rectangle {
                     EditChip {
                         required property bool modelData
 
-                        text: modelData ? "an" : "aus"
+                        text: modelData ? I18n.tr("an") : I18n.tr("aus")
                         on: !!optRow.value === modelData
                         onClicked: Scenes.setOpt(pop.widget.id, optRow.modelData, modelData)
                     }
@@ -155,7 +155,8 @@ Rectangle {
                         EditChip {
                             required property var modelData
 
-                            text: String(modelData)
+                            // Werte sind Config-Schluessel; nur Woerter werden uebersetzt
+                            text: typeof modelData === "string" ? I18n.tr(modelData) : String(modelData)
                             on: optRow.value === modelData
                             onClicked: Scenes.setOpt(pop.widget.id, optRow.modelData, modelData)
                         }
@@ -170,7 +171,7 @@ Rectangle {
             visible: pop.widget !== null
 
             EditLabel {
-                text: "Größe"
+                text: I18n.tr("Größe")
                 Layout.preferredWidth: pop.labelWidth
             }
 
@@ -204,7 +205,7 @@ Rectangle {
                 spacing: 6
 
                 EditLabel {
-                    text: colorRow.modelData[1]
+                    text: I18n.tr(colorRow.modelData[1])
                     Layout.preferredWidth: pop.labelWidth
                 }
 
@@ -217,7 +218,7 @@ Rectangle {
                         swatch: DesktopWidgets.color(modelData, "transparent")
                         on: colorRow.current === modelData
                         // Name nur an der gewaehlten Farbe, sonst wird die Reihe zu breit
-                        text: on ? (pop.colorLabels[modelData] ?? modelData) : ""
+                        text: on ? I18n.tr(pop.colorLabels[modelData] ?? modelData) : ""
                         onClicked: Scenes.setOpt(pop.widget.id, colorRow.modelData[0], modelData)
                     }
                 }
@@ -226,7 +227,7 @@ Rectangle {
                 EditChip {
                     visible: colorRow.current.startsWith("#")
                     swatch: colorRow.current.startsWith("#") ? colorRow.current : "transparent"
-                    text: "Eigene"
+                    text: I18n.tr("Eigene")
                     on: true
                 }
             }
@@ -237,18 +238,18 @@ Rectangle {
             spacing: 6
 
             EditLabel {
-                text: "Monitor"
+                text: I18n.tr("Monitor")
                 Layout.preferredWidth: pop.labelWidth
             }
 
             EditChip {
-                text: "Beide"
+                text: I18n.tr("Beide")
                 on: !pop.widget?.monitor || pop.widget.monitor === "*"
                 onClicked: Scenes.patch(pop.widget.id, { monitor: "*" })
             }
 
             EditChip {
-                text: "Nur " + pop.screenName
+                text: I18n.tr("Nur %1").arg(pop.screenName)
                 on: pop.widget?.monitor === pop.screenName
                 onClicked: Scenes.patch(pop.widget.id, { monitor: pop.screenName })
             }

@@ -6,6 +6,8 @@ import Quickshell.Io
 import Quickshell.Services.Notifications
 import qs.modules.services.config
 
+import qs
+
 // Benachrichtigungs-Dienst: die Shell IST hier der Notification-Daemon.
 //
 // Auf diesem Rechner lief bisher keiner – org.freedesktop.Notifications hatte
@@ -115,7 +117,7 @@ Singleton {
 
         const m = Math.floor((Date.now() - time.getTime()) / 60000);
         if (m < 1)
-            return "jetzt";
+            return I18n.tr("jetzt");
         if (m < 60)
             return `${m}m`;
 

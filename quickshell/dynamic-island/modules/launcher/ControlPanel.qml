@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Services.SystemTray
 
+import qs
 import qs.modules.bar.components.settings
 import qs.modules.bar.components.statusBar
 import qs.modules.services.network
@@ -21,7 +22,7 @@ ViewPanel {
     // Tray-Kacheln plus Abstand zu den Schnelleinstellungen
     readonly property real trayHeight: root.hasTray ? trayGrid.implicitHeight + 10 : 0
 
-    title: "Steuerung"
+    title: I18n.tr("Steuerung")
     icon: "toggle_on"
     contentWidth: embeddedSettings.expandedWidth
     contentHeight: root.trayHeight + embeddedSettings.height + embeddedSettings.dropdownReserve

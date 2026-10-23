@@ -151,7 +151,7 @@ Item {
     component Header: Caption {
         visible: (root.showPlace && (root.wx?.place ?? "") !== "") || root.stale
         text: root.showPlace ? (root.wx?.place ?? "").toUpperCase() : ""
-        note: root.stale && root.updatedAt !== "" ? "STAND " + root.updatedAt : ""
+        note: root.stale && root.updatedAt !== "" ? I18n.tr("STAND %1").arg(root.updatedAt) : ""
     }
 
     // Ein Wert mit kleinem Symbol davor (Detailzeile)
@@ -246,9 +246,9 @@ Item {
                 spacing: root.unit * 0.25
 
                 Caption {
-                    text: root.loading && !root.wx ? "WETTER WIRD GELADEN"
-                        : root.wx ? "WETTER NICHT VERFUEGBAR"
-                        : "KEINE WETTERDATEN"
+                    text: root.loading && !root.wx ? I18n.tr("WETTER WIRD GELADEN")
+                        : root.wx ? I18n.tr("WETTER NICHT VERFUEGBAR")
+                        : I18n.tr("KEINE WETTERDATEN")
                 }
 
                 Label {
@@ -293,7 +293,7 @@ Item {
                     leftPadding: root.unit * 0.2
 
                     Label {
-                        text: root.cur?.text ?? ""
+                        text: I18n.tr(root.cur?.text ?? "")
                         px: root.unit * 1.15
                         font.weight: Font.DemiBold
                     }
@@ -341,7 +341,7 @@ Item {
                 Label {
                     anchors.verticalCenter: parent.verticalCenter
                     leftPadding: root.unit * 0.3
-                    text: root.cur?.text ?? ""
+                    text: I18n.tr(root.cur?.text ?? "")
                     px: root.unit * 1.05
                     font.weight: Font.DemiBold
                 }
@@ -371,7 +371,7 @@ Item {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: hour.index === 0 ? "Jetzt" : (hour.modelData.time ?? "")
+                            text: hour.index === 0 ? I18n.tr("Jetzt") : (hour.modelData.time ?? "")
                             px: root.unit * 0.75
                             color: hour.index === 0 ? root.color : root.dim
                             font.weight: Font.DemiBold
@@ -437,7 +437,7 @@ Item {
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
                         width: root.unit * 2.6
-                        text: day.today ? "Heute" : (day.modelData.weekday ?? "")
+                        text: day.today ? I18n.tr("Heute") : I18n.tr(day.modelData.weekday ?? "")
                         px: root.unit * 0.95
                         font.weight: Font.DemiBold
                         color: day.today ? root.color : root.dim
@@ -537,7 +537,7 @@ Item {
 
             Label {
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.cur?.text ?? ""
+                text: I18n.tr(root.cur?.text ?? "")
                 px: root.unit * 1.05
                 font.weight: Font.DemiBold
             }
@@ -555,7 +555,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 leftPadding: root.unit * 0.3
                 text: root.showPlace ? (root.wx?.place ?? "").toUpperCase() : ""
-                note: root.stale && root.updatedAt !== "" ? "STAND " + root.updatedAt : ""
+                note: root.stale && root.updatedAt !== "" ? I18n.tr("STAND %1").arg(root.updatedAt) : ""
                 px: root.unit * 0.75
             }
         }

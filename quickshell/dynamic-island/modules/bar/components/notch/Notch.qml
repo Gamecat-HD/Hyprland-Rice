@@ -640,7 +640,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: Config.notch.date && !notch.showVisualizer
-                text: Qt.formatDate(clock.date, "ddd d")
+                text: clock.date.toLocaleDateString(I18n.locale, "ddd d")
                 color: Colors.alpha(Colors.fgBackground, 0.55)
                 font.family: Config.font
                 font.pixelSize: 12

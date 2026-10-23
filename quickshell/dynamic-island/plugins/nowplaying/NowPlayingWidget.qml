@@ -64,8 +64,8 @@ Item {
 
     // Platzhalter (idle "ruhig" / Bearbeiten): Kopfzeile "Jetzt laeuft",
     // darunter gedimmt "Keine Musik"
-    readonly property string titleText: root.placeholder ? "Keine Musik" : Media.title
-    readonly property string artistText: root.placeholder ? "JETZT LAEUFT" : Media.artist.toUpperCase()
+    readonly property string titleText: root.placeholder ? I18n.tr("Keine Musik") : Media.title
+    readonly property string artistText: root.placeholder ? I18n.tr("JETZT LAEUFT") : Media.artist.toUpperCase()
 
     // Groessen in Grundeinheiten
     readonly property real smallArt: Math.round(root.unit * 4.6)

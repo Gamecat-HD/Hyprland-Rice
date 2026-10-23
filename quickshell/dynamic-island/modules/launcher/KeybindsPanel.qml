@@ -116,12 +116,12 @@ Item {
             return;
         }
         if (result.error) {
-            panel.captureError = result.error;
+            panel.captureError = I18n.tr(result.error);
             return;
         }
         const conflict = HyprBinds.conflict(Keybinds.canonOf(result.keys), panel.captureRef);
         if (conflict !== "") {
-            panel.captureError = `Schon belegt: ${conflict}`;
+            panel.captureError = I18n.tr("Schon belegt: %1").arg(conflict);
             return;
         }
         if (panel.captureRef === "new")
@@ -170,7 +170,7 @@ Item {
         if (mods & Qt.MetaModifier)
             out.push("Super");
         if (mods & Qt.ControlModifier)
-            out.push("Strg");
+            out.push(I18n.tr("Strg"));
         if (mods & Qt.AltModifier)
             out.push("Alt");
         if (mods & Qt.ShiftModifier)
@@ -185,7 +185,7 @@ Item {
 
     // "SUPER + ALT + W" -> Tastenkappen wie in der Liste
     function capsOf(keys: string): var {
-        const names = { SUPER: "Super", CTRL: "Strg", ALT: "Alt", SHIFT: "Shift" };
+        const names = { SUPER: "Super", CTRL: I18n.tr("Strg"), ALT: "Alt", SHIFT: "Shift" };
         return keys.split("+").map(p => p.trim()).map(p => names[p] ?? HyprBinds.keyLabel(p));
     }
 
@@ -201,8 +201,9 @@ Item {
                 entries = entries.filter(e => !e.disabled)
                                  .map(e => e.combos.some(c => c.disabled)
                                       ? Object.assign({}, e, { combos: e.combos.filter(c => !c.disabled) }) : e);
-            if (q !== "" && !group.name.toLowerCase().includes(q))
-                entries = entries.filter(e => (e.text + " " + e.combos.map(c => c.keys.join(" ")).join(" "))
+            // Deutscher Text und Uebersetzung: die Suche trifft in beiden Sprachen
+            if (q !== "" && !(group.name + " " + I18n.tr(group.name)).toLowerCase().includes(q))
+                entries = entries.filter(e => (e.text + " " + I18n.tr(e.text) + " " + e.combos.map(c => c.keys.join(" ")).join(" "))
                                               .toLowerCase().includes(q));
             if (entries.length > 0)
                 out.push({ name: group.name, entries });
@@ -383,8 +384,8 @@ Item {
             Text {
                 anchors.fill: parent
                 visible: search.text === ""
-                text: panel.editing ? "Bearbeiten: Tasten anklicken zum Neubelegen, Auge schaltet ab"
-                                    : "Tastenkürzel durchsuchen…   Klick oder Enter führt aus"
+                text: panel.editing ? I18n.tr("Bearbeiten: Tasten anklicken zum Neubelegen, Auge schaltet ab")
+                                    : I18n.tr("Tastenkürzel durchsuchen…   Klick oder Enter führt aus")
                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                 font: search.font
                 verticalAlignment: Text.AlignVCenter
@@ -417,8 +418,8 @@ Item {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
                 }
-                text: panel.captureDone !== "" ? `„${panel.captureTitle}“ liegt jetzt auf`
-                    : `Neue Kombination für „${panel.captureTitle}“ drücken`
+                text: panel.captureDone !== "" ? I18n.tr("„%1“ liegt jetzt auf").arg(panel.captureTitle)
+                    : I18n.tr("Neue Kombination für „%1“ drücken").arg(panel.captureTitle)
                 color: Colors.fgSurface
                 font.family: Config.font
                 font.pixelSize: 14
@@ -457,7 +458,7 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
                 text: panel.captureError !== "" ? panel.captureError
-                    : panel.captureDone !== "" ? "Tasten loslassen" : "Esc bricht ab"
+                    : panel.captureDone !== "" ? I18n.tr("Tasten loslassen") : I18n.tr("Esc bricht ab")
                 color: panel.captureError !== "" ? Colors.error : Colors.fgSurfaceVariant
                 font.family: Config.font
                 font.pixelSize: 12
@@ -485,7 +486,7 @@ Item {
                 visible: !panel.editing
                 text: {
                     const n = panel.filtered.reduce((sum, g) => sum + g.entries.length, 0);
-                    return n === 1 ? "1 Kürzel" : `${n} Kürzel`;
+                    return n === 1 ? I18n.tr("1 Kürzel") : I18n.tr("%1 Kürzel").arg(n);
                 }
                 color: Colors.fgSurfaceVariant
                 font.family: Config.font
@@ -496,7 +497,7 @@ Item {
             ToolButton {
                 visible: panel.editing
                 icon: "add"
-                label: "Eigenes"
+                label: I18n.tr("Eigenes")
                 checked: panel.adding
                 onClicked: {
                     panel.adding = !panel.adding;
@@ -509,7 +510,7 @@ Item {
 
             ToolButton {
                 icon: panel.editing ? "check" : "edit"
-                label: panel.editing ? "Fertig" : "Bearbeiten"
+                label: panel.editing ? I18n.tr("Fertig") : I18n.tr("Bearbeiten")
                 checked: panel.editing
                 onClicked: panel.setEditing(!panel.editing)
             }
@@ -555,7 +556,7 @@ Item {
                 id: nameField
 
                 width: 220
-                placeholder: "Name"
+                placeholder: I18n.tr("Name")
                 icon: "label"
             }
 
@@ -563,7 +564,7 @@ Item {
                 id: commandField
 
                 width: parent.width - nameField.width - recordButton.width - 2 * parent.spacing
-                placeholder: "Befehl, z.B. kitty btop"
+                placeholder: I18n.tr("Befehl, z.B. kitty btop")
                 icon: "terminal"
             }
 
@@ -573,7 +574,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 enabled: nameInput.text.trim() !== "" && commandInput.text.trim() !== ""
                 icon: "keyboard"
-                label: "Taste aufnehmen"
+                label: I18n.tr("Taste aufnehmen")
                 checked: true
                 onClicked: panel.startCapture("new", nameInput.text.trim())
             }
@@ -680,7 +681,7 @@ Item {
 
             anchors.centerIn: parent
             visible: panel.filtered.length === 0
-            text: HyprBinds.loaded ? "Keine Treffer" : "Lese Tastenkürzel…"
+            text: HyprBinds.loaded ? I18n.tr("Keine Treffer") : I18n.tr("Lese Tastenkürzel…")
             color: Colors.fgSurfaceVariant
             font.family: Config.font
             font.pixelSize: 12
@@ -705,7 +706,7 @@ Item {
                     bottom: parent.bottom
                     bottomMargin: 8
                 }
-                text: block.modelData.name.toUpperCase()
+                text: I18n.tr(block.modelData.name).toUpperCase()
                 color: Colors.primary
                 font.family: Config.font
                 font.pixelSize: 11
@@ -778,7 +779,7 @@ Item {
                         rightMargin: 8
                         verticalCenter: parent.verticalCenter
                     }
-                    text: row.modelData.text
+                    text: I18n.tr(row.modelData.text)
                     color: Colors.fgSurface
                     opacity: row.modelData.disabled ? 0.4 : panel.editing && !row.modelData.editable ? 0.6 : 1
                     font.family: Config.font
@@ -906,7 +907,7 @@ Item {
                                 enabled: combo.editable
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: panel.startCapture(combo.modelData.ref, row.modelData.text)
+                                onClicked: panel.startCapture(combo.modelData.ref, I18n.tr(row.modelData.text))
                             }
                         }
                     }
