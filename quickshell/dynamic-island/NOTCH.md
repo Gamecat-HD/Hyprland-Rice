@@ -386,7 +386,7 @@ Medien mehr (SUPER+M gehoert dem Music-Workspace).
 **Stand 2026-10-12 spaet:** Alle Blaetter-Seiten haben dieselbe Breite (`pageWidth` 548 = Steuerung), nichts verschiebt sich
 seitlich. Kopfzeile auf allen Seiten gleich: links die Workspace-Staebchen (`NotchWorkspaces`, bleiben beim Aufklappen
 stehen und sind klickbar), Mitte Uhr bzw. Titel, rechts Seiten-Punkte + Glocke. `WorkspaceStrip.qml` ist wieder weg.
-Specials wie bei Caelestia: ist einer offen, legt sich ueber die Staebchen eine kleine Pille mit allen Specials (aktiver
+Specials: ist einer offen, legt sich ueber die Staebchen eine kleine Pille mit allen Specials (aktiver
 tertiaer, Klick toggelt). Blaettern: Schwelle halbe Rastung (60) bzw. 50 px, feste Sperre 350 ms (`flipCooldown`), Zaehler
 verfaellt nach 500 ms Pause (`accumDecay`). Medien-Untermenue: `MediaPanel` in fester 320-px-Spalte.
 

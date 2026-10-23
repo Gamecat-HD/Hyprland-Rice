@@ -8,8 +8,8 @@ import Quickshell.Hyprland
 //
 // Quickshell zieht `lastIpcObject` nicht bei jedem Event nach –
 // specialWorkspace an den Monitoren und die Fensterzahlen der Workspaces
-// bleiben sonst ewig stehen. Caelestia loest es identisch: bei den relevanten
-// Events die Listen neu ziehen.
+// bleiben sonst ewig stehen. Darum: bei den relevanten Events die Listen
+// neu ziehen.
 //
 // Singleton, weil das frueher in WorkspaceSelector.qml hing: der wird im
 // Notch-Layout nicht gebaut (Loader in Bar.qml), und die Specials in der

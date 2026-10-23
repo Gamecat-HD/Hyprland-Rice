@@ -3,8 +3,8 @@
 Die CLI zum eigenen Rice (Quickshell-Config `~/.config/quickshell/dynamic-island`).
 
 Abgeleitet von [caelestia-cli](https://github.com/caelestia-dots/cli) 1.1.2 (GPL-3.0-only),
-losgelöst vom Caelestia-Repo: eigene Pfade, eigener Name, ohne die Dotfiles-Verwaltung
-(`install`/`update`) und ohne Abhängigkeit zur Caelestia-Shell.
+eigenständig: eigene Pfade, eigener Name, ohne Dotfiles-Verwaltung (`install`/`update`)
+und ohne Abhängigkeit zu einer fremden Shell.
 
 ## Einrichten
 
@@ -60,7 +60,7 @@ Python: `materialyoucolor`, `pillow`. Extern: `grim`, `slurp`, `swappy`, `hyprpi
 ## Unterschiede zur Vorlage
 
 - `install`/`update` und die gesamte Dotfiles-Verwaltung (`utils/dots/`, `utils/version.py`) entfernt.
-- `screenshot -r` nutzt `slurp` statt des Caelestia-Pickers; `-f` friert den Bildschirm
+- `screenshot -r` nutzt `slurp` als Bereichsauswahl; `-f` friert den Bildschirm
   über `hyprpicker -r -z` ein.
 - Neues Flag `screenshot -e/--edit`: öffnet den Shot direkt in `swappy`.
 - Shell-Name als Konstante in `subcommands/shell.py`, über `cli.json → shell.name` änderbar.

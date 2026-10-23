@@ -24,7 +24,7 @@ import qs
 
 // Leiste oben – enthält selbst die Pro-Monitor-Logik.
 // Die `required property modelData` im Delegaten wird von `Variants`
-// automatisch mit dem jeweiligen Screen befüllt (Caelestia-Stil).
+// automatisch mit dem jeweiligen Screen befüllt.
 Variants {
     model: Quickshell.screens
 

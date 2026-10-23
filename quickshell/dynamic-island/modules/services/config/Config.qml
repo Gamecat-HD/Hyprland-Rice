@@ -8,7 +8,7 @@ import Quickshell.Io
 //
 //     ~/.config/dynamic-island/shell.json
 //
-// Dieselbe Idee wie caelestias shell.json, nur mit Bordmitteln: FileView +
+// Nur Bordmittel: FileView +
 // JsonAdapter (dasselbe Gespann wie in LauncherFavorites.qml). Die Defaults
 // stehen unten im Adapter – fehlt ein Schluessel in der Datei, gilt der
 // Default, und die Datei wird beim ersten Start angelegt.

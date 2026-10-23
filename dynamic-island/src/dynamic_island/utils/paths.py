@@ -14,7 +14,7 @@ cache_dir: Path = Path(os.getenv("XDG_CACHE_HOME", Path.home() / ".cache"))
 pictures_dir: Path = Path(os.getenv("XDG_PICTURES_DIR", Path.home() / "Pictures"))
 videos_dir: Path = Path(os.getenv("XDG_VIDEOS_DIR", Path.home() / "Videos"))
 
-# Alles unter einem eigenen Namen – nichts teilt sich mehr Verzeichnisse mit Caelestia
+# Alles unter dem eigenen Namen – keine geteilten Verzeichnisse mit anderen Shells
 c_config_dir: Path = config_dir / "dynamic-island"
 c_data_dir: Path = data_dir / "dynamic-island"
 c_state_dir: Path = state_dir / "dynamic-island"

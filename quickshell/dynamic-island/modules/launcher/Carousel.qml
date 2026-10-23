@@ -5,7 +5,7 @@ import QtQuick
 // Kacheln auf einer geraden Linie, die markierte in der Mitte und groesser,
 // die Nachbarn kleiner.
 //
-// Aufbau wie caelestia/modules/launcher/WallpaperList.qml. Alles, was mit dem
+// Alles, was mit dem
 // Inhalt zu tun hat (Modell, Delegat, Auswahl), bringen die Nutzer mit; hier
 // steht nur die Mechanik.
 PathView {

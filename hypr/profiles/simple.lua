@@ -551,7 +551,7 @@ bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("dynamic-island wallpaper -r"), desc("
 -- bringen die Plugins `wallhaven`/`desktop` selbst mit (Manifest `keybinds`)
 bind("CTRL + SUPER + SHIFT + T", hl.dsp.exec_cmd("dynamic-island scheme set -r"), desc("Zufälliges Farbschema"))
 
--- Shell dieses Profils neu starten / beenden (wie im Caelestia-Profil belegt)
+-- Shell dieses Profils neu starten / beenden
 group = "Shell"
 bind("CTRL + SUPER + ALT + R", hl.dsp.exec_cmd(hyprProfile .. " shell-restart"), desc("Shell neu starten", { release = true }))
 bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd(hyprProfile .. " shell-kill"), desc("Shell beenden", { release = true }))

@@ -8,7 +8,7 @@ import qs
 import qs.modules.settings
 import qs.modules.services.plugins
 
-// Aktionen des Launchers – das Gegenstück zu Caelestias `Actions`-Service.
+// Aktionen des Launchers.
 // Erreichbar über das Präfix `>`.
 //
 // Eine Aktion ist ein schlichtes Objekt:
@@ -23,8 +23,6 @@ import qs.modules.services.plugins
 //                         Suchtext wird auf ">name " gesetzt und alles Weitere
 //                         kommt aus der Quelle, die unter diesem Namen in
 //                         LauncherPanel.modes registriert ist.
-//                         (Genau so hängt bei Caelestia der Wallpaper-Wechsler
-//                         am `autocomplete`-Kommando.)
 Singleton {
     id: root
 

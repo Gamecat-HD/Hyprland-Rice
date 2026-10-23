@@ -15,8 +15,8 @@ import qs
 // `plasma_waitforname`, das nur wartet. `notify-send` blieb deshalb einfach
 // haengen. Mit diesem Server funktionieren Benachrichtigungen ueberhaupt erst.
 //
-// Ein Eintrag ist bewusst nur { notif, time } statt einer Kopie aller Felder
-// (so macht es caelestia/services/NotifData.qml): die Zeilen binden direkt an
+// Ein Eintrag ist bewusst nur { notif, time } statt einer Kopie aller
+// Felder: die Zeilen binden direkt an
 // die lebende Notification, dadurch gehen Nachrichten, die sich selbst
 // aktualisieren (Lautstaerke, Fortschritt), live mit. Ein Zeitstempel fehlt
 // der Notification dagegen – den setzen wir selbst.
@@ -45,7 +45,7 @@ Singleton {
     }
 
     // Nicht stoeren: unterdrueckt nur das Aufklappen der Pille, gesammelt wird
-    // weiter (dasselbe Verhalten wie bei caelestia). Liegt in der
+    // weiter. Liegt in der
     // Konfiguration, ueberlebt also einen Neustart.
     readonly property bool dnd: Config.notifications.dnd
 

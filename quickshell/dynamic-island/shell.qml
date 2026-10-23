@@ -19,7 +19,7 @@ import qs.modules.desktop
 // Log:     qs -c dynamic-island log        (Hot-Reload ist an: Datei speichern reicht)
 //
 // Die Komponenten bringen ihre Pro-Monitor-Logik (Variants) selbst mit:
-// hier reicht die blanke Instanziierung ohne Argumente (Caelestia-Stil).
+// hier reicht die blanke Instanziierung ohne Argumente.
 ShellRoot {
     settings.watchFiles: true
 

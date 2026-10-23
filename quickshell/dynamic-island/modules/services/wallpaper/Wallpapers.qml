@@ -13,9 +13,8 @@ import qs
 // Wallpaper-Dienst: kennt die Bilder im Wallpaper-Ordner, das aktuell
 // gesetzte und das gerade nur vorgeschaute.
 //
-// Vorbild ist caelestia/services/Wallpapers.qml – nur ohne dessen
-// Caelestia.Models-Plugin (FileSystemModel gibt es hier nicht). Die Liste
-// kommt stattdessen aus einem `find`; gescannt wird erst, wenn sie gebraucht
+// Kommt ohne kompiliertes Plugin aus (Quickshell hat kein FileSystemModel):
+// Die Liste kommt aus einem `find`; gescannt wird erst, wenn sie gebraucht
 // wird (`ensureLoaded`, bei jedem Oeffnen der Auswahl - neue Bilder tauchen so
 // ohne Neustart auf), damit der Start der Shell nichts davon merkt.
 //

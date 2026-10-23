@@ -146,7 +146,7 @@ Item {
         height: row.textHeight
 
         // Bild/Icon dreistufig: mitgeschicktes Bild, sonst App-Icon aus dem
-        // Icon-Theme, sonst ein Material-Symbol (wie caelestia es macht).
+        // Icon-Theme, sonst ein Material-Symbol.
         Item {
             id: iconBox
 

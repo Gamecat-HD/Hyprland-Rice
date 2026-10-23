@@ -29,9 +29,8 @@ Singleton {
     property bool sound: true
 
     // Nur einen Ausschnitt aufnehmen statt des ganzen Monitors. Den Rahmen
-    // zieht slurp auf, sobald die Aufnahme startet – dieselben zwei Modi, die
-    // caelestia auf seiner Recorder-Karte anbietet (Vollbild / Bereich, je
-    // mit und ohne Ton). Gilt wie `sound` erst ab der nächsten Aufnahme.
+    // zieht slurp auf, sobald die Aufnahme startet – zwei Modi (Vollbild /
+    // Bereich, je mit und ohne Ton). Gilt wie `sound` erst ab der nächsten Aufnahme.
     property bool region: false
 
     property bool active: false

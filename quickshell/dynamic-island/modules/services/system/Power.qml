@@ -56,8 +56,7 @@ Singleton {
             || s === UPowerDeviceState.PendingCharge;
     }
 
-    // Symbol fuer den Akkustand; geladen hat eine eigene Reihe (Muster aus
-    // caelestia/utils/Icons.qml)
+    // Symbol fuer den Akkustand; geladen hat eine eigene Reihe
     readonly property string batteryIcon: {
         if (!root.hasBattery)
             return "battery_unknown";

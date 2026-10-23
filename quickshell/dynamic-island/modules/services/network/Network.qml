@@ -11,8 +11,7 @@ import qs
 // WLAN-Dienst auf nmcli-Basis: sichtbare Netze, gespeicherte Profile,
 // Verbinden/Trennen/Vergessen.
 //
-// Zwei Dinge macht er bewusst anders als der Caelestia-Wechsler, an dem die
-// doppelten Netze entstanden:
+// Zwei Dinge sind bewusst so gebaut, damit keine doppelten Netze entstehen:
 //
 //  1. Ein Netz erscheint EINMAL. Ein Accesspoint pro Band/Repeater bringt
 //     denselben SSID mehrfach in die Scan-Liste (hier z.B. "Gastwlan" mit 79%

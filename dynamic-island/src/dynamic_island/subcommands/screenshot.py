@@ -23,8 +23,7 @@ class Command:
 
     def select_region(self) -> str | None:
         """Region per slurp waehlen. Mit --freeze friert hyprpicker den Bildschirm
-        ein, solange die Auswahl laeuft (Caelestia nutzt dafuer seinen eigenen
-        Picker im Shell-Prozess, den es hier bewusst nicht gibt)."""
+        ein, solange die Auswahl laeuft."""
         freezer = None
         if self.args.freeze:
             freezer = subprocess.Popen(["hyprpicker", "-r", "-z"], start_new_session=True)
