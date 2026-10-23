@@ -80,6 +80,11 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     screenshot_parser.add_argument(
         "-e", "--edit", action="store_true", help="open the screenshot in swappy instead of copying it"
     )
+    screenshot_parser.add_argument("-o", "--ocr", action="store_true", help="copy the text of a region (OCR)")
+    screenshot_parser.add_argument("-q", "--qr", action="store_true", help="read a QR code in a region")
+    screenshot_parser.add_argument(
+        "-s", "--slurp", action="store_true", help="always select with slurp, not the shell overlay"
+    )
 
     # Create parser for record opts
     record_parser = command_parser.add_parser("record", help="start a screen recording")

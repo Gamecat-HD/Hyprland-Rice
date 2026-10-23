@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import qs.modules.services.wallpaper
+import qs.modules.services.screenshot
 
 import qs
 import qs.modules.settings
@@ -83,6 +84,18 @@ Singleton {
             icon: "keyboard",
             keepOpen: true,
             run: () => LauncherState.mode = "keys"
+        },
+        {
+            name: "Zwischenablage",
+            desc: "SUPER+V",
+            icon: "content_paste",
+            keepOpen: true,
+            run: () => LauncherState.mode = "clipboard"
+        },
+        {
+            name: "Text aus Bildschirm",
+            icon: "document_scanner",
+            run: () => Screenshot.open("ocr")
         },
         {
             name: "Einstellungen",

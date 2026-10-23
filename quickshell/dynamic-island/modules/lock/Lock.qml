@@ -6,6 +6,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 
 import qs
+import qs.modules.services.sounds
 
 // Sperrbildschirm der Shell (ext-session-lock). Ersetzt hyprlock, das als
 // Rueckfall bleibt: ~/.config/hypr/scripts/lock.sh nimmt hyprlock, wenn die
@@ -70,6 +71,7 @@ Scope {
         }
         root.snapshots = shots;
         sessionLock.locked = true;
+        Sounds.locked(true);
     }
 
     // PPM statt PNG: grim muss nichts komprimieren, ~40 ms je Monitor
@@ -114,6 +116,7 @@ Scope {
         onUnlocked: {
             root.leaving = true;
             leaveDelay.restart();
+            Sounds.locked(false);
         }
     }
 

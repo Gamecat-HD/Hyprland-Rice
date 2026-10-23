@@ -105,6 +105,7 @@ ColumnLayout {
         "vpn": vpnComponent,
         "nosleep": noSleepComponent,
         "gamemode": gameModeComponent,
+        "airplane": airplaneComponent,
         "settings": settingsComponent,
         "record": recordComponent,
         "volume": volumeComponent,
@@ -124,6 +125,10 @@ ColumnLayout {
     }
     DemandRequest {
         demand: Vpn.demand
+        active: root.visible
+    }
+    DemandRequest {
+        demand: Airplane.demand
         active: root.visible
     }
 
@@ -500,6 +505,16 @@ ColumnLayout {
             icon: "sports_esports"
             active: root.gameMode
             onToggled: root.toggleGameMode()
+        }
+    }
+
+    Component {
+        id: airplaneComponent
+
+        CircleToggle {
+            icon: "flight"
+            active: Airplane.active
+            onToggled: Airplane.toggle()
         }
     }
 

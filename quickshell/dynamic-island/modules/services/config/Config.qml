@@ -33,6 +33,8 @@ Singleton {
     readonly property alias wallpaper: adapter.wallpaper
     readonly property alias media: adapter.media
     readonly property alias lock: adapter.lock
+    readonly property alias idle: adapter.idle
+    readonly property alias sounds: adapter.sounds
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -109,6 +111,30 @@ Singleton {
         "lock.blur": { title: "Wallpaper unscharf" },
         "lock.media": { title: "Medien-Karte" },
         "lock.notifications": { title: "Nachrichten-Zaehler" },
+        "lock.layout": { title: "Anordnung", editor: "lock" },
+        // Inaktivitaet (services/idle), ersetzt hypridle
+        "idle.enabled": { title: "Automatisch sperren" },
+        "idle.lockMinutes": {
+            title: "Sperren nach", min: 1, max: 60, step: 1, unit: "min", requires: "idle.enabled"
+        },
+        "idle.warnSeconds": {
+            title: "Vorher abdunkeln", min: 0, max: 30, step: 1, unit: "s", requires: "idle.enabled"
+        },
+        "idle.screenOffMinutes": {
+            title: "Bildschirme aus nach", desc: "0 = nie", min: 0, max: 60, step: 1, unit: "min", requires: "idle.enabled"
+        },
+        "idle.suspendMinutes": {
+            title: "Ruhezustand nach", desc: "0 = nie", min: 0, max: 120, step: 5, unit: "min", requires: "idle.enabled"
+        },
+        "idle.media": { title: "Nicht bei laufender Musik", requires: "idle.enabled" },
+        "idle.lockOnSleep": { title: "Vor dem Ruhezustand sperren" },
+        // Kurze Systemklaenge (services/sounds)
+        "sounds.enabled": { title: "Systemklänge" },
+        "sounds.volume": { title: "Lautstärke", min: 10, max: 100, step: 5, unit: "%", requires: "sounds.enabled" },
+        "sounds.notifications": { title: "Neue Nachricht", requires: "sounds.enabled" },
+        "sounds.screenshot": { title: "Screenshot", requires: "sounds.enabled" },
+        "sounds.power": { title: "Ladekabel", requires: "sounds.enabled" },
+        "sounds.lock": { title: "Sperren und Entsperren", requires: "sounds.enabled" },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
@@ -205,7 +231,7 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "media", "lock", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "media", "lock", "idle", "sounds", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
@@ -213,6 +239,8 @@ Singleton {
         "notch": "web_asset",
         "media": "music_note",
         "lock": "lock",
+        "idle": "bedtime",
+        "sounds": "notifications_active",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
         "notifications": "notifications",
@@ -229,7 +257,9 @@ Singleton {
         "wallpaper": "Wallpaper",
         "notch": "Notch-Layout",
         "media": "Medien",
-        "lock": "Sperrbildschirm"
+        "lock": "Sperrbildschirm",
+        "idle": "Inaktivität",
+        "sounds": "Klänge"
     })
 
     // Die Datei als einfaches Objekt – daraus baut das Einstellungs-Fenster
@@ -504,6 +534,29 @@ Singleton {
                 property bool blur: true
                 property bool media: true
                 property bool notifications: true
+                // Positionen von Uhr und Medien-Karte, leer = Standard
+                // (modules/lock/LockLayout.qml)
+                property var layout: ({})
+            }
+
+            // Inaktivitaet (services/idle/Idle.qml), Zeiten in Minuten
+            property JsonObject idle: JsonObject {
+                property bool enabled: true
+                property int lockMinutes: 3
+                property int warnSeconds: 10
+                property int screenOffMinutes: 4
+                property int suspendMinutes: 0
+                property bool media: true
+                property bool lockOnSleep: true
+            }
+
+            property JsonObject sounds: JsonObject {
+                property bool enabled: false
+                property int volume: 60
+                property bool notifications: true
+                property bool screenshot: true
+                property bool power: true
+                property bool lock: false
             }
 
             // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine

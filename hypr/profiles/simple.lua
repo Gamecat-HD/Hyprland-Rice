@@ -375,6 +375,9 @@ end
 -- Neu belegte/abgeschaltete Binds und die Binds der Plugins kommen aus der
 -- Shell (keybinds_from_shell, sync_keybinds() in ../hyprland.lua).
 keybinds_from_shell = true
+-- Sperren/Displays aus/ScreenSaver-Inhibit macht die Shell (services/idle),
+-- hypridle laeuft hier nicht (hyprland.lua, hypr-profile sync_idle)
+idle_from_shell = true
 local bind = bind_described
 local group = ""
 local function desc(text, opts, label)
@@ -524,20 +527,23 @@ bind("XF86AudioNext", hl.dsp.global("dynamic-island:mediaNext"), desc("Nächster
 bind("XF86AudioPrev", hl.dsp.global("dynamic-island:mediaPrev"), desc("Vorheriger Titel", { locked = true }))
 
 group = "Aufnahme"
--- Screenshots  (dynamic-island uebernimmt Zwischenablage,
--- Benachrichtigung mit Open/Save und den Cache unter ~/.cache/dynamic-island)
+-- Screenshots: Print direkt (grim), Bereich/Text/Code ueber das Overlay der
+-- Shell (Standbild, Fenster einrasten); ohne Shell faellt die CLI auf slurp
+-- zurueck. Kopiert wird immer, die Nachricht bietet Speichern/Bearbeiten.
 bind("Print", hl.dsp.exec_cmd("dynamic-island screenshot"), desc("Screenshot ganzer Bildschirm", { locked = true }))
-bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r -f"), desc("Screenshot Bereich"))
+bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r"), desc("Screenshot Bereich"))
 bind("SUPER + SHIFT + ALT + S", hl.dsp.exec_cmd("dynamic-island screenshot -r -e"), desc("Screenshot bearbeiten"))
+bind("SUPER + SHIFT + T", hl.dsp.exec_cmd("dynamic-island screenshot --ocr"), desc("Text vom Bildschirm kopieren"))
+bind("SUPER + SHIFT + Q", hl.dsp.exec_cmd("dynamic-island screenshot --qr"), desc("QR-Code lesen"))
 
 -- Bildschirmaufnahme (gpu-screen-recorder; derselbe Bind stoppt wieder)
 bind("CTRL + ALT + R", hl.dsp.exec_cmd("dynamic-island record"), desc("Aufnahme an/aus"))
 bind("SUPER + ALT + R", hl.dsp.exec_cmd("dynamic-island record -s"), desc("Aufnahme mit Ton"))
 bind("SUPER + SHIFT + ALT + R", hl.dsp.exec_cmd("dynamic-island record -r"), desc("Aufnahme Bereich"))
 
--- Zwischenablage-Verlauf (cliphist via fuzzel)
+-- Zwischenablage-Verlauf: Launcher-Modus der Shell (cliphist), ohne Shell fuzzel
 group = "Werkzeuge"
-bind("SUPER + V", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island clipboard"), desc("Zwischenablage"))
+bind("SUPER + V", hl.dsp.exec_cmd("pkill fuzzel || qs -c dynamic-island ipc call launcher clipboard || dynamic-island clipboard"), desc("Zwischenablage"))
 bind("SUPER + ALT + V", hl.dsp.exec_cmd("pkill fuzzel || dynamic-island clipboard -d"), desc("Aus Zwischenablage löschen"))
 
 -- Farbpipette

@@ -63,6 +63,18 @@ Singleton {
         settle.restart();
     }
 
+    // Aufnahme eines fertigen Ausschnitts (aus dem Screenshot-Overlay),
+    // geometry = "BxH+X+Y" in globalen logischen Koordinaten
+    function startRegion(geometry: string): void {
+        if (root.active)
+            return;
+        const args = [root.cli, "record", "--region", geometry];
+        if (root.sound)
+            args.push("--sound");
+        Quickshell.execDetached(args);
+        settle.restart();
+    }
+
     function refresh(): void {
         if (!pidProc.running)
             pidProc.running = true;

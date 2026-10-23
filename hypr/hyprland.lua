@@ -123,6 +123,7 @@ keybind_actions = {}
 -- Nur Profile, die `keybinds_from_shell = true` setzen (simple), nehmen sie.
 local keybindFile = home .. "/.local/state/dynamic-island/keybinds.lua"
 keybinds_from_shell = nil
+idle_from_shell = nil
 -- Beschriebene Binds der Config: { ref, keys, action, opts, handle, current }
 -- ref = "Gruppe|Text@<modmask>:<taste>" der urspruenglichen Belegung
 described_binds = {}
@@ -266,7 +267,11 @@ bind_described(switchBind, hl.dsp.exec_cmd(home .. "/.local/bin/hypr-profile tog
 -- Binds, damit auch der Profil-Umschalter neu belegt werden kann)
 sync_keybinds()
 
--- Profiluebergreifendes Idle-Management; nur einmal beim Sessionstart starten.
+-- Idle-Management per hypridle, nur einmal beim Sessionstart. Profile mit
+-- `idle_from_shell = true` (simple) lassen die Shell sperren; den Wechsel
+-- zur Laufzeit erledigt hypr-profile (sync_idle).
 hl.on("hyprland.start", function()
-    hl.exec_cmd("hypridle")
+    if not idle_from_shell then
+        hl.exec_cmd("hypridle")
+    end
 end)

@@ -5,11 +5,13 @@ import QtQuick
 import Quickshell
 
 import "modules/bar"
+import "modules/idle"
 import "modules/lock"
 import "modules/osd"
 import "modules/settings"
 import "modules/window"
 import qs.modules.services.plugins
+import qs.modules.services.sounds
 // Die Desktop-Ebene startet das Plugin `desktop` (plugins/desktop/Main.qml).
 // Der Import bleibt hier, damit die Shell das Modul beim Start kennt –
 // Plugin-QML darf nur Module importieren, die schon statisch geladen sind.
@@ -27,10 +29,13 @@ ShellRoot {
 
     // Plugins (plugins/<id>/) laufen auch ohne offenes Menue
     readonly property int pluginCount: Plugins.hosts.length
+    // Singleton mit Signal-Verbindungen, wird sonst nie angefasst
+    readonly property bool soundsOn: Sounds.dir !== ""
 
     Wallpaper {}
     Bar {}
     Osd {}
     SettingsWindow {}
     Lock {}
+    IdleDim {}
 }

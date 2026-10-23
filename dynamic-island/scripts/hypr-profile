@@ -39,6 +39,13 @@ declare -A SHELL_START=(
     [simple]="dynamic-island shell -d"
 )
 
+# Profile, deren Shell Inaktivitaet selbst verwaltet (sperren, Displays aus,
+# ScreenSaver-Inhibit; dynamic-island: modules/services/idle). Dort laeuft
+# kein hypridle – sonst sperren beide. Startet die Shell nicht, bleibt
+# hypridle als Rueckfall an. Gegenstueck in profiles/<name>.lua:
+# `idle_from_shell = true` (hyprland.lua startet hypridle dann nicht).
+IDLE_FROM_SHELL=(simple)
+
 die() {
     echo "hypr-profile: $*" >&2
     exit 1
@@ -186,8 +193,29 @@ sync_shell() {
         fi
     done
 
-    [ -n "$desired" ] || return 0
+    if [ -z "$desired" ]; then
+        sync_idle "$profile" 1
+        return 0
+    fi
     start_shell "$desired"
+    local rc=$?
+    sync_idle "$profile" "$rc"
+    return "$rc"
+}
+
+# hypridle passend zum Profil: aus, wenn die Shell es uebernimmt (und laeuft),
+# sonst an
+sync_idle() {
+    local profile="$1" shell_failed="$2" own=0 p
+    for p in "${IDLE_FROM_SHELL[@]}"; do
+        [ "$p" = "$profile" ] && own=1
+    done
+    if [ "$own" = 1 ] && [ "$shell_failed" = 0 ]; then
+        pkill -x hypridle 2>/dev/null
+    elif ! pidof -q hypridle; then
+        command -v hypridle >/dev/null 2>&1 && setsid -f hypridle >/dev/null 2>&1
+    fi
+    return 0
 }
 
 apply() {
