@@ -70,6 +70,7 @@ Scope {
             step: m.step,
             unit: m.unit,
             editor: m.editor,
+            hidden: m.hidden === true,
             requires
         };
     }

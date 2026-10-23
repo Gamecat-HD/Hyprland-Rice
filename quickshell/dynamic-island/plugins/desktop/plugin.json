@@ -32,7 +32,8 @@
         "hidden": {
             "default": false,
             "title": "Nur im Editor",
-            "desc": "Sichtbar nur beim Anordnen (SUPER+ALT+D)"
+            "desc": "Alle Widgets nur beim Anordnen (Kachel Desktop-Widgets); einzeln im Optionsfeld des Editors",
+            "hidden": true
         },
         "pause": {
             "default": "fenster",

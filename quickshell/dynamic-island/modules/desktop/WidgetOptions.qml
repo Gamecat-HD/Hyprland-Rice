@@ -96,6 +96,14 @@ Rectangle {
                 Layout.fillWidth: true
             }
 
+            // Anzeigen oder nur beim Anordnen sichtbar
+            EditChip {
+                icon: pop.widget?.hidden ? "visibility_off" : "visibility"
+                text: pop.widget?.hidden ? I18n.tr("Nur im Editor") : I18n.tr("Sichtbar")
+                on: !pop.widget?.hidden
+                onClicked: pop.store.patch(pop.widget.id, { hidden: !pop.widget?.hidden })
+            }
+
             EditChip {
                 icon: "content_copy"
                 onClicked: pop.store.duplicate(pop.widget.id)

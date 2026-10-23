@@ -43,6 +43,7 @@
                     "step": { "type": "number" },
                     "unit": { "type": "string" },
                     "editor": { "type": "string", "description": "Eingebauter Editor statt Bedienelement (quick, desktop)" },
+                    "hidden": { "type": "boolean", "description": "Nicht im Einstellungsmenue (wird anderswo bedient)" },
                     "requires": {
                         "oneOf": [
                             { "type": "string" },

@@ -263,8 +263,9 @@ PanelWindow {
 
         // Einstellung "Nur im Editor" (Schnellkachel): ausserhalb der
         // Bearbeitung keine Widgets – sie werden zerstoert, nicht nur versteckt
+        // Je Widget dasselbe (`hidden` im Datensatz, Schalter im Optionsfeld)
         readonly property var shown: DesktopWidgets.settings.hidden && !Scenes.editing
-                                     ? [] : Scenes.widgetsFor(win.screenName)
+                                     ? [] : Scenes.widgetsFor(win.screenName).filter(w => Scenes.editing || !w.hidden)
 
         onShownChanged: stage.syncIds()
         Component.onCompleted: stage.syncIds()

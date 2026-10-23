@@ -15,6 +15,8 @@ Item {
 
     required property string wid
     property bool active: true
+    // Im Anordnungs-Editor: ausgeblendete (widget.hidden) blass zeigen
+    property bool preview: false
 
     readonly property var widget: LockLayout.widget(host.wid)
     readonly property var info: host.widget ? DesktopWidgets.info(host.widget.type) : null
@@ -32,13 +34,14 @@ Item {
     y: host.dock === "unten" ? host.areaH - host.height
      : host.dock === "oben" ? 0
      : Math.round((host.widget?.y ?? 0.5) * host.areaH - host.height / 2)
-    visible: host.widget !== null && host.info !== null
+    visible: host.widget !== null && host.info !== null && (host.preview || !host.widget.hidden)
     enabled: false
 
     Loader {
         id: loader
 
         anchors.centerIn: parent
+        opacity: host.preview && host.widget?.hidden ? 0.35 : 1
         active: host.info !== null && !LockLayout.excluded.includes(host.widget?.type ?? "")
         source: host.info?.url ?? ""
         asynchronous: false

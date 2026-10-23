@@ -108,6 +108,8 @@ Item {
         // ausgewaehlten Widget, sonst reagierte ein Widget schon beim
         // Auswaehlen oder unter einem anderen
         enabled: !host.blocked && (!host.editing || host.selected)
+        // Nur im Editor sichtbar (widget.hidden): dort blass
+        opacity: host.editing && host.widget?.hidden ? 0.35 : 1
         active: host.info !== null
         source: host.info?.url ?? ""
         asynchronous: false
