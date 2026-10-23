@@ -16,6 +16,8 @@ import qs.modules.services.notifications
 //   eingeklappt   Schloss, daneben ggf. Feststelltaste und Nachrichten
 //   aufgeklappt   Avatar | Feld mit einem Punkt je Zeichen | Status-Symbol
 //
+// Aufklappen: tippen oder mit der Maus ueber die Notch fahren.
+//
 // Falsches Passwort: sie schuettelt sich. Richtiges: das Schloss geht auf,
 // sie klappt wieder ein und uebergibt an die Notch der Leiste darunter.
 Item {
@@ -31,7 +33,11 @@ Item {
     // im Desktop-Foto die Notch der Leiste an derselben Stelle.
     property int fadeDuration: Appearance.morphDuration
 
-    readonly property bool open: !notch.leaving && notch.shown && notch.context.phase !== "idle"
+    // Unter dem Zeiger offen; nach dem Verlassen kurz nachhalten, damit sie
+    // nicht flattert, wenn der Zeiger knapp an der Kante entlangfaehrt
+    property bool hoverOpen: false
+    readonly property bool open: !notch.leaving && notch.shown
+                                 && (notch.context.phase !== "idle" || notch.hoverOpen)
     readonly property bool hasMessage: notch.open && notch.context.message !== ""
 
     readonly property bool showCount: Config.lock.notifications && Notifications.count > 0
@@ -73,6 +79,24 @@ Item {
 
     Behavior on opacity {
         NumberAnimation { duration: notch.fadeDuration; easing.type: Easing.InCubic }
+    }
+
+    HoverHandler {
+        onHoveredChanged: {
+            if (hovered) {
+                hoverClose.stop();
+                notch.hoverOpen = true;
+            } else {
+                hoverClose.restart();
+            }
+        }
+    }
+
+    Timer {
+        id: hoverClose
+
+        interval: 450
+        onTriggered: notch.hoverOpen = false
     }
 
     // ---- Schuetteln bei Fehlschlag ----
