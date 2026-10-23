@@ -9,7 +9,9 @@ import Quickshell.Io
 // Einstellungen (plugin.json, im Menue unter "Terminal-Looks"):
 //   theme         an = Farben des aktuellen Schemas, aus = immer Vocaloid-Look
 //   folderLooks   an = Wallpaper-Ordner mit eigenem Look (~/.config/fastfetch/<ordner>/,
-//                 Miku direkt in ~/.config/fastfetch) zeigt diesen statt des Schemas
+//                 Miku direkt in ~/.config/fastfetch) zeigt diesen statt des Schemas;
+//                 feste Looks je Bild/Ordner (terminal-looks.tsv) setzt die
+//                 Wallpaper-Bibliothek in den Einstellungen (WallManager.qml)
 //
 // Entschieden wird in fish (functions/__terminal_look.fish, genutzt von
 // fastfetch.fish und conf.d/terminal-theme.fish), bei jedem Aufruf bzw.

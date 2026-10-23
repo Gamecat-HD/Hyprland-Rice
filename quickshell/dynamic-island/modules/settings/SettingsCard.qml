@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import qs.modules.services.config
 import qs.modules.services.plugins
+import qs.modules.services.wallpaper
 import qs.modules.widgets
 
 import qs
@@ -39,6 +40,10 @@ Surface {
 
     readonly property string managerKey: "@plugins"
     readonly property bool managing: !card.searching && card.section === card.managerKey
+    // Wallpaper-Bibliothek (WallpaperManager.qml) – dort filtert die Suche
+    // die Bilder statt die Einstellungen, die Seite bleibt also stehen
+    readonly property string wallsKey: "@wallpapers"
+    readonly property bool browsing: card.section === card.wallsKey
 
     // Gruppen aus shell.json in Menue-Reihenfolge, unbekannte hinten dran
     readonly property var sections: {
@@ -69,6 +74,8 @@ Surface {
     function sectionTitle(s: string): string {
         if (s === card.managerKey)
             return "Plugins";
+        if (s === card.wallsKey)
+            return "Bibliothek";
         if (Plugins.isPluginSection(s))
             return Plugins.sectionTitle(s);
         return Config.sectionMeta[s] ?? s;
@@ -110,6 +117,10 @@ Surface {
 
     // Escape schliesst – auch, wenn das Suchfeld den Fokus verloren hat
     Keys.onEscapePressed: SettingsState.close()
+
+    // Zaehler der Bibliothek in der Leiste (die Liste ist sonst erst da,
+    // wenn die Auswahl oder die Bibliothek einmal offen war)
+    Component.onCompleted: Wallpapers.ensureLoaded()
 
     // ================= Linke Leiste =================
     Item {
@@ -218,7 +229,8 @@ Surface {
                     // Plugin-Gruppe: etwas kleiner und eingerueckt, unter der Verwaltung
                     property bool sub: false
 
-                    readonly property bool current: !card.searching && card.section === button.key
+                    // In der Bibliothek sucht man Bilder – die Leiste bleibt scharf
+                    readonly property bool current: (!card.searching || card.browsing) && card.section === button.key
 
                     width: parent.width
                     height: button.sub ? 32 : 38
@@ -226,7 +238,7 @@ Surface {
                     color: button.current ? Colors.alpha(Colors.primary, 0.16)
                          : buttonHover.hovered ? Colors.alpha(Colors.fgSurface, 0.07)
                          : "transparent"
-                    opacity: card.searching ? 0.5 : 1
+                    opacity: card.searching && !card.browsing ? 0.5 : 1
 
                     Behavior on color {
                         ColorAnimation { duration: Appearance.fadeDuration }
@@ -303,13 +315,30 @@ Surface {
                 Repeater {
                     model: card.sections
 
-                    SectionButton {
+                    // Unter "Wallpaper" haengt als Unterpunkt die Bibliothek
+                    Column {
+                        id: sectionEntry
+
                         required property string modelData
 
-                        key: modelData
-                        label: card.sectionTitle(modelData)
-                        icon: Config.sectionIcons[modelData] ?? "folder_open"
-                        count: card.countIn(modelData)
+                        width: parent.width
+                        spacing: 2
+
+                        SectionButton {
+                            key: sectionEntry.modelData
+                            label: card.sectionTitle(sectionEntry.modelData)
+                            icon: Config.sectionIcons[sectionEntry.modelData] ?? "folder_open"
+                            count: card.countIn(sectionEntry.modelData)
+                        }
+
+                        SectionButton {
+                            visible: sectionEntry.modelData === "wallpaper"
+                            key: card.wallsKey
+                            label: "Bibliothek"
+                            icon: "photo_library"
+                            count: Wallpapers.list.length
+                            sub: true
+                        }
                     }
                 }
 
@@ -508,7 +537,8 @@ Surface {
                 verticalCenter: searchBox.verticalCenter
             }
             width: 160
-            text: card.searching ? "Suche"
+            text: card.browsing ? "Bibliothek"
+                : card.searching ? "Suche"
                 : card.section === "" ? "Alle"
                 : card.sectionTitle(card.section)
             color: Colors.fgBackground
@@ -582,7 +612,7 @@ Surface {
                 Text {
                     anchors.fill: parent
                     visible: search.text === ""
-                    text: "Einstellung suchen…"
+                    text: card.browsing ? "Bild suchen…" : "Einstellung suchen…"
                     color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                     font: search.font
                     verticalAlignment: Text.AlignVCenter
@@ -684,6 +714,28 @@ Surface {
             }
         }
 
+        // ---- Wallpaper-Bibliothek statt der Liste ----
+        Loader {
+            id: walls
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: searchBox.bottom
+                bottom: parent.bottom
+                leftMargin: 12
+                rightMargin: 12
+                topMargin: 12
+                bottomMargin: 16
+            }
+            active: card.browsing
+            visible: active
+
+            sourceComponent: WallpaperManager {
+                filter: card.filter
+            }
+        }
+
         // ---- Die Liste, gebaut aus der Datei ----
         ListView {
             id: list
@@ -698,7 +750,7 @@ Surface {
                 topMargin: 12
                 bottomMargin: 16
             }
-            visible: !card.managing
+            visible: !card.managing && !card.browsing
             clip: true
             spacing: 2
             boundsBehavior: Flickable.StopAtBounds
@@ -837,7 +889,8 @@ Surface {
                 bottom: parent.bottom
                 bottomMargin: 10
             }
-            text: card.searching ? `${list.count} Treffer` : ""
+            text: card.browsing ? (card.searching ? `${walls.item?.images.length ?? 0} Treffer` : "")
+                : card.searching ? `${list.count} Treffer` : ""
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
             font.pixelSize: 10
         }

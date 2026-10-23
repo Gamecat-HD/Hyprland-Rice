@@ -19,7 +19,7 @@
         "folderLooks": {
             "default": true,
             "title": "Wallpaper-Ordner mit eigenem Look",
-            "desc": "Liegt das Wallpaper in einem Ordner mit eigenem fastfetch-Look (Miku, Cyberpunk-Edgerunners, Lord-of-the-Mysteries), zeigt das Terminal diesen statt der Schema-Farben",
+            "desc": "Liegt das Wallpaper in einem Ordner mit eigenem fastfetch-Look (Miku, Cyberpunk-Edgerunners, Lord-of-the-Mysteries) oder hat es in Wallpaper > Bibliothek einen festen Look, zeigt das Terminal diesen statt der Schema-Farben",
             "requires": "theme"
         }
     },
@@ -33,6 +33,7 @@
         { "path": "~/.config/dynamic-island/templates/fastfetch-compact.jsonc" },
         { "path": "~/.config/dynamic-island/templates/fastfetch-mini.jsonc" },
         { "path": "~/.config/dynamic-island/templates/starship-palette.toml" },
+        { "path": "~/.config/dynamic-island/terminal-looks.tsv", "optional": true, "note": "Looks je Bild/Ordner aus Wallpaper > Bibliothek" },
         { "path": "~/.config/starship.toml" },
         { "path": "~/.config/fastfetch", "optional": true, "note": "Looks + Logo-Karten (~23 MB)" }
     ]
