@@ -44,7 +44,8 @@ Item {
         font.pixelSize: Math.round(root.unit * 0.85)
     }
 
-    readonly property real charW: metrics.advanceWidth("M")
+    // pixelSize lesen = Abhaengigkeit (der Aufruf allein misst nicht neu)
+    readonly property real charW: metrics.font.pixelSize > 0 ? metrics.advanceWidth("M") : 0
     readonly property real lineH: Math.ceil(metrics.height * 0.92)
 
     implicitWidth: Math.ceil(root.dims[1] * root.charW)
