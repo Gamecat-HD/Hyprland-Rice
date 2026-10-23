@@ -21,6 +21,7 @@ Singleton {
     //   "theme"      eigenes Suchfeld + Farb-Karussell (ThemePanel)
     //   "power"      Sitzungs- und Energieaktionen (PowerPanel)
     //   "keys"       Tastenkuerzel-Uebersicht aus Hyprland (KeybindsPanel)
+    //   "clipboard"  Zwischenablage-Verlauf (ClipboardPanel)
     //   "media"      Medien: Player-Auswahl, Cover mit Ring, Steuerung
     //   "control"    Steuerung: Kacheln, WLAN/BT/Audio, Tray
     //   "notifications"  Benachrichtigungsliste
@@ -144,7 +145,7 @@ Singleton {
 
         function onFocusedMonitorChanged(): void {
             const name = Hyprland.focusedMonitor?.name ?? "";
-            if (root.open && (root.mode === "power" || root.mode === "keys") && name && name !== root.screen?.name)
+            if (root.open && (root.mode === "power" || root.mode === "keys" || root.mode === "clipboard") && name && name !== root.screen?.name)
                 root.close();
         }
     }
@@ -251,6 +252,11 @@ Singleton {
         // Tastenkuerzel-Uebersicht (SUPER+K)
         function keys(): void {
             root.toggleMode(root.focusedScreen(), "keys");
+        }
+
+        // Zwischenablage-Verlauf (SUPER+V)
+        function clipboard(): void {
+            root.toggleMode(root.focusedScreen(), "clipboard");
         }
 
         // Untermenues der Notch (Tastenkuerzel in hypr/profiles/simple.lua)

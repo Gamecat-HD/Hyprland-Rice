@@ -129,7 +129,7 @@ Variants {
         // wird in der Steuerung ein WLAN-Passwort oder eine PIN getippt.
         WlrLayershell.keyboardFocus: notch.authOpen
                                      || notch.appsOpen || notch.wallpaperOpen || notch.themeOpen || notch.powerOpen
-                                     || notch.keysOpen
+                                     || notch.keysOpen || notch.clipboardOpen
                                      || notch.controlTyping
                                      || (bar.pillSettings?.typingPassword ?? false)
                                      || (bar.pillSettings?.typingPin ?? false)

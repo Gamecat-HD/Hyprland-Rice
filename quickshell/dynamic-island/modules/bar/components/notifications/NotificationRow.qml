@@ -172,7 +172,8 @@ Item {
                 anchors.fill: parent
                 source: {
                     const n = row.notif;
-                    if (!n)
+                    // Das Bild steht schon gross darunter
+                    if (!n || row.hasPreview)
                         return "";
                     if (n.image !== "")
                         return Qt.resolvedUrl(n.image);
@@ -191,7 +192,7 @@ Item {
                 anchors.centerIn: parent
                 visible: icon.status !== Image.Ready
 
-                text: row.critical ? "release_alert" : "chat"
+                text: row.critical ? "release_alert" : row.hasPreview ? "screenshot_region" : "chat"
                 color: row.critical ? Colors.error : Colors.fgSurfaceVariant
                 font.family: "Material Symbols Outlined"
                 font.pixelSize: row.iconSize - 4

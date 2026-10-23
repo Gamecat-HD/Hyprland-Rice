@@ -182,13 +182,14 @@ Item {
     readonly property bool themeOpen: launcherOpen && LauncherState.mode === "theme"
     readonly property bool powerOpen: launcherOpen && LauncherState.mode === "power"
     readonly property bool keysOpen: launcherOpen && LauncherState.mode === "keys"
+    readonly property bool clipboardOpen: launcherOpen && LauncherState.mode === "clipboard"
     // Untermenues (siehe oben)
     readonly property bool mediaOpen: launcherOpen && LauncherState.mode === "media"
     readonly property bool controlOpen: launcherOpen && LauncherState.mode === "control"
     readonly property bool notificationsOpen: launcherOpen && LauncherState.mode === "notifications"
     readonly property bool systemOpen: launcherOpen && LauncherState.mode === "system"
     readonly property bool viewOpen: mediaOpen || controlOpen || notificationsOpen || systemOpen
-    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen && !keysOpen && !viewOpen
+    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen && !keysOpen && !clipboardOpen && !viewOpen
     readonly property bool authOpen: Auth.active && Auth.screen === hostScreen
     readonly property bool open: expanded || launcherOpen || authOpen
 
@@ -233,6 +234,7 @@ Item {
                                         : themeOpen ? themes.outerWidth
                                         : powerOpen ? powerMenu.outerWidth
                                         : keysOpen ? keysView.outerWidth
+                                        : clipboardOpen ? clipboardView.outerWidth
                                         : mediaOpen ? mediaView.outerWidth
                                         : controlOpen ? controlLoader.outerWidth
                                         : notificationsOpen ? notificationsView.outerWidth
@@ -242,6 +244,7 @@ Item {
                                          : themeOpen ? themes.outerHeight
                                          : powerOpen ? powerMenu.outerHeight
                                          : keysOpen ? keysView.outerHeight
+                                         : clipboardOpen ? clipboardView.outerHeight
                                          : mediaOpen ? mediaView.outerHeight
                                          : controlOpen ? controlLoader.outerHeight
                                          : notificationsOpen ? notificationsView.outerHeight
@@ -1306,6 +1309,18 @@ Item {
             open: notch.keysOpen
 
             sourceComponent: KeybindsPanel {
+                topOffset: notch.launcherTop
+                cardRadius: notch.cardRadius
+                active: true
+            }
+        }
+
+        LazyPanel {
+            id: clipboardView
+
+            open: notch.clipboardOpen
+
+            sourceComponent: ClipboardPanel {
                 topOffset: notch.launcherTop
                 cardRadius: notch.cardRadius
                 active: true
