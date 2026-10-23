@@ -741,11 +741,20 @@ Item {
                     color: rowArea.pressed ? Colors.alpha(Colors.primary, 0.22)
                          : row.isFirst ? Colors.alpha(Colors.primary, 0.14)
                          : Colors.alpha(Colors.fgSurface, 0.06)
-                    opacity: (row.clickable || row.editable) && (rowArea.containsMouse || row.isFirst) ? 1 : 0
+                    opacity: (row.clickable || row.editable) && (rowHover.hovered || row.isFirst) ? 1 : 0
 
                     Behavior on opacity {
                         NumberAnimation { duration: 90 }
                     }
+                }
+
+                // Hover der ganzen Zeile – ein HoverHandler bleibt aktiv, auch
+                // wenn die Maus auf einem Knopf darin steht (die MouseArea
+                // gaebe das Hover an den Knopf ab, die Knoepfe verschwanden)
+                HoverHandler {
+                    id: rowHover
+
+                    margin: 6
                 }
 
                 MouseArea {
@@ -806,19 +815,20 @@ Item {
                         onClicked: row.refs.forEach(ref => Keybinds.reset(ref))
                     }
 
+                    // Loeschen/Auge haben feste Plaetze und blenden nur ein –
+                    // sonst rutschte der Pfeil daneben beim Ein-/Ausblenden
+                    // unter der Maus weg
                     IconButton {
-                        id: deleteButton
-
-                        visible: row.editable && row.isCustom && (rowArea.containsMouse || deleteButton.hovered || eyeButton.hovered)
+                        visible: row.editable && row.isCustom
+                        shown: rowHover.hovered
                         icon: "delete"
                         danger: true
                         onClicked: row.refs.forEach(ref => Keybinds.removeCustom(ref))
                     }
 
                     IconButton {
-                        id: eyeButton
-
-                        visible: row.editable && (row.modelData.disabled || rowArea.containsMouse || eyeButton.hovered || deleteButton.hovered)
+                        visible: row.editable
+                        shown: row.modelData.disabled || rowHover.hovered
                         icon: row.modelData.disabled ? "visibility_off" : "visibility"
                         onClicked: {
                             const off = !row.modelData.disabled;
@@ -938,13 +948,20 @@ Item {
 
         property string icon
         property bool danger: false
-        readonly property bool hovered: ibArea.containsMouse
+        // false = Platz bleibt, Knopf unsichtbar und nicht klickbar
+        property bool shown: true
 
         signal clicked
 
         anchors.verticalCenter: parent?.verticalCenter
         width: 22
         height: 22
+        opacity: ib.shown ? 1 : 0
+        enabled: ib.shown
+
+        Behavior on opacity {
+            NumberAnimation { duration: 90 }
+        }
 
         Rectangle {
             anchors.fill: parent
