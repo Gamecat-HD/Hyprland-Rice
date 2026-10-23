@@ -57,7 +57,9 @@ cd Hyprland-Rice
 The script places `hypr/`, `quickshell/dynamic-island/` and `dynamic-island/`
 into `~/.config` — as symlinks by default, so a `git pull` in the clone
 applies right away. Whatever is already there is moved to `~/backups/` first;
-nothing is deleted.
+nothing is deleted. It also copies the bundled wallpapers to
+`~/Pictures/Wallpapers` (existing files are left alone) and generates the
+first color scheme from them.
 
 Then:
 
@@ -131,9 +133,11 @@ simply does nothing.
 
 ### 4. Wallpapers
 
-This repo ships **no wallpapers**. Put your own images into
-`~/Pictures/Wallpapers` (subfolders work too) and pick one with `>wallpaper`
-in the app menu, `dynamic-island wallpaper -f IMAGE` or the Wallhaven search
+My collection is in `wallpapers/` (sorted into folders: Cyberpunk
+Edgerunners, Miku, Lord of the Mysteries, …) and is copied to
+`~/Pictures/Wallpapers` on install. Just drop your own images in there
+(subfolders work too) and pick one with `>wallpaper` in the app menu,
+`dynamic-island wallpaper -f IMAGE` or the Wallhaven search
 (`SUPER + ALT + W`). The color scheme is generated from the image.
 
 ## Keybinds
@@ -182,9 +186,9 @@ The defaults are at the bottom of `hypr/profiles/simple.lua` under
 
 The desktop widgets belong to the wallpaper: `dynamic-island/scenes.json`
 maps each image (or a whole folder, keys ending in `/`) to a list of widgets
-with position and style. The bundled file is arranged for my own wallpapers;
-for yours, press `SUPER + ALT + D`, move widgets with the mouse and
-right-click to add new ones.
+with position and style. The bundled file is already arranged for the
+bundled wallpapers; for your own images, press `SUPER + ALT + D`, move
+widgets with the mouse and right-click to add new ones.
 
 Widgets and a few extras are plugins (`quickshell/dynamic-island/plugins/`),
 turned on and off under Settings > Plugins:
@@ -291,3 +295,6 @@ Switch: `hypr-profile toggle` or `CTRL + SUPER + SHIFT + P`.
   [caelestia-cli](https://github.com/caelestia-dots/cli) and, like it, is
   licensed under the **GPL-3.0** ([`dynamic-island/LICENSE`](dynamic-island/LICENSE)).
 * The look of the notch is inspired by saneAspect's "Dynamite".
+* The wallpapers belong to their respective artists (collected among others
+  from [wallhaven.cc](https://wallhaven.cc)), see
+  [`wallpapers/README.md`](wallpapers/README.md).

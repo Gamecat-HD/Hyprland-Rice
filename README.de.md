@@ -55,7 +55,9 @@ cd Hyprland-Rice
 Das Skript verteilt `hypr/`, `quickshell/dynamic-island/` und
 `dynamic-island/` nach `~/.config` — standardmaessig als Symlinks, damit ein
 `git pull` im Klon sofort gilt. Was dort schon liegt, wandert vorher nach
-`~/backups/`, nichts wird geloescht.
+`~/backups/`, nichts wird geloescht. Ausserdem kopiert es die mitgelieferten
+Wallpaper nach `~/Pictures/Wallpapers` (vorhandene Dateien bleiben) und
+erzeugt daraus das erste Farbschema.
 
 Danach:
 
@@ -130,9 +132,11 @@ sonst passiert beim Kuerzel einfach nichts.
 
 ### 4. Wallpaper
 
-In diesem Repo sind **keine Wallpaper**. Eigene Bilder nach
-`~/Pictures/Wallpapers` legen (auch in Unterordner) und per `>wallpaper` im
-App-Menue, `dynamic-island wallpaper -f BILD` oder ueber die Wallhaven-Suche
+Meine Sammlung liegt in `wallpapers/` (nach Ordnern sortiert: Cyberpunk
+Edgerunners, Miku, Lord of the Mysteries, …) und landet beim Installieren in
+`~/Pictures/Wallpapers`. Eigene Bilder einfach dazulegen (auch in
+Unterordner) und per `>wallpaper` im App-Menue,
+`dynamic-island wallpaper -f BILD` oder ueber die Wallhaven-Suche
 (`SUPER + ALT + W`) setzen. Das Farbschema entsteht dabei aus dem Bild.
 
 ## Tastenkuerzel
@@ -180,9 +184,9 @@ Aenderungen aus der Uebersicht landen in `~/.config/dynamic-island/keybinds.json
 
 Die Desktop-Widgets haengen am Wallpaper: `dynamic-island/scenes.json` ordnet
 jedem Bild (oder ganzen Ordner, Schluessel mit `/` am Ende) eine Liste von
-Widgets mit Position und Stil zu. Die mitgelieferte Datei ist fuer meine
-eigenen Wallpaper angeordnet; fuer deine: `SUPER + ALT + D`, Widgets per Maus
-verschieben, Rechtsklick fuegt neue hinzu.
+Widgets mit Position und Stil zu. Die mitgelieferte Datei ist fuer die
+mitgelieferten Wallpaper schon angeordnet; fuer eigene Bilder:
+`SUPER + ALT + D`, Widgets per Maus verschieben, Rechtsklick fuegt neue hinzu.
 
 Widgets und ein paar Extras sind Plugins (`quickshell/dynamic-island/plugins/`),
 an- und abschalten unter Einstellungen > Plugins:
@@ -291,3 +295,6 @@ Umschalten: `hypr-profile toggle` oder `CTRL + SUPER + SHIFT + P`.
   [caelestia-cli](https://github.com/caelestia-dots/cli) abgeleitet und steht
   wie diese unter der **GPL-3.0** ([`dynamic-island/LICENSE`](dynamic-island/LICENSE)).
 * Die Optik der Notch ist von saneAspects "Dynamite" inspiriert.
+* Die Wallpaper gehoeren ihren jeweiligen Kuenstlerinnen und Kuenstlern
+  (gesammelt u. a. auf [wallhaven.cc](https://wallhaven.cc)), siehe
+  [`wallpapers/README.md`](wallpapers/README.md).
