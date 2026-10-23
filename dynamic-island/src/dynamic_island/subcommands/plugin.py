@@ -92,6 +92,9 @@ def check_manifest(m: Any, folder: str | None = None) -> str:
         return "api fehlt (Zahl)"
     if api > API_VERSION:
         return f"braucht Plugin-API {api}, diese Shell kann {API_VERSION}"
+    parent = m.get("parent")
+    if parent is not None and (not isinstance(parent, str) or not ID_RE.match(parent) or parent == pid):
+        return "parent: id eines anderen Plugins erwartet"
     main = m.get("main")
     if main is not None and (not isinstance(main, str) or ".." in main or main.startswith("/")):
         return "main: relativer Pfad im Plugin-Ordner erwartet"
@@ -117,6 +120,13 @@ def check_manifest(m: Any, folder: str | None = None) -> str:
         comp = panel.get("component") if isinstance(panel, dict) else None
         if not re.match(r"^[a-z][a-z0-9-]*$", name) or not isinstance(comp, str) or ".." in comp:
             return f"panels.{name}: Ansicht oder component ungueltig"
+    widgets = m.get("widgets", {})
+    if not isinstance(widgets, dict):
+        return "widgets muss ein Objekt sein"
+    for wtype, widget in widgets.items():
+        comp = widget.get("component") if isinstance(widget, dict) else None
+        if not re.match(r"^[a-z][a-z0-9-]*$", wtype) or not isinstance(comp, str) or ".." in comp:
+            return f"widgets.{wtype}: Typ oder component ungueltig"
     files = m.get("files", [])
     if not isinstance(files, list):
         return "files muss eine Liste sein"
@@ -247,16 +257,31 @@ class List(Command):
                     "enabled": is_enabled(state, pid, m),
                     "valid": m is not None,
                     "problem": problem,
+                    "parent": (m or {}).get("parent", ""),
                 }
             )
         if self.args.json:
             return {"ok": True, "message": f"{len(rows)} Plugins", "plugins": rows}
         if not rows:
             print(f"Keine Plugins in {plugins_dir}")
-        for r in rows:
+        # Komponenten (Manifest `parent`) eingerueckt unter ihrem Plugin;
+        # fehlt das Eltern-Plugin, stehen sie oben mit Hinweis
+        ids = {r["id"] for r in rows if r["valid"] and not r["parent"]}
+
+        def show(r: dict[str, Any], indent: str) -> None:
             mark = "✗" if not r["valid"] else ("●" if r["enabled"] else "○")
             extra = f"  ({r['problem']})" if r["problem"] else ""
-            print(f"{mark} {r['id']:<20} {r['version']:<10} {r['name']}{extra}")
+            if r["parent"] and r["parent"] not in ids:
+                extra += f"  (gehoert zu {r['parent']}, fehlt)"
+            print(f"{indent}{mark} {r['id']:<{20 - len(indent)}} {r['version']:<10} {r['name']}{extra}")
+
+        for r in rows:
+            if r["parent"] in ids:
+                continue
+            show(r, "")
+            for c in rows:
+                if c["parent"] == r["id"] and r["id"] in ids:
+                    show(c, "  └ ")
         return None
 
 
@@ -550,6 +575,14 @@ class Import(Command):
         with Package.open(path) as pkg:
             m = pkg.manifest
             pid, version = m["id"], m.get("version", "0")
+            # Import aus dem Untermenue eines Plugins: nur dessen Komponenten
+            want = self.args.parent
+            if want and m.get("parent") != want:
+                raise PluginError(
+                    f'{m["name"]} ist keine Komponente von "{want}"'
+                    + (f' (gehoert zu "{m["parent"]}")' if m.get("parent") else " (eigenstaendiges Plugin)")
+                    + " – oben in der Plugin-Verwaltung importieren"
+                )
             target = plugins_dir / pid
             old, _ = load_manifest(target) if target.is_dir() else (None, "")
             old_version = old.get("version", "0") if old else None
@@ -675,6 +708,9 @@ class Remove(Command):
         folder = plugins_dir / pid
         if not ID_RE.match(pid) or not folder.is_dir():
             raise PluginError(f'Plugin "{pid}" gibt es nicht')
+        m, _ = load_manifest(folder)
+        if m and m.get("builtin") and not self.args.force:
+            raise PluginError(f"{m['name']} gehoert zur Shell (builtin) – nur ausschalten, oder --force")
         if not self.confirm(f"{pid} entfernen (der Ordner wandert in {backups_dir})?"):
             return {"ok": False, "message": "Abgebrochen"}
         saved = backup(folder, f"plugin-{pid}")

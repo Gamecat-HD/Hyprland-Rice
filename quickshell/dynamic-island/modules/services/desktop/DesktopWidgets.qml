@@ -7,10 +7,12 @@ import Quickshell
 import qs
 import qs.modules.services.plugins
 
-// Welche Desktop-Widgets es gibt: die eingebauten (modules/desktop/widgets)
-// plus die aus Plugins (Manifest `widgets`, siehe plugins/README.md).
+// Welche Desktop-Widgets es gibt: alle aus Plugins (Manifest `widgets`,
+// siehe plugins/README.md) – die Grundausstattung (Uhr, Visualiser, Songtext)
+// bringt das Plugin `desktop` selbst mit, weitere kommen als seine
+// Komponenten (Manifest `parent: "desktop"`).
 //
-// Je Typ: { title, icon, url, size: [breite, hoehe] in `unit`, options }
+// Je Typ: { pluginId, title, icon, url, size: [breite, hoehe] in `unit`, options }
 // `size` ist nur die Startgroesse fuer die Platzsuche, gezeichnet wird mit
 // der implicitWidth/-Height des Widgets.
 //
@@ -22,44 +24,10 @@ import qs.modules.services.plugins
 Singleton {
     id: root
 
-    readonly property string dir: Quickshell.shellPath("modules/desktop/widgets")
+    // Einstellungen des Plugins `desktop` (pause, fps)
+    readonly property var settings: Object.assign({ pause: "fenster", fps: 30 }, Plugins.host("desktop")?.settings ?? {})
 
-    readonly property var builtin: ({
-        "clock": {
-            title: "Uhr",
-            icon: "schedule",
-            url: root.dir + "/ClockWidget.qml",
-            size: [10, 6],
-            options: {
-                style: { title: "Stil", values: ["sperrbildschirm", "insel", "kontrast", "gestapelt", "analog", "worte"], default: "sperrbildschirm" },
-                date: { title: "Datum", bool: true, default: true }
-            }
-        },
-        "visualizer": {
-            title: "Visualiser",
-            icon: "graphic_eq",
-            url: root.dir + "/VisualizerWidget.qml",
-            size: [26, 7],
-            options: {
-                style: { title: "Stil", values: ["kapseln", "unten", "welle", "insel"], default: "kapseln" },
-                bars: { title: "Balken", values: [16, 24, 32, 48, 64, 96], default: 32 },
-                order: { title: "Bass", values: ["mitte", "links"], default: "mitte" },
-                idle: { title: "Ohne Musik", values: ["ausblenden", "ruhig"], default: "ausblenden" }
-            }
-        },
-        "lyrics": {
-            title: "Songtext",
-            icon: "lyrics",
-            url: root.dir + "/LyricsWidget.qml",
-            size: [28, 6],
-            options: {
-                lines: { title: "Zeilen", values: [1, 3], default: 3 },
-                align: { title: "Ausrichtung", values: ["links", "mitte", "rechts"], default: "mitte" }
-            }
-        }
-    })
-
-    readonly property var types: Object.assign({}, root.builtin, Plugins.widgets)
+    readonly property var types: Plugins.widgets
     readonly property var typeNames: Object.keys(root.types)
 
     function info(type: string): var {

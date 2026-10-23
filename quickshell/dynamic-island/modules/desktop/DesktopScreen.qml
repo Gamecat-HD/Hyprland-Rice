@@ -39,7 +39,7 @@ PanelWindow {
                                        || HyprIpc.specialOn(win.hyprMonitor) !== ""
     readonly property bool fullscreen: win.workspace?.lastIpcObject?.hasfullscreen ?? false
     readonly property bool covered: SessionModes.gameMode || win.fullscreen
-                                    || (Config.desktop.pause === "fenster" && win.hasWindows)
+                                    || (DesktopWidgets.settings.pause === "fenster" && win.hasWindows)
     readonly property bool active: Scenes.editing || !win.covered
 
     screen: win.modelData

@@ -24,7 +24,18 @@ Scope {
     readonly property string name: root.manifest?.name ?? root.pluginId
     readonly property string icon: root.manifest?.icon ?? "extension"
     readonly property string version: root.manifest?.version ?? "?"
-    readonly property bool enabled: root.valid && Plugins.stateLoaded && Plugins.isEnabled(root.pluginId)
+    // Komponente eines anderen Plugins (Manifest `parent`): laeuft nur, wenn
+    // das Eltern-Plugin an ist, und erscheint in der Verwaltung in dessen
+    // Untermenue. Nur eine Ebene – ein Eltern-Plugin mit eigenem `parent`
+    // zaehlt nicht (sonst koennten sich zwei gegenseitig festhalten).
+    readonly property string parentId: root.manifest?.parent ?? ""
+    readonly property var parentHost: root.parentId !== "" ? Plugins.host(root.parentId) : null
+    readonly property bool parentMissing: root.parentId !== "" && (!root.parentHost?.valid || root.parentHost.parentId !== "")
+    // Eigener Schalter (plugins.json) – bei Komponenten zaehlt zusaetzlich
+    // das Eltern-Plugin
+    readonly property bool selfEnabled: root.valid && Plugins.stateLoaded && Plugins.isEnabled(root.pluginId)
+    readonly property bool enabled: root.selfEnabled
+                                    && (root.parentId === "" || (!root.parentMissing && root.parentHost.enabled))
 
     readonly property var settingKeys: Object.keys(root.manifest?.settings ?? {})
 
@@ -58,6 +69,7 @@ Scope {
             max: m.max,
             step: m.step,
             unit: m.unit,
+            editor: m.editor,
             requires
         };
     }
@@ -81,8 +93,10 @@ Scope {
     property bool loading: false
     property var component: null
 
+    // "blocked": selbst an, aber das Eltern-Plugin ist aus
     readonly property string status: !root.valid ? "invalid"
-                                     : !root.enabled ? "off"
+                                     : !root.selfEnabled ? "off"
+                                     : !root.enabled ? "blocked"
                                      : root.loadError !== "" ? "error"
                                      : root.loading ? "loading" : "ready"
 
@@ -95,7 +109,19 @@ Scope {
         icon: root.icon,
         homepage: root.manifest?.homepage ?? "",
         enabled: root.enabled,
+        selfEnabled: root.selfEnabled,
         status: root.status,
+        parent: root.parentId,
+        parentMissing: root.parentMissing,
+        builtin: root.manifest?.builtin === true,
+        // Untermenue fuer Komponenten (Manifest `components`): { title, icon, desc }
+        components: root.manifest?.components ?? null,
+        // Desktop-Widgets: [{ type, title, icon }]
+        widgets: Object.keys(root.manifest?.widgets ?? {}).map(t => ({
+            type: t,
+            title: root.manifest.widgets[t].title ?? t,
+            icon: root.manifest.widgets[t].icon ?? root.icon
+        })),
         error: root.problem || root.loadError,
         hasSettings: root.settingKeys.length > 0,
         settingsCount: root.settingKeys.length,
@@ -212,6 +238,8 @@ Scope {
             return "name fehlt";
         if (typeof m.api !== "number" || m.api > Plugins.apiVersion)
             return `braucht Plugin-API ${m.api}, die Shell kann ${Plugins.apiVersion}`;
+        if (m.parent !== undefined && (typeof m.parent !== "string" || !/^[a-z0-9][a-z0-9-]{0,47}$/.test(m.parent) || m.parent === m.id))
+            return "parent: id eines anderen Plugins erwartet";
         if (m.main !== undefined && (typeof m.main !== "string" || m.main.includes("..") || m.main.startsWith("/")))
             return "main: relativer Pfad im Plugin-Ordner erwartet";
         for (const key in m.settings ?? {}) {
@@ -254,6 +282,9 @@ Scope {
                 values[key] = old[key];
         const next = Plugins.copyState();
         next.settings[root.pluginId] = values;
+        // War die alte Gruppe per `enabled: false` aus, bleibt das Plugin aus
+        if (old.enabled === false && next.enabled[root.pluginId] === undefined)
+            next.enabled[root.pluginId] = false;
         Plugins.commit(next);
         // Die alte Gruppe aus shell.json werfen: writeAdapter schreibt nur,
         // was Config noch kennt

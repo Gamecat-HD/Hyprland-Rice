@@ -34,7 +34,10 @@ Kern: `modules/services/plugins/Plugins.qml` (Singleton) + `PluginHost.qml`
 | `panels` | – | Sektionen in Ansichten der Shell (bisher: Wallpaper-Auswahl), s.u. |
 | `widgets` | – | Desktop-Widgets (Typen für die Szenen je Wallpaper), s.u. |
 | `files` | – | Dateien außerhalb des Plugin-Ordners, die dazugehören (für Export/Import) |
-| `migrateFrom` | – | Gruppe in `shell.json`, deren Werte einmalig übernommen werden |
+| `migrateFrom` | – | Gruppe in `shell.json`, deren Werte einmalig übernommen werden (`enabled: false` dort = Plugin bleibt aus) |
+| `parent` | – | Komponente eines anderen Plugins, s.u. |
+| `components` | – | Untermenü für die eigenen Komponenten: `{ "title", "icon", "desc" }` |
+| `builtin` | – | Gehört zur Shell: in der Verwaltung nur an/aus, `plugin remove` nur mit `--force` |
 
 Schema für Editoren: `plugins/plugin.schema.json` (`"$schema": "../plugin.schema.json"`).
 
@@ -51,6 +54,9 @@ Vorgabe bestimmt das Bedienelement):
     "looks":   { "default": true, "title": "…", "requires": "theme" }
 }
 ```
+
+`editor` (`"quick"`, `"desktop"`) setzt statt des Bedienelements einen
+eingebauten Editor in die Zeile (so zeigt `desktop` seinen Szenen-Block).
 
 `requires` ohne Punkt meint eine Einstellung desselben Plugins, mit Punkt eine
 Shell-Einstellung (`"bar.battery"`) oder ein anderes Plugin
@@ -90,7 +96,9 @@ Abschnitt „Sektionen“ unten.
 ### `widgets`
 
 Desktop-Widgets, die in den Szenen (`~/.config/dynamic-island/scenes.json`,
-siehe `modules/services/desktop/Scenes.qml`) platziert werden können – je Typ:
+siehe `modules/services/desktop/Scenes.qml`) platziert werden können. Sie
+erscheinen nur, solange das Plugin `desktop` an ist – ein Widget-Paket also
+als Komponente bauen (`"parent": "desktop"`, s.u.). Je Typ:
 
 ```json
 "widgets": {
@@ -121,7 +129,7 @@ Die Komponente bekommt vom Host (`modules/desktop/WidgetHost.qml`):
 | `editing` | Bearbeitungsmodus läuft |
 | `opts` | Optionen aus der Szene, Vorgaben schon eingesetzt |
 | `color`, `accent` | Textfarbe und Akzent |
-| `fps` | (optional deklarieren) Obergrenze für eigene Animationen, Einstellung `desktop.fps` |
+| `fps` | (optional deklarieren) Obergrenze für eigene Animationen, Einstellung `fps` des Plugins `desktop` |
 | `plugin` | (optional deklarieren) Kontext des Plugins, wie bei Kacheln |
 
 Größe setzt das Widget selbst über `implicitWidth`/`implicitHeight`. Regeln:
@@ -129,7 +137,28 @@ dauerhafte Bewegung nur per `Timer` mit `fps` (eine `Animation` liefe mit der
 Monitorrate), bei `active: false` alles anhalten, Bedarf an Diensten
 (`Cava.demand`, `Lyrics.demand`) nur solange `active`. `opts` kommt bei jeder
 Änderung des Widgets (auch beim Verschieben) als neues Objekt – teure Neuberechnung
-nur, wenn sich der Inhalt wirklich ändert. Beispiele: `matrix/`, `bonsai/`, `tui/`.
+nur, wenn sich der Inhalt wirklich ändert. Beispiele: `desktop/widgets/`, `matrix/`, `bonsai/`, `tui/`.
+
+### `parent` – Komponenten
+
+```json
+{ "id": "bonsai", "parent": "desktop", "widgets": { … } }
+```
+
+Eine Komponente ist ein ganz normales Plugin (eigener Ordner, eigenes
+`.dip`, eigener Schalter), das zu einem anderen gehört:
+
+- Sie läuft nur, solange ihr Plugin an ist. Ist sie selbst an, das Plugin
+  aber aus, steht sie auf „Wartet“ (`status: "blocked"`).
+- In der Verwaltung steht sie nicht oben, sondern im Untermenü ihres Plugins
+  (Knopf auf dessen Karte, Titel aus `components.title`). Der Import dort
+  nimmt nur Pakete mit passendem `parent` an (`plugin import --parent <id>`).
+- Nur eine Ebene: ein Plugin mit eigenem `parent` kann keine Komponenten
+  haben. Fehlt das Plugin, bleibt die Komponente aus und steht oben mit
+  Hinweis.
+
+So sind die Desktop-Widgets gebaut: `desktop/` bringt die Ebene und
+Uhr/Visualiser/Songtext mit, `bonsai/`, `matrix/`, `tui/` sind Komponenten.
 
 ### `files`
 
@@ -351,7 +380,7 @@ Unbekannte Schlüssel werden beim Import ignoriert.
 ## CLI
 
 ```
-dynamic-island plugin list                     ● an  ○ aus  ✗ kaputt
+dynamic-island plugin list                     ● an  ○ aus  ✗ kaputt, Komponenten mit └ darunter
 dynamic-island plugin info <id>
 dynamic-island plugin enable|disable <id>
 dynamic-island plugin new <id> [--name N]      aus plugins/_example
@@ -359,8 +388,8 @@ dynamic-island plugin validate <ordner|.dip>
 dynamic-island plugin export <id> [-o pfad] [--no-settings] [--no-files] [--skip-optional]
 dynamic-island plugin export <id> --settings-only [-o pfad]
 dynamic-island plugin import <datei.dip|.json> [--enable] [--files] [--settings|--no-settings]
-                                               [--force] [--overwrite-files] [-y]
-dynamic-island plugin remove <id> [--keep-settings] [-y]
+                                               [--force] [--overwrite-files] [--parent <id>] [-y]
+dynamic-island plugin remove <id> [--keep-settings] [--force] [-y]
 ```
 
 Alle Befehle können `--json` (eine Zeile `{ ok, message, … }`, so ruft die

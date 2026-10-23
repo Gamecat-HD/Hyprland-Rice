@@ -21,29 +21,25 @@ import qs.modules.widgets.clock
 // Fenstern (DesktopScreen.qml). Was dort steht, sagt die Szene des aktuellen
 // Wallpapers (Scenes.qml, ~/.config/dynamic-island/scenes.json).
 //
-// Ohne Einstellung "Desktop-Widgets" gibt es die Fenster gar nicht.
+// Gestartet vom Plugin `desktop` (plugins/desktop/Main.qml): ist es aus,
+// gibt es weder die Fenster noch das IPC-Ziel.
 //
 // IPC:  qs -c dynamic-island ipc call desktop edit|done|toggle
 //       … desktop add <typ>        Widget ins Bearbeitungsziel legen
 Scope {
     id: root
 
-    LazyLoader {
-        active: Config.desktop.enabled
+    Variants {
+        model: Quickshell.screens
 
-        Variants {
-            model: Quickshell.screens
-
-            DesktopScreen {}
-        }
+        DesktopScreen {}
     }
 
     IpcHandler {
         target: "desktop"
 
         function edit(): void {
-            if (Config.desktop.enabled)
-                Scenes.edit(Hyprland.focusedMonitor?.name ?? "");
+            Scenes.edit(Hyprland.focusedMonitor?.name ?? "");
         }
         function done(): void {
             Scenes.done();

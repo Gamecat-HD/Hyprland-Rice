@@ -160,6 +160,8 @@ complete -c dynamic-island -n "$seen plugin && $seen import" -l 'settings' -d 'O
 complete -c dynamic-island -n "$seen plugin && $seen import" -l 'no-settings' -d 'Ignore bundled settings'
 complete -c dynamic-island -n "$seen plugin && $seen import" -l 'force' -d 'Replace same/newer version'
 complete -c dynamic-island -n "$seen plugin && $seen import" -l 'overwrite-files' -d 'Replace differing files'
+complete -c dynamic-island -n "$seen plugin && $seen import" -l 'parent' -x -d 'Only components of this plugin'
+complete -c dynamic-island -n "$seen plugin && $seen remove" -l 'force' -d 'Also remove builtin plugin'
 complete -c dynamic-island -n "$seen plugin && $seen remove" -l 'keep-settings' -d 'Keep settings'
 complete -c dynamic-island -n "$seen plugin && $seen new" -l 'name' -d 'Display name' -r
 complete -c dynamic-island -n "$seen plugin && $seen new" -l 'author' -d 'Author' -r

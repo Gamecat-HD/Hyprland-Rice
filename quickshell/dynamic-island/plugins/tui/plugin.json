@@ -4,8 +4,9 @@
     "name": "Terminal-Widget",
     "version": "1.0.0",
     "api": 1,
+    "parent": "desktop",
     "icon": "terminal",
-    "description": "Desktop-Widget: ein Terminal-Programm (cmatrix, cava, btop …) in einem durchsichtigen kitty-Panel an der Stelle des Widgets. Pausiert per SIGSTOP, solange der Desktop verdeckt ist. Braucht ~60 MB je Widget – für Matrix lieber das Matrix-Plugin nehmen.",
+    "description": "Ein Terminal-Programm (cmatrix, cava, btop …) in einem durchsichtigen kitty-Panel an der Stelle des Widgets. Pausiert per SIGSTOP, solange der Desktop verdeckt ist. Braucht ~60 MB je Widget – für Matrix lieber das Matrix-Plugin nehmen.",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

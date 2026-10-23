@@ -4,8 +4,9 @@
     "name": "Matrix-Regen",
     "version": "1.0.0",
     "api": 1,
+    "parent": "desktop",
     "icon": "code",
-    "description": "Desktop-Widget: fallende Zeichen wie in Matrix, als GPU-Shader (kostet fast nichts, pausiert mit dem Desktop).",
+    "description": "Fallende Zeichen wie in Matrix, als GPU-Shader (kostet fast nichts, pausiert mit dem Desktop).",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

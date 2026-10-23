@@ -5,11 +5,14 @@ import QtQuick
 import Quickshell
 
 import "modules/bar"
-import "modules/desktop"
 import "modules/osd"
 import "modules/settings"
 import "modules/window"
 import qs.modules.services.plugins
+// Die Desktop-Ebene startet das Plugin `desktop` (plugins/desktop/Main.qml).
+// Der Import bleibt hier, damit die Shell das Modul beim Start kennt –
+// Plugin-QML darf nur Module importieren, die schon statisch geladen sind.
+import qs.modules.desktop
 
 // Minimaler Startpunkt für den eigenen Rice.
 // Start:   qs -c dynamic-island -n -d      Stop: qs -c dynamic-island kill
@@ -24,7 +27,6 @@ ShellRoot {
     readonly property int pluginCount: Plugins.hosts.length
 
     Wallpaper {}
-    Desktop {}
     Bar {}
     Osd {}
     SettingsWindow {}

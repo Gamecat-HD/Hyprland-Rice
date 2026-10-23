@@ -133,11 +133,13 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     p.add_argument("--no-settings", action="store_true", help="ignore bundled settings")
     p.add_argument("--force", action="store_true", help="replace an installed same/newer version")
     p.add_argument("--overwrite-files", action="store_true", help="replace differing external files (old ones are backed up)")
+    p.add_argument("--parent", metavar="ID", help="only accept components of this plugin (manifest parent)")
 
     p = plugin_cmd("remove", plugin.Remove, "remove a plugin (moved to a backup folder)")
     p.add_argument("id")
     p.add_argument("-y", "--yes", action="store_true", help="do not ask")
     p.add_argument("--keep-settings", action="store_true", help="keep its settings in plugins.json")
+    p.add_argument("--force", action="store_true", help="also remove a builtin plugin")
 
     p = plugin_cmd("new", plugin.New, "create a new plugin from the template")
     p.add_argument("id")

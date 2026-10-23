@@ -4,8 +4,9 @@
     "name": "Bonsai",
     "version": "1.0.0",
     "api": 1,
+    "parent": "desktop",
     "icon": "park",
-    "description": "Desktop-Widget: ein ASCII-Bonsai nach cbonsai, wächst einmal sichtbar und steht dann still. Klick im Bearbeitungsmodus = neuer Baum.",
+    "description": "Ein ASCII-Bonsai nach cbonsai, wächst einmal sichtbar und steht dann still. Klick im Bearbeitungsmodus = neuer Baum.",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

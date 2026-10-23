@@ -16,6 +16,17 @@
         "defaultEnabled": { "type": "boolean" },
         "main": { "type": "string", "pattern": "^[^/].*\\.qml$" },
         "migrateFrom": { "type": "string", "description": "Gruppe in shell.json, deren Werte einmalig uebernommen werden" },
+        "parent": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,47}$", "description": "Komponente dieses Plugins: laeuft nur mit ihm, steht in der Verwaltung in seinem Untermenue" },
+        "builtin": { "type": "boolean", "description": "Gehoert zur Shell: in der Verwaltung weder exportier- noch entfernbar" },
+        "components": {
+            "type": "object",
+            "description": "Untermenue fuer Komponenten (Plugins mit parent = diese id)",
+            "properties": {
+                "title": { "type": "string" },
+                "icon": { "type": "string" },
+                "desc": { "type": "string" }
+            }
+        },
         "settings": {
             "type": "object",
             "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_]*$" },
@@ -31,6 +42,7 @@
                     "max": { "type": "number" },
                     "step": { "type": "number" },
                     "unit": { "type": "string" },
+                    "editor": { "type": "string", "description": "Eingebauter Editor statt Bedienelement (quick, desktop)" },
                     "requires": {
                         "oneOf": [
                             { "type": "string" },

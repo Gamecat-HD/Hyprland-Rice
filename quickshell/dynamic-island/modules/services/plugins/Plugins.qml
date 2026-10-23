@@ -19,7 +19,9 @@ import qs.modules.services.config
 //                 min/max/step/unit, requires }), tiles (Schnellkacheln),
 //                 panels (Sektionen in Ansichten der Shell, z.B. der
 //                 Wallpaper-Auswahl), files (externe Dateien, die zum Plugin
-//                 gehoeren – fuer Export/Import ueber `dynamic-island plugin`)
+//                 gehoeren – fuer Export/Import ueber `dynamic-island plugin`),
+//                 parent (Komponente eines anderen Plugins, laeuft nur mit
+//                 diesem und steht in der Verwaltung in dessen Untermenue)
 //
 // Zustand (an/aus + Einstellungswerte) liegt pro Rechner in
 //   ~/.config/dynamic-island/plugins.json
@@ -61,6 +63,15 @@ Singleton {
     //   hasSettings, settingsCount, tiles: [ids], actions: n, files: n, dir, main }
     // status: "invalid" (Manifest kaputt) | "off" | "loading" | "ready" | "error"
     readonly property var plugins: root.hosts.map(h => h.info)
+
+    // Was die Verwaltung oben zeigt: alles ausser Komponenten (Manifest
+    // `parent`) – die stehen im Untermenue ihres Eltern-Plugins. Fehlt das
+    // Eltern-Plugin, bleibt die Komponente oben, damit man sie findet.
+    readonly property var topLevel: root.plugins.filter(p => p.parent === "" || p.parentMissing)
+
+    function childrenOf(id: string): var {
+        return root.plugins.filter(p => p.parent === id && !p.parentMissing);
+    }
 
     function host(id: string): var {
         return root.hosts.find(h => h.pluginId === id) ?? null;
@@ -272,7 +283,7 @@ Singleton {
     }
 
     // Desktop-Widgets (Manifest `widgets`): "<typ>" -> { pluginId, title,
-    // icon, url, options, plugin }. Gleiche Regel wie bei `panels`: mit Dienst
+    // icon, url, size, options, plugin }. Gleiche Regel wie bei `panels`: mit Dienst
     // erst, wenn er laeuft. Die Liste der Typen fuehrt DesktopWidgets.qml
     // mit den eingebauten zusammen (Vertrag in plugins/README.md).
     readonly property var widgets: {
@@ -290,6 +301,7 @@ Singleton {
                     title: w.title ?? type,
                     icon: w.icon ?? h.icon,
                     url: h.url(w.component),
+                    size: Array.isArray(w.size) ? w.size : [10, 6],
                     options: w.options ?? {},
                     plugin: h.context
                 };
@@ -325,10 +337,14 @@ Singleton {
         root.runCli("export", args);
     }
 
-    function importPlugin(file: string, enable: bool): void {
+    // `parent`: nur Komponenten dieses Plugins annehmen (Import aus dessen
+    // Untermenue)
+    function importPlugin(file: string, enable: bool, parent: string): void {
         const args = ["plugin", "import", file, "--yes", "--json"];
         if (enable)
             args.push("--enable");
+        if (parent)
+            args.push("--parent", parent);
         root.runCli("import", args);
     }
 
@@ -376,7 +392,7 @@ Singleton {
 
         function list(): string {
             return JSON.stringify(root.plugins.map(p => ({
-                id: p.id, name: p.name, version: p.version, enabled: p.enabled, status: p.status, error: p.error
+                id: p.id, name: p.name, version: p.version, parent: p.parent, enabled: p.enabled, status: p.status, error: p.error
             })), null, 2);
         }
         function enable(id: string): void { root.setEnabled(id, true); }

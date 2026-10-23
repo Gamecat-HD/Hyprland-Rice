@@ -27,6 +27,12 @@ import qs
 // bedienbar. Stattdessen listet die Import-Ansicht die .dip-Pakete aus
 // ~/Downloads, ~ und ~/Documents (FolderListModel) und hat ein Pfadfeld;
 // Exporte landen in ~/Downloads/<id>-<version>.dip.
+//
+// Komponenten (Manifest `parent`, z.B. Bonsai unter Desktop-Widgets) stehen
+// nicht oben, sondern im Untermenue ihres Plugins: der Knopf auf dessen
+// Karte (Titel aus Manifest `components`) oeffnet es. Dort gibt es die
+// Grundausstattung des Plugins (seine eigenen `widgets`), die Karten der
+// Komponenten und einen Import, der nur Komponenten dieses Plugins annimmt.
 Item {
     id: page
 
@@ -41,13 +47,30 @@ Item {
     property bool importEnable: true
     property bool exportWithSettings: true
 
+    // Offenes Untermenue: id des Eltern-Plugins, "" = Uebersicht
+    property string subPage: ""
+    readonly property var subInfo: page.subPage !== "" ? Plugins.plugins.find(p => p.id === page.subPage) ?? null : null
+    readonly property var subChildren: page.subPage !== "" ? Plugins.childrenOf(page.subPage) : []
+    readonly property string subTitle: page.subInfo?.components?.title ?? "Komponenten"
+    // Plugin verschwunden (entfernt, Manifest kaputt) -> zurueck zur Uebersicht
+    onSubInfoChanged: if (page.subPage !== "" && page.subInfo === null) page.subPage = ""
+
+    function openSub(id: string): void {
+        page.subPage = id;
+        page.importOpen = false;
+        page.importPath = "";
+        flick.contentY = 0;
+    }
+
     readonly property bool busy: Plugins.busy
     // Ergebnis-Banner: das letzte CLI-Ergebnis, bis es weggeklickt wird
     property var dismissed: null
     readonly property var result: Plugins.lastResult !== null && Plugins.lastResult !== page.dismissed
                                   ? Plugins.lastResult : null
 
-    readonly property int activeCount: Plugins.plugins.filter(p => p.enabled).length
+    // Was gerade in der Liste steht: oben die Plugins, im Untermenue die Komponenten
+    readonly property var listed: page.subPage !== "" ? page.subChildren : Plugins.topLevel
+    readonly property int activeCount: page.listed.filter(p => p.enabled).length
 
     function openFolder(path: string): void {
         Quickshell.execDetached(["xdg-open", path]);
@@ -72,17 +95,17 @@ Item {
         const p = page.expand(page.importPath);
         if (p === "" || page.busy)
             return;
-        Plugins.importPlugin(p, page.importEnable);
+        Plugins.importPlugin(p, page.importEnable, page.subPage);
     }
 
     function statusLabel(s: string): string {
-        return ({ ready: "Aktiv", off: "Aus", loading: "Lädt", error: "Fehler", invalid: "Ungültig" })[s] ?? s;
+        return ({ ready: "Aktiv", off: "Aus", blocked: "Wartet", loading: "Lädt", error: "Fehler", invalid: "Ungültig" })[s] ?? s;
     }
 
     function statusColor(s: string): color {
         return s === "ready" ? Colors.primary
              : s === "loading" ? Colors.secondary
-             : s === "off" ? Colors.fgSurfaceVariant
+             : s === "off" || s === "blocked" ? Colors.fgSurfaceVariant
              : Colors.error;
     }
 
@@ -96,6 +119,10 @@ Item {
         if (bytes >= 1024)
             return Math.round(bytes / 1024) + " KB";
         return bytes + " B";
+    }
+
+    function pluginName(id: string): string {
+        return Plugins.plugins.find(p => p.id === id)?.name ?? id;
     }
 
     function shortPath(p: string): string {
@@ -302,7 +329,11 @@ Item {
 
         required property var info
         readonly property string section: Plugins.sectionPrefix + pcard.info.id
-        readonly property bool on: pcard.info.enabled
+        // Eigener Schalter – eine Komponente kann an sein, waehrend ihr
+        // Eltern-Plugin aus ist (Status "Wartet")
+        readonly property bool on: pcard.info.selfEnabled
+        readonly property var components: Plugins.childrenOf(pcard.info.id)
+        readonly property bool hasSub: pcard.info.components !== null || pcard.components.length > 0
         readonly property bool hasSettings: pcard.info.hasSettings
         // Irgendein Wert weicht von der Vorgabe ab?
         readonly property bool changed: pcard.hasSettings
@@ -488,7 +519,8 @@ Item {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             font.family: Config.font
-                            text: page.statusLabel(pcard.info.status)
+                            text: pcard.info.status === "blocked" ? page.pluginName(pcard.info.parent) + " aus"
+                                : page.statusLabel(pcard.info.status)
                             color: pcard.statusTint
                             font.pixelSize: 10
                             font.weight: Font.DemiBold
@@ -537,9 +569,22 @@ Item {
                 }
 
                 FeatureChip {
+                    visible: pcard.info.widgets.length > 0
+                    icon: "widgets"
+                    label: pcard.info.widgets.length === 1 ? "1 Desktop-Widget" : `${pcard.info.widgets.length} Desktop-Widgets`
+                }
+
+                FeatureChip {
                     visible: pcard.info.main !== ""
                     icon: "memory"
                     label: "Dienst"
+                }
+
+                // Komponente, deren Plugin fehlt – steht deshalb oben
+                FeatureChip {
+                    visible: pcard.info.parentMissing
+                    icon: "link_off"
+                    label: `gehört zu „${pcard.info.parent}“ (nicht installiert)`
                 }
             }
 
@@ -549,15 +594,26 @@ Item {
                 Layout.leftMargin: 52
                 spacing: 6
 
+                // Untermenue mit den Komponenten
+                ActionButton {
+                    visible: pcard.hasSub
+                    filled: true
+                    icon: pcard.info.components?.icon ?? "extension"
+                    label: `${pcard.info.components?.title ?? "Komponenten"} · ${pcard.components.length}`
+                    onClicked: page.openSub(pcard.info.id)
+                }
+
                 ActionButton {
                     visible: pcard.hasSettings
-                    enabled: pcard.on
+                    enabled: pcard.info.enabled
                     icon: "tune"
                     label: "Einstellungen"
                     onClicked: page.openSection(pcard.section)
                 }
 
+                // Eingebaute Plugins gehoeren zur Shell: nur an/aus
                 ActionButton {
+                    visible: !pcard.info.builtin
                     enabled: !page.busy && pcard.info.status !== "invalid"
                     icon: "upload"
                     label: "Exportieren"
@@ -575,6 +631,7 @@ Item {
                 // Zweistufig, wie "Alles zuruecksetzen": erst "Entfernen",
                 // dann 3 s lang "Wirklich?"
                 ActionButton {
+                    visible: !pcard.info.builtin
                     enabled: !page.busy
                     icon: pcard.removeArmed ? "check" : "delete"
                     label: pcard.removeArmed ? "Wirklich entfernen?" : "Entfernen"
@@ -641,6 +698,13 @@ Item {
                     spacing: 6
 
                     ActionButton {
+                        visible: page.subPage !== ""
+                        icon: "arrow_back"
+                        label: "Alle Plugins"
+                        onClicked: page.openSub("")
+                    }
+
+                    ActionButton {
                         icon: page.importOpen ? "expand_less" : "download"
                         label: "Importieren"
                         filled: page.importOpen
@@ -648,6 +712,7 @@ Item {
                     }
 
                     ActionButton {
+                        visible: page.subPage === ""
                         icon: "folder_open"
                         label: "Ordner öffnen"
                         onClicked: page.openFolder(Plugins.dir)
@@ -684,8 +749,9 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         font.family: Config.font
                         text: page.busy ? "Bitte warten…"
-                            : Plugins.plugins.length === 0 ? ""
-                            : `${Plugins.plugins.length} ${Plugins.plugins.length === 1 ? "Plugin" : "Plugins"} · ${page.activeCount} aktiv`
+                            : page.listed.length === 0 ? ""
+                            : page.subPage !== "" ? `${page.listed.length} ${page.listed.length === 1 ? "Komponente" : "Komponenten"} · ${page.activeCount} aktiv`
+                            : `${page.listed.length} ${page.listed.length === 1 ? "Plugin" : "Plugins"} · ${page.activeCount} aktiv`
                         color: page.busy ? Colors.primary : Colors.alpha(Colors.fgSurfaceVariant, 0.8)
                         font.pixelSize: 10
                     }
@@ -845,7 +911,7 @@ Item {
 
                     Text {
                         font.family: Config.font
-                        text: "Paket importieren"
+                        text: page.subPage !== "" ? `${page.subTitle} für ${page.subInfo?.name ?? ""} importieren` : "Paket importieren"
                         color: Colors.fgBackground
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
@@ -855,6 +921,7 @@ Item {
                         width: parent.width
                         font.family: Config.font
                         text: "Ein .dip-Paket aus Downloads, Home oder Dokumenten wählen – oder unten den Pfad eintragen."
+                              + (page.subPage !== "" ? ` Angenommen werden nur Komponenten (Manifest "parent": "${page.subPage}").` : "")
                         color: Colors.fgSurfaceVariant
                         font.pixelSize: 10
                         wrapMode: Text.WordWrap
@@ -1081,9 +1148,158 @@ Item {
                 }
             }
 
-            // ---- Die Plugins ----
+            // ---- Untermenue: Kopf ----
+            Rectangle {
+                id: subHead
+
+                readonly property bool parentOn: page.subInfo?.enabled ?? false
+
+                width: parent.width
+                visible: page.subPage !== ""
+                implicitHeight: subBody.implicitHeight + 28
+                radius: 14
+                color: Colors.alpha(Colors.primary, 0.06)
+                border.width: 1
+                border.color: Colors.alpha(Colors.primary, 0.22)
+
+                ColumnLayout {
+                    id: subBody
+
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        top: parent.top
+                        margins: 14
+                    }
+                    spacing: 10
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+
+                        Rectangle {
+                            Layout.preferredWidth: 40
+                            Layout.preferredHeight: 40
+                            Layout.alignment: Qt.AlignTop
+                            radius: 13
+                            color: Colors.alpha(Colors.primary, subHead.parentOn ? 0.16 : 0.08)
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: page.subInfo?.components?.icon ?? page.subInfo?.icon ?? "extension"
+                                color: subHead.parentOn ? Colors.primary : Colors.fgSurfaceVariant
+                                font.family: "Material Symbols Outlined"
+                                font.pixelSize: 22
+                                font.variableAxes: ({ FILL: subHead.parentOn ? 1 : 0 })
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 3
+
+                            Row {
+                                spacing: 6
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    font.family: Config.font
+                                    text: page.subInfo?.name ?? ""
+                                    color: Colors.fgSurfaceVariant
+                                    font.pixelSize: 13
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "chevron_right"
+                                    color: Colors.fgSurfaceVariant
+                                    font.family: "Material Symbols Outlined"
+                                    font.pixelSize: 15
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    font.family: Config.font
+                                    text: page.subTitle
+                                    color: Colors.fgBackground
+                                    font.pixelSize: 13
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                font.family: Config.font
+                                visible: text !== ""
+                                text: page.subInfo?.components?.desc ?? ""
+                                color: Colors.fgSurfaceVariant
+                                font.pixelSize: 10
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
+
+                    // Eltern-Plugin aus: Komponenten warten
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: 52
+                        visible: !subHead.parentOn
+                        spacing: 8
+
+                        Text {
+                            Layout.fillWidth: true
+                            font.family: Config.font
+                            text: `${page.subInfo?.name ?? ""} ist aus – eingeschaltete Komponenten laufen erst, wenn es an ist.`
+                            color: Colors.secondary
+                            font.pixelSize: 10
+                            wrapMode: Text.WordWrap
+                        }
+
+                        ActionButton {
+                            enabled: !page.busy && page.subInfo?.status !== "invalid"
+                            icon: "power_settings_new"
+                            label: "Einschalten"
+                            onClicked: Plugins.setEnabled(page.subPage, true)
+                        }
+                    }
+
+                    // Was das Plugin selbst schon mitbringt
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: 52
+                        visible: (page.subInfo?.widgets ?? []).length > 0
+                        spacing: 6
+
+                        Text {
+                            font.family: Config.font
+                            text: "Eingebaut"
+                            color: Colors.fgSurfaceVariant
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                        }
+
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Repeater {
+                                model: page.subInfo?.widgets ?? []
+
+                                FeatureChip {
+                                    required property var modelData
+
+                                    icon: modelData.icon
+                                    label: modelData.title
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- Die Plugins (bzw. im Untermenue die Komponenten) ----
             Repeater {
-                model: Plugins.plugins
+                model: page.listed
 
                 PluginCard {
                     required property var modelData
@@ -1092,11 +1308,47 @@ Item {
                 }
             }
 
+            // Untermenue ohne Komponenten
+            Item {
+                width: parent.width
+                height: 120
+                visible: page.subPage !== "" && page.listed.length === 0
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "add_circle"
+                        color: Colors.alpha(Colors.fgSurfaceVariant, 0.6)
+                        font.family: "Material Symbols Outlined"
+                        font.pixelSize: 28
+                    }
+
+                    Text {
+                        font.family: Config.font
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: `Noch keine ${page.subTitle} installiert`
+                        color: Colors.fgSurfaceVariant
+                        font.pixelSize: 12
+                    }
+
+                    Text {
+                        font.family: Config.font
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Oben über „Importieren“ ein .dip-Paket hinzufügen"
+                        color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
+                        font.pixelSize: 10
+                    }
+                }
+            }
+
             // Kein Plugin da
             Item {
                 width: parent.width
                 height: 160
-                visible: Plugins.plugins.length === 0
+                visible: page.subPage === "" && Plugins.plugins.length === 0
 
                 Column {
                     anchors.centerIn: parent

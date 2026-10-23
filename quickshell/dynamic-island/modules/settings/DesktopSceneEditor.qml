@@ -7,7 +7,7 @@ import qs
 import qs.modules.services.config
 import qs.modules.services.desktop
 
-// Block unter "Desktop-Widgets" im Menue (meta.editor "desktop"): welche
+// Block in der Gruppe des Plugins `desktop` (Einstellung `scenes`, editor "desktop"): welche
 // Szene gerade gilt, was darin steht, und der Knopf zum Bearbeiten. Das
 // eigentliche Anordnen passiert direkt auf dem Desktop (EditBar.qml).
 Column {
@@ -38,7 +38,6 @@ Column {
 
     Row {
         spacing: 8
-        opacity: Config.desktop.enabled ? 1 : 0.45
 
         Rectangle {
             width: editLabel.implicitWidth + 40
@@ -77,7 +76,6 @@ Column {
             }
 
             TapHandler {
-                enabled: Config.desktop.enabled
                 onTapped: Scenes.edit(Hyprland.focusedMonitor?.name ?? "")
             }
         }

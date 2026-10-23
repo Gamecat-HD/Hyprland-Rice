@@ -18,7 +18,7 @@ import qs.modules.services.desktop
 //   property bool editing
 //   property var opts       Optionen aus scenes.json (Vorgaben schon eingesetzt)
 //   property color color, accent
-//   property int fps        Obergrenze fuer eigene Animationen (desktop.fps)
+//   property int fps        Obergrenze fuer eigene Animationen (Einstellung fps des Plugins desktop)
 //   implicitWidth/Height    setzt das Widget selbst
 Item {
     id: host
@@ -120,7 +120,7 @@ Item {
     Binding {
         target: loader.item
         property: "fps"
-        value: Config.desktop.fps
+        value: DesktopWidgets.settings.fps
         when: loader.item !== null && loader.item.fps !== undefined
     }
     Binding {

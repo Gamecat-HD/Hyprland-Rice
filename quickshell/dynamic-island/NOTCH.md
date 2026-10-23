@@ -509,3 +509,11 @@ formate und CLI stehen in `plugins/README.md`.
   + Config-Gruppe `terminal`; Werte per `migrateFrom` einmalig uebernommen).
 - Austausch: `dynamic-island plugin export|import` (`.dip` = tar.gz mit
   `dip.json`, SHA-256 je Datei; Einstellungen allein als JSON).
+- Desktop-Widgets sind seit 2026-10-23 das Plugin `plugins/desktop/`
+  (`builtin`, Einstellungen pause/fps aus der alten Config-Gruppe `desktop`
+  uebernommen). Sein `Main.qml` startet die Ebene aus `modules/desktop`
+  (bleibt im Kern: die Dateien brauchen sich gegenseitig als Typen, deshalb
+  importiert `shell.qml` das Modul nur noch). Uhr/Visualiser/Songtext liegen
+  in `plugins/desktop/widgets/`. Bonsai, Matrix und Terminal-Widget sind
+  Komponenten (`"parent": "desktop"`): laufen nur mit dem Plugin und stehen in
+  der Verwaltung in dessen Untermenue „Widgets“, mit eigenem Import.

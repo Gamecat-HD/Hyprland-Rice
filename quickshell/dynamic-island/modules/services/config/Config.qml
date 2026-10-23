@@ -32,7 +32,6 @@ Singleton {
     readonly property alias osd: adapter.osd
     readonly property alias wallpaper: adapter.wallpaper
     readonly property alias media: adapter.media
-    readonly property alias desktop: adapter.desktop
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -107,20 +106,6 @@ Singleton {
         },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
-        },
-        // Desktop-Widgets (modules/desktop): Anordnung je Wallpaper in
-        // ~/.config/dynamic-island/scenes.json
-        "desktop.enabled": {
-            title: "Desktop-Widgets", desc: "Uhr, Visualiser, Songtext & Co. auf dem Hintergrund, je Wallpaper angeordnet",
-            editor: "desktop"
-        },
-        "desktop.pause": {
-            title: "Pausieren bei", desc: "Fenster: sobald der Workspace Fenster hat. Vollbild: nur bei Vollbild und Game-Mode",
-            options: ["fenster", "vollbild"], requires: "desktop.enabled"
-        },
-        "desktop.fps": {
-            title: "Bildrate", desc: "Obergrenze für animierte Widgets (Matrix, Bonsai-Wachstum)",
-            min: 10, max: 60, step: 5, unit: "fps", requires: "desktop.enabled"
         },
         "bar.batteryPulse": { title: "Akku-Ladeimpuls", desc: "Bewegter Impuls im leeren Teil des Akkurings", requires: "bar.battery" },
         "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" },
@@ -220,13 +205,12 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "desktop", "media", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "media", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
         "osd": "volume_up",
         "notch": "web_asset",
-        "desktop": "widgets",
         "media": "music_note",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
@@ -243,7 +227,6 @@ Singleton {
         "appearance": "Darstellung",
         "wallpaper": "Wallpaper",
         "notch": "Notch-Layout",
-        "desktop": "Desktop",
         "media": "Medien"
     })
 
@@ -510,12 +493,6 @@ Singleton {
                 property string cover: "rund"
                 property bool lyrics: true
                 property bool queueOpen: false
-            }
-
-            property JsonObject desktop: JsonObject {
-                property bool enabled: true
-                property string pause: "fenster"
-                property int fps: 30
             }
 
             // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine

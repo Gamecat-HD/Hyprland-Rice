@@ -9,7 +9,7 @@ import qs
 // matrix.frag.qsb mit `qsb --glsl "100 es,120,150" --hlsl 50 --msl 12`):
 // ein Rechteck, ein Draw-Call, egal wie viele Zeichen. Die Glyphen liegen
 // einmal gerendert in einem Atlas. Bewegt wird nur die Zeit-Uniform, per
-// Timer mit der Desktop-Bildrate (desktop.fps) statt per Animation – eine
+// Timer mit der Desktop-Bildrate (Einstellung fps des Plugins desktop) statt per Animation – eine
 // Animation liefe mit der Monitorrate (180 Hz). Verdeckter Desktop: Timer
 // steht, das letzte Bild bleibt.
 Item {
