@@ -23,6 +23,12 @@ Item {
     required property LockContext context
     property bool shown: false
     property bool leaving: false
+    // Wird vor `leaving` gesetzt: die Dauern stehen schon um, wenn die
+    // Ziele wechseln (siehe LockScreen.qml)
+    property bool exitMode: false
+    // Beim Abgang: so lange klappt sie ein und blendet aus. Darunter liegt
+    // im Desktop-Foto die Notch der Leiste an derselben Stelle.
+    property int fadeDuration: Appearance.morphDuration
 
     readonly property bool open: !notch.leaving && notch.shown && notch.context.phase !== "idle"
     readonly property bool hasMessage: notch.open && notch.context.message !== ""
@@ -40,8 +46,16 @@ Item {
     width: notch.open ? notch.openWidth : notch.closedWidth
     height: notch.open ? notch.openHeight : notch.closedHeight
 
-    Morph on width {}
-    Morph on height {}
+    // Wie Morph, nur beim Abgang ohne Nachschwingen: dort soll sie ruhig
+    // zusammengehen, nicht noch einmal federn
+    Behavior on width { NotchMorph {} }
+    Behavior on height { NotchMorph {} }
+
+    opacity: notch.leaving ? 0 : 1
+
+    Behavior on opacity {
+        NumberAnimation { duration: notch.fadeDuration; easing.type: Easing.InCubic }
+    }
 
     // ---- Schuetteln bei Fehlschlag ----
     transform: Translate { id: shakeShift }
@@ -276,6 +290,13 @@ Item {
     }
 
     // ---- Bausteine ----
+
+    component NotchMorph: NumberAnimation {
+        duration: notch.exitMode ? notch.fadeDuration : Appearance.morphDuration
+        easing.type: notch.exitMode ? Easing.InOutCubic
+                   : Appearance.overshoot > 0 ? Easing.OutBack : Easing.OutCubic
+        easing.overshoot: Appearance.overshoot
+    }
 
     component Icon: Text {
         property real size: 18

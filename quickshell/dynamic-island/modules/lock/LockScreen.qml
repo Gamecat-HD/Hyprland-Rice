@@ -10,9 +10,10 @@ import qs.modules.services.wallpaper
 
 // Was auf jedem Monitor zu sehen ist, solange gesperrt ist:
 //
-//   - das aktuelle Wallpaper; beim Sperren zieht es sich etwas heran und
-//     wird unscharf, beim Entsperren wird es wieder scharf – darunter liegt
-//     dasselbe Bild auf dem Desktop, der Uebergang hat also keine Kante
+//   - ein Foto des Desktops von kurz vor dem Sperren (Lock.qml, grim); beim
+//     Sperren zieht es sich heran und wird unscharf, beim Entsperren laeuft
+//     das genau rueckwaerts, bis es deckungsgleich mit dem echten Desktop
+//     ist – erst dann faellt die Sperre. Ohne Foto: das Wallpaper.
 //   - oben die Notch (LockNotch), die zum Passwortfeld aufklappt
 //   - die Uhr: Stunden in Schriftfarbe, Minuten im Akzent des Wallpapers
 //   - unten die Medien-Karte, nur auf dem Monitor, der beim Sperren den
@@ -25,12 +26,34 @@ Item {
     required property LockContext context
     property bool leaving: false
     property bool primary: true
+    // file://-URL des Desktop-Fotos dieses Monitors ("" = Wallpaper nehmen)
+    property string snapshot: ""
+    // Dauer des Abgangs; Lock.qml gibt die Sperre erst danach frei
+    property int exitDuration: Math.round(Appearance.morphDuration * 1.4)
 
     // Kurz nach dem Erscheinen true: alle Eingangs-Animationen haengen daran
     property bool entered: false
-    readonly property bool shown: view.entered && !view.leaving
+    readonly property bool shown: view.entered && !view.gone
+
+    // Der Abgang in zwei Schritten: erst die Dauern umstellen (exitMode),
+    // dann die Ziele (gone). Haengen beide direkt an `leaving`, entscheidet
+    // die Reihenfolge der Bindungen, ob ein Behavior noch mit der alten
+    // Dauer startet – die Uhr hing dann als Geist bis zum Schluss im Bild.
+    property bool exitMode: false
+    property bool gone: false
+
+    onLeavingChanged: {
+        view.exitMode = view.leaving;
+        view.gone = view.leaving;
+    }
 
     readonly property int sceneDuration: Math.round(Appearance.morphDuration * 2.2)
+    // Hintergrund: rein weich auslaufend, raus gleichmaessig bis zum Ende –
+    // sonst ist das Bild nach der halben Zeit fast fertig und "steht"
+    readonly property int sceneTime: view.exitMode ? view.exitDuration : view.sceneDuration
+    readonly property int sceneCurve: view.exitMode ? Easing.InOutCubic : Easing.OutCubic
+    // Uhr, Karte, Notch verschwinden zuerst, das Bild folgt
+    readonly property int overlayOut: Math.round(view.exitDuration * 0.45)
 
     Timer {
         interval: 16
@@ -56,25 +79,32 @@ Item {
         scale: view.shown ? 1.05 : 1
 
         Behavior on scale {
-            NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: view.sceneTime; easing.type: view.sceneCurve }
         }
 
         Image {
             id: wall
 
             anchors.fill: parent
-            source: Wallpapers.actualCurrent !== "" ? "file://" + Wallpapers.actualCurrent : ""
+            source: view.snapshot !== "" ? view.snapshot
+                  : Wallpapers.actualCurrent !== "" ? "file://" + Wallpapers.actualCurrent : ""
             sourceSize: Qt.size(view.width, view.height)
             fillMode: Image.PreserveAspectCrop
             asynchronous: false
-            cache: true
-            visible: false
+            // Das Foto liegt bei jeder Sperre unter demselben Namen
+            cache: view.snapshot === ""
         }
 
+        // Auch bei blur 0 zeichnet der Effekt das Bild eine Spur weicher und
+        // dunkler. Steht er auf null, liegt darum das Bild selbst obenauf –
+        // pixelgenau wie der Desktop, auf den die Sperre gleich freigibt.
         MultiEffect {
+            id: effect
+
             anchors.fill: parent
             source: wall
             visible: wall.status === Image.Ready
+                     && (effect.blur > 0.002 || effect.brightness < -0.002 || effect.saturation > 0.002)
 
             blurEnabled: Config.lock.blur
             blurMax: 64
@@ -83,13 +113,13 @@ Item {
             saturation: view.shown ? 0.12 : 0
 
             Behavior on blur {
-                NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: view.sceneTime; easing.type: view.sceneCurve }
             }
             Behavior on brightness {
-                NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: view.sceneTime; easing.type: view.sceneCurve }
             }
             Behavior on saturation {
-                NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: view.sceneTime; easing.type: view.sceneCurve }
             }
         }
     }
@@ -105,7 +135,7 @@ Item {
         }
 
         Behavior on opacity {
-            NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: view.sceneTime; easing.type: view.sceneCurve }
         }
     }
 
@@ -128,16 +158,22 @@ Item {
         id: clockBlock
 
         anchors.horizontalCenter: parent.horizontalCenter
-        y: Math.round(view.height * 0.2) + (view.shown ? 0 : -40)
+        // Rein: von oben herabsinken. Raus: an Ort und Stelle leicht
+        // schrumpfen und verblassen, als sinke sie ins Bild zurueck
+        y: Math.round(view.height * 0.2) + (view.entered ? 0 : -40)
         width: clockColumn.width
         height: clockColumn.height
         opacity: view.shown ? 1 : 0
+        scale: view.gone ? 0.96 : 1
 
         Behavior on y {
             NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
         }
         Behavior on opacity {
-            NumberAnimation { duration: view.leaving ? Appearance.morphDuration : view.sceneDuration; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: view.exitMode ? view.overlayOut : view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+        Behavior on scale {
+            NumberAnimation { duration: view.overlayOut; easing.type: Easing.OutCubic }
         }
 
         layer.enabled: true
@@ -197,7 +233,9 @@ Item {
         y: 0
         context: view.context
         shown: view.entered
-        leaving: view.leaving
+        leaving: view.gone
+        exitMode: view.exitMode
+        fadeDuration: view.overlayOut
     }
 
     // ---- Medien ----
@@ -207,7 +245,7 @@ Item {
         readonly property bool wanted: view.primary && Config.lock.media && Media.available
 
         anchors.horizontalCenter: parent.horizontalCenter
-        y: view.height - height - 56 + (view.shown && media.wanted ? 0 : 36)
+        y: view.height - height - 56 + (view.entered && media.wanted ? 0 : 36)
         width: Math.min(implicitWidth, view.width - 48)
         height: implicitHeight
         opacity: view.shown && media.wanted ? 1 : 0
@@ -217,7 +255,7 @@ Item {
             NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
         }
         Behavior on opacity {
-            NumberAnimation { duration: view.leaving ? Appearance.morphDuration : view.sceneDuration; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: view.exitMode ? view.overlayOut : view.sceneDuration; easing.type: Easing.OutCubic }
         }
     }
 

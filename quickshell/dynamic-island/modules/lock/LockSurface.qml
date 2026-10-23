@@ -17,6 +17,8 @@ WlSessionLockSurface {
         context: surface.context
         leaving: surface.lock.leaving
         primary: surface.lock.primaryName === "" || surface.screen?.name === surface.lock.primaryName
+        snapshot: surface.lock.snapshotFor(surface.screen?.name ?? "")
+        exitDuration: surface.lock.exitDuration
         focus: true
     }
 }
