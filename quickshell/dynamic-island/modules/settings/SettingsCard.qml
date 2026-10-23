@@ -537,7 +537,8 @@ Surface {
                 verticalCenter: searchBox.verticalCenter
             }
             width: 160
-            text: card.browsing ? "Bibliothek"
+            // In der Bibliothek steht "Bibliothek › Ordner" in der Seite selbst
+            text: card.browsing ? "Wallpaper"
                 : card.searching ? "Suche"
                 : card.section === "" ? "Alle"
                 : card.sectionTitle(card.section)
@@ -552,12 +553,12 @@ Surface {
 
             anchors {
                 left: heading.right
-                right: closeButton.left
                 top: parent.top
                 leftMargin: 12
-                rightMargin: 10
                 topMargin: 22
             }
+            // Bei grossem Fenster nicht ueber die ganze Breite
+            width: Math.min(closeButton.x - 10 - (heading.x + heading.width + 12), 440)
             height: 38
             radius: height / 2
             color: Colors.alpha(Colors.fgSurface, search.activeFocus ? 0.09 : 0.06)
@@ -698,7 +699,6 @@ Surface {
 
             anchors {
                 left: parent.left
-                right: parent.right
                 top: searchBox.bottom
                 bottom: parent.bottom
                 leftMargin: 12
@@ -706,6 +706,7 @@ Surface {
                 topMargin: 12
                 bottomMargin: 16
             }
+            width: Math.min(parent.width - 24, 900)
             active: card.managing
             visible: active
 
@@ -742,7 +743,6 @@ Surface {
 
             anchors {
                 left: parent.left
-                right: parent.right
                 top: searchBox.bottom
                 bottom: parent.bottom
                 leftMargin: 12
@@ -750,6 +750,9 @@ Surface {
                 topMargin: 12
                 bottomMargin: 16
             }
+            // Zeilen lesen sich bei breitem Fenster schlecht (Bedienelement
+            // weit weg vom Titel) – die Liste waechst nur bis 820 px mit
+            width: Math.min(parent.width - 24, 820)
             visible: !card.managing && !card.browsing
             clip: true
             spacing: 2
@@ -889,8 +892,8 @@ Surface {
                 bottom: parent.bottom
                 bottomMargin: 10
             }
-            text: card.browsing ? (card.searching ? `${walls.item?.images.length ?? 0} Treffer` : "")
-                : card.searching ? `${list.count} Treffer` : ""
+            // In der Bibliothek steht die Trefferzahl in deren Kopfzeile
+            text: card.searching && !card.browsing ? `${list.count} Treffer` : ""
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
             font.pixelSize: 10
         }

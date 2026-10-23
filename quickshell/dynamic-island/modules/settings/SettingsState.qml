@@ -14,6 +14,39 @@ Singleton {
     property bool open: false
     property ShellScreen screen: null
 
+    // Zuletzt gewaehlte Groesse der Karte (das Fenster laesst sich ziehen,
+    // SettingsWindow.qml). Liegt hier statt im Fenster, weil das bei jedem
+    // Schliessen verworfen wird – und muss schon gelesen sein, bevor es
+    // beim Oeffnen seine Anfangsgroesse nimmt.
+    readonly property size defaultSize: Qt.size(880, 640)
+    readonly property size minimumSize: Qt.size(720, 520)
+    property size cardSize: root.defaultSize
+
+    function rememberSize(size: size): void {
+        const w = Math.round(Math.max(root.minimumSize.width, size.width));
+        const h = Math.round(Math.max(root.minimumSize.height, size.height));
+        if (w === root.cardSize.width && h === root.cardSize.height)
+            return;
+        root.cardSize = Qt.size(w, h);
+        sizeFile.setText(JSON.stringify({ width: w, height: h }) + "\n");
+    }
+
+    FileView {
+        id: sizeFile
+
+        path: Quickshell.env("HOME") + "/.local/state/dynamic-island/settings-size.json"
+        printErrors: false
+        blockLoading: true
+        onLoaded: {
+            try {
+                const s = JSON.parse(text());
+                if (s.width > 0 && s.height > 0)
+                    root.cardSize = Qt.size(Math.max(root.minimumSize.width, s.width),
+                                            Math.max(root.minimumSize.height, s.height));
+            } catch (e) {}
+        }
+    }
+
     function show(target: ShellScreen): void {
         root.screen = target;
         root.open = true;
