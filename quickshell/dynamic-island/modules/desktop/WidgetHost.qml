@@ -10,8 +10,11 @@ import qs.modules.services.desktop
 // seinen Mittelpunkt (x/y als Anteil des Bildschirms) und reicht Groesse,
 // Farben, Optionen und `active` durch.
 //
-// Beim Bearbeiten: Rahmen, Ziehen mit Einrasten (Drittel, Mitte, Raender),
-// Ecke unten rechts = Groesse. Gespeichert wird erst beim Loslassen.
+// Beim Bearbeiten: Rahmen, Ziehen mit Einrasten (Drittel, Mitte, Raender und
+// an den anderen Widgets: Kante an Kante, Mitte an Mitte), Griffe an den
+// Ecken = Groesse (gegenueberliegende Ecke bleibt stehen, rastet mit der
+// Kante oder auf gleiche Breite/Hoehe eines anderen Widgets ein). Shift beim
+// Ziehen = frei, ohne Einrasten. Gespeichert wird erst beim Loslassen.
 // Ein auf einen Monitor festgelegtes Widget laesst sich ueber den Rand auf
 // den anderen Monitor ziehen (Vorschau dort, s. Scenes.crossing).
 //
@@ -47,14 +50,32 @@ Item {
     readonly property bool pinned: (host.widget?.monitor ?? "*") !== "*"
 
     // Waehrend des Ziehens lokale Werte, danach wieder die aus der Szene
-    property bool dragging: dragger.active || sizer.active
+    property bool dragging: dragger.active || host.resizing
     property real dragX: 0
     property real dragY: 0
     property real liveSize: 1
 
-    readonly property real size: sizer.active ? host.liveSize : (host.widget?.size ?? 1)
-    readonly property real cx: dragger.active ? host.dragX : (host.widget?.x ?? 0.5) * (parent?.width ?? 0)
-    readonly property real cy: dragger.active ? host.dragY : (host.widget?.y ?? 0.5) * (parent?.height ?? 0)
+    // Groesse aendern: die Ecke gegenueber dem Griff (anchorX/Y) bleibt
+    // stehen, resizeDx/Dy = Richtung der gezogenen Ecke (-1/1). Der
+    // Mittelpunkt folgt der echten Breite, so sitzt die feste Ecke aufs Pixel
+    property bool resizing: false
+    property real anchorX: 0
+    property real anchorY: 0
+    property int resizeDx: 0
+    property int resizeDy: 0
+    // Beim Skalieren auf gleiche Breite/Hoehe eingerastet: { id, title, axis }
+    property var sizeMatch: null
+
+    readonly property real size: host.resizing ? host.liveSize : (host.widget?.size ?? 1)
+    readonly property real cx: dragger.active ? host.dragX
+                             : host.resizing ? host.anchorX + host.resizeDx * host.width / 2
+                             : (host.widget?.x ?? 0.5) * (parent?.width ?? 0)
+    readonly property real cy: dragger.active ? host.dragY
+                             : host.resizing ? host.anchorY + host.resizeDy * host.height / 2
+                             : (host.widget?.y ?? 0.5) * (parent?.height ?? 0)
+    // Ein anderes Widget rastet gerade auf unsere Breite/Hoehe ein ("breite"/"hoehe")
+    readonly property string matchedAxis: host.editing && host.widget && host.parent?.sizeMatch?.id === host.widget.id
+                                          ? host.parent.sizeMatch.axis : ""
 
     readonly property var opts: Object.assign(DesktopWidgets.defaults(host.widget?.type ?? ""), host.widget?.opts ?? {})
 
@@ -169,26 +190,35 @@ Item {
         radius: 12
         bottomLeftRadius: options.item && options.item.flushBelow ? 0 : 12
         topLeftRadius: options.item && options.item.flushAbove ? 0 : 12
-        color: host.selected ? Colors.alpha(Colors.primary, 0.08) : "transparent"
-        border.width: host.selected ? 2 : 1
-        border.color: host.selected ? Colors.primary : Colors.alpha("#ffffff", hoverArea.hovered ? 0.6 : 0.3)
+        color: host.selected ? Colors.alpha(Colors.primary, 0.08)
+             : host.matchedAxis !== "" ? Colors.alpha(Colors.primary, 0.05) : "transparent"
+        border.width: host.selected || host.matchedAxis !== "" ? 2 : 1
+        border.color: host.selected || host.matchedAxis !== "" ? Colors.primary
+                    : Colors.alpha("#ffffff", hoverArea.hovered ? 0.6 : 0.3)
 
         // Typ als kleines Etikett oben links (nicht, wenn das Feld dort andockt)
         Rectangle {
-            visible: (host.selected || hoverArea.hovered) && !(options.item && options.item.flushAbove)
+            visible: (host.selected || hoverArea.hovered || host.matchedAxis !== "")
+                     && !(options.item && options.item.flushAbove)
             x: 10
             y: -height / 2
             width: label.implicitWidth + 12
             height: 18
             radius: 9
-            color: host.selected ? Colors.primary : Colors.alpha("#000000", 0.6)
+            color: host.selected || host.matchedAxis !== "" ? Colors.primary : Colors.alpha("#000000", 0.6)
 
             Text {
                 id: label
 
+                readonly property string title: host.info?.title ?? host.widget?.type ?? ""
+
                 anchors.centerIn: parent
-                text: host.info?.title ?? host.widget?.type ?? ""
-                color: host.selected ? Colors.fgPrimary : "#ffffff"
+                // Beim Skalieren: Groesse in Prozent, eingerastet auch woran
+                text: host.matchedAxis !== "" ? `${label.title} · gleiche ${host.matchedAxis === "breite" ? "Breite" : "Höhe"}`
+                    : !host.resizing ? label.title
+                    : `${label.title} · ${Math.round(host.liveSize * 100)} %`
+                      + (host.sizeMatch ? ` · ${host.sizeMatch.axis === "breite" ? "Breite" : "Höhe"} wie ${host.sizeMatch.title}` : "")
+                color: host.selected || host.matchedAxis !== "" ? Colors.fgPrimary : "#ffffff"
                 font.family: Config.font
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
@@ -370,16 +400,78 @@ Item {
         return p.x >= 0 && p.y >= 0 && p.x <= it.width && p.y <= it.height;
     }
 
-    // Einrasten: Mittelpunkt auf Drittel/Mitte, Kanten an den Rand (mit
-    // Abstand; oben mehr wegen der Notch)
-    function snap(value: real, extent: real, total: real, top: bool): var {
-        const margin = total * (top ? 0.07 : 0.035);
-        const cands = [total / 3, total / 2, total * 2 / 3, margin + extent / 2, total - margin - extent / 2];
-        const lines = [total / 3, total / 2, total * 2 / 3, margin, total - margin];
-        for (let i = 0; i < cands.length; i++)
-            if (Math.abs(value - cands[i]) < 14)
-                return { v: cands[i], line: lines[i] };
-        return { v: value, line: -1 };
+    // ---- Einrasten ----
+
+    // Fangbereich in px
+    readonly property real snapRange: 12
+
+    // Die anderen frei stehenden Widgets auf diesem Monitor
+    function others(): var {
+        const out = [];
+        for (const c of host.parent?.children ?? [])
+            if (c !== host && c.visible && typeof c.owns === "function" && c.widget && c.dock === "")
+                out.push(c);
+        return out;
+    }
+
+    // Linien einer Achse: Bildschirm (Mitte und Drittel fuer Mittelpunkte,
+    // Rand mit Abstand fuer Kanten; senkrecht mehr wegen der Notch) und die
+    // anderen Widgets (Kanten fuer Kanten, Mitte fuer Mitte).
+    // { at, center } – center = nur fuer Mittelpunkte
+    function snapLines(vertical: bool): var {
+        const total = vertical ? host.areaH : host.areaW;
+        const margin = total * (vertical ? 0.07 : 0.035);
+        const lines = [
+            { at: total / 3, center: true },
+            { at: total / 2, center: true },
+            { at: total * 2 / 3, center: true },
+            { at: margin, center: false },
+            { at: total - margin, center: false }
+        ];
+        for (const o of host.others()) {
+            const a = vertical ? o.y : o.x;
+            const len = vertical ? o.height : o.width;
+            lines.push({ at: a, center: false }, { at: a + len, center: false }, { at: a + len / 2, center: true });
+        }
+        return lines;
+    }
+
+    // Verschieben: Mittelpunkt c (Laenge len) so, dass eine Kante oder die
+    // Mitte auf der naechsten Linie liegt. { v, line } – line -1 = frei
+    function snapMove(c: real, len: real, lines: var): var {
+        let best = { v: c, line: -1, d: host.snapRange };
+        for (const l of lines)
+            for (const part of l.center ? [0] : [-len / 2, len / 2]) {
+                const v = l.at - part;
+                const d = Math.abs(v - c);
+                if (d < best.d)
+                    best = { v: v, line: l.at, d: d };
+            }
+        return best;
+    }
+
+    // Skalieren: Faktor r (Laenge relativ zum Start len0), so dass die
+    // gezogene Kante (feste Kante bei a, Richtung dir) auf einer Linie liegt
+    // oder die Laenge gleich der eines anderen Widgets ist.
+    // { r, line, match, d } – d = Abstand in px
+    function snapResize(r: real, a: real, dir: int, len0: real, lines: var, lengths: var): var {
+        let best = { r: r, line: -1, match: null, d: host.snapRange };
+        const test = (rr, line, match) => {
+            const d = Math.abs(rr - r) * len0;
+            if (rr > 0 && d < best.d)
+                best = { r: rr, line: line, match: match, d: d };
+        };
+        for (const l of lines)
+            if (!l.center)
+                test(dir * (l.at - a) / len0, l.at, null);
+        for (const m of lengths)
+            test(m.len / len0, -1, m);
+        return best;
+    }
+
+    // Shift gedrueckt: frei, ohne Einrasten
+    function free(handler: var): bool {
+        return (handler.centroid.modifiers & Qt.ShiftModifier) !== 0;
     }
 
     // Anderer Monitor unter dem Punkt (lokale Koordinaten), sonst null
@@ -405,12 +497,17 @@ Item {
 
         property real startX: 0
         property real startY: 0
+        // Linien beim Start einmal sammeln – waehrend des Ziehens aendern sie sich nicht
+        property var linesX: []
+        property var linesY: []
 
         onActiveChanged: {
             if (dragger.active) {
                 Scenes.selected = host.widget.id;
                 dragger.startX = host.cx;
                 dragger.startY = host.cy;
+                dragger.linesX = host.snapLines(false);
+                dragger.linesY = host.snapLines(true);
                 host.dragX = host.cx;
                 host.dragY = host.cy;
                 return;
@@ -458,8 +555,11 @@ Item {
             }
             if (Scenes.crossing)
                 Scenes.crossing = null;
-            const sx = host.snap(dragger.startX + dragger.translation.x, host.width, pw, false);
-            const sy = host.snap(dragger.startY + dragger.translation.y, host.height, ph, true);
+            const nx = dragger.startX + dragger.translation.x;
+            const ny = dragger.startY + dragger.translation.y;
+            const free = host.free(dragger);
+            const sx = free ? { v: nx, line: -1 } : host.snapMove(nx, host.width, dragger.linesX);
+            const sy = free ? { v: ny, line: -1 } : host.snapMove(ny, host.height, dragger.linesY);
             host.dragX = sx.v;
             host.dragY = sy.v;
             host.guideX.at = sx.line;
@@ -467,54 +567,123 @@ Item {
         }
     }
 
-    // Groesse: Griff unten rechts – ueber dem angedockten Optionsfeld (z 10),
-    // sonst deckt dessen Kante den Griff halb zu
-    Rectangle {
-        visible: host.selected
-        z: 11
-        x: parent.width - (host.dock !== "" ? 40 : -8) - width / 2
-        y: (host.dock === "unten" ? -8 : parent.height + 8) - height / 2
-        width: 16
-        height: 16
-        radius: 8
-        color: Colors.primary
-        border.width: 2
-        border.color: Colors.fgPrimary
+    // Groesse: Griffe an den vier Ecken – ueber dem angedockten Optionsfeld
+    // (z 10), sonst deckt dessen Kante den Griff halb zu. Angedockte Widgets
+    // (volle Breite) haben nur einen Griff, dort zaehlt nur die Hoehe.
+    Repeater {
+        model: host.dock !== "" ? [{ dx: 1, dy: host.dock === "unten" ? -1 : 1 }]
+                                : [{ dx: -1, dy: -1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: 1, dy: 1 }]
 
-        HoverHandler {
-            cursorShape: Qt.SizeFDiagCursor
-        }
+        Rectangle {
+            id: grip
 
-        DragHandler {
-            id: sizer
+            required property var modelData
+            readonly property int dx: grip.modelData.dx
+            readonly property int dy: grip.modelData.dy
 
-            target: null
-            dragThreshold: 1
+            visible: host.selected
+            z: 11
+            x: (host.dock !== "" ? host.width - 40 : grip.dx < 0 ? -host.frame : host.width + host.frame) - width / 2
+            y: (grip.dy < 0 ? -host.frame : host.height + host.frame) - height / 2
+            width: 16
+            height: 16
+            radius: 8
+            color: Colors.primary
+            border.width: 2
+            border.color: Colors.fgPrimary
 
-            property real startSize: 1
-            property real startW: 1
-            property real startH: 1
-
-            onActiveChanged: {
-                if (sizer.active) {
-                    sizer.startSize = host.widget?.size ?? 1;
-                    sizer.startW = Math.max(20, host.width);
-                    sizer.startH = Math.max(20, host.height);
-                    host.liveSize = sizer.startSize;
-                    return;
-                }
-                Scenes.patch(host.widget.id, { size: Number(host.liveSize.toFixed(3)) });
+            HoverHandler {
+                cursorShape: host.dock !== "" ? Qt.SizeVerCursor
+                           : grip.dx === grip.dy ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
             }
 
-            onTranslationChanged: {
-                if (!sizer.active)
-                    return;
-                // Angedockt unten: nach oben ziehen = hoeher. Sonst bleibt der
-                // Mittelpunkt stehen -> die Ecke wandert halb so schnell
-                const grow = host.dock === "unten"
-                    ? (sizer.startH - sizer.translation.y) / sizer.startH
-                    : (sizer.startW / 2 + Math.max(sizer.translation.x, sizer.translation.y)) / (sizer.startW / 2);
-                host.liveSize = Math.max(0.3, Math.min(8, sizer.startSize * grow));
+            DragHandler {
+                id: sizer
+
+                target: null
+                dragThreshold: 1
+
+                property real startSize: 1
+                property real startW: 1
+                property real startH: 1
+                property var linesX: []
+                property var linesY: []
+                property var widths: []
+                property var heights: []
+
+                onActiveChanged: {
+                    if (sizer.active) {
+                        sizer.startSize = host.widget?.size ?? 1;
+                        sizer.startW = Math.max(20, host.width);
+                        sizer.startH = Math.max(20, host.height);
+                        sizer.linesX = host.snapLines(false);
+                        sizer.linesY = host.snapLines(true);
+                        const others = host.others();
+                        const entry = (o, len, axis) => ({ len: len, id: o.widget.id, title: o.info?.title ?? o.widget.type, axis: axis });
+                        sizer.widths = others.map(o => entry(o, o.width, "breite"));
+                        sizer.heights = others.map(o => entry(o, o.height, "hoehe"));
+                        host.anchorX = host.cx - grip.dx * host.width / 2;
+                        host.anchorY = host.cy - grip.dy * host.height / 2;
+                        host.resizeDx = host.dock !== "" ? 0 : grip.dx;
+                        host.resizeDy = host.dock !== "" ? 0 : grip.dy;
+                        host.liveSize = sizer.startSize;
+                        host.resizing = true;
+                        return;
+                    }
+                    host.resizing = false;
+                    host.sizeMatch = null;
+                    if (host.parent)
+                        host.parent.sizeMatch = null;
+                    host.guideX.at = -1;
+                    host.guideY.at = -1;
+                    const patch = { size: Number(host.liveSize.toFixed(3)) };
+                    // Frei stehend: der Mittelpunkt ist mitgewandert
+                    if (host.dock === "" && host.parent) {
+                        patch.x = Number(Math.max(0, Math.min(1, host.cx / host.parent.width)).toFixed(4));
+                        patch.y = Number(Math.max(0, Math.min(1, host.cy / host.parent.height)).toFixed(4));
+                    }
+                    Scenes.patch(host.widget.id, patch);
+                }
+
+                onTranslationChanged: {
+                    if (!sizer.active)
+                        return;
+                    const min = 0.3 / sizer.startSize, max = 8 / sizer.startSize;
+                    // Angedockt: nur die Hoehe (unten angedockt waechst nach oben)
+                    if (host.dock !== "") {
+                        const r = (sizer.startH - grip.dy * sizer.translation.y) / sizer.startH;
+                        host.liveSize = sizer.startSize * Math.max(min, Math.min(max, r));
+                        return;
+                    }
+                    // Ecke unter der Maus, projiziert auf die Diagonale der
+                    // festen Ecke – waechst und schrumpft gleichmaessig, egal
+                    // ob man eher waagerecht oder senkrecht zieht
+                    const w0 = sizer.startW, h0 = sizer.startH;
+                    const rx = (w0 + grip.dx * sizer.translation.x) / w0;
+                    const ry = (h0 + grip.dy * sizer.translation.y) / h0;
+                    let r = (rx * w0 * w0 + ry * h0 * h0) / (w0 * w0 + h0 * h0);
+                    let lineX = -1, lineY = -1, match = null;
+                    if (!host.free(sizer)) {
+                        const sx = host.snapResize(r, host.anchorX, grip.dx, w0, sizer.linesX, sizer.widths);
+                        const sy = host.snapResize(r, host.anchorY, grip.dy, h0, sizer.linesY, sizer.heights);
+                        const best = sx.d <= sy.d ? sx : sy;
+                        if (best.d < host.snapRange) {
+                            r = best.r;
+                            match = best.match;
+                            if (best === sx)
+                                lineX = best.line;
+                            else
+                                lineY = best.line;
+                        }
+                    }
+                    r = Math.max(min, Math.min(max, r));
+                    host.liveSize = sizer.startSize * r;
+                    host.sizeMatch = match;
+                    if (host.parent)
+                        host.parent.sizeMatch = match;
+                    host.guideX.at = lineX;
+                    host.guideY.at = lineY;
+                }
             }
         }
     }

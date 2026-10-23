@@ -27,6 +27,7 @@ import qs.modules.widgets.clock
 //
 // IPC:  qs -c dynamic-island ipc call desktop edit|done|toggle
 //       … desktop add <typ>        Widget ins Bearbeitungsziel legen
+//       … desktop hide|show|visibility   "Nur im Editor" an/aus/umschalten
 Scope {
     id: root
 
@@ -55,6 +56,17 @@ Scope {
             if (!Scenes.editing)
                 edit();
             Scenes.add(type);
+        }
+        function hide(): void {
+            DesktopWidgets.setHidden(true);
+        }
+        function show(): void {
+            DesktopWidgets.setHidden(false);
+        }
+        function visibility(): string {
+            const hidden = !DesktopWidgets.settings.hidden;
+            DesktopWidgets.setHidden(hidden);
+            return hidden ? "hidden" : "shown";
         }
         function scene(): string {
             return JSON.stringify({ key: Scenes.currentKey, widgets: Scenes.widgets });

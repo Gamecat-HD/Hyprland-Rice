@@ -24,8 +24,13 @@ import qs.modules.services.plugins
 Singleton {
     id: root
 
-    // Einstellungen des Plugins `desktop` (pause, fps)
-    readonly property var settings: Object.assign({ pause: "fenster", fps: 30 }, Plugins.host("desktop")?.settings ?? {})
+    // Einstellungen des Plugins `desktop` (hidden, pause, fps)
+    readonly property var settings: Object.assign({ hidden: false, pause: "fenster", fps: 30 }, Plugins.host("desktop")?.settings ?? {})
+
+    // "Nur im Editor": Widgets ausserhalb der Bearbeitung ausblenden
+    function setHidden(hidden: bool): void {
+        Plugins.host("desktop")?.context.set("hidden", hidden);
+    }
 
     readonly property var types: Plugins.widgets
     readonly property var typeNames: Object.keys(root.types)

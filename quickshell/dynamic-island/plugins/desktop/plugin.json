@@ -16,6 +16,9 @@
         "icon": "widgets",
         "desc": "Zusätzliche Desktop-Widgets. Jedes ist ein eigenes Paket (.dip) mit \"parent\": \"desktop\" und läuft nur, solange die Desktop-Widgets an sind."
     },
+    "tiles": {
+        "toggle": { "label": "Desktop-Widgets", "icon": "widgets", "kind": "pill", "component": "Tile.qml" }
+    },
     "keybinds": {
         "arrange": { "keys": "SUPER + ALT + D", "title": "Desktop-Widgets anordnen", "group": "Werkzeuge", "exec": "qs -c dynamic-island ipc call desktop toggle" }
     },
@@ -25,6 +28,11 @@
             "title": "Szene",
             "desc": "Anordnung je Wallpaper in ~/.config/dynamic-island/scenes.json",
             "editor": "desktop"
+        },
+        "hidden": {
+            "default": false,
+            "title": "Nur im Editor",
+            "desc": "Widgets ausblenden – sichtbar nur beim Anordnen (SUPER+ALT+D). Schnellkachel „Desktop-Widgets“"
         },
         "pause": {
             "default": "fenster",

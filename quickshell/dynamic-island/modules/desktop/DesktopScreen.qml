@@ -75,6 +75,9 @@ PanelWindow {
 
         // Ausgewaehltes Widget (setzt WidgetHost) – fuer "Klick ins Leere"
         property Item selectedHost: null
+        // Ein Widget wird gerade auf gleiche Breite/Hoehe eines anderen
+        // skaliert ({ id, title, axis }, setzt WidgetHost) – das andere zeigt es an
+        property var sizeMatch: null
         // Oberstes Widget an einem Punkt (Buehnenkoordinaten): das ausgewaehlte
         // zuerst (es liegt oben, samt Griff und Optionsfeld), sonst wie
         // gezeichnet von oben nach unten. Ueberlappende Widgets bekommen einen
@@ -258,7 +261,10 @@ PanelWindow {
             id: ids
         }
 
-        readonly property var shown: Scenes.widgetsFor(win.screenName)
+        // Einstellung "Nur im Editor" (Schnellkachel): ausserhalb der
+        // Bearbeitung keine Widgets – sie werden zerstoert, nicht nur versteckt
+        readonly property var shown: DesktopWidgets.settings.hidden && !Scenes.editing
+                                     ? [] : Scenes.widgetsFor(win.screenName)
 
         onShownChanged: stage.syncIds()
         Component.onCompleted: stage.syncIds()
