@@ -50,52 +50,63 @@ Singleton {
     //          requires           Zeile nur aktiv, wenn erfuellt: "bar.battery"
     //                             (Wahrheitswert) oder { "appearance.layout": "notch" }
     //          hidden             nicht im Menue (wird anderswo bedient)
+    //          group              Karte innerhalb der Gruppe ("Workspaces", "Akku" …);
+    //                             ohne Angabe teilen sich die Zeilen eine Karte ohne Titel
     readonly property var meta: ({
-        "bar.workspaces": { title: "Workspace-Punkte" },
+        "bar.workspaces": { title: "Workspace-Punkte", group: "Workspaces" },
         "bar.workspaceCount": {
+            group: "Workspaces",
             title: "Workspaces je Monitor",
             min: 1, max: 10, step: 1, requires: "bar.workspaces"
         },
-        "bar.stats": { title: "System-Pille" },
-        "bar.tray": { title: "Systemtray" },
-        "bar.settings": { title: "Settings-Karte" },
-        "bar.media": { title: "Medien-Karte" },
-        "bar.notifications": { title: "Benachrichtigungen" },
-        "bar.battery": { title: "Akkuanzeige" },
+        "bar.stats": { title: "System-Pille", group: "Module" },
+        "bar.tray": { title: "Systemtray", group: "Module" },
+        "bar.settings": { title: "Settings-Karte", group: "Module" },
+        "bar.media": { title: "Medien-Karte", group: "Module" },
+        "bar.notifications": { title: "Benachrichtigungen", group: "Module" },
+        "bar.battery": { title: "Akkuanzeige", group: "Akku" },
         // Anzeigen in der eingeklappten Notch (nur Notch-Layout)
         "notch.workspaces": {
+            group: "Anzeigen",
             title: "Workspaces in der Notch",
             requires: { "appearance.layout": "notch" }
         },
         "notch.date": {
+            group: "Anzeigen",
             title: "Datum in der Notch",
             requires: { "appearance.layout": "notch" }
         },
         "notch.media": {
+            group: "Anzeigen",
             title: "Cover in der Notch",
             requires: { "appearance.layout": "notch" }
         },
         "notch.visualizer": {
+            group: "Anzeigen",
             title: "Visualiser in der Notch",
             requires: { "appearance.layout": "notch" }
         },
         "notch.messages": {
+            group: "Anzeigen",
             title: "Nachrichten-Zaehler",
             requires: { "appearance.layout": "notch" }
         },
         // Stil-Varianten der Notch-Anzeigen. `preview` zeigt im Menue statt
         // Text-Chips eine kleine Vorschau der Variante (SettingsRow -> StylePreview)
         "notch.clockStyle": {
+            group: "Stile",
             title: "Uhr-Stil",
             options: ["digital", "split", "analog"], preview: "clock",
             requires: { "appearance.layout": "notch" }
         },
         "notch.workspaceStyle": {
+            group: "Stile",
             title: "Workspace-Stil",
             options: ["staebchen", "punkte", "zahlen"], preview: "workspaces",
             requires: "notch.workspaces"
         },
         "notch.visualizerStyle": {
+            group: "Stile",
             title: "Visualiser-Stil",
             options: ["spiegel", "saeulen", "punkte", "welle"], preview: "visualizer",
             requires: "notch.visualizer"
@@ -112,44 +123,49 @@ Singleton {
         // Was hinter dem Sperrbildschirm liegt. Das Desktop-Foto braucht er
         // ohnehin fuer den Uebergang, "wallpaper" blendet nur dahin ueber
         "lock.background": {
+            group: "Bild",
             title: "Hintergrund",
             options: ["wallpaper", "desktop"]
         },
-        "lock.blur": { title: "Wallpaper unscharf" },
+        "lock.blur": { title: "Wallpaper unscharf", group: "Bild" },
         // Sichtbarkeit von Uhr/Karte steht im Anordnungs-Editor (lock.layout
         // hidden); der alte Schalter gilt nur noch als Vorgabe dafuer
         "lock.media": { title: "Medien-Karte", hidden: true },
         "lock.notifications": { title: "Nachrichten-Zaehler" },
         "lock.layout": { title: "Anordnung", editor: "lock" },
         // Inaktivitaet (services/idle), ersetzt hypridle
-        "idle.enabled": { title: "Automatisch sperren" },
+        "idle.enabled": { title: "Automatisch sperren", group: "Sperren" },
         "idle.lockMinutes": {
+            group: "Sperren",
             title: "Sperren nach", min: 1, max: 60, step: 1, unit: "min", requires: "idle.enabled"
         },
         "idle.warnSeconds": {
+            group: "Sperren",
             title: "Vorher abdunkeln", min: 0, max: 30, step: 1, unit: "s", requires: "idle.enabled"
         },
         "idle.screenOffMinutes": {
+            group: "Energie",
             title: "Bildschirme aus nach", desc: "0 = nie", min: 0, max: 60, step: 1, unit: "min", requires: "idle.enabled"
         },
         "idle.suspendMinutes": {
+            group: "Energie",
             title: "Ruhezustand nach", desc: "0 = nie", min: 0, max: 120, step: 5, unit: "min", requires: "idle.enabled"
         },
-        "idle.media": { title: "Nicht bei laufender Musik", requires: "idle.enabled" },
-        "idle.fullscreen": { title: "Nicht bei Vollbild-Apps", requires: "idle.enabled" },
-        "idle.lockOnSleep": { title: "Vor dem Ruhezustand sperren" },
+        "idle.media": { title: "Nicht bei laufender Musik", group: "Ausnahmen", requires: "idle.enabled" },
+        "idle.fullscreen": { title: "Nicht bei Vollbild-Apps", group: "Ausnahmen", requires: "idle.enabled" },
+        "idle.lockOnSleep": { title: "Vor dem Ruhezustand sperren", group: "Sperren" },
         // Kurze Systemklaenge (services/sounds)
         "sounds.enabled": { title: "Systemklänge" },
         "sounds.volume": { title: "Lautstärke", min: 10, max: 100, step: 5, unit: "%", requires: "sounds.enabled" },
-        "sounds.notifications": { title: "Neue Nachricht", requires: "sounds.enabled" },
-        "sounds.screenshot": { title: "Screenshot", requires: "sounds.enabled" },
-        "sounds.power": { title: "Ladekabel", requires: "sounds.enabled" },
-        "sounds.lock": { title: "Sperren und Entsperren", requires: "sounds.enabled" },
-        "sounds.library": { title: "Eigene Klänge", editor: "sounds" },
+        "sounds.notifications": { title: "Neue Nachricht", group: "Anlässe", requires: "sounds.enabled" },
+        "sounds.screenshot": { title: "Screenshot", group: "Anlässe", requires: "sounds.enabled" },
+        "sounds.power": { title: "Ladekabel", group: "Anlässe", requires: "sounds.enabled" },
+        "sounds.lock": { title: "Sperren und Entsperren", group: "Anlässe", requires: "sounds.enabled" },
+        "sounds.library": { title: "Eigene Klänge", group: "Eigene Klänge", editor: "sounds" },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
-        "bar.batteryPulse": { title: "Akku-Ladeimpuls", requires: "bar.battery" },
+        "bar.batteryPulse": { title: "Akku-Ladeimpuls", group: "Akku", requires: "bar.battery" },
         "notifications.dnd": { title: "Nicht stören" },
         "vpn.provider": {
             title: "VPN-Anbieter",
@@ -162,6 +178,7 @@ Singleton {
         // Sprache der Oberflaeche (I18n.qml). `labels` zeigt statt des Werts
         // einen Namen – Sprachnamen stehen immer in ihrer eigenen Sprache
         "appearance.language": {
+            group: "Sprache und Schrift",
             title: "Sprache",
             options: ["en", "de"],
             labels: { "en": "English", "de": "Deutsch" }
@@ -169,53 +186,63 @@ Singleton {
         // `options` macht aus der Zeile eine Auswahl. Nicht installierte
         // Schriften blendet das Menue aus.
         "appearance.font": {
+            group: "Sprache und Schrift",
             title: "Schriftart",
             options: ["SF Pro", "SF Pro Rounded", "Inter", "Noto Sans", "Adwaita Sans", "Fira Sans", "Cantarell"]
         },
         // Welche Elemente die Leiste zeigt. "insel": alle Pillen. "notch": nur
         // die Notch, angedockt an der Oberkante (Bar.qml und Notch.qml lesen das).
         "appearance.layout": {
+            group: "Form",
             title: "Layout",
             desc: "Insel: alle Pillen. Notch: nur die angedockte Notch oben in der Mitte",
             options: ["insel", "notch"]
         },
         // Nachschwingen der Pillen beim Aufklappen (siehe Appearance.qml)
         "appearance.bounce": {
+            group: "Animation",
             title: "Nachschwingen",
             options: ["aus", "leicht", "mittel", "stark"]
         },
         "appearance.speed": {
+            group: "Animation",
             title: "Animationstempo",
             min: 0.5, max: 2, step: 0.1, unit: "x"
         },
         "appearance.radius": {
+            group: "Form",
             title: "Eckenrundung",
             min: 8, max: 28, step: 1, unit: "px"
         },
-        "appearance.shadow": { title: "Schatten" },
-        "appearance.clock": { title: "Uhrzeit", options: ["24h", "12h"] },
+        "appearance.shadow": { title: "Schatten", group: "Form" },
+        "appearance.clock": { title: "Uhrzeit", group: "Sprache und Schrift", options: ["24h", "12h"] },
         // Uebergang beim Wallpaperwechsel (modules/window/WallpaperStage.qml)
         "wallpaper.transition": {
+            group: "Animation",
             title: "Übergang",
             options: ["blende", "wischen", "schieben", "kreis", "zoom", "aus", "zufall"]
         },
         "wallpaper.duration": {
+            group: "Animation",
             title: "Dauer",
             min: 200, max: 2000, step: 100, unit: "ms"
         },
         // Zufallsmodus (Wallpapers.qml): "start" wuerfelt einmal je Login,
         // "timer" zusaetzlich alle randomMinutes
         "wallpaper.random": {
+            group: "Zufall",
             title: "Zufallsmodus",
             desc: "Start: bei jedem Login ein zufälliges Wallpaper. Timer: dazu regelmäßig ein neues",
             options: ["aus", "start", "timer"]
         },
         "wallpaper.randomMinutes": {
+            group: "Zufall",
             title: "Wechsel alle",
             desc: "Wartet bei Vollbild oder Game-Mode",
             min: 5, max: 240, step: 5, unit: "min", requires: { "wallpaper.random": "timer" }
         },
         "wallpaper.randomScope": {
+            group: "Zufall",
             title: "Zufall aus",
             desc: "Ordner: nur der Ordner des aktuellen Bilds",
             options: ["alle", "ordner"]

@@ -6,8 +6,8 @@ import qs.modules.widgets
 
 import qs
 
-// Eine Zeile im Einstellungs-Fenster, samt Gruppentitel darueber (wenn
-// `section` gesetzt ist). Was fuer ein Bedienelement erscheint, entscheidet
+// Eine Zeile im Einstellungs-Fenster (die Karte drumherum und ihren Titel
+// zeichnet SettingsCard). Was fuer ein Bedienelement erscheint, entscheidet
 // der Typ des Werts in der Datei plus die Angaben in Config.meta:
 //
 //   Wahrheitswert                 Schalter
@@ -27,8 +27,6 @@ Item {
 
     // { id, section, key, value, title, desc, options, min, max, step, unit, requires }
     required property var entry
-    // Nicht leer = Gruppentitel oberhalb dieser Zeile zeichnen
-    property string section: ""
 
     readonly property bool isBool: typeof row.entry?.value === "boolean"
     readonly property bool isNumber: typeof row.entry?.value === "number"
@@ -76,7 +74,6 @@ Item {
         return list;
     }
     property bool expanded: false
-    readonly property real headerHeight: 26
 
     // ---- Zahlen ----
     readonly property real min: Number(row.entry?.min ?? 0)
@@ -118,7 +115,7 @@ Item {
     readonly property real sliderWidth: Math.max(110, Math.min(220, row.width - 300))
     readonly property real valueCap: Math.max(72, row.width - 28 - 160 - 10 - 26 - 24)
 
-    implicitHeight: (row.section !== "" ? row.headerHeight : 0) + row.lineHeight
+    implicitHeight: row.lineHeight
                     + (row.expanded ? choiceFlow.implicitHeight + 12 : 0)
                     + (row.isEditor ? editorLoader.implicitHeight + 14 : 0)
 
@@ -126,33 +123,11 @@ Item {
         NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
     }
 
-    Text {
-        id: sectionLabel
-        font.family: Config.font
-
-        anchors {
-            left: parent.left
-            leftMargin: 14
-            top: parent.top
-        }
-        height: row.section !== "" ? row.headerHeight : 0
-        visible: row.section !== ""
-        verticalAlignment: Text.AlignBottom
-
-        // Plugin-Gruppen heissen wie ihr Plugin
-        text: Plugins.isPluginSection(row.section) ? I18n.tr(Plugins.sectionTitle(row.section))
-              : I18n.tr(Config.sectionMeta[row.section] ?? row.section)
-        color: Colors.fgSurfaceVariant
-        font.pixelSize: 10
-        font.weight: Font.DemiBold
-        bottomPadding: 5
-    }
-
     Rectangle {
         anchors {
             left: parent.left
             right: parent.right
-            top: sectionLabel.bottom
+            top: parent.top
             bottom: parent.bottom
         }
         radius: 12

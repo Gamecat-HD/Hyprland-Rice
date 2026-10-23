@@ -29,11 +29,11 @@ import qs
 // Die Suche geht ueber alle Gruppen, die Gruppenleiste ist dann aus.
 //
 // Breite: das Fenster laesst sich frei ziehen. Unter `compact` schrumpft
-// die Leiste zur Symbolspalte (Name beim Zeigen daneben), die Zeilen
-// fuellen eine Spalte bis 820 px, und ab `listColumns` 2 stehen sie in zwei
-// unabhaengigen Spalten (nur wenn eine Spalte nicht reicht) – ganze Gruppen (bzw. die Zeilen einer einzelnen
-// Gruppe) werden oben nach unten erst links, dann rechts verteilt, damit
-// eine aufgeklappte Auswahl nur ihre eigene Spalte verschiebt.
+// die Leiste zur Symbolspalte (Name beim Zeigen daneben). Die Zeilen stehen
+// in Karten (je Gruppe und Config.meta-`group` eine), die Karten in so
+// vielen Spalten (360–560 px), wie ins Fenster passen – jede Spalte waechst
+// fuer sich, damit eine aufgeklappte Auswahl nur ihre eigene verschiebt.
+// Karten mit einem breiten Editor (`wideEditors`) gehen ueber die volle Breite.
 Surface {
     id: card
 
@@ -56,9 +56,8 @@ Surface {
     // Schmale Karte: Leiste nur mit Symbolen
     readonly property bool compact: card.width < 820
     readonly property real sidebarWidth: card.compact ? 64 : 236
-    // Platz rechts der Leiste (Zielwert, nicht der animierte), ohne Raender
-    readonly property real contentRoom: card.width - card.sidebarWidth - 24
-    readonly property int listColumns: card.contentRoom >= 1000 ? 2 : 1
+    // Platz der Liste rechts der Leiste (Zielwert, nicht der animierte)
+    readonly property real listRoom: card.width - card.sidebarWidth - 44
 
     // Gruppen aus shell.json in Menue-Reihenfolge, unbekannte hinten dran
     readonly property var sections: {
@@ -141,8 +140,15 @@ Surface {
                 continue;
 
             const values = card.valuesOf(section) ?? {};
-            const keys = Object.keys(values).sort((a, b) =>
+            const sorted = Object.keys(values).sort((a, b) =>
                 rank(`${section}.${a}`) - rank(`${section}.${b}`) || a.localeCompare(b));
+            // Zeilen einer Karte (meta.group) zusammenziehen, Karten in der
+            // Reihenfolge ihrer ersten Zeile
+            const groupOf = key => Plugins.metaFor(`${section}.${key}`)?.group ?? "";
+            const groupOrder = [...new Set(sorted.map(groupOf))];
+            const keys = sorted.map((key, i) => ({ key, i }))
+                .sort((a, b) => groupOrder.indexOf(groupOf(a.key)) - groupOrder.indexOf(groupOf(b.key)) || a.i - b.i)
+                .map(k => k.key);
             for (const key of keys) {
                 const id = `${section}.${key}`;
                 const meta = Plugins.metaFor(id);
@@ -153,6 +159,7 @@ Surface {
                     id,
                     section,
                     key,
+                    group: meta?.group ?? "",
                     value: values[key],
                     title: meta?.title ? I18n.tr(meta.title) : key,
                     // Ohne Eintrag in der Tabelle: ehrlich sagen,
@@ -180,59 +187,84 @@ Surface {
         return out;
     }
 
-    // Die Zeilen auf die Spalten verteilt: je Spalte eine Liste von
-    // Bloecken { section, rows, header }, rows als Indizes in card.entries
-    // (durch einen Repeater gereichte Objekte verlieren ihre JS-Arrays –
-    // `options` kaeme als Sequenz an, nicht als Array). Gruppentitel nur,
-    // wenn mehrere Gruppen zu sehen sind (Suche oder "Alle"), je Gruppe einer.
-    readonly property var layoutColumns: {
-        const headers = card.searching || card.section === "";
-        const groups = [];
+    // Die Karten: aufeinanderfolgende Zeilen mit gleicher Gruppe und
+    // gleichem meta.group, rows als Indizes in card.entries (durch einen
+    // Repeater gereichte Objekte verlieren ihre JS-Arrays – `options` kaeme
+    // als Sequenz an, nicht als Array). Ein breiter Editor macht die Karte
+    // breit – die anderen (Sperrbildschirm, Desktop) sind nur ein Knopf.
+    readonly property var wideEditors: ["quick"]
+    readonly property var groupCards: {
+        const out = [];
         card.entries.forEach((e, i) => {
-            const last = groups[groups.length - 1];
-            if (last && last.section === e.section)
+            const last = out[out.length - 1];
+            if (last && last.section === e.section && last.group === e.group) {
                 last.rows.push(i);
-            else
-                groups.push({ section: e.section, rows: [i] });
-        });
-        const block = (section, rows, header) => ({ section, rows, header });
-
-        // Grobe Hoehe je Zeile, um die Trennstelle zu finden
-        const weight = i => {
-            const e = card.entries[i];
-            return e.editor !== "" ? 320 : e.desc !== "" ? 54 : 46;
-        };
-        // Zwei Spalten nur, wenn eine nicht reicht – acht Zeilen auf zwei
-        // halbe Spalten verteilt reissen Titel und Wert nur weit auseinander
-        const needed = card.entries.reduce((s, e, i) => s + weight(i), 0) + (headers ? groups.length * 26 : 0);
-        if (card.listColumns === 1 || groups.length === 0 || needed <= card.height - 100)
-            return [groups.map(g => block(g.section, g.rows, headers))];
-
-        // Mehrere Gruppen: ganze Gruppen verteilen; eine einzelne: ihre Zeilen
-        const single = groups.length === 1;
-        const units = single ? groups[0].rows.map(i => ({ rows: [i], w: weight(i) }))
-                             : groups.map(g => ({ rows: g.rows, section: g.section,
-                                                  w: g.rows.reduce((s, i) => s + weight(i), 0) + (headers ? 26 : 0) }));
-        const total = units.reduce((s, u) => s + u.w, 0);
-        let split = units.length, best = Infinity;
-        for (let k = 0, acc = 0; k <= units.length; k++) {
-            const diff = Math.abs(acc - (total - acc));
-            if (diff < best) {
-                best = diff;
-                split = k;
+                last.wide = last.wide || card.wideEditors.includes(e.editor);
+            } else {
+                out.push({ section: e.section, group: e.group, rows: [i], wide: card.wideEditors.includes(e.editor) });
             }
-            if (k < units.length)
-                acc += units[k].w;
-        }
-        const left = units.slice(0, split), right = units.slice(split);
-        const rowsOf = us => us.reduce((a, u) => a.concat(u.rows), []);
-        if (single) {
-            const s = groups[0].section;
-            return [[block(s, rowsOf(left), headers)],
-                    right.length > 0 ? [block(s, rowsOf(right), false)] : []];
-        }
-        const pack = us => us.map(u => block(u.section, u.rows, headers));
-        return [pack(left), pack(right)];
+        });
+        return out;
+    }
+
+    // Die Karten auf Baender verteilt: ein Band ist entweder ein Raster aus
+    // Spalten (jede Karte in die bisher kuerzeste) oder eine breite Karte.
+    // Je Band { width, columns: [[Kartenindex, …], …] }.
+    readonly property var layoutBands: {
+        const gap = list.gap;
+        const room = Math.max(0, card.listRoom);
+        // Grobe Hoehe je Karte, um die kuerzeste Spalte zu finden
+        const rowWeight = i => {
+            const e = card.entries[i];
+            return card.wideEditors.includes(e.editor) ? 320 : e.editor !== "" ? 110 : e.desc !== "" ? 54 : 46;
+        };
+        const weight = c => c.rows.reduce((s, i) => s + rowWeight(i), 0) + 38;
+
+        // Raster und breite Karten in Lesereihenfolge. Ueber mehrere Gruppen
+        // ("Alle", Suche) kommen die Editoren ans Ende, sonst reissen sie das
+        // Raster in halbleere Baender
+        const all = card.groupCards.map((c, i) => i);
+        const order = card.searching || card.section === ""
+            ? all.filter(i => !card.groupCards[i].wide).concat(all.filter(i => card.groupCards[i].wide))
+            : all;
+        const runs = [];
+        order.forEach(i => {
+            const c = card.groupCards[i];
+            const last = runs[runs.length - 1];
+            if (c.wide)
+                runs.push({ wide: true, cards: [i] });
+            else if (last && !last.wide)
+                last.cards.push(i);
+            else
+                runs.push({ wide: false, cards: [i] });
+        });
+
+        // Spaltenzahl aus der Breite, aber nicht mehr als Karten da sind –
+        // eine Seite mit drei Karten bekommt drei breitere Spalten statt vier
+        const most = runs.reduce((m, r) => r.wide ? m : Math.max(m, r.cards.length), 1);
+        const fit = Math.max(1, Math.floor((room + gap) / (360 + gap)));
+        const cols = Math.min(fit, most, 4);
+        // Eine Spalte neben einem Editor: so breit wie er, damit die Kanten
+        // stimmen; sonst hoechstens 560, damit Titel und Wert nah bleiben
+        const hasWide = runs.some(r => r.wide);
+        const wideWidth = cols === 1 ? Math.min(room, 820)
+                                     : Math.min(room, Math.max(820, Math.min(560, (room - gap * (cols - 1)) / cols) * 2 + gap));
+        const colWidth = cols === 1 && hasWide ? wideWidth
+                                               : Math.min(560, (room - gap * (cols - 1)) / cols);
+
+        return runs.map(r => {
+            if (r.wide)
+                return { width: wideWidth, columns: [r.cards] };
+            const n = Math.min(cols, r.cards.length);
+            const columns = Array.from({ length: n }, () => []);
+            const heights = new Array(n).fill(0);
+            for (const i of r.cards) {
+                const k = heights.indexOf(Math.min(...heights));
+                columns[k].push(i);
+                heights[k] += weight(card.groupCards[i]);
+            }
+            return { width: colWidth, columns };
+        });
     }
 
     // Beim Zeigen auf die Symbolspalte: der Knopf, dessen Name daneben steht
@@ -252,6 +284,85 @@ Surface {
     // Zaehler der Bibliothek in der Leiste (die Liste ist sonst erst da,
     // wenn die Auswahl oder die Bibliothek einmal offen war)
     Component.onCompleted: Wallpapers.ensureLoaded()
+
+    // Eine Karte der Liste: Titel (Gruppe bzw. bei "Alle"/Suche auch der
+    // Bereich) und ihre Zeilen
+    component GroupCard: Rectangle {
+        id: gcard
+
+        // { section, group, rows, wide } aus card.groupCards
+        required property var group
+
+        readonly property var rows: gcard.group?.rows ?? []
+        readonly property string sectionLabel: card.searching || card.section === ""
+                                               ? card.sectionTitle(gcard.group?.section ?? "") : ""
+        // Eine einzelne Zeile, die schon so heisst wie ihre Gruppe, braucht
+        // keinen Titel darueber
+        readonly property string groupLabel: {
+            const g = gcard.group?.group ?? "";
+            if (g === "" || (gcard.rows.length === 1 && card.entries[gcard.rows[0]]?.title === I18n.tr(g)))
+                return "";
+            return I18n.tr(g);
+        }
+        readonly property bool titled: gcard.sectionLabel !== "" || gcard.groupLabel !== ""
+
+        height: cardColumn.implicitHeight + 8
+        radius: 16
+        color: Colors.alpha(Colors.fgSurface, 0.035)
+        border.width: 1
+        border.color: Colors.alpha(Colors.outline, 0.14)
+
+        Column {
+            id: cardColumn
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                margins: 4
+            }
+
+            Row {
+                visible: gcard.titled
+                height: gcard.titled ? 30 : 0
+                leftPadding: 14
+                spacing: 6
+
+                Text {
+                    anchors.bottom: parent.bottom
+                    bottomPadding: 4
+                    visible: gcard.sectionLabel !== ""
+                    text: gcard.sectionLabel
+                    color: Colors.fgSurface
+                    font.family: Config.font
+                    font.pixelSize: 11
+                    font.weight: Font.DemiBold
+                }
+
+                Text {
+                    anchors.bottom: parent.bottom
+                    bottomPadding: 4
+                    visible: gcard.groupLabel !== ""
+                    text: (gcard.sectionLabel !== "" ? "· " : "") + gcard.groupLabel
+                    color: Colors.fgSurfaceVariant
+                    font.family: Config.font
+                    font.pixelSize: 11
+                    font.weight: gcard.sectionLabel !== "" ? Font.Normal : Font.DemiBold
+                }
+            }
+
+            Repeater {
+                model: gcard.rows
+
+                SettingsRow {
+                    required property int modelData
+
+                    width: cardColumn.width
+                    entry: card.entries[modelData] ?? null
+                }
+            }
+        }
+    }
 
     // ================= Linke Leiste =================
     Item {
@@ -913,35 +1024,33 @@ Surface {
         }
 
         // ---- Die Liste ----
-        // Eine Spalte bis 820 px, zwei Spalten (je bis 900 px) wenn noetig;
-        // linksbuendig unter dem Titel, damit Kopf und Zeilen eine Kante haben.
-        // Jede Spalte waechst fuer sich (eine aufgeklappte Auswahl schiebt
-        // nur ihre Nachbarn darunter).
+        // Karten in Baendern (siehe layoutBands), linksbuendig unter dem
+        // Titel, damit Kopf und Karten eine Kante haben
         Flickable {
             id: list
 
-            readonly property real gap: 16
-            readonly property int columns: card.layoutColumns.length
+            readonly property real gap: 14
 
             anchors {
                 left: parent.left
+                right: parent.right
                 top: searchBox.bottom
                 bottom: parent.bottom
-                leftMargin: 10
-                topMargin: 12
+                leftMargin: 24
+                rightMargin: 20
+                topMargin: 16
                 bottomMargin: 16
             }
-            width: Math.min(parent.width - 22, list.columns === 2 ? 2 * 900 + list.gap : 820)
             visible: !card.managing && !card.browsing
             clip: true
             contentWidth: width
-            contentHeight: columnsRow.height + 8
+            contentHeight: bands.height + 8
             boundsBehavior: Flickable.StopAtBounds
             // Nicht per Ziehen scrollen: sonst klaut die Liste den
             // Drag-and-Drop-Editoren ihre Geste. Das Mausrad reicht.
             interactive: false
 
-            // Inhalt kuerzer geworden (Filter, zweite Spalte): nicht ins Leere zeigen
+            // Inhalt kuerzer geworden (Filter, andere Spalten): nicht ins Leere zeigen
             onContentHeightChanged: list.contentY = Math.max(0, Math.min(list.contentY, list.contentHeight - list.height))
 
             WheelHandler {
@@ -958,46 +1067,43 @@ Surface {
                 }
             }
 
-            Row {
-                id: columnsRow
+            Column {
+                id: bands
 
                 width: list.width
                 spacing: list.gap
 
                 Repeater {
-                    model: card.layoutColumns
+                    model: card.layoutBands
 
-                    Column {
-                        id: column
+                    Row {
+                        id: band
 
                         required property var modelData
 
-                        width: (list.width - list.gap * (list.columns - 1)) / list.columns
-                        spacing: 2
+                        spacing: list.gap
 
                         Repeater {
-                            model: column.modelData
+                            model: band.modelData.columns
 
                             Column {
-                                id: block
+                                id: column
 
                                 required property var modelData
 
-                                width: column.width
-                                spacing: 2
+                                width: band.modelData.width
+                                spacing: list.gap
 
                                 Repeater {
-                                    model: block.modelData.rows
+                                    model: column.modelData
 
-                                    SettingsRow {
+                                    GroupCard {
                                         required property int modelData
-                                        required property int index
 
-                                        width: block.width
+                                        width: column.width
                                         // Waehrend des Filterns sind Indizes
                                         // und Liste kurz auseinander
-                                        entry: card.entries[modelData] ?? null
-                                        section: index === 0 && block.modelData.header ? block.modelData.section : ""
+                                        group: card.groupCards[modelData] ?? null
                                     }
                                 }
                             }
