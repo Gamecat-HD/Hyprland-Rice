@@ -127,6 +127,7 @@ Singleton {
             title: "Ruhezustand nach", desc: "0 = nie", min: 0, max: 120, step: 5, unit: "min", requires: "idle.enabled"
         },
         "idle.media": { title: "Nicht bei laufender Musik", requires: "idle.enabled" },
+        "idle.fullscreen": { title: "Nicht bei Vollbild-Apps", requires: "idle.enabled" },
         "idle.lockOnSleep": { title: "Vor dem Ruhezustand sperren" },
         // Kurze Systemklaenge (services/sounds)
         "sounds.enabled": { title: "Systemklänge" },
@@ -547,6 +548,7 @@ Singleton {
                 property int screenOffMinutes: 4
                 property int suspendMinutes: 0
                 property bool media: true
+                property bool fullscreen: true
                 property bool lockOnSleep: true
             }
 

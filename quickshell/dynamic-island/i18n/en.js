@@ -434,6 +434,7 @@ var strings = {
     "neun": "nine",
     "Neustart": "Restart",
     "Nicht bei laufender Musik": "Not while music is playing",
+    "Nicht bei Vollbild-Apps": "Not while an app is fullscreen",
     "Nicht bereit": "Not ready",
     "nicht in Reichweite": "out of range",
     "Nicht installiert": "Not installed",

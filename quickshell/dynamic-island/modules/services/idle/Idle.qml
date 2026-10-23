@@ -2,6 +2,7 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 
@@ -20,6 +21,8 @@ import qs.modules.services.system
 // Nichts passiert, solange
 //   - ein Programm per ScreenSaver.Inhibit oder Wayland-Idle-Inhibitor bremst,
 //   - Medien laufen (idle.media),
+//   - ein Fenster im Vollbild laeuft (idle.fullscreen) – Spiele mit Joystick
+//     erzeugen keine Wayland-Aktivitaet und melden selten ein Inhibit,
 //   - "No Sleep" in den Schnelleinstellungen an ist.
 //
 // Die Abdunkel-Flaeche zeigt modules/idle/IdleDim.qml an `dim` (0..1).
@@ -38,7 +41,10 @@ Singleton {
     property bool owned: false
 
     readonly property bool mediaBlocks: Config.idle.media && Media.playing
-    readonly property bool blocked: root.inhibitors.length > 0 || root.mediaBlocks || SessionModes.noSleep
+    readonly property bool fullscreenBlocks: Config.idle.fullscreen
+        && Hyprland.monitors.values.some(m => m.activeWorkspace?.hasFullscreen ?? false)
+    readonly property bool blocked: root.inhibitors.length > 0 || root.mediaBlocks || root.fullscreenBlocks
+                                    || SessionModes.noSleep
     readonly property bool watching: root.enabled && !root.blocked
 
     // Warnphase vor dem Sperren
@@ -185,6 +191,24 @@ Singleton {
 
     onEnabledChanged: root.syncHelper()
     Component.onCompleted: root.syncHelper()
+
+    // `qs -c dynamic-island ipc call idle status` – wer gerade bremst
+    IpcHandler {
+        target: "idle"
+
+        function status(): string {
+            return JSON.stringify({
+                enabled: root.enabled,
+                owned: root.owned,
+                watching: root.watching,
+                warning: root.warning,
+                media: root.mediaBlocks,
+                fullscreen: root.fullscreenBlocks,
+                noSleep: SessionModes.noSleep,
+                inhibitors: root.inhibitors
+            });
+        }
+    }
 
     Connections {
         target: Config.idle
