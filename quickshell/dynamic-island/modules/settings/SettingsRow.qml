@@ -494,6 +494,7 @@ Item {
             sourceComponent: row.entry?.editor === "quick" ? quickEditor
                            : row.entry?.editor === "desktop" ? desktopEditor
                            : row.entry?.editor === "lock" ? lockEditor
+                           : row.entry?.editor === "sounds" ? soundsEditor
                            : null
         }
 
@@ -507,6 +508,12 @@ Item {
             id: lockEditor
 
             LockLayoutEditor {}
+        }
+
+        Component {
+            id: soundsEditor
+
+            SoundsEditor {}
         }
 
         Component {

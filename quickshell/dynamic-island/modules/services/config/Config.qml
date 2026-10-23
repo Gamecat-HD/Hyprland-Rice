@@ -145,6 +145,7 @@ Singleton {
         "sounds.screenshot": { title: "Screenshot", requires: "sounds.enabled" },
         "sounds.power": { title: "Ladekabel", requires: "sounds.enabled" },
         "sounds.lock": { title: "Sperren und Entsperren", requires: "sounds.enabled" },
+        "sounds.library": { title: "Eigene Klänge", editor: "sounds" },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
@@ -570,6 +571,9 @@ Singleton {
                 property bool screenshot: true
                 property bool power: true
                 property bool lock: false
+                // Nur Anker fuer den Editor (SoundsEditor); die Dateien liegen
+                // in ~/.config/dynamic-island/sounds
+                property string library: ""
             }
 
             // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine
