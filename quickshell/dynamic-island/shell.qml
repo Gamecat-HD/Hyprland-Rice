@@ -15,7 +15,8 @@ import qs.modules.services.plugins
 import qs.modules.desktop
 
 // Minimaler Startpunkt für den eigenen Rice.
-// Start:   qs -c dynamic-island -n -d      Stop: qs -c dynamic-island kill
+// Start:   dynamic-island shell -d         Stop: dynamic-island shell -k
+//          (nicht `qs … -d` direkt: dann fehlen MALLOC_* aus shell.py SHELL_ENV)
 // Log:     qs -c dynamic-island log        (Hot-Reload ist an: Datei speichern reicht)
 //
 // Die Komponenten bringen ihre Pro-Monitor-Logik (Variants) selbst mit:
