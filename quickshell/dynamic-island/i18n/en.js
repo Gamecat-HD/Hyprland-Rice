@@ -768,5 +768,13 @@ var strings = {
     "Wallhaven-Suche in der Wallpaper-Auswahl, Download nach Wallpapers/Wallhaven. SUPER+ALT+W oder Strg+W in der Auswahl.": "Wallhaven search in the wallpaper picker, downloads to Wallpapers/Wallhaven. SUPER+ALT+W or Ctrl+W in the picker.",
     "Wartet bei Vollbild oder Game-Mode": "Waits during fullscreen or game mode",
     "Widgets auf dem Hintergrund, je Wallpaper angeordnet (SUPER+ALT+D).": "Widgets on the background, arranged per wallpaper (SUPER+ALT+D).",
-    "Zusätzliche Widgets, jedes als eigenes Paket (.dip).": "Additional widgets, each as its own package (.dip)."
+    "Zusätzliche Widgets, jedes als eigenes Paket (.dip).": "Additional widgets, each as its own package (.dip).",
+    "Anmeldefehler": "Authentication error",
+    "Anmeldung nicht möglich": "Cannot authenticate",
+    "Falsches Passwort": "Wrong password",
+    "Sperrbildschirm": "Lock screen",
+    "Sperre retten (hyprlock)": "Recover lock (hyprlock)",
+    "Wallpaper unscharf": "Blur wallpaper",
+    "Zu viele Fehlversuche – kurz warten": "Too many failed attempts – wait a moment",
+    "Zu viele Versuche": "Too many attempts"
 };

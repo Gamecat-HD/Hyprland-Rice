@@ -32,6 +32,7 @@ Singleton {
     readonly property alias osd: adapter.osd
     readonly property alias wallpaper: adapter.wallpaper
     readonly property alias media: adapter.media
+    readonly property alias lock: adapter.lock
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -104,6 +105,10 @@ Singleton {
         "media.lyrics": {
             title: "Songtexte", desc: "Spotify-Extension, sonst lrclib.net"
         },
+        // Sperrbildschirm (modules/lock)
+        "lock.blur": { title: "Wallpaper unscharf" },
+        "lock.media": { title: "Medien-Karte" },
+        "lock.notifications": { title: "Nachrichten-Zaehler" },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
@@ -200,13 +205,14 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "media", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "media", "lock", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
         "osd": "volume_up",
         "notch": "web_asset",
         "media": "music_note",
+        "lock": "lock",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
         "notifications": "notifications",
@@ -222,7 +228,8 @@ Singleton {
         "appearance": "Darstellung",
         "wallpaper": "Wallpaper",
         "notch": "Notch-Layout",
-        "media": "Medien"
+        "media": "Medien",
+        "lock": "Sperrbildschirm"
     })
 
     // Die Datei als einfaches Objekt – daraus baut das Einstellungs-Fenster
@@ -490,6 +497,13 @@ Singleton {
                 property string cover: "rund"
                 property bool lyrics: true
                 property bool queueOpen: false
+            }
+
+            // Sperrbildschirm (modules/lock)
+            property JsonObject lock: JsonObject {
+                property bool blur: true
+                property bool media: true
+                property bool notifications: true
             }
 
             // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine

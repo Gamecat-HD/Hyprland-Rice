@@ -21,7 +21,7 @@ Item {
 
     readonly property var actions: [
         { label: "Sperren", icon: "lock", hue: Colors.primary,
-          command: ["hyprlock"] },
+          command: [Quickshell.env("HOME") + "/.config/hypr/scripts/lock.sh"] },
         { label: "Abmelden", icon: "logout", hue: Colors.secondary,
           command: [Quickshell.env("HOME") + "/.config/hypr/scripts/session-exit.sh", "logout"] },
         { label: "Standby", icon: "bedtime", hue: Colors.tertiary,

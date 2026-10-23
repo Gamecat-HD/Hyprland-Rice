@@ -53,13 +53,11 @@ local cfg = {
 	fileExplorer = "dolphin",
 	audioSettings = "pavucontrol",
 	launcher = "fuzzel",
-	-- Sperrbildschirm (SUPER + L): die eigene Config, ~/.config/hypr/hyprlock.conf.
-	-- Layout 12 aus Hyprlock-Dots liegt weiterhin unter ~/.config/hyprlock.
-	-- Wieder darauf umstellen:
-	--   lockCmd = "hyprlock -c " .. home .. "/.config/hyprlock/layout12.conf"
-	-- oder mit vorher gebautem Hintergrund (unscharfe Spalte links):
-	--   lockCmd = home .. "/.config/hyprlock/scripts/lock.sh"
-	lockCmd = "hyprlock",
+	-- Sperrbildschirm (SUPER + L): der Lockscreen der dynamic-island-Shell
+	-- (quickshell/dynamic-island/modules/lock); laeuft die Shell nicht, nimmt
+	-- das Skript hyprlock mit ~/.config/hypr/hyprlock.conf.
+	-- Nur hyprlock:  lockCmd = "hyprlock"
+	lockCmd = home .. "/.config/hypr/scripts/lock.sh",
 
 	-- Tastatur / Maus
 	kbLayout = "de",
@@ -411,6 +409,9 @@ bind("SUPER + I", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher system
 bind("SUPER + X", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher power"), desc("Power-Menü"))
 bind("SUPER + K", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher keys"), desc("Tastenkürzel"))
 bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd), desc("Sperren"))
+-- Stuerzt die Shell bei gesperrter Sitzung ab, bleibt Hyprland gesperrt ohne
+-- Oberflaeche zurueck – hyprlock uebernimmt dann (allow_session_lock_restore)
+bind("SUPER + ALT + L", hl.dsp.exec_cmd("pidof hyprlock || hyprlock"), desc("Sperre retten (hyprlock)", { locked = true }))
 bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), desc("Standby", { locked = true }))
 
 -- Fenster

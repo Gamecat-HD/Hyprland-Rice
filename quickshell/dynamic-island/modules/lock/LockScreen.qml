@@ -1,0 +1,230 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Effects
+import Quickshell
+
+import qs
+import qs.modules.services.config
+import qs.modules.services.media
+import qs.modules.services.wallpaper
+
+// Was auf jedem Monitor zu sehen ist, solange gesperrt ist:
+//
+//   - das aktuelle Wallpaper; beim Sperren zieht es sich etwas heran und
+//     wird unscharf, beim Entsperren wird es wieder scharf – darunter liegt
+//     dasselbe Bild auf dem Desktop, der Uebergang hat also keine Kante
+//   - oben die Notch (LockNotch), die zum Passwortfeld aufklappt
+//   - die Uhr: Stunden in Schriftfarbe, Minuten im Akzent des Wallpapers
+//   - unten die Medien-Karte, nur auf dem Monitor, der beim Sperren den
+//     Fokus hatte
+//
+// Ohne echte Sperre benutzbar (Vorschau, Tests): `context` reicht.
+Item {
+    id: view
+
+    required property LockContext context
+    property bool leaving: false
+    property bool primary: true
+
+    // Kurz nach dem Erscheinen true: alle Eingangs-Animationen haengen daran
+    property bool entered: false
+    readonly property bool shown: view.entered && !view.leaving
+
+    readonly property int sceneDuration: Math.round(Appearance.morphDuration * 2.2)
+
+    Timer {
+        interval: 16
+        running: true
+        onTriggered: view.entered = true
+    }
+
+    Keys.onPressed: event => {
+        view.context.handleKey(event);
+        event.accepted = true;
+    }
+
+    // ---- Hintergrund ----
+    Rectangle {
+        anchors.fill: parent
+        color: Colors.background
+    }
+
+    Item {
+        id: backdrop
+
+        anchors.fill: parent
+        scale: view.shown ? 1.05 : 1
+
+        Behavior on scale {
+            NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+
+        Image {
+            id: wall
+
+            anchors.fill: parent
+            source: Wallpapers.actualCurrent !== "" ? "file://" + Wallpapers.actualCurrent : ""
+            sourceSize: Qt.size(view.width, view.height)
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: false
+            cache: true
+            visible: false
+        }
+
+        MultiEffect {
+            anchors.fill: parent
+            source: wall
+            visible: wall.status === Image.Ready
+
+            blurEnabled: Config.lock.blur
+            blurMax: 64
+            blur: view.shown ? 0.7 : 0
+            brightness: view.shown ? -0.16 : 0
+            saturation: view.shown ? 0.12 : 0
+
+            Behavior on blur {
+                NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+            }
+            Behavior on brightness {
+                NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+            }
+            Behavior on saturation {
+                NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+            }
+        }
+    }
+
+    // Unten dunkler, damit Karte und Uhr auf hellen Bildern lesbar bleiben
+    Rectangle {
+        anchors.fill: parent
+        opacity: view.shown ? 1 : 0
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Colors.alpha("black", 0.18) }
+            GradientStop { position: 0.45; color: Colors.alpha("black", 0.0) }
+            GradientStop { position: 1.0; color: Colors.alpha("black", 0.42) }
+        }
+
+        Behavior on opacity {
+            NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+    }
+
+    // ---- Uhr ----
+    SystemClock {
+        id: clock
+
+        precision: SystemClock.Minutes
+    }
+
+    readonly property bool use12h: Config.appearance.clock === "12h"
+    readonly property string hours: {
+        const h = clock.date.getHours();
+        return view.use12h ? String(h % 12 || 12) : String(h).padStart(2, "0");
+    }
+    readonly property string minutes: String(clock.date.getMinutes()).padStart(2, "0")
+    readonly property real clockSize: Math.round(Math.min(view.width * 0.13, view.height * 0.22, 230))
+
+    Item {
+        id: clockBlock
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.round(view.height * 0.2) + (view.shown ? 0 : -40)
+        width: clockColumn.width
+        height: clockColumn.height
+        opacity: view.shown ? 1 : 0
+
+        Behavior on y {
+            NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+        Behavior on opacity {
+            NumberAnimation { duration: view.leaving ? Appearance.morphDuration : view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: "black"
+            shadowOpacity: 0.35
+            shadowBlur: 1
+            blurMax: 48
+            shadowVerticalOffset: 3
+        }
+
+        Column {
+            id: clockColumn
+
+            spacing: Math.round(view.clockSize * 0.02)
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: I18n.date(clock.date, "dddd, d. MMMM", "dddd, MMMM d")
+                color: Colors.alpha(Colors.fgBackground, 0.88)
+                font.family: Config.font
+                font.pixelSize: Math.round(view.clockSize * 0.12)
+                font.weight: Font.Medium
+            }
+
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: Math.round(view.clockSize * 0.16)
+
+                Text {
+                    text: view.hours
+                    color: Colors.fgBackground
+                    font.family: Config.font
+                    font.pixelSize: view.clockSize
+                    font.weight: Font.Black
+                    font.letterSpacing: -view.clockSize * 0.035
+                    font.features: { "tnum": 1 }
+                }
+
+                Text {
+                    text: view.minutes
+                    color: Colors.mix(Colors.primary, Colors.fgBackground, 0.18)
+                    font.family: Config.font
+                    font.pixelSize: view.clockSize
+                    font.weight: Font.Black
+                    font.letterSpacing: -view.clockSize * 0.035
+                    font.features: { "tnum": 1 }
+                }
+            }
+        }
+    }
+
+    // ---- Notch ----
+    LockNotch {
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: 0
+        context: view.context
+        shown: view.entered
+        leaving: view.leaving
+    }
+
+    // ---- Medien ----
+    LockMedia {
+        id: media
+
+        readonly property bool wanted: view.primary && Config.lock.media && Media.available
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: view.height - height - 56 + (view.shown && media.wanted ? 0 : 36)
+        width: Math.min(implicitWidth, view.width - 48)
+        height: implicitHeight
+        opacity: view.shown && media.wanted ? 1 : 0
+        visible: opacity > 0
+
+        Behavior on y {
+            NumberAnimation { duration: view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+        Behavior on opacity {
+            NumberAnimation { duration: view.leaving ? Appearance.morphDuration : view.sceneDuration; easing.type: Easing.OutCubic }
+        }
+    }
+
+    // Klick irgendwohin holt den Tastaturfokus zurueck
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        onPressed: view.forceActiveFocus()
+    }
+}
