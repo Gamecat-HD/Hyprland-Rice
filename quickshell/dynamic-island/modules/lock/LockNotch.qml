@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Shapes
 import Quickshell
 
 import qs
@@ -12,7 +13,7 @@ import qs.modules.services.notifications
 // Die Notch des Sperrbildschirms. Sie startet genau so, wie die Notch der
 // Leiste eingeklappt aussieht, und wird zum Passwortfeld, sobald man tippt:
 //
-//   eingeklappt   Schloss, links ggf. Feststelltaste, rechts Nachrichten
+//   eingeklappt   Schloss, daneben ggf. Feststelltaste und Nachrichten
 //   aufgeklappt   Avatar | Feld mit einem Punkt je Zeichen | Status-Symbol
 //
 // Falsches Passwort: sie schuettelt sich. Richtiges: das Schloss geht auf,
@@ -33,7 +34,10 @@ Item {
     readonly property bool open: !notch.leaving && notch.shown && notch.context.phase !== "idle"
     readonly property bool hasMessage: notch.open && notch.context.message !== ""
 
-    readonly property real closedWidth: 196
+    readonly property bool showCount: Config.lock.notifications && Notifications.count > 0
+    // Eingeklappt so breit wie der Inhalt. Vor dem Erscheinen so breit wie
+    // die eingeklappte Notch der Leiste, aus der sie hervorgeht.
+    readonly property real closedWidth: notch.shown ? Math.max(84, compactRow.implicitWidth + 40) : 196
     readonly property real closedHeight: 32
     readonly property real openWidth: 400
     readonly property real openHeight: notch.hasMessage ? 112 : 88
@@ -120,49 +124,50 @@ Item {
 
             Fade on opacity {}
 
-            Icon {
-                anchors.centerIn: parent
-                text: "lock"
-                size: 17
-                color: notch.fg
-            }
-
-            Icon {
-                anchors {
-                    left: parent.left
-                    leftMargin: 16
-                    verticalCenter: parent.verticalCenter
-                }
-                text: "keyboard_capslock"
-                size: 16
-                color: Colors.tertiary
-                visible: notch.context.capsLock
-            }
-
+            // Schloss in der Mitte, Feststelltaste und Nachrichten rücken als
+            // Gruppe daneben – die Notch ist so breit wie das, was sie zeigt
             Row {
-                anchors {
-                    right: parent.right
-                    rightMargin: 16
-                    verticalCenter: parent.verticalCenter
-                }
-                spacing: 4
-                visible: Config.lock.notifications && Notifications.count > 0
+                id: compactRow
+
+                anchors.centerIn: parent
+                spacing: 12
 
                 Icon {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "notifications"
-                    size: 15
-                    color: Colors.primary
+                    visible: notch.context.capsLock
+                    text: "keyboard_capslock"
+                    size: 16
+                    color: Colors.tertiary
                 }
 
-                Text {
+                LockGlyph {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Notifications.count
+                    size: 13
                     color: notch.fg
-                    font.family: Config.font
-                    font.pixelSize: 13
-                    font.weight: Font.DemiBold
-                    font.features: { "tnum": 1 }
+                }
+
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 5
+                    visible: notch.showCount
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 7
+                        height: 7
+                        radius: 3.5
+                        color: Colors.primary
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Notifications.count
+                        color: notch.fg
+                        font.family: Config.font
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                        font.features: { "tnum": 1 }
+                    }
                 }
             }
         }
@@ -243,21 +248,33 @@ Item {
                     }
                 }
 
-                Icon {
+                Item {
                     id: status
 
                     anchors {
                         right: parent.right
                         verticalCenter: parent.verticalCenter
                     }
-                    text: notch.context.phase === "success" ? "lock_open"
-                        : notch.context.capsLock ? "keyboard_capslock"
-                        : "lock"
-                    size: 22
-                    color: notch.context.capsLock && notch.context.phase !== "success" ? Colors.tertiary
-                                                                                         : notch.stateColor
+                    width: 22
+                    height: 24
 
-                    Behavior on color { ColorAnimation { duration: Appearance.fadeDuration } }
+                    LockGlyph {
+                        anchors.centerIn: parent
+                        visible: !caps.visible
+                        size: 17
+                        open: notch.context.phase === "success"
+                        color: notch.stateColor
+                    }
+
+                    Icon {
+                        id: caps
+
+                        anchors.centerIn: parent
+                        visible: notch.context.capsLock && notch.context.phase !== "success"
+                        text: "keyboard_capslock"
+                        size: 22
+                        color: Colors.tertiary
+                    }
                 }
             }
 
@@ -304,6 +321,77 @@ Item {
     }
 
     // ---- Bausteine ----
+
+    // Vorhaengeschloss, selbst gezeichnet: Koerper als runde Platte, Buegel
+    // als Bogen. `open` hebt den Buegel heraus und kippt ihn – mit Feder,
+    // wie das Schloss beim Entsperren aufspringt.
+    component LockGlyph: Item {
+        id: glyph
+
+        property real size: 16
+        property color color: "white"
+        property bool open: false
+
+        readonly property real stroke: Math.max(1.6, glyph.size * 0.16)
+        readonly property real legX: glyph.size * 0.5 - glyph.size * 0.36 + glyph.stroke / 2
+
+        width: glyph.size
+        height: glyph.size * 1.25
+
+        Behavior on color { ColorAnimation { duration: Appearance.fadeDuration } }
+
+        Shape {
+            id: shackle
+
+            width: glyph.size
+            height: glyph.size * 0.75
+            preferredRendererType: Shape.CurveRenderer
+            transform: [
+                Rotation {
+                    origin.x: glyph.size - glyph.legX
+                    origin.y: glyph.size * 0.62
+                    angle: glyph.open ? 22 : 0
+
+                    Behavior on angle {
+                        NumberAnimation { duration: Appearance.morphDuration; easing.type: Easing.OutBack; easing.overshoot: 2.2 }
+                    }
+                },
+                Translate {
+                    y: glyph.open ? -glyph.size * 0.2 : 0
+
+                    Behavior on y {
+                        NumberAnimation { duration: Appearance.morphDuration; easing.type: Easing.OutBack; easing.overshoot: 2.2 }
+                    }
+                }
+            ]
+
+            ShapePath {
+                strokeWidth: glyph.stroke
+                strokeColor: glyph.color
+                fillColor: "transparent"
+                capStyle: ShapePath.RoundCap
+
+                startX: glyph.legX
+                startY: glyph.size * 0.66
+                PathLine { x: glyph.legX; y: glyph.size * 0.42 }
+                PathArc {
+                    x: glyph.size - glyph.legX
+                    y: glyph.size * 0.42
+                    radiusX: glyph.size * 0.5 - glyph.legX
+                    radiusY: glyph.size * 0.5 - glyph.legX
+                }
+                PathLine { x: glyph.size - glyph.legX; y: glyph.size * 0.66 }
+            }
+        }
+
+        Rectangle {
+            y: glyph.size * 0.58
+            width: glyph.size
+            height: glyph.size * 0.67
+            radius: glyph.size * 0.2
+            color: glyph.color
+        }
+    }
 
     component Icon: Text {
         property real size: 18
