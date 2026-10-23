@@ -8,6 +8,7 @@ import "modules/bar"
 import "modules/idle"
 import "modules/lock"
 import "modules/osd"
+import "modules/screenshot"
 import "modules/settings"
 import "modules/window"
 import qs.modules.services.plugins
@@ -38,4 +39,5 @@ ShellRoot {
     SettingsWindow {}
     Lock {}
     IdleDim {}
+    ScreenshotOverlay {}
 }
