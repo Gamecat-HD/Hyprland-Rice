@@ -148,6 +148,16 @@ PanelWindow {
             TapHandler {
                 onTapped: point => {
                     const x = point.position.x, y = point.position.y;
+                    // Die Leiste nimmt Klicks selbst an, Qt 6 reicht sie aber
+                    // trotzdem hierher weiter – sonst schloesse "Widget" seine
+                    // eigene Liste gleich wieder und jeder Knopf hoebe die
+                    // Auswahl auf
+                    const bar = barLoader.item;
+                    if (bar) {
+                        const p = bar.mapFromItem(stage, x, y);
+                        if (p.x >= 0 && p.y >= 0 && p.x <= bar.width && p.y <= bar.height)
+                            return;
+                    }
                     for (const child of stage.children)
                         if (typeof child.owns === "function" && child.owns(x, y))
                             return;
