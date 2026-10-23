@@ -9,6 +9,7 @@ import qs.modules.widgets
 import qs.modules.bar.components.notch
 import qs.modules.services.config
 import qs.modules.services.notifications
+import qs.modules.services.system
 
 // Die Notch des Sperrbildschirms. Sie startet genau so, wie die Notch der
 // Leiste eingeklappt aussieht, und wird zum Passwortfeld, sobald man tippt:
@@ -43,6 +44,14 @@ Item {
     readonly property bool hasMessage: notch.open && notch.context.message !== ""
 
     readonly property bool showCount: Config.lock.notifications && Notifications.count > 0
+    // Akkustand nur mit Systemakku (Laptop) – Maus- und Headset-Akkus
+    // gehoeren nicht auf den Sperrbildschirm. Beschreibbar fuer Tests.
+    property bool showBattery: Power.hasSystemBattery
+    property int batteryPercent: Power.percent
+    property bool batteryCharging: Power.charging
+    readonly property color batteryColor: notch.batteryCharging ? Colors.primary
+                                        : notch.batteryPercent <= 15 ? Colors.error
+                                        : notch.fg
     // Eingeklappt so breit wie der Inhalt. Vor dem Erscheinen so breit wie
     // die eingeklappte Notch der Leiste, aus der sie hervorgeht.
     readonly property real closedWidth: notch.shown ? Math.max(84, compactRow.implicitWidth + 40) : 196
@@ -150,8 +159,9 @@ Item {
 
             Fade on opacity {}
 
-            // Schloss in der Mitte, Feststelltaste und Nachrichten rücken als
-            // Gruppe daneben – die Notch ist so breit wie das, was sie zeigt
+            // Schloss in der Mitte, Feststelltaste, Akku und Nachrichten
+            // ruecken als Gruppe daneben – die Notch ist so breit wie das,
+            // was sie zeigt
             Row {
                 id: compactRow
 
@@ -164,6 +174,68 @@ Item {
                     text: "keyboard_capslock"
                     size: 16
                     color: Colors.tertiary
+                }
+
+                // Akku: Zahl + liegende Batterie, Fuellung nach Ladestand;
+                // beim Laden Blitz davor und Fuellung im Akzent, unter 15 % rot
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 5
+                    visible: notch.showBattery
+
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 1
+
+                        Icon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: notch.batteryCharging
+                            text: "bolt"
+                            size: 14
+                            color: Colors.primary
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: notch.batteryPercent
+                            color: notch.batteryCharging ? notch.fg : notch.batteryColor
+                        font.family: Config.font
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                            font.features: { "tnum": 1 }
+                        }
+                    }
+
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 1
+
+                        Rectangle {
+                            width: 20
+                            height: 11
+                            radius: 3.5
+                            color: "transparent"
+                            border.width: 1.5
+                            border.color: Colors.alpha(notch.fg, 0.55)
+
+                            Rectangle {
+                                x: 2.5
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Math.max(2, (parent.width - 5) * Math.min(100, notch.batteryPercent) / 100)
+                                height: parent.height - 5
+                                radius: 1.5
+                                color: notch.batteryColor
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 2
+                            height: 4
+                            radius: 1
+                            color: Colors.alpha(notch.fg, 0.55)
+                        }
+                    }
                 }
 
                 LockGlyph {
