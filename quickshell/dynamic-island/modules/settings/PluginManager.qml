@@ -13,8 +13,8 @@ import qs
 // Fenster (SettingsCard.qml zeigt sie statt der Zeilenliste).
 //
 // Oben Importieren und Ordner oeffnen, darunter je Plugin eine Karte:
-// Symbol, Name, Version, Autor, Beschreibung, Status, was es mitbringt
-// (Einstellungen, Kacheln, Launcher-Aktionen, externe Dateien), ein An/Aus-
+// Symbol, Name, Version, Autor, Beschreibung, was es mitbringt (Einstellungen,
+// Kacheln, Launcher-Aktionen, Kuerzel – eine Textzeile), ein An/Aus-
 // Schalter und die Knoepfe Einstellungen / Exportieren / Zuruecksetzen /
 // Entfernen (zweistufig, wie "Alles zuruecksetzen" in der Leiste).
 //
@@ -26,7 +26,7 @@ import qs
 // Tastaturfokus, ein zenity/kdialog-Fenster laege darunter und waere nicht
 // bedienbar. Stattdessen listet die Import-Ansicht die .dip-Pakete aus
 // ~/Downloads, ~ und ~/Documents (FolderListModel) und hat ein Pfadfeld;
-// Exporte landen in ~/Downloads/<id>-<version>.dip.
+// Exporte landen in ~/Downloads/<id>-<version>.dip (page.exportDir).
 //
 // Komponenten (Manifest `parent`, z.B. Bonsai unter Desktop-Widgets) stehen
 // nicht oben, sondern im Untermenue ihres Plugins: der Knopf auf dessen
@@ -98,8 +98,9 @@ Item {
         Plugins.importPlugin(p, page.importEnable, page.subPage);
     }
 
+    // An/Aus zeigt der Schalter selbst; Text nur fuer die Zwischenzustaende
     function statusLabel(s: string): string {
-        return ({ ready: I18n.tr("Aktiv"), off: I18n.tr("Aus"), blocked: I18n.tr("Wartet"), loading: I18n.tr("Lädt"), error: I18n.tr("Fehler"), invalid: I18n.tr("Ungültig") })[s] ?? s;
+        return ({ blocked: I18n.tr("Wartet"), loading: I18n.tr("Lädt"), error: I18n.tr("Fehler"), invalid: I18n.tr("Ungültig") })[s] ?? "";
     }
 
     function statusColor(s: string): color {
@@ -288,42 +289,6 @@ Item {
         }
     }
 
-    // Kleiner Merkmal-Chip ("2 Einstellungen")
-    component FeatureChip: Rectangle {
-        id: chip
-
-        required property string icon
-        required property string label
-
-        implicitWidth: chipRow.implicitWidth + 16
-        implicitHeight: 22
-        radius: 11
-        color: Colors.alpha(Colors.fgSurface, 0.07)
-
-        Row {
-            id: chipRow
-
-            anchors.centerIn: parent
-            spacing: 4
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: chip.icon
-                color: Colors.fgSurfaceVariant
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 13
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                font.family: Config.font
-                text: chip.label
-                color: Colors.fgSurfaceVariant
-                font.pixelSize: 10
-            }
-        }
-    }
-
     // ---- Die Karte eines Plugins ----
     component PluginCard: Rectangle {
         id: pcard
@@ -340,6 +305,25 @@ Item {
         readonly property bool changed: pcard.hasSettings
             && Object.keys(Plugins.raw[pcard.section] ?? {}).some(k => !Plugins.isDefault(pcard.section, k))
         readonly property color statusTint: page.statusColor(pcard.info.status)
+        // Was das Plugin mitbringt, als eine Zeile: "4 Einstellungen, 1 Kachel, SUPER+ALT+D"
+        readonly property string features: {
+            const info = pcard.info;
+            const parts = [];
+            if (info.settingsCount > 0)
+                parts.push(info.settingsCount === 1 ? I18n.tr("1 Einstellung") : I18n.tr("%1 Einstellungen").arg(info.settingsCount));
+            if (info.tiles.length > 0)
+                parts.push(info.tiles.length === 1 ? I18n.tr("1 Kachel") : I18n.tr("%1 Kacheln").arg(info.tiles.length));
+            if (info.widgets.length > 0)
+                parts.push(info.widgets.length === 1 ? I18n.tr("1 Desktop-Widget") : I18n.tr("%1 Desktop-Widgets").arg(info.widgets.length));
+            if (info.actions > 0)
+                parts.push(info.actions === 1 ? I18n.tr("1 Launcher-Aktion") : I18n.tr("%1 Launcher-Aktionen").arg(info.actions));
+            for (const k of info.keybinds)
+                parts.push(k.keys);
+            // Komponente, deren Plugin fehlt – steht deshalb oben
+            if (info.parentMissing)
+                parts.push(I18n.tr("gehört zu „%1“ (nicht installiert)").arg(info.parent));
+            return parts.join(", ");
+        }
 
         property bool removeArmed: false
 
@@ -490,43 +474,17 @@ Item {
                     }
                 }
 
-                // Status-Badge
-                Rectangle {
+                // Zwischenzustand (Wartet, Laedt, Fehler, Ungueltig) – An/Aus
+                // sagt der Schalter
+                Text {
                     Layout.alignment: Qt.AlignTop
-                    Layout.topMargin: 2
-                    implicitWidth: statusRow.implicitWidth + 18
-                    implicitHeight: 22
-                    radius: 11
-                    color: Colors.alpha(pcard.statusTint, 0.14)
-
-                    Behavior on color {
-                        ColorAnimation { duration: Appearance.fadeDuration }
-                    }
-
-                    Row {
-                        id: statusRow
-
-                        anchors.centerIn: parent
-                        spacing: 6
-
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 6
-                            height: 6
-                            radius: 3
-                            color: pcard.statusTint
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            font.family: Config.font
-                            text: pcard.info.status === "blocked" ? I18n.tr("%1 aus").arg(page.pluginName(pcard.info.parent))
-                                : page.statusLabel(pcard.info.status)
-                            color: pcard.statusTint
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                        }
-                    }
+                    Layout.topMargin: 6
+                    font.family: Config.font
+                    visible: text !== ""
+                    text: pcard.info.status === "blocked" ? I18n.tr("%1 aus").arg(page.pluginName(pcard.info.parent))
+                        : page.statusLabel(pcard.info.status)
+                    color: pcard.statusTint
+                    font.pixelSize: 10
                 }
 
                 Toggle {
@@ -538,61 +496,16 @@ Item {
                 }
             }
 
-            // Was das Plugin mitbringt
-            Flow {
+            // Was das Plugin mitbringt – buendig mit der Beschreibung
+            Text {
                 Layout.fillWidth: true
                 Layout.leftMargin: 52
-                spacing: 6
-                visible: pcard.info.status !== "invalid"
-
-                FeatureChip {
-                    visible: pcard.info.settingsCount > 0
-                    icon: "tune"
-                    label: pcard.info.settingsCount === 1 ? I18n.tr("1 Einstellung") : I18n.tr("%1 Einstellungen").arg(pcard.info.settingsCount)
-                }
-
-                FeatureChip {
-                    visible: pcard.info.tiles.length > 0
-                    icon: "dashboard_customize"
-                    label: pcard.info.tiles.length === 1 ? I18n.tr("1 Kachel") : I18n.tr("%1 Kacheln").arg(pcard.info.tiles.length)
-                }
-
-                FeatureChip {
-                    visible: pcard.info.actions > 0
-                    icon: "bolt"
-                    label: pcard.info.actions === 1 ? I18n.tr("1 Launcher-Aktion") : I18n.tr("%1 Launcher-Aktionen").arg(pcard.info.actions)
-                }
-
-                FeatureChip {
-                    visible: pcard.info.keybinds.length > 0
-                    icon: "keyboard"
-                    label: pcard.info.keybinds.map(k => k.keys).join(", ")
-                }
-
-                FeatureChip {
-                    visible: pcard.info.files > 0
-                    icon: "folder_copy"
-                    label: pcard.info.files === 1 ? I18n.tr("1 externe Datei") : I18n.tr("%1 externe Dateien").arg(pcard.info.files)
-                }
-
-                FeatureChip {
-                    visible: pcard.info.widgets.length > 0
-                    icon: "widgets"
-                    label: pcard.info.widgets.length === 1 ? I18n.tr("1 Desktop-Widget") : I18n.tr("%1 Desktop-Widgets").arg(pcard.info.widgets.length)
-                }
-
-                FeatureChip {
-                    visible: pcard.info.main !== ""
-                    icon: "memory"
-                    label: I18n.tr("Dienst")
-                }
-
-                // Komponente, deren Plugin fehlt – steht deshalb oben
-                FeatureChip {
-                    visible: pcard.info.parentMissing
-                    icon: "link_off"
-                    label: I18n.tr("gehört zu „%1“ (nicht installiert)").arg(pcard.info.parent)
-                }
+                font.family: Config.font
+                visible: pcard.info.status !== "invalid" && text !== ""
+                text: pcard.features
+                color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
+                font.pixelSize: 10
+                elide: Text.ElideRight
             }
 
             // Knoepfe
@@ -1273,47 +1186,50 @@ Item {
                     }
 
                     // Was das Plugin selbst schon mitbringt
-                    ColumnLayout {
+                    Text {
                         Layout.fillWidth: true
-                        Layout.leftMargin: 52
+                        font.family: Config.font
                         visible: (page.subInfo?.widgets ?? []).length > 0
-                        spacing: 6
-
-                        Text {
-                            font.family: Config.font
-                            text: I18n.tr("Eingebaut")
-                            color: Colors.fgSurfaceVariant
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                        }
-
-                        Flow {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Repeater {
-                                model: page.subInfo?.widgets ?? []
-
-                                FeatureChip {
-                                    required property var modelData
-
-                                    icon: modelData.icon
-                                    label: I18n.tr(modelData.title)
-                                }
-                            }
-                        }
+                        text: I18n.tr("Eingebaut") + ": " + (page.subInfo?.widgets ?? []).map(w => I18n.tr(w.title)).join(", ")
+                        color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
+                        font.pixelSize: 10
+                        wrapMode: Text.WordWrap
                     }
                 }
             }
 
             // ---- Die Plugins (bzw. im Untermenue die Komponenten) ----
-            Repeater {
-                model: page.listed
+            // Ab ~850 px zwei Spalten (Karten mindestens 420 px), abwechselnd
+            // verteilt; jede Spalte waechst fuer sich
+            Row {
+                id: cards
 
-                PluginCard {
-                    required property var modelData
+                readonly property int columns: cards.width >= 2 * 420 + cards.spacing ? 2 : 1
 
-                    info: modelData
+                width: parent.width
+                spacing: 10
+
+                Repeater {
+                    model: cards.columns
+
+                    Column {
+                        id: cardColumn
+
+                        required property int index
+
+                        width: (cards.width - cards.spacing * (cards.columns - 1)) / cards.columns
+                        spacing: 8
+
+                        Repeater {
+                            model: page.listed.filter((p, i) => i % cards.columns === cardColumn.index)
+
+                            PluginCard {
+                                required property var modelData
+
+                                info: modelData
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1389,31 +1305,25 @@ Item {
                 }
             }
 
-            // ---- Fuss: wohin Exporte gehen ----
+            // ---- Fuss: Einstellungswerte in den Export mitnehmen ----
             Item {
                 width: parent.width
                 height: 30
                 visible: Plugins.plugins.length > 0
 
-                Text {
+                Row {
                     anchors {
                         left: parent.left
                         leftMargin: 14
                         verticalCenter: parent.verticalCenter
                     }
-                    font.family: Config.font
-                    text: I18n.tr("Exporte landen in %1/<id>-<version>.dip").arg(page.shortPath(page.exportDir))
-                    color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
-                    font.pixelSize: 10
-                }
-
-                Row {
-                    anchors {
-                        right: parent.right
-                        rightMargin: 14
-                        verticalCenter: parent.verticalCenter
-                    }
                     spacing: 8
+
+                    Toggle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        checked: page.exportWithSettings
+                        onToggled: page.exportWithSettings = !page.exportWithSettings
+                    }
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -1421,12 +1331,6 @@ Item {
                         text: I18n.tr("Einstellungswerte mitnehmen")
                         color: Colors.fgSurfaceVariant
                         font.pixelSize: 10
-                    }
-
-                    Toggle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        checked: page.exportWithSettings
-                        onToggled: page.exportWithSettings = !page.exportWithSettings
                     }
                 }
             }

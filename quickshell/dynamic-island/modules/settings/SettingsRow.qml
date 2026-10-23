@@ -112,6 +112,12 @@ Item {
                                        : (row.entry?.desc ?? "")
     readonly property real lineHeight: row.subtitle !== "" ? 52 : 44
 
+    // Breite des Bedienelements je nach Zeilenbreite: der Schieberegler
+    // waechst von 110 auf 220 px mit, ein Auswahlwert wird abgeschnitten,
+    // bevor er dem Titel seine 160 px nimmt
+    readonly property real sliderWidth: Math.max(110, Math.min(220, row.width - 300))
+    readonly property real valueCap: Math.max(72, row.width - 28 - 160 - 10 - 26 - 24)
+
     implicitHeight: (row.section !== "" ? row.headerHeight : 0) + row.lineHeight
                     + (row.expanded ? choiceFlow.implicitHeight + 12 : 0)
                     + (row.isEditor ? editorLoader.implicitHeight + 14 : 0)
@@ -216,10 +222,12 @@ Item {
                 spacing: 2
 
                 Row {
+                    width: parent.width
                     spacing: 6
 
                     Text {
                         font.family: Config.font
+                        width: Math.min(implicitWidth, parent.width - (row.changed ? 11 : 0))
                         text: row.entry?.title ?? ""
                         color: Colors.fgBackground
                         font.pixelSize: 12
@@ -358,7 +366,7 @@ Item {
                         id: slider
 
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 150
+                        width: row.sliderWidth
                         height: 28
 
                         readonly property real handleSize: 14
@@ -446,10 +454,12 @@ Item {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
+                        width: Math.min(implicitWidth, row.valueCap)
                         text: row.optionLabel(row.entry?.value)
                         color: Colors.fgSurfaceVariant
                         font.family: row.isFont ? String(row.entry?.value ?? "") : Config.font
                         font.pixelSize: 11
+                        elide: Text.ElideRight
                     }
 
                     Text {

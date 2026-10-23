@@ -148,7 +148,7 @@ LazyLoader {
             // Verschieben am Kopf der Gruppenleiste ("Einstellungen")
             MouseArea {
                 anchors { left: parent.left; top: parent.top; topMargin: win.grip; leftMargin: win.corner }
-                width: 236 - win.corner
+                width: card.sidebarWidth - win.corner
                 height: 64
                 cursorShape: pressed ? Qt.ClosedHandCursor : Qt.ArrowCursor
                 onPressed: win.startSystemMove()

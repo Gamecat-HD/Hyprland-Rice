@@ -19,7 +19,8 @@ Singleton {
     // Schliessen verworfen wird – und muss schon gelesen sein, bevor es
     // beim Oeffnen seine Anfangsgroesse nimmt.
     readonly property size defaultSize: Qt.size(880, 640)
-    readonly property size minimumSize: Qt.size(720, 520)
+    // Schmal genug, dass die Leiste zur Symbolspalte wird (SettingsCard.compact)
+    readonly property size minimumSize: Qt.size(520, 520)
     property size cardSize: root.defaultSize
 
     function rememberSize(size: size): void {

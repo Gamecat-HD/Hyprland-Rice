@@ -27,6 +27,13 @@ import qs
 // Config weiterreicht – fuer die Zeilen sind beide gleich.
 //
 // Die Suche geht ueber alle Gruppen, die Gruppenleiste ist dann aus.
+//
+// Breite: das Fenster laesst sich frei ziehen. Unter `compact` schrumpft
+// die Leiste zur Symbolspalte (Name beim Zeigen daneben), die Zeilen
+// fuellen eine Spalte bis 900 px, und ab `listColumns` 2 stehen sie in zwei
+// unabhaengigen Spalten – ganze Gruppen (bzw. die Zeilen einer einzelnen
+// Gruppe) werden oben nach unten erst links, dann rechts verteilt, damit
+// eine aufgeklappte Auswahl nur ihre eigene Spalte verschiebt.
 Surface {
     id: card
 
@@ -44,6 +51,14 @@ Surface {
     // die Bilder statt die Einstellungen, die Seite bleibt also stehen
     readonly property string wallsKey: "@wallpapers"
     readonly property bool browsing: card.section === card.wallsKey
+
+    // ---- Breite ----
+    // Schmale Karte: Leiste nur mit Symbolen
+    readonly property bool compact: card.width < 820
+    readonly property real sidebarWidth: card.compact ? 64 : 236
+    // Platz rechts der Leiste (Zielwert, nicht der animierte), ohne Raender
+    readonly property real contentRoom: card.width - card.sidebarWidth - 24
+    readonly property int listColumns: card.contentRoom >= 1000 ? 2 : 1
 
     // Gruppen aus shell.json in Menue-Reihenfolge, unbekannte hinten dran
     readonly property var sections: {
@@ -107,6 +122,116 @@ Surface {
         search.forceActiveFocus();
     }
 
+    // ---- Die Zeilen, gebaut aus der Datei ----
+    readonly property var entries: {
+        const needle = card.filter.trim().toLowerCase();
+        const out = [];
+        // shell.json kommt alphabetisch zurueck (QJsonObject sortiert beim
+        // Schreiben) – die Reihenfolge im Menue gibt deshalb die meta-Tabelle
+        // vor, Unbekanntes hinten. Plugin-Gruppen: Reihenfolge wie im
+        // Manifest (Plugins.meta)
+        const order = Object.keys(Config.meta).concat(Object.keys(Plugins.meta));
+        const rank = id => {
+            const i = order.indexOf(id);
+            return i < 0 ? order.length : i;
+        };
+
+        for (const section of card.allSections) {
+            if (needle === "" && card.section !== "" && section !== card.section)
+                continue;
+
+            const values = card.valuesOf(section) ?? {};
+            const keys = Object.keys(values).sort((a, b) =>
+                rank(`${section}.${a}`) - rank(`${section}.${b}`) || a.localeCompare(b));
+            for (const key of keys) {
+                const id = `${section}.${key}`;
+                const meta = Plugins.metaFor(id);
+                const entry = {
+                    id,
+                    section,
+                    key,
+                    value: values[key],
+                    title: meta?.title ? I18n.tr(meta.title) : key,
+                    // Ohne Eintrag in der Tabelle: ehrlich sagen,
+                    // dass der Schluessel neu ist
+                    desc: meta?.desc ? I18n.tr(meta.desc) : (meta ? "" : I18n.tr("Schlüssel \"%1\" aus shell.json").arg(key)),
+                    options: meta?.options ?? null,
+                    labels: meta?.labels ?? null,
+                    min: meta?.min,
+                    max: meta?.max,
+                    step: meta?.step,
+                    unit: meta?.unit ?? "",
+                    requires: meta?.requires ?? null,
+                    editor: meta?.editor ?? "",
+                    preview: meta?.preview ?? ""
+                };
+
+                if (needle === ""
+                    || entry.title.toLowerCase().includes(needle)
+                    || entry.desc.toLowerCase().includes(needle)
+                    || id.toLowerCase().includes(needle)
+                    || card.sectionTitle(section).toLowerCase().includes(needle))
+                    out.push(entry);
+            }
+        }
+        return out;
+    }
+
+    // Die Zeilen auf die Spalten verteilt: je Spalte eine Liste von
+    // Bloecken { section, rows, header }, rows als Indizes in card.entries
+    // (durch einen Repeater gereichte Objekte verlieren ihre JS-Arrays –
+    // `options` kaeme als Sequenz an, nicht als Array). Gruppentitel nur,
+    // wenn mehrere Gruppen zu sehen sind (Suche oder "Alle"), je Gruppe einer.
+    readonly property var layoutColumns: {
+        const headers = card.searching || card.section === "";
+        const groups = [];
+        card.entries.forEach((e, i) => {
+            const last = groups[groups.length - 1];
+            if (last && last.section === e.section)
+                last.rows.push(i);
+            else
+                groups.push({ section: e.section, rows: [i] });
+        });
+        const block = (section, rows, header) => ({ section, rows, header });
+
+        if (card.listColumns === 1 || groups.length === 0)
+            return [groups.map(g => block(g.section, g.rows, headers))];
+
+        // Grobe Hoehe je Zeile, um die Trennstelle zu finden
+        const weight = i => {
+            const e = card.entries[i];
+            return e.editor !== "" ? 320 : e.desc !== "" ? 54 : 46;
+        };
+        // Mehrere Gruppen: ganze Gruppen verteilen; eine einzelne: ihre Zeilen
+        const single = groups.length === 1;
+        const units = single ? groups[0].rows.map(i => ({ rows: [i], w: weight(i) }))
+                             : groups.map(g => ({ rows: g.rows, section: g.section,
+                                                  w: g.rows.reduce((s, i) => s + weight(i), 0) + (headers ? 26 : 0) }));
+        const total = units.reduce((s, u) => s + u.w, 0);
+        let split = units.length, best = Infinity;
+        for (let k = 0, acc = 0; k <= units.length; k++) {
+            const diff = Math.abs(acc - (total - acc));
+            if (diff < best) {
+                best = diff;
+                split = k;
+            }
+            if (k < units.length)
+                acc += units[k].w;
+        }
+        const left = units.slice(0, split), right = units.slice(split);
+        const rowsOf = us => us.reduce((a, u) => a.concat(u.rows), []);
+        if (single) {
+            const s = groups[0].section;
+            return [[block(s, rowsOf(left), headers)],
+                    right.length > 0 ? [block(s, rowsOf(right), false)] : []];
+        }
+        const pack = us => us.map(u => block(u.section, u.rows, headers));
+        return [pack(left), pack(right)];
+    }
+
+    // Beim Zeigen auf die Symbolspalte: der Knopf, dessen Name daneben steht
+    property Item railItem: null
+
     maxRadius: 24
 
     // Kommt beim Oeffnen leicht herangewachsen
@@ -131,7 +256,12 @@ Surface {
             top: parent.top
             bottom: parent.bottom
         }
-        width: 236
+        width: card.sidebarWidth
+        clip: true
+
+        Behavior on width {
+            NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+        }
 
         Rectangle {
             anchors.fill: parent
@@ -165,6 +295,7 @@ Surface {
             color: Colors.fgBackground
             font.pixelSize: 17
             font.weight: Font.DemiBold
+            visible: !card.compact
         }
 
         Text {
@@ -177,6 +308,20 @@ Surface {
             text: Colors.name
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
             font.pixelSize: 10
+            visible: !card.compact
+        }
+
+        // Schmal: statt des Titels das Symbol des Fensters
+        Text {
+            anchors {
+                horizontalCenter: parent.horizontalCenter
+                verticalCenter: title.verticalCenter
+            }
+            text: "settings"
+            color: Colors.fgBackground
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 20
+            visible: card.compact
         }
 
         // Die Gruppen – scrollbar, falls viele Plugins ihre eigene haben
@@ -248,11 +393,9 @@ Surface {
                     Text {
                         id: buttonIcon
 
-                        anchors {
-                            left: parent.left
-                            leftMargin: button.sub ? 22 : 12
-                            verticalCenter: parent.verticalCenter
-                        }
+                        // Schmal: mittig; sonst links, Plugin-Gruppen eingerueckt
+                        x: card.compact ? (parent.width - width) / 2 : (button.sub ? 22 : 12)
+                        anchors.verticalCenter: parent.verticalCenter
                         text: button.icon
                         color: button.current ? Colors.primary : Colors.fgSurfaceVariant
                         font.family: "Material Symbols Outlined"
@@ -273,6 +416,7 @@ Surface {
                             rightMargin: 6
                             verticalCenter: parent.verticalCenter
                         }
+                        visible: !card.compact
                         text: button.label
                         color: button.current ? Colors.fgBackground : Colors.fgSurface
                         font.pixelSize: button.sub ? 11 : 12
@@ -289,7 +433,7 @@ Surface {
                             rightMargin: 12
                             verticalCenter: parent.verticalCenter
                         }
-                        visible: button.count > 0
+                        visible: button.count > 0 && !card.compact
                         text: button.count
                         color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                         font.pixelSize: 10
@@ -299,6 +443,12 @@ Surface {
                         id: buttonHover
 
                         cursorShape: Qt.PointingHandCursor
+                        onHoveredChanged: {
+                            if (hovered)
+                                card.railItem = button;
+                            else if (card.railItem === button)
+                                card.railItem = null;
+                        }
                     }
 
                     TapHandler {
@@ -343,17 +493,30 @@ Surface {
                 }
 
                 // ---- Trenner: Plugins ----
-                Text {
-                    font.family: Config.font
+                Item {
                     width: parent.width
-                    height: 26
-                    leftPadding: 14
-                    verticalAlignment: Text.AlignBottom
-                    bottomPadding: 5
-                    text: I18n.tr("Plugins")
-                    color: Colors.fgSurfaceVariant
-                    font.pixelSize: 10
-                    font.weight: Font.DemiBold
+                    height: card.compact ? 14 : 26
+
+                    Text {
+                        font.family: Config.font
+                        anchors.fill: parent
+                        leftPadding: 14
+                        verticalAlignment: Text.AlignBottom
+                        bottomPadding: 5
+                        visible: !card.compact
+                        text: I18n.tr("Plugins")
+                        color: Colors.fgSurfaceVariant
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                    }
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 20
+                        height: 1
+                        visible: card.compact
+                        color: Colors.alpha(Colors.outline, 0.4)
+                    }
                 }
 
                 SectionButton {
@@ -429,11 +592,8 @@ Surface {
                 Text {
                     id: footIcon
 
-                    anchors {
-                        left: parent.left
-                        leftMargin: 12
-                        verticalCenter: parent.verticalCenter
-                    }
+                    x: card.compact ? (parent.width - width) / 2 : 12
+                    anchors.verticalCenter: parent.verticalCenter
                     text: foot.icon
                     color: foot.tint
                     font.family: "Material Symbols Outlined"
@@ -453,6 +613,7 @@ Surface {
                         rightMargin: 10
                         verticalCenter: parent.verticalCenter
                     }
+                    visible: !card.compact
                     text: foot.label
                     color: foot.tint
                     font.pixelSize: 11
@@ -467,6 +628,12 @@ Surface {
                     id: footHover
 
                     cursorShape: Qt.PointingHandCursor
+                    onHoveredChanged: {
+                        if (hovered)
+                            card.railItem = foot;
+                        else if (card.railItem === foot)
+                            card.railItem = null;
+                    }
                 }
 
                 TapHandler {
@@ -525,7 +692,9 @@ Surface {
             bottom: parent.bottom
         }
 
-        // Kopf: Gruppentitel + Suche
+        // Kopf: Gruppentitel + Suche. Der Titel nimmt sich seine Breite,
+        // laesst dem Suchfeld aber mindestens 150 px; das Feld waechst mit
+        // dem Fenster bis 520 px und bleibt vor dem Schliessen-Knopf stehen.
         Text {
             id: heading
             font.family: Config.font
@@ -535,7 +704,7 @@ Surface {
                 leftMargin: 24
                 verticalCenter: searchBox.verticalCenter
             }
-            width: 160
+            width: Math.max(0, Math.min(heading.implicitWidth, closeButton.x - 10 - heading.x - 12 - 150))
             // In der Bibliothek steht "Bibliothek › Ordner" in der Seite selbst
             text: card.browsing ? "Wallpaper"
                 : card.searching ? I18n.tr("Suche")
@@ -556,8 +725,7 @@ Surface {
                 leftMargin: 12
                 topMargin: 22
             }
-            // Bei grossem Fenster nicht ueber die ganze Breite
-            width: Math.min(closeButton.x - 10 - (heading.x + heading.width + 12), 440)
+            width: Math.max(0, Math.min(closeButton.x - 10 - (heading.x + heading.width + 12), 520))
             height: 38
             radius: height / 2
             color: Colors.alpha(Colors.fgSurface, search.activeFocus ? 0.09 : 0.06)
@@ -616,6 +784,7 @@ Surface {
                     color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                     font: search.font
                     verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
                 }
             }
 
@@ -693,19 +862,18 @@ Surface {
         }
 
         // ---- Plugin-Verwaltung statt der Liste ----
+        // Mittig; die Seite stellt ihre Karten ab ~850 px selbst in zwei Spalten
         Loader {
             id: manager
 
             anchors {
-                left: parent.left
+                horizontalCenter: parent.horizontalCenter
                 top: searchBox.bottom
                 bottom: parent.bottom
-                leftMargin: 12
-                rightMargin: 12
                 topMargin: 12
                 bottomMargin: 16
             }
-            width: Math.min(parent.width - 24, 900)
+            width: Math.min(parent.width - 24, 1400)
             active: card.managing
             visible: active
 
@@ -736,85 +904,35 @@ Surface {
             }
         }
 
-        // ---- Die Liste, gebaut aus der Datei ----
-        ListView {
+        // ---- Die Liste ----
+        // Eine Spalte bis 900 px, mittig; zwei Spalten ab card.listColumns 2.
+        // Jede Spalte waechst fuer sich (eine aufgeklappte Auswahl schiebt
+        // nur ihre Nachbarn darunter).
+        Flickable {
             id: list
 
+            readonly property real gap: 16
+            readonly property int columns: card.listColumns
+
             anchors {
-                left: parent.left
+                horizontalCenter: parent.horizontalCenter
                 top: searchBox.bottom
                 bottom: parent.bottom
-                leftMargin: 12
-                rightMargin: 12
                 topMargin: 12
                 bottomMargin: 16
             }
-            // Zeilen lesen sich bei breitem Fenster schlecht (Bedienelement
-            // weit weg vom Titel) – die Liste waechst nur bis 820 px mit
-            width: Math.min(parent.width - 24, 820)
+            width: Math.min(parent.width - 24, list.columns === 2 ? 2 * 900 + list.gap : 900)
             visible: !card.managing && !card.browsing
             clip: true
-            spacing: 2
+            contentWidth: width
+            contentHeight: columnsRow.height + 8
             boundsBehavior: Flickable.StopAtBounds
             // Nicht per Ziehen scrollen: sonst klaut die Liste den
             // Drag-and-Drop-Editoren ihre Geste. Das Mausrad reicht.
             interactive: false
 
-            model: ScriptModel {
-                values: {
-                    const needle = card.filter.trim().toLowerCase();
-                    const out = [];
-                    // shell.json kommt alphabetisch zurueck (QJsonObject
-                    // sortiert beim Schreiben) – die Reihenfolge im Menue
-                    // gibt deshalb die meta-Tabelle vor, Unbekanntes hinten.
-                    // Plugin-Gruppen: Reihenfolge wie im Manifest (Plugins.meta)
-                    const order = Object.keys(Config.meta).concat(Object.keys(Plugins.meta));
-                    const rank = id => {
-                        const i = order.indexOf(id);
-                        return i < 0 ? order.length : i;
-                    };
-
-                    for (const section of card.allSections) {
-                        if (needle === "" && card.section !== "" && section !== card.section)
-                            continue;
-
-                        const values = card.valuesOf(section) ?? {};
-                        const keys = Object.keys(values).sort((a, b) =>
-                            rank(`${section}.${a}`) - rank(`${section}.${b}`) || a.localeCompare(b));
-                        for (const key of keys) {
-                            const id = `${section}.${key}`;
-                            const meta = Plugins.metaFor(id);
-                            const entry = {
-                                id,
-                                section,
-                                key,
-                                value: values[key],
-                                title: meta?.title ? I18n.tr(meta.title) : key,
-                                // Ohne Eintrag in der Tabelle: ehrlich sagen,
-                                // dass der Schluessel neu ist
-                                desc: meta?.desc ? I18n.tr(meta.desc) : (meta ? "" : I18n.tr("Schlüssel \"%1\" aus shell.json").arg(key)),
-                                options: meta?.options ?? null,
-                                labels: meta?.labels ?? null,
-                                min: meta?.min,
-                                max: meta?.max,
-                                step: meta?.step,
-                                unit: meta?.unit ?? "",
-                                requires: meta?.requires ?? null,
-                                editor: meta?.editor ?? "",
-                                preview: meta?.preview ?? ""
-                            };
-
-                            if (needle === ""
-                                || entry.title.toLowerCase().includes(needle)
-                                || entry.desc.toLowerCase().includes(needle)
-                                || id.toLowerCase().includes(needle)
-                                || card.sectionTitle(section).toLowerCase().includes(needle))
-                                out.push(entry);
-                        }
-                    }
-                    return out;
-                }
-            }
+            // Inhalt kuerzer geworden (Filter, zweite Spalte): nicht ins Leere zeigen
+            onContentHeightChanged: list.contentY = Math.max(0, Math.min(list.contentY, list.contentHeight - list.height))
 
             WheelHandler {
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
@@ -830,56 +948,89 @@ Surface {
                 }
             }
 
-            delegate: SettingsRow {
-                required property var modelData
-                required property int index
+            Row {
+                id: columnsRow
 
-                width: ListView.view.width
-                entry: modelData
-                // Gruppentitel nur, wenn mehrere Gruppen zu sehen sind
-                // (Suche oder "Alle"), und nur ueber der ersten Zeile.
-                // Optional-Zugriff: waehrend des Filterns sind Index und
-                // Liste kurz auseinander, dann gibt es den Vorgaenger nicht
-                section: (card.searching || card.section === "")
-                         && (index === 0 || list.model.values[index - 1]?.section !== modelData.section)
-                         ? modelData.section : ""
+                width: list.width
+                spacing: list.gap
+
+                Repeater {
+                    model: card.layoutColumns
+
+                    Column {
+                        id: column
+
+                        required property var modelData
+
+                        width: (list.width - list.gap * (list.columns - 1)) / list.columns
+                        spacing: 2
+
+                        Repeater {
+                            model: column.modelData
+
+                            Column {
+                                id: block
+
+                                required property var modelData
+
+                                width: column.width
+                                spacing: 2
+
+                                Repeater {
+                                    model: block.modelData.rows
+
+                                    SettingsRow {
+                                        required property int modelData
+                                        required property int index
+
+                                        width: block.width
+                                        // Waehrend des Filterns sind Indizes
+                                        // und Liste kurz auseinander
+                                        entry: card.entries[modelData] ?? null
+                                        section: index === 0 && block.modelData.header ? block.modelData.section : ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Weiche Kante unten, solange noch Zeilen folgen
+        Rectangle {
+            anchors {
+                left: list.left
+                right: list.right
+                bottom: list.bottom
+            }
+            height: 24
+            visible: list.visible && list.contentHeight - list.contentY - list.height > 2
+            gradient: Gradient {
+                GradientStop { position: 0; color: Colors.alpha(Colors.background, 0) }
+                GradientStop { position: 1; color: Colors.background }
+            }
+        }
+
+        Column {
+            anchors.centerIn: list
+            visible: list.visible && card.entries.length === 0
+            spacing: 6
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "search_off"
+                color: Colors.alpha(Colors.fgSurfaceVariant, 0.6)
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 28
             }
 
-            // Weiche Kante unten, solange noch Zeilen folgen
-            Rectangle {
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    bottom: parent.bottom
-                }
-                height: 24
-                visible: list.contentHeight - list.contentY - list.height > 2
-                gradient: Gradient {
-                    GradientStop { position: 0; color: Colors.alpha(Colors.background, 0) }
-                    GradientStop { position: 1; color: Colors.background }
-                }
-            }
-
-            Column {
-                anchors.centerIn: parent
-                visible: list.count === 0
-                spacing: 6
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "search_off"
-                    color: Colors.alpha(Colors.fgSurfaceVariant, 0.6)
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 28
-                }
-
-                Text {
-                    font.family: Config.font
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: I18n.tr("Nichts gefunden")
-                    color: Colors.fgSurfaceVariant
-                    font.pixelSize: 12
-                }
+            Text {
+                font.family: Config.font
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: I18n.tr("Nichts gefunden")
+                color: Colors.fgSurfaceVariant
+                font.pixelSize: 12
             }
         }
 
@@ -893,9 +1044,47 @@ Surface {
                 bottomMargin: 10
             }
             // In der Bibliothek steht die Trefferzahl in deren Kopfzeile
-            text: card.searching && !card.browsing ? I18n.tr("%1 Treffer").arg(list.count) : ""
+            text: card.searching && !card.browsing ? I18n.tr("%1 Treffer").arg(card.entries.length) : ""
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
             font.pixelSize: 10
+        }
+    }
+
+    // Name des Knopfs neben der Symbolspalte
+    Rectangle {
+        id: railHint
+
+        readonly property Item target: card.compact ? card.railItem : null
+        // Beim Ausblenden bleibt der letzte Name stehen, statt leer zu verblassen
+        property string label: ""
+
+        readonly property string current: railHint.target?.label ?? ""
+        onCurrentChanged: {
+            if (railHint.current !== "")
+                railHint.label = railHint.current;
+        }
+
+        x: sidebar.width + 8
+        y: railHint.target ? railHint.target.mapToItem(card, 0, railHint.target.height / 2).y - height / 2 : 0
+        width: hintLabel.implicitWidth + 20
+        height: 26
+        radius: 8
+        color: Colors.mix(Colors.background, Colors.fgSurface, 0.1)
+        border.width: 1
+        border.color: Colors.alpha(Colors.outline, 0.3)
+        visible: opacity > 0
+        opacity: railHint.current !== "" ? 1 : 0
+
+        Fade on opacity {}
+
+        Text {
+            id: hintLabel
+
+            anchors.centerIn: parent
+            font.family: Config.font
+            text: railHint.label
+            color: Colors.fgSurface
+            font.pixelSize: 11
         }
     }
 }
