@@ -583,7 +583,7 @@
         "type": "clock",
         "x": 0.62,
         "y": 0.14,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -701,7 +701,7 @@
     ],
     "Cyberpunk-Edgerunners/edgerunners-rrxz57.jpg": [
       {
-        "id": "wclo021p",
+        "id": "wclo139p",
         "type": "clock",
         "x": 0.14,
         "y": 0.22,
@@ -715,7 +715,22 @@
         }
       },
       {
-        "id": "wlyr022p",
+        "id": "wwea140p",
+        "type": "weather",
+        "x": 0.14,
+        "y": 0.31,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "kompakt",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      },
+      {
+        "id": "wlyr141p",
         "type": "lyrics",
         "x": 0.82,
         "y": 0.86,
@@ -735,7 +750,7 @@
         "type": "clock",
         "x": 0.86,
         "y": 0.35,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -841,7 +856,7 @@
         "type": "clock",
         "x": 0.07,
         "y": 0.2,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "gestapelt",
@@ -929,7 +944,7 @@
     ],
     "Miku/wallhaven-y8k1k7_2560x1440.png": [
       {
-        "id": "wclo092p",
+        "id": "wclo156p",
         "type": "clock",
         "x": 0.14,
         "y": 0.3,
@@ -943,23 +958,23 @@
         }
       },
       {
-        "id": "wvis093p",
-        "type": "visualizer",
-        "x": 0.15,
-        "y": 0.65,
-        "size": 0.8,
+        "id": "wnow157p",
+        "type": "nowplaying",
+        "x": 0.14,
+        "y": 0.6,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
-          "style": "kapseln",
-          "bars": 24,
-          "order": "mitte",
+          "style": "vinyl",
+          "progress": true,
+          "tint": true,
           "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#bfe9ff"
         }
       },
       {
-        "id": "wlyr094p",
+        "id": "wlyr158p",
         "type": "lyrics",
         "x": 0.15,
         "y": 0.75,
@@ -975,7 +990,7 @@
     ],
     "Cyberpunk-Edgerunners/edgerunners-2yggp6.jpg": [
       {
-        "id": "wclo000p",
+        "id": "wclo134p",
         "type": "clock",
         "x": 0.12,
         "y": 0.15,
@@ -989,30 +1004,30 @@
         }
       },
       {
-        "id": "wvis001p",
-        "type": "visualizer",
-        "x": 0.18,
-        "y": 0.74,
-        "size": 0.8,
+        "id": "wnow135p",
+        "type": "nowplaying",
+        "x": 0.17,
+        "y": 0.78,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
-          "style": "kapseln",
-          "bars": 24,
-          "order": "mitte",
+          "style": "vinyl",
+          "progress": true,
+          "tint": true,
           "idle": "ausblenden",
           "color": "#ffffff",
-          "accent": "#29e6ff"
+          "accent": "#ff2bd6"
         }
       },
       {
-        "id": "wlyr002p",
+        "id": "wlyr136p",
         "type": "lyrics",
         "x": 0.18,
-        "y": 0.84,
+        "y": 0.88,
         "size": 0.85,
         "monitor": "*",
         "opts": {
-          "lines": 3,
+          "lines": 1,
           "align": "links",
           "color": "#ffffff",
           "accent": "#ff2bd6"
@@ -1143,7 +1158,7 @@
     ],
     "Cyberpunk-Edgerunners/edgerunners-pkr6mp.jpg": [
       {
-        "id": "wclo013p",
+        "id": "wclo137p",
         "type": "clock",
         "x": 0.17,
         "y": 0.72,
@@ -1157,15 +1172,17 @@
         }
       },
       {
-        "id": "wlyr014p",
-        "type": "lyrics",
+        "id": "wnow138p",
+        "type": "nowplaying",
         "x": 0.8,
-        "y": 0.84,
-        "size": 0.85,
+        "y": 0.83,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
-          "lines": 1,
-          "align": "rechts",
+          "style": "zeile",
+          "progress": true,
+          "tint": true,
+          "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#7fe9ff"
         }
@@ -1177,7 +1194,7 @@
         "type": "clock",
         "x": 0.87,
         "y": 0.18,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -1203,11 +1220,11 @@
     ],
     "Cyberpunk-Edgerunners/edgerunners2-5ypel5.jpg": [
       {
-        "id": "wclo025p",
+        "id": "wclo142p",
         "type": "clock",
         "x": 0.34,
         "y": 0.14,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -1217,7 +1234,22 @@
         }
       },
       {
-        "id": "wlyr026p",
+        "id": "wwea143p",
+        "type": "weather",
+        "x": 0.34,
+        "y": 0.23,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "style": "kompakt",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#f0d264"
+        }
+      },
+      {
+        "id": "wlyr144p",
         "type": "lyrics",
         "x": 0.85,
         "y": 0.9,
@@ -1237,7 +1269,7 @@
         "type": "clock",
         "x": 0.14,
         "y": 0.15,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "kontrast",
@@ -1249,11 +1281,11 @@
     ],
     "Cyberpunk-Edgerunners/edgerunners2-vp28xp.jpg": [
       {
-        "id": "wclo030p",
+        "id": "wclo145p",
         "type": "clock",
         "x": 0.36,
         "y": 0.14,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -1263,15 +1295,17 @@
         }
       },
       {
-        "id": "wlyr031p",
-        "type": "lyrics",
-        "x": 0.86,
-        "y": 0.52,
-        "size": 0.75,
+        "id": "wnow146p",
+        "type": "nowplaying",
+        "x": 0.87,
+        "y": 0.5,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
-          "lines": 3,
-          "align": "rechts",
+          "style": "cover",
+          "progress": true,
+          "tint": true,
+          "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#e0455a"
         }
@@ -1371,7 +1405,7 @@
     ],
     "Graphite/gojo.png": [
       {
-        "id": "wclo038p",
+        "id": "wclo147p",
         "type": "clock",
         "x": 0.8,
         "y": 0.14,
@@ -1385,26 +1419,26 @@
         }
       },
       {
-        "id": "wvis039p",
-        "type": "visualizer",
-        "x": 0.25,
-        "y": 0.76,
-        "size": 0.9,
+        "id": "wnow148p",
+        "type": "nowplaying",
+        "x": 0.22,
+        "y": 0.74,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
-          "style": "kapseln",
-          "bars": 24,
-          "order": "mitte",
+          "style": "vinyl",
+          "progress": true,
+          "tint": true,
           "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#8fd3ff"
         }
       },
       {
-        "id": "wlyr040p",
+        "id": "wlyr149p",
         "type": "lyrics",
         "x": 0.25,
-        "y": 0.86,
+        "y": 0.87,
         "size": 0.9,
         "monitor": "*",
         "opts": {
@@ -1421,7 +1455,7 @@
         "type": "clock",
         "x": 0.14,
         "y": 0.16,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "kontrast",
@@ -1512,7 +1546,7 @@
         "type": "clock",
         "x": 0.14,
         "y": 0.86,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "kontrast",
@@ -1528,7 +1562,7 @@
         "type": "clock",
         "x": 0.86,
         "y": 0.42,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -1544,7 +1578,7 @@
         "type": "clock",
         "x": 0.5,
         "y": 0.82,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -1574,7 +1608,7 @@
         "type": "clock",
         "x": 0.86,
         "y": 0.14,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "kontrast",
@@ -1630,7 +1664,7 @@
     ],
     "Lord-of-the-Mysteries/lotm-4279005.jpg": [
       {
-        "id": "wclo055p",
+        "id": "wclo150p",
         "type": "clock",
         "x": 0.8,
         "y": 0.17,
@@ -1644,23 +1678,23 @@
         }
       },
       {
-        "id": "wvis056p",
-        "type": "visualizer",
+        "id": "wnow151p",
+        "type": "nowplaying",
         "x": 0.82,
-        "y": 0.75,
-        "size": 0.8,
+        "y": 0.72,
+        "size": 0.9,
         "monitor": "*",
         "opts": {
-          "style": "kapseln",
-          "bars": 24,
-          "order": "mitte",
+          "style": "vinyl",
+          "progress": true,
+          "tint": true,
           "idle": "ausblenden",
           "color": "#ffffff",
           "accent": "#ff9a3c"
         }
       },
       {
-        "id": "wlyr057p",
+        "id": "wlyr152p",
         "type": "lyrics",
         "x": 0.82,
         "y": 0.85,
@@ -1680,7 +1714,7 @@
         "type": "clock",
         "x": 0.86,
         "y": 0.86,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "kontrast",
@@ -1787,7 +1821,7 @@
         "type": "clock",
         "x": 0.6,
         "y": 0.86,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -1799,7 +1833,7 @@
     ],
     "Lord-of-the-Mysteries/lotm-xelpvo.jpg": [
       {
-        "id": "wclo066p",
+        "id": "wclo153p",
         "type": "clock",
         "x": 0.15,
         "y": 0.15,
@@ -1813,7 +1847,22 @@
         }
       },
       {
-        "id": "wlyr067p",
+        "id": "wwea154p",
+        "type": "weather",
+        "x": 0.15,
+        "y": 0.25,
+        "size": 0.9,
+        "monitor": "*",
+        "opts": {
+          "style": "kompakt",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#9fd0e0"
+        }
+      },
+      {
+        "id": "wlyr155p",
         "type": "lyrics",
         "x": 0.82,
         "y": 0.14,
@@ -1908,7 +1957,7 @@
         "type": "clock",
         "x": 0.64,
         "y": 0.12,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -1954,7 +2003,7 @@
         "type": "clock",
         "x": 0.36,
         "y": 0.3,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -2123,7 +2172,7 @@
         "type": "clock",
         "x": 0.12,
         "y": 0.16,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "kontrast",
@@ -2139,7 +2188,7 @@
         "type": "clock",
         "x": 0.86,
         "y": 0.14,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "sperrbildschirm",
@@ -2379,7 +2428,7 @@
     ],
     "Rosepine/windows-error.jpg": [
       {
-        "id": "wclo118p",
+        "id": "wclo159p",
         "type": "clock",
         "x": 0.82,
         "y": 0.17,
@@ -2393,7 +2442,7 @@
         }
       },
       {
-        "id": "wcal119p",
+        "id": "wcal160p",
         "type": "calendar",
         "x": 0.87,
         "y": 0.6,
@@ -2409,19 +2458,20 @@
         }
       },
       {
-        "id": "wsys120p",
-        "type": "system",
-        "x": 0.2,
-        "y": 0.85,
+        "id": "wbon161p",
+        "type": "bonsai",
+        "x": 0.12,
+        "y": 0.8,
         "size": 0.9,
         "monitor": "*",
         "opts": {
-          "style": "zeilen",
-          "gpu": true,
-          "temps": true,
-          "disk": false,
-          "color": "#e0def4",
-          "accent": "#eb6f92"
+          "life": "mittel",
+          "leaves": "❀",
+          "pot": "schale",
+          "regrow": "täglich",
+          "grow": true,
+          "color": "#ebbcba",
+          "accent": "#9ccfd8"
         }
       }
     ],
@@ -2507,7 +2557,7 @@
         "type": "clock",
         "x": 0.14,
         "y": 0.14,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "kontrast",
@@ -2600,7 +2650,7 @@
         "type": "clock",
         "x": 0.9,
         "y": 0.45,
-        "size": 1,
+        "size": 1.0,
         "monitor": "*",
         "opts": {
           "style": "gestapelt",
