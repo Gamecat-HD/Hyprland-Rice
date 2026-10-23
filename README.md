@@ -1,9 +1,37 @@
 # Hyprland-Rice — Dynamic Island
 
+> [!WARNING]
+> **KI-Hinweis:** Ein grosser Teil dieses Repos — die Quickshell-Oberflaeche,
+> die CLI, das Installationsskript und auch diese README — wurde mit KI
+> (Claude Code) geschrieben. Ich nutze das selbst taeglich, aber es ist ein
+> Hobby-Projekt ohne Review durch Dritte. Das Installationsskript fasst dein
+> System an (Symlinks, Verzeichnisse, Farbschema-Dateien fuer GTK/Qt/btop/
+> Discord) — lies es durch, bevor du es laufen laesst.
+
 Meine Hyprland-Konfiguration mit eigener Quickshell-Oberflaeche
 ("dynamic-island"): Leiste mit Notch, Medien-Karte, Wallpaper- und
 Theme-Auswahl, WLAN-Einstellungen — dazu die CLI `dynamic-island`
 (Farbschemata, Wallpaper, Screenshots, Aufnahmen).
+
+![Desktop mit Notch, Uhr- und Visualiser-Widget](screenshots/desktop.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/medien.jpg" alt="Medien-Panel"><br><sub><b>Medien</b> — Cover, Songtext, Warteschlange (<code>SUPER + ALT + M</code>)</sub></td>
+    <td width="50%"><img src="screenshots/steuerung.jpg" alt="Steuerung"><br><sub><b>Steuerung</b> — Schnelleinstellungen wie bei Android (<code>SUPER + A</code>)</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/launcher.jpg" alt="App-Menue"><br><sub><b>App-Menue</b> — <code>&gt;</code> fuer Aktionen (<code>SUPER</code>)</sub></td>
+    <td><img src="screenshots/system.jpg" alt="System"><br><sub><b>System</b> — CPU, GPU, RAM, Temperaturen (<code>SUPER + I</code>)</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/wallpaper.jpg" alt="Wallpaper-Auswahl"><br><sub><b>Wallpaper</b> — Farbschema folgt dem Bild</sub></td>
+    <td><img src="screenshots/themes.jpg" alt="Theme-Auswahl"><br><sub><b>Themes</b> — fertige und generierte Schemata</sub></td>
+  </tr>
+</table>
+
+![Tastenkuerzel-Uebersicht](screenshots/tastenkuerzel.jpg)
+<sub><b>Tastenkuerzel-Uebersicht</b> (<code>SUPER + K</code>) — live aus Hyprland, Klick fuehrt aus</sub>
 
 ## Installieren
 
@@ -211,9 +239,3 @@ swaync) muss aus sein, sonst belegt er den DBus-Namen.
 * `shell2` — Testprofil fuer eine neue Shell (liegt ebenfalls nicht hier)
 
 Umschalten: `hypr-profile toggle` oder `CTRL + SUPER + SHIFT + P`.
-
-## Hinweis
-
-Das Installationsskript wurde mit KI erstellt und fasst dein System an
-(Symlinks, Verzeichnisse, Farbschema-Dateien fuer GTK/Qt/btop/Discord).
-Lies es durch, bevor du es laufen laesst.
