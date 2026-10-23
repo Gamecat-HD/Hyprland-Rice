@@ -136,6 +136,37 @@
           "color": "#ffffff",
           "accent": "#fcee0a"
         }
+      },
+      {
+        "id": "wwea571",
+        "type": "weather",
+        "x": 0.105,
+        "y": 0.42,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "aktuell",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
+      },
+      {
+        "id": "wnp571",
+        "type": "nowplaying",
+        "x": 0.87,
+        "y": 0.6,
+        "size": 0.8,
+        "monitor": "*",
+        "opts": {
+          "style": "vinyl",
+          "progress": true,
+          "tint": true,
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#fcee0a"
+        }
       }
     ],
     "Cyberpunk-Edgerunners/edgerunners-6degr6.jpg": [
