@@ -17,7 +17,7 @@ Theme-Auswahl, WLAN-Einstellungen — dazu die CLI `dynamic-island`
 
 <table>
   <tr>
-    <td width="50%"><img src="screenshots/medien.jpg" alt="Medien-Panel"><br><sub><b>Medien</b> — Cover, Songtext, Warteschlange (<code>SUPER + ALT + M</code>)</sub></td>
+    <td width="50%"><img src="screenshots/medien.jpg" alt="Medien-Panel"><br><sub><b>Medien</b> — Cover, Songtext, Warteschlange (ueber die Notch oder <code>&gt;medien</code>)</sub></td>
     <td width="50%"><img src="screenshots/steuerung.jpg" alt="Steuerung"><br><sub><b>Steuerung</b> — Schnelleinstellungen wie bei Android (<code>SUPER + A</code>)</sub></td>
   </tr>
   <tr>
