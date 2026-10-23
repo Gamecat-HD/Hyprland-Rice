@@ -9,6 +9,7 @@ import qs.modules.services.clipboard
 
 // Eine Zeile der Zwischenablage: Text (erste Zeile) oder Bildvorschau,
 // rechts beim Ueberfahren/Markieren die Knoepfe Anheften und Loeschen.
+// Zur Seite ziehen entfernt den Eintrag (wie bei den Benachrichtigungen).
 // Aufgeklappt (Tab) steht unter einem Texteintrag der ganze Text.
 //
 // modelData: { key, section: "pin"|"hist", kind: "text"|"image", id,
@@ -64,7 +65,45 @@ Rectangle {
 
     Component.onCompleted: row.requestThumb()
     // Wiederverwendete Delegaten bekommen neue Daten
-    onModelDataChanged: row.requestThumb()
+    onModelDataChanged: {
+        slideBack.stop();
+        slideOut.stop();
+        row.slide = 0;
+        row.requestThumb();
+    }
+
+    // ---- Wegziehen ----
+    // Versatz beim Ziehen; ueber ein Drittel der Breite fliegt die Zeile raus,
+    // darunter federt sie zurueck
+    property real slide: 0
+
+    transform: Translate {
+        x: row.slide
+    }
+    opacity: row.slide === 0 ? 1
+           : 1 - Math.min(0.85, Math.abs(row.slide) / Math.max(1, row.width * 0.7))
+
+    NumberAnimation {
+        id: slideBack
+
+        target: row
+        property: "slide"
+        to: 0
+        duration: Appearance.fadeDuration
+        easing.type: Easing.OutCubic
+    }
+
+    // Erst rausfliegen lassen, dann entfernen – sonst ist der Delegat weg,
+    // bevor man die Bewegung sieht
+    NumberAnimation {
+        id: slideOut
+
+        target: row
+        property: "slide"
+        duration: 140
+        easing.type: Easing.OutCubic
+        onFinished: row.removed()
+    }
 
     // Aufgeklappt ersetzt der ganze Text die Vorschauzeile
     readonly property bool showBody: row.expanded && !row.isImage
@@ -110,6 +149,34 @@ Rectangle {
                 row.contextRequested(event.x, event.y);
             else
                 row.activated();
+        }
+
+        // Nur die Waagerechte: senkrecht scrollt weiter die Liste. Uebernimmt
+        // erst nach ein paar px, ein Klick kopiert also wie gehabt
+        DragHandler {
+            id: swipe
+
+            target: null
+            yAxis.enabled: false
+            dragThreshold: 8
+
+            readonly property real threshold: row.width * 0.3
+
+            onTranslationChanged: if (swipe.active)
+                row.slide = swipe.activeTranslation.x
+            onActiveChanged: {
+                if (swipe.active) {
+                    slideBack.stop();
+                    slideOut.stop();
+                    return;
+                }
+                if (Math.abs(row.slide) > swipe.threshold) {
+                    slideOut.to = row.slide > 0 ? row.width : -row.width;
+                    slideOut.start();
+                } else {
+                    slideBack.start();
+                }
+            }
         }
     }
 

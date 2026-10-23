@@ -40,8 +40,8 @@ Singleton {
     // Der Helfer hat den D-Bus-Namen (sonst laeuft noch hypridle)
     property bool owned: false
 
-    readonly property bool mediaBlocks: Config.idle.media && Media.playing
-    readonly property bool fullscreenBlocks: Config.idle.fullscreen
+    readonly property bool mediaBlocks: !!Config.idle.media && Media.playing
+    readonly property bool fullscreenBlocks: (Config.idle.fullscreen ?? true)
         && Hyprland.monitors.values.some(m => m.activeWorkspace?.hasFullscreen ?? false)
     readonly property bool blocked: root.inhibitors.length > 0 || root.mediaBlocks || root.fullscreenBlocks
                                     || SessionModes.noSleep
