@@ -47,84 +47,80 @@ Singleton {
     //          requires           Zeile nur aktiv, wenn erfuellt: "bar.battery"
     //                             (Wahrheitswert) oder { "appearance.layout": "notch" }
     readonly property var meta: ({
-        "bar.workspaces": { title: "Workspace-Punkte", desc: "Die Punktreihe links aussen" },
+        "bar.workspaces": { title: "Workspace-Punkte" },
         "bar.workspaceCount": {
             title: "Workspaces je Monitor",
-            desc: "Wie viele Punkte die Reihe zeigt (Hyprland vergibt je Monitor 10)",
             min: 1, max: 10, step: 1, requires: "bar.workspaces"
         },
-        "bar.stats": { title: "System-Pille", desc: "Akkustand, Energieprofile und Auslastung" },
-        "bar.tray": { title: "Systemtray", desc: "Die Icons links neben der Uhr" },
-        "bar.settings": { title: "Settings-Karte", desc: "Der Kreis rechts der Uhr mit WLAN, Bluetooth und Co." },
-        "bar.media": { title: "Medien-Karte", desc: "Titel, Cover und Steuerung rechts aussen" },
-        "bar.notifications": { title: "Benachrichtigungen", desc: "Die Glocke mit Zaehler in der Leiste" },
-        "bar.battery": { title: "Akkuanzeige", desc: "Ring um die Uhr und Akkustand in der Settings-Pille" },
+        "bar.stats": { title: "System-Pille" },
+        "bar.tray": { title: "Systemtray" },
+        "bar.settings": { title: "Settings-Karte" },
+        "bar.media": { title: "Medien-Karte" },
+        "bar.notifications": { title: "Benachrichtigungen" },
+        "bar.battery": { title: "Akkuanzeige" },
         // Anzeigen in der eingeklappten Notch (nur Notch-Layout)
         "notch.workspaces": {
-            title: "Workspaces in der Notch", desc: "Kleine Staebchen links neben der Uhr, solange die Notch zu ist",
+            title: "Workspaces in der Notch",
             requires: { "appearance.layout": "notch" }
         },
         "notch.date": {
-            title: "Datum in der Notch", desc: "Wochentag und Tag rechts neben der Uhr",
+            title: "Datum in der Notch",
             requires: { "appearance.layout": "notch" }
         },
         "notch.media": {
-            title: "Cover in der Notch", desc: "Albumcover links neben der Uhr, solange etwas spielt",
+            title: "Cover in der Notch",
             requires: { "appearance.layout": "notch" }
         },
         "notch.visualizer": {
-            title: "Visualiser in der Notch", desc: "Pegel rechts neben der Uhr, solange etwas spielt (statt des Datums)",
+            title: "Visualiser in der Notch",
             requires: { "appearance.layout": "notch" }
         },
         "notch.messages": {
-            title: "Nachrichten-Zaehler", desc: "Anzahl ungelesener Benachrichtigungen neben der Uhr",
+            title: "Nachrichten-Zaehler",
             requires: { "appearance.layout": "notch" }
         },
         // Stil-Varianten der Notch-Anzeigen. `preview` zeigt im Menue statt
         // Text-Chips eine kleine Vorschau der Variante (SettingsRow -> StylePreview)
         "notch.clockStyle": {
-            title: "Uhr-Stil", desc: "Wie die Uhr in der Notch aussieht",
+            title: "Uhr-Stil",
             options: ["digital", "split", "analog"], preview: "clock",
             requires: { "appearance.layout": "notch" }
         },
         "notch.workspaceStyle": {
-            title: "Workspace-Stil", desc: "Stäbchen, Punkte oder Zahlen links neben der Uhr",
+            title: "Workspace-Stil",
             options: ["staebchen", "punkte", "zahlen"], preview: "workspaces",
             requires: "notch.workspaces"
         },
         "notch.visualizerStyle": {
-            title: "Visualiser-Stil", desc: "Form der Pegel rechts neben der Uhr",
+            title: "Visualiser-Stil",
             options: ["spiegel", "saeulen", "punkte", "welle"], preview: "visualizer",
             requires: "notch.visualizer"
         },
         // Medienansicht (MediaPanel)
         "media.cover": {
-            title: "Cover", desc: "Rund mit Pegel-Ring oder als drehende Schallplatte",
+            title: "Cover",
             options: ["rund", "vinyl"]
         },
         "media.lyrics": {
-            title: "Songtexte", desc: "Synchrone Texte unter der Steuerung (Spotify über die Extension, sonst lrclib.net)"
+            title: "Songtexte", desc: "Spotify-Extension, sonst lrclib.net"
         },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
-        "bar.batteryPulse": { title: "Akku-Ladeimpuls", desc: "Bewegter Impuls im leeren Teil des Akkurings", requires: "bar.battery" },
-        "notifications.dnd": { title: "Nicht stören", desc: "Nachrichten sammeln, aber nicht von selbst aufklappen" },
+        "bar.batteryPulse": { title: "Akku-Ladeimpuls", requires: "bar.battery" },
+        "notifications.dnd": { title: "Nicht stören" },
         "vpn.provider": {
             title: "VPN-Anbieter",
-            desc: "Anbieter der VPN-Kachel",
             options: ["nordvpn", "cloudflare"]
         },
         "notifications.peekSeconds": {
             title: "Anzeigedauer",
-            desc: "Wie lange eine neue Nachricht in der Leiste aufklappt, wenn sie keine eigene Dauer mitbringt",
             min: 2, max: 15, step: 1, unit: "s", requires: "bar.notifications"
         },
         // Sprache der Oberflaeche (I18n.qml). `labels` zeigt statt des Werts
         // einen Namen – Sprachnamen stehen immer in ihrer eigenen Sprache
         "appearance.language": {
             title: "Sprache",
-            desc: "Sprache der Oberfläche",
             options: ["en", "de"],
             labels: { "en": "English", "de": "Deutsch" }
         },
@@ -132,7 +128,6 @@ Singleton {
         // Schriften blendet das Menue aus.
         "appearance.font": {
             title: "Schriftart",
-            desc: "Für alle Texte der Shell",
             options: ["SF Pro", "SF Pro Rounded", "Inter", "Noto Sans", "Adwaita Sans", "Fira Sans", "Cantarell"]
         },
         // Welche Elemente die Leiste zeigt. "insel": alle Pillen. "notch": nur
@@ -145,30 +140,25 @@ Singleton {
         // Nachschwingen der Pillen beim Aufklappen (siehe Appearance.qml)
         "appearance.bounce": {
             title: "Nachschwingen",
-            desc: "Wie stark Pillen und Karten beim Aufklappen federn",
             options: ["aus", "leicht", "mittel", "stark"]
         },
         "appearance.speed": {
             title: "Animationstempo",
-            desc: "Faktor fuer alle Auf- und Zuklapp-Bewegungen",
             min: 0.5, max: 2, step: 0.1, unit: "x"
         },
         "appearance.radius": {
             title: "Eckenrundung",
-            desc: "Rundung der aufgeklappten Karten; flache Pillen bleiben halbrund",
             min: 8, max: 28, step: 1, unit: "px"
         },
-        "appearance.shadow": { title: "Schatten", desc: "Weicher Schatten unter Pillen und Karten" },
-        "appearance.clock": { title: "Uhrzeit", desc: "Anzeigeformat der Uhr in der Notch", options: ["24h", "12h"] },
+        "appearance.shadow": { title: "Schatten" },
+        "appearance.clock": { title: "Uhrzeit", options: ["24h", "12h"] },
         // Uebergang beim Wallpaperwechsel (modules/window/WallpaperStage.qml)
         "wallpaper.transition": {
             title: "Übergang",
-            desc: "Wie das neue Wallpaper erscheint. Zufall würfelt je Bild",
             options: ["blende", "wischen", "schieben", "kreis", "zoom", "aus", "zufall"]
         },
         "wallpaper.duration": {
             title: "Dauer",
-            desc: "Länge des Übergangs. Beim Durchblättern in der Auswahl läuft er schneller",
             min: 200, max: 2000, step: 100, unit: "ms"
         },
         // Zufallsmodus (Wallpapers.qml): "start" wuerfelt einmal je Login,
@@ -180,34 +170,30 @@ Singleton {
         },
         "wallpaper.randomMinutes": {
             title: "Wechsel alle",
-            desc: "Abstand im Timer-Modus. Bei Vollbild oder Game-Mode wartet der Wechsel, bis wieder frei ist",
+            desc: "Wartet bei Vollbild oder Game-Mode",
             min: 5, max: 240, step: 5, unit: "min", requires: { "wallpaper.random": "timer" }
         },
         "wallpaper.randomScope": {
             title: "Zufall aus",
-            desc: "Alle: aus dem ganzen Wallpaper-Ordner. Ordner: nur aus dem Unterordner des aktuellen Bilds"
-                + " (z. B. Cyberpunk-Edgerunners)",
+            desc: "Ordner: nur der Ordner des aktuellen Bilds",
             options: ["alle", "ordner"]
         },
         // `editor` statt Bedienelement: das Menue laedt dafuer einen eigenen
         // Editor (modules/settings/QuickLayoutEditor.qml)
         // Regler am rechten Rand (modules/osd)
-        "osd.enabled": { title: "Regler am rechten Rand", desc: "Lautstärke und Helligkeit, mittig an der rechten Bildschirmkante" },
-        "osd.hover": { title: "Beim Hovern zeigen", desc: "Maus an den rechten Rand in der Bildschirmmitte", requires: "osd.enabled" },
-        "osd.brightness": { title: "Helligkeitsregler", desc: "Zweiter Regler unter der Lautstärke", requires: "osd.enabled" },
+        "osd.enabled": { title: "Regler am rechten Rand" },
+        "osd.hover": { title: "Beim Hovern zeigen", requires: "osd.enabled" },
+        "osd.brightness": { title: "Helligkeitsregler", requires: "osd.enabled" },
         "osd.hideDelay": {
             title: "Einblenddauer",
-            desc: "Wie lange die Regler nach einer Änderung sichtbar bleiben",
             min: 1, max: 10, step: 1, unit: "s", requires: "osd.enabled"
         },
         "quick.columns": {
             title: "Raster",
-            desc: "Spalten des Kachel-Rasters; eine Kachel kann mehrere belegen",
             min: 2, max: 6, step: 1
         },
         "quick.rows": {
             title: "Aufbau der Karte",
-            desc: "Kacheln ziehen: umsortieren, neue Reihe, ausblenden. Am rechten Rand ziehen: breiter oder schmaler",
             editor: "quick"
         }
     })

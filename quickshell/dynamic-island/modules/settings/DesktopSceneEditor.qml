@@ -8,8 +8,8 @@ import qs.modules.services.config
 import qs.modules.services.desktop
 
 // Block in der Gruppe des Plugins `desktop` (Einstellung `scenes`, editor "desktop"): welche
-// Szene gerade gilt, was darin steht, und der Knopf zum Bearbeiten. Das
-// eigentliche Anordnen passiert direkt auf dem Desktop (EditBar.qml).
+// Szene gerade gilt und der Knopf zum Bearbeiten. Das eigentliche Anordnen
+// passiert direkt auf dem Desktop (EditBar.qml).
 Column {
     id: root
 
@@ -27,65 +27,51 @@ Column {
 
     Text {
         width: parent.width
-        text: root.sceneLabel + (Scenes.widgets.length > 0
-            ? " · " + Scenes.widgets.map(w => I18n.tr(DesktopWidgets.info(w.type)?.title ?? w.type)).join(", ")
-            : "")
+        text: root.sceneLabel
         color: Colors.fgSurfaceVariant
         font.family: Config.font
         font.pixelSize: 10
         wrapMode: Text.Wrap
     }
 
-    Row {
-        spacing: 8
+    Rectangle {
+        width: editLabel.implicitWidth + 40
+        height: 30
+        radius: 15
+        color: editHover.hovered ? Qt.lighter(Colors.primary, 1.1) : Colors.primary
 
-        Rectangle {
-            width: editLabel.implicitWidth + 40
-            height: 30
-            radius: 15
-            color: editHover.hovered ? Qt.lighter(Colors.primary, 1.1) : Colors.primary
+        Row {
+            anchors.centerIn: parent
+            spacing: 6
 
-            Row {
-                anchors.centerIn: parent
-                spacing: 6
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "edit"
-                    color: Colors.fgPrimary
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 15
-                }
-
-                Text {
-                    id: editLabel
-
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: I18n.tr("Auf dem Desktop anordnen")
-                    color: Colors.fgPrimary
-                    font.family: Config.font
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "edit"
+                color: Colors.fgPrimary
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 15
             }
 
-            HoverHandler {
-                id: editHover
+            Text {
+                id: editLabel
 
-                cursorShape: Qt.PointingHandCursor
-            }
-
-            TapHandler {
-                onTapped: Scenes.edit(Hyprland.focusedMonitor?.name ?? "")
+                anchors.verticalCenter: parent.verticalCenter
+                text: I18n.tr("Auf dem Desktop anordnen")
+                color: Colors.fgPrimary
+                font.family: Config.font
+                font.pixelSize: 11
+                font.weight: Font.DemiBold
             }
         }
 
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: I18n.tr("oder SUPER+ALT+D")
-            color: Colors.fgSurfaceVariant
-            font.family: Config.font
-            font.pixelSize: 10
+        HoverHandler {
+            id: editHover
+
+            cursorShape: Qt.PointingHandCursor
+        }
+
+        TapHandler {
+            onTapped: Scenes.edit(Hyprland.focusedMonitor?.name ?? "")
         }
     }
 }

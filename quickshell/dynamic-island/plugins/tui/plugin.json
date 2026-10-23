@@ -6,7 +6,7 @@
     "api": 1,
     "parent": "desktop",
     "icon": "terminal",
-    "description": "Ein Terminal-Programm (cmatrix, cava, btop …) in einem durchsichtigen kitty-Panel an der Stelle des Widgets. Pausiert per SIGSTOP, solange der Desktop verdeckt ist. Braucht ~60 MB je Widget – für Matrix lieber das Matrix-Plugin nehmen.",
+    "description": "Ein Terminal-Programm (cmatrix, cava, btop …) im durchsichtigen kitty-Panel. Braucht ~60 MB je Widget.",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

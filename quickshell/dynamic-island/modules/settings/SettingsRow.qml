@@ -105,7 +105,14 @@ Item {
             Plugins.set(row.entry.section, row.entry.key, next);
     }
 
-    implicitHeight: (row.section !== "" ? row.headerHeight : 0) + 52
+    // Zweite Zeile unter dem Titel: Beschreibung aus Config.meta oder die
+    // fehlende Voraussetzung; ohne sie ist die Zeile niedriger
+    readonly property string subtitle: !row.available && row.requirementLabel !== ""
+                                       ? row.requirementLabel
+                                       : (row.entry?.desc ?? "")
+    readonly property real lineHeight: row.subtitle !== "" ? 52 : 44
+
+    implicitHeight: (row.section !== "" ? row.headerHeight : 0) + row.lineHeight
                     + (row.expanded ? choiceFlow.implicitHeight + 12 : 0)
                     + (row.isEditor ? editorLoader.implicitHeight + 14 : 0)
 
@@ -127,12 +134,11 @@ Item {
         verticalAlignment: Text.AlignBottom
 
         // Plugin-Gruppen heissen wie ihr Plugin
-        text: (Plugins.isPluginSection(row.section) ? I18n.tr(Plugins.sectionTitle(row.section))
-               : I18n.tr(Config.sectionMeta[row.section] ?? row.section)).toUpperCase()
+        text: Plugins.isPluginSection(row.section) ? I18n.tr(Plugins.sectionTitle(row.section))
+              : I18n.tr(Config.sectionMeta[row.section] ?? row.section)
         color: Colors.fgSurfaceVariant
-        font.pixelSize: 9
-        font.weight: Font.Medium
-        font.letterSpacing: 0.8
+        font.pixelSize: 10
+        font.weight: Font.DemiBold
         bottomPadding: 5
     }
 
@@ -170,7 +176,7 @@ Item {
                 right: parent.right
                 top: parent.top
             }
-            height: 52
+            height: row.lineHeight
 
             TapHandler {
                 enabled: (row.isBool || row.isChoice) && row.available
@@ -235,9 +241,8 @@ Item {
                 Text {
                     font.family: Config.font
                     width: parent.width
-                    text: !row.available && row.requirementLabel !== ""
-                          ? row.requirementLabel
-                          : (row.entry?.desc ?? "")
+                    visible: text !== ""
+                    text: row.subtitle
                     color: !row.available ? Colors.secondary : Colors.fgSurfaceVariant
                     font.pixelSize: 10
                     elide: Text.ElideRight

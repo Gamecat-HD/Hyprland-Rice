@@ -6,7 +6,7 @@
     "api": 1,
     "icon": "widgets",
     "author": "gamecat",
-    "description": "Uhr, Visualiser, Songtext & Co. auf dem Hintergrund, je Wallpaper angeordnet (SUPER+ALT+D). Weitere Widgets kommen als Komponenten dazu.",
+    "description": "Widgets auf dem Hintergrund, je Wallpaper angeordnet (SUPER+ALT+D).",
     "builtin": true,
     "defaultEnabled": true,
     "main": "Main.qml",
@@ -14,7 +14,7 @@
     "components": {
         "title": "Widgets",
         "icon": "widgets",
-        "desc": "Zusätzliche Desktop-Widgets. Jedes ist ein eigenes Paket (.dip) mit \"parent\": \"desktop\" und läuft nur, solange die Desktop-Widgets an sind."
+        "desc": "Zusätzliche Widgets, jedes als eigenes Paket (.dip)."
     },
     "tiles": {
         "toggle": { "label": "Desktop-Widgets", "icon": "widgets", "kind": "pill", "component": "Tile.qml" }
@@ -32,7 +32,7 @@
         "hidden": {
             "default": false,
             "title": "Nur im Editor",
-            "desc": "Widgets ausblenden – sichtbar nur beim Anordnen (SUPER+ALT+D). Schnellkachel „Desktop-Widgets“"
+            "desc": "Sichtbar nur beim Anordnen (SUPER+ALT+D)"
         },
         "pause": {
             "default": "fenster",

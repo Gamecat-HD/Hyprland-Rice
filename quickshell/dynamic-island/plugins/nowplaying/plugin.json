@@ -6,7 +6,7 @@
     "api": 1,
     "parent": "desktop",
     "icon": "album",
-    "description": "Cover, Titel und Fortschritt des laufenden Songs (alle MPRIS-Player), getönt in der Farbe des Covers. Passt zu Songtext und Visualiser.",
+    "description": "Cover, Titel und Fortschritt des laufenden Songs (alle MPRIS-Player).",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

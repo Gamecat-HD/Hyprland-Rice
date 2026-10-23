@@ -344,7 +344,8 @@ Item {
         Column {
             anchors.centerIn: parent
             spacing: 4
-            visible: section.wh.items.count === 0
+            // Vor der ersten Suche bleibt die Flaeche leer
+            visible: section.wh.items.count === 0 && (section.wh.searching || section.wh.error !== "" || section.wh.answered)
 
             Text {
                 id: emptyIcon
@@ -371,7 +372,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: section.wh.searching ? I18n.tr("Suche auf wallhaven.cc…")
                     : section.wh.error !== "" ? section.wh.error
-                    : section.wh.answered ? I18n.tr("Keine Treffer") : I18n.tr("Tippen, um zu suchen")
+                    : I18n.tr("Keine Treffer")
                 font.family: Config.font
                 font.pixelSize: 12
                 color: section.wh.error !== "" ? Colors.error : Colors.fgSurfaceVariant

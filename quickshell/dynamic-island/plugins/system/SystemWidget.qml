@@ -196,7 +196,6 @@ Item {
             font.family: Config.font
             font.pixelSize: cap.px
             font.weight: Font.DemiBold
-            font.letterSpacing: cap.px * 0.18
         }
     }
 
@@ -224,9 +223,9 @@ Item {
         font.features: ({ "tnum": 1 })
     }
 
-    // Kopfzeile: Prozessorname in Versalien, sonst "System"
+    // Kopfzeile: Prozessorname, sonst "System"
     component Header: Caption {
-        text: (SystemStats.cpuName !== "" ? SystemStats.cpuName : "System").toUpperCase()
+        text: SystemStats.cpuName !== "" ? SystemStats.cpuName : "System"
         dot: true
         px: root.unit * 0.7
         tint: Colors.alpha(root.color, 0.72)

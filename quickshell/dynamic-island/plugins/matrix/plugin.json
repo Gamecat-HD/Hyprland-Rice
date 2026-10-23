@@ -6,7 +6,7 @@
     "api": 1,
     "parent": "desktop",
     "icon": "code",
-    "description": "Fallende Zeichen wie in Matrix, als GPU-Shader (kostet fast nichts, pausiert mit dem Desktop).",
+    "description": "Fallende Zeichen als GPU-Shader, pausiert mit dem Desktop.",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

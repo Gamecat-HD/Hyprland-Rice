@@ -6,7 +6,7 @@
     "api": 1,
     "parent": "desktop",
     "icon": "monitor_heart",
-    "description": "CPU, Grafik, Arbeitsspeicher, Platte und Temperaturen auf dem Desktop. Liest nur, solange das Widget sichtbar ist (dieselben Werte wie die Statuskarte der Leiste).",
+    "description": "CPU, Grafik, Arbeitsspeicher, Platte und Temperaturen. Liest nur, solange das Widget sichtbar ist.",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

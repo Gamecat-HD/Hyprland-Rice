@@ -384,8 +384,7 @@ Item {
             Text {
                 anchors.fill: parent
                 visible: search.text === ""
-                text: panel.editing ? I18n.tr("Bearbeiten: Tasten anklicken zum Neubelegen, Auge schaltet ab")
-                                    : I18n.tr("Tastenkürzel durchsuchen…   Klick oder Enter führt aus")
+                text: I18n.tr("Tastenkürzel durchsuchen")
                 color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                 font: search.font
                 verticalAlignment: Text.AlignVCenter
@@ -457,9 +456,9 @@ Item {
                     right: parent.right
                     verticalCenter: parent.verticalCenter
                 }
-                text: panel.captureError !== "" ? panel.captureError
-                    : panel.captureDone !== "" ? I18n.tr("Tasten loslassen") : I18n.tr("Esc bricht ab")
-                color: panel.captureError !== "" ? Colors.error : Colors.fgSurfaceVariant
+                visible: panel.captureError !== ""
+                text: panel.captureError
+                color: Colors.error
                 font.family: Config.font
                 font.pixelSize: 12
             }
@@ -706,12 +705,11 @@ Item {
                     bottom: parent.bottom
                     bottomMargin: 8
                 }
-                text: I18n.tr(block.modelData.name).toUpperCase()
+                text: I18n.tr(block.modelData.name)
                 color: Colors.primary
                 font.family: Config.font
-                font.pixelSize: 11
+                font.pixelSize: 12
                 font.weight: Font.DemiBold
-                font.letterSpacing: 1.2
             }
         }
 

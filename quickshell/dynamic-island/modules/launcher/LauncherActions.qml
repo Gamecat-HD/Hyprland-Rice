@@ -29,13 +29,11 @@ Singleton {
     readonly property var actions: [
         {
             name: "Shell neu laden",
-            desc: "Quickshell-Konfiguration neu einlesen",
             icon: "refresh",
             run: () => Quickshell.reload(false)
         },
         {
             name: "Wallpaper",
-            desc: "Hintergrund wechseln",
             icon: "wallpaper_slideshow",
             // Eigene Ansicht in derselben Karte (WallpaperPanel.qml), deshalb
             // umschalten statt schliessen
@@ -44,7 +42,6 @@ Singleton {
         },
         {
             name: "Theme",
-            desc: "Farbschema und Variante wechseln",
             icon: "palette",
             keepOpen: true,
             run: () => LauncherState.mode = "theme"
@@ -52,55 +49,48 @@ Singleton {
         // Untermenues der Notch – dieselben Ansichten wie per Tastenkuerzel
         {
             name: "Medien",
-            desc: "Player, Cover und Steuerung",
             icon: "music_note",
             keepOpen: true,
             run: () => LauncherState.mode = "media"
         },
         {
             name: "Steuerung",
-            desc: "WLAN, Bluetooth, Audio, Helligkeit und Tray",
             icon: "toggle_on",
             keepOpen: true,
             run: () => LauncherState.mode = "control"
         },
         {
             name: "Benachrichtigungen",
-            desc: "Alle Nachrichten, Nicht stören",
             icon: "notifications",
             keepOpen: true,
             run: () => LauncherState.mode = "notifications"
         },
         {
             name: "System",
-            desc: "Auslastung, Speicher und Temperaturen",
             icon: "monitoring",
             keepOpen: true,
             run: () => LauncherState.mode = "system"
         },
         {
             name: "Power",
-            desc: "Sperren, Abmelden, Neustart, Ausschalten",
             icon: "power_settings_new",
             keepOpen: true,
             run: () => LauncherState.mode = "power"
         },
         {
             name: "Tastenkürzel",
-            desc: "Alle Keybinds im Überblick (SUPER+K)",
+            desc: "SUPER+K",
             icon: "keyboard",
             keepOpen: true,
             run: () => LauncherState.mode = "keys"
         },
         {
             name: "Einstellungen",
-            desc: "Fenster mit den Schaltern der Shell",
             icon: "tune",
             run: () => SettingsState.toggleOnFocused()
         },
         {
             name: "Zufaelliges Wallpaper",
-            desc: "Irgendeines aus dem Wallpaper-Ordner",
             icon: "shuffle",
             run: () => Wallpapers.random()
         }

@@ -37,7 +37,7 @@ QtObject {
     readonly property var actions: [
         {
             name: I18n.tr("Terminal-Look wechseln"),
-            desc: I18n.tr("Jetzt: %1 – Prompt und fastfetch").arg(root.labels[root.mode]),
+            desc: I18n.tr("Jetzt: %1").arg(root.labels[root.mode]),
             keepOpen: true,
             run: () => root.cycle()
         }

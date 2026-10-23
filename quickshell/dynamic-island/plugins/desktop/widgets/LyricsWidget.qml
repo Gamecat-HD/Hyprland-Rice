@@ -129,7 +129,7 @@ Item {
             width: parent.width
             y: parent.height / 2 - height / 2
 
-            text: root.editing && !root.hasContent ? I18n.tr("♪ Songtext") : root.currentLine
+            text: root.editing && !root.hasContent ? I18n.tr("Songtext") : root.currentLine
             color: root.accent
             font.family: Config.font
             font.pixelSize: root.bigSize

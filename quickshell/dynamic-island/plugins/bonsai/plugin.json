@@ -6,7 +6,7 @@
     "api": 1,
     "parent": "desktop",
     "icon": "park",
-    "description": "Ein ASCII-Bonsai nach cbonsai, wächst einmal sichtbar und steht dann still.",
+    "description": "ASCII-Bonsai nach cbonsai.",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

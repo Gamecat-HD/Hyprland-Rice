@@ -399,14 +399,15 @@ Item {
             font.family: Config.font
 
             anchors.centerIn: parent
-            opacity: panel.results.length === 0 ? 1 : 0
+            // Leere Favoritenliste bleibt leer
+            opacity: panel.results.length === 0 && !panel.favoritesOnly ? 1 : 0
             visible: opacity > 0
 
             Behavior on opacity {
                 NumberAnimation { duration: 140 }
             }
 
-            text: panel.favoritesOnly ? I18n.tr("Noch keine Favoriten") : I18n.tr("Keine Treffer")
+            text: I18n.tr("Keine Treffer")
             color: Colors.fgSurfaceVariant
             font.pixelSize: 12
         }

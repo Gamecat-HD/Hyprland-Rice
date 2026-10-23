@@ -42,7 +42,7 @@ Item {
     readonly property string display: Qt.fontFamilies().includes("Inter Display") ? "Inter Display" : Config.font
     readonly property string hours: Qt.formatDateTime(clock.date, root.use12h ? "h" : "HH")
     readonly property string minutes: Qt.formatDateTime(clock.date, "mm")
-    readonly property string dateLine: I18n.date(clock.date, "dddd · d. MMMM", "dddd · MMMM d").toUpperCase()
+    readonly property string dateLine: I18n.date(clock.date, "dddd · d. MMMM", "dddd · MMMM d")
 
     implicitWidth: root.island ? card.width : body.width
     implicitHeight: root.island ? card.height : body.height
@@ -53,7 +53,7 @@ Item {
         precision: SystemClock.Minutes
     }
 
-    // Kleine Versalien-Zeile mit Akzentpunkt (wie die Kopfzeilen der Notch)
+    // Kleine Datumszeile mit Akzentpunkt
     component Caption: Row {
         id: cap
 
@@ -77,7 +77,6 @@ Item {
             font.family: Config.font
             font.pixelSize: cap.px
             font.weight: Font.DemiBold
-            font.letterSpacing: cap.px * 0.18
         }
     }
 

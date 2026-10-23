@@ -6,7 +6,7 @@
     "api": 1,
     "parent": "desktop",
     "icon": "calendar_month",
-    "description": "Monatsblatt mit heutigem Tag, Kalenderwochen und den Feiertagen deines Bundeslands; darunter die nächsten Feiertage.",
+    "description": "Monatsblatt mit Kalenderwochen und den Feiertagen deines Bundeslands.",
     "author": "gamecat",
     "defaultEnabled": true,
     "widgets": {

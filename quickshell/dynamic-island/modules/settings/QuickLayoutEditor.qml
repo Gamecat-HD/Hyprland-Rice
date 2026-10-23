@@ -10,7 +10,8 @@ import qs
 //
 // Oben die Reihen, so wie die Karte sie zeigt: jede Kachel als Chip, so
 // breit wie ihre Spalten; freie Zellen sind als leere Felder zu sehen.
-// Darunter eine Zone fuer eine neue Reihe und die Ablage "Ausgeblendet".
+// Darunter eine Zone fuer eine neue Reihe (nur ein "+", beim Ziehen deutlich)
+// und die Ablage "Ausgeblendet".
 //
 //   Chip ziehen                 umsortieren, umziehen, neue Reihe, ausblenden
 //   Am rechten Rand ziehen      breiter oder schmaler (in Spalten rastend)
@@ -456,25 +457,12 @@ Item {
                 NumberAnimation { duration: 140 }
             }
 
-            Row {
+            Text {
                 anchors.centerIn: parent
-                spacing: 6
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "add"
-                    color: Colors.fgSurfaceVariant
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 15
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    font.family: Config.font
-                    text: I18n.tr("Hierher ziehen für eine neue Reihe")
-                    color: Colors.fgSurfaceVariant
-                    font.pixelSize: 10
-                }
+                text: "add"
+                color: Colors.fgSurfaceVariant
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 15
             }
         }
 
@@ -489,11 +477,10 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
                 font.family: Config.font
-                text: I18n.tr("AUSGEBLENDET")
+                text: I18n.tr("Ausgeblendet")
                 color: Colors.fgSurfaceVariant
-                font.pixelSize: 9
-                font.weight: Font.Medium
-                font.letterSpacing: 0.8
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
             }
 
             // Zuruecksetzen auf den Standard-Aufbau
@@ -595,26 +582,13 @@ Item {
                 }
             }
 
-            Row {
+            Text {
                 anchors.centerIn: parent
-                spacing: 6
                 visible: QuickLayout.hidden.length === 0
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "visibility_off"
-                    color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 15
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    font.family: Config.font
-                    text: I18n.tr("Kacheln hierher ziehen, um sie auszublenden")
-                    color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
-                    font.pixelSize: 10
-                }
+                text: "visibility_off"
+                color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 15
             }
         }
     }

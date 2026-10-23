@@ -62,10 +62,10 @@ Item {
         ? Colors.mix(Media.artColor, root.color, 0.35)
         : root.accent
 
-    // Platzhalter (idle "ruhig" / Bearbeiten): Kopfzeile "Jetzt laeuft",
-    // darunter gedimmt "Keine Musik"
+    // Platzhalter (idle "ruhig" / Bearbeiten): nur gedimmt "Keine Musik",
+    // die Kopfzeile (Interpret) faellt weg
     readonly property string titleText: root.placeholder ? I18n.tr("Keine Musik") : Media.title
-    readonly property string artistText: root.placeholder ? I18n.tr("JETZT LAEUFT") : Media.artist.toUpperCase()
+    readonly property string artistText: root.placeholder ? "" : Media.artist
 
     // Groessen in Grundeinheiten
     readonly property real smallArt: Math.round(root.unit * 4.6)
@@ -151,7 +151,6 @@ Item {
             font.family: Config.font
             font.pixelSize: cap.px
             font.weight: Font.DemiBold
-            font.letterSpacing: cap.px * 0.18
             elide: Text.ElideRight
             maximumLineCount: 1
         }
@@ -183,6 +182,7 @@ Item {
 
             Caption {
                 width: parent.width
+                visible: root.artistText !== ""
                 px: root.unit * 0.8
             }
 

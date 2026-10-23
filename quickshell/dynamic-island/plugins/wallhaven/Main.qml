@@ -67,7 +67,7 @@ Scope {
     readonly property var actions: [
         {
             name: I18n.tr("Wallhaven durchsuchen"),
-            desc: I18n.tr("Wallpaper-Auswahl mit der Wallhaven-Suche"),
+            desc: "SUPER+ALT+W",
             keepOpen: true,
             run: () => LauncherState.showWallpaperSection(LauncherState.screen, root.plugin.id)
         }

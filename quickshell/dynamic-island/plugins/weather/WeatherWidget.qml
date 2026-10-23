@@ -107,7 +107,7 @@ Item {
         font.features: ({ "tnum": 1 })
     }
 
-    // Kleine Versalien-Zeile mit Akzentpunkt (wie die Kopfzeilen der Notch)
+    // Kleine Kopfzeile mit Akzentpunkt
     component Caption: Row {
         id: cap
 
@@ -132,7 +132,6 @@ Item {
             font.family: Config.font
             font.pixelSize: cap.px
             font.weight: Font.DemiBold
-            font.letterSpacing: cap.px * 0.18
         }
 
         Text {
@@ -143,15 +142,14 @@ Item {
             font.family: Config.font
             font.pixelSize: cap.px
             font.weight: Font.Medium
-            font.letterSpacing: cap.px * 0.18
         }
     }
 
     // Kopfzeile: Ort und/oder Stale-Hinweis
     component Header: Caption {
         visible: (root.showPlace && (root.wx?.place ?? "") !== "") || root.stale
-        text: root.showPlace ? (root.wx?.place ?? "").toUpperCase() : ""
-        note: root.stale && root.updatedAt !== "" ? I18n.tr("STAND %1").arg(root.updatedAt) : ""
+        text: root.showPlace ? (root.wx?.place ?? "") : ""
+        note: root.stale && root.updatedAt !== "" ? I18n.tr("Stand %1").arg(root.updatedAt) : ""
     }
 
     // Ein Wert mit kleinem Symbol davor (Detailzeile)
@@ -554,8 +552,8 @@ Item {
                 visible: (root.showPlace && (root.wx?.place ?? "") !== "") || root.stale
                 anchors.verticalCenter: parent.verticalCenter
                 leftPadding: root.unit * 0.3
-                text: root.showPlace ? (root.wx?.place ?? "").toUpperCase() : ""
-                note: root.stale && root.updatedAt !== "" ? I18n.tr("STAND %1").arg(root.updatedAt) : ""
+                text: root.showPlace ? (root.wx?.place ?? "") : ""
+                note: root.stale && root.updatedAt !== "" ? I18n.tr("Stand %1").arg(root.updatedAt) : ""
                 px: root.unit * 0.75
             }
         }

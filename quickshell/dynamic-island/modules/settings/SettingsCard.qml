@@ -350,11 +350,10 @@ Surface {
                     leftPadding: 14
                     verticalAlignment: Text.AlignBottom
                     bottomPadding: 5
-                    text: "PLUGINS"
+                    text: I18n.tr("Plugins")
                     color: Colors.fgSurfaceVariant
-                    font.pixelSize: 9
-                    font.weight: Font.Medium
-                    font.letterSpacing: 0.8
+                    font.pixelSize: 10
+                    font.weight: Font.DemiBold
                 }
 
                 SectionButton {
@@ -793,7 +792,7 @@ Surface {
                                 title: meta?.title ? I18n.tr(meta.title) : key,
                                 // Ohne Eintrag in der Tabelle: ehrlich sagen,
                                 // dass der Schluessel neu ist
-                                desc: meta?.desc ? I18n.tr(meta.desc) : I18n.tr("Schlüssel \"%1\" aus shell.json").arg(key),
+                                desc: meta?.desc ? I18n.tr(meta.desc) : (meta ? "" : I18n.tr("Schlüssel \"%1\" aus shell.json").arg(key)),
                                 options: meta?.options ?? null,
                                 labels: meta?.labels ?? null,
                                 min: meta?.min,

@@ -126,10 +126,8 @@ Item {
             font.family: Config.font
             text: I18n.tr("Songtext")
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.75)
-            font.pixelSize: 8
+            font.pixelSize: 9
             font.weight: Font.DemiBold
-            font.capitalization: Font.AllUppercase
-            font.letterSpacing: 0.8
         }
 
         // Rechts: Zustand bzw. Quelle, ganz leise

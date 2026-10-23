@@ -11,10 +11,11 @@ import qs.modules.services.desktop
 // das Widget kommt genau dorthin – Scenes.addAt). DesktopScreen setzt Lage
 // und laedt sie nur, solange Scenes.adding.
 //
-// Kacheln je Typ (Symbol, Name, Beschreibung aus Manifest `desc`), getrennt
-// in die Grundausstattung des Plugins `desktop` und die Komponenten. Tippen
-// filtert, Pfeile/Tab waehlen, Enter fuegt hinzu, Esc schliesst (geht an die
-// Buehne weiter). Schon vorhandene Widgets tragen ihre Anzahl.
+// Kacheln je Typ (Symbol, Name; die Beschreibung aus Manifest `desc` zaehlt
+// nur fuer die Suche), getrennt in die Grundausstattung des Plugins `desktop`
+// und die Komponenten. Tippen filtert, Pfeile/Tab waehlen, Enter fuegt hinzu,
+// Esc schliesst (geht an die Buehne weiter). Schon vorhandene Widgets tragen
+// ihre Anzahl.
 Rectangle {
     id: picker
 
@@ -109,10 +110,8 @@ Rectangle {
     component Section: Text {
         color: Colors.fgSurfaceVariant
         font.family: Config.font
-        font.pixelSize: 9
+        font.pixelSize: 10
         font.weight: Font.DemiBold
-        font.letterSpacing: 0.8
-        font.capitalization: Font.AllUppercase
     }
 
     component Tile: Rectangle {
@@ -124,7 +123,7 @@ Rectangle {
         readonly property int count: picker.counts[tile.modelData.type] ?? 0
 
         width: picker.tileW
-        height: 64
+        height: 52
         radius: 14
         color: tileHover.hovered ? Colors.alpha(Colors.fgSurface, 0.12)
              : tile.current ? Colors.alpha(Colors.primary, 0.12)
@@ -156,7 +155,7 @@ Rectangle {
             }
         }
 
-        Column {
+        Text {
             anchors {
                 left: badge.right
                 leftMargin: 10
@@ -164,30 +163,12 @@ Rectangle {
                 rightMargin: tile.count > 0 ? 34 : 12
                 verticalCenter: parent.verticalCenter
             }
-            spacing: 2
-
-            Text {
-                width: parent.width
-                text: I18n.tr(tile.modelData.title)
-                color: Colors.fgBackground
-                font.family: Config.font
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
-            }
-
-            Text {
-                width: parent.width
-                visible: text !== ""
-                text: I18n.tr(tile.modelData.desc)
-                color: Colors.fgSurfaceVariant
-                font.family: Config.font
-                font.pixelSize: 10
-                wrapMode: Text.Wrap
-                maximumLineCount: 2
-                elide: Text.ElideRight
-                lineHeight: 0.95
-            }
+            text: I18n.tr(tile.modelData.title)
+            color: Colors.fgBackground
+            font.family: Config.font
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            elide: Text.ElideRight
         }
 
         // Schon in der Szene
@@ -196,8 +177,7 @@ Rectangle {
             anchors {
                 right: parent.right
                 rightMargin: 10
-                top: parent.top
-                topMargin: 9
+                verticalCenter: parent.verticalCenter
             }
             width: countText.implicitWidth + 10
             height: 16
@@ -343,7 +323,7 @@ Rectangle {
                 Text {
                     anchors.fill: parent
                     visible: input.text === ""
-                    text: I18n.tr("Suchen – Enter fügt hinzu")
+                    text: I18n.tr("Suchen")
                     color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                     font: input.font
                     verticalAlignment: Text.AlignVCenter
@@ -399,15 +379,6 @@ Rectangle {
             color: Colors.fgSurfaceVariant
             font.family: Config.font
             font.pixelSize: 11
-        }
-
-        Text {
-            width: parent.width
-            text: I18n.tr("Weitere Widgets: Einstellungen › Plugins › Desktop-Widgets › Widgets")
-            color: Colors.alpha(Colors.fgSurfaceVariant, 0.75)
-            font.family: Config.font
-            font.pixelSize: 10
-            elide: Text.ElideRight
         }
     }
 }
