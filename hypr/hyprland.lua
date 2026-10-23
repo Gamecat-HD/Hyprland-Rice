@@ -45,6 +45,17 @@ hl.monitor({
     scale    = 1.25,
 })
 
+-- Wechselt der Fokus (Maus oder Tastatur) auf einen Monitor mit leerem
+-- Workspace, behaelt Hyprland sonst das Fenster auf dem anderen Monitor als
+-- Tastaturfokus. Den leeren Workspace explizit fokussieren gibt ihn frei.
+hl.on("monitor.focused", function(mon)
+    mon = mon or hl.get_active_monitor()
+    local ws = mon and mon.active_workspace
+    if ws and ws.windows == 0 and hl.get_active_window() then
+        hl.dispatch(hl.dsp.focus({ workspace = tostring(ws.id) }))
+    end
+end)
+
 --------------------------------------------------------------------------------
 -- Profil bestimmen
 --------------------------------------------------------------------------------
