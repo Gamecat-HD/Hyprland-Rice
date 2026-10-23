@@ -282,8 +282,8 @@ Singleton {
         return out;
     }
 
-    // Desktop-Widgets (Manifest `widgets`): "<typ>" -> { pluginId, title,
-    // icon, url, size, options, plugin }. Gleiche Regel wie bei `panels`: mit Dienst
+    // Desktop-Widgets (Manifest `widgets`): "<typ>" -> { pluginId, pluginName,
+    // title, desc, icon, url, size, options, plugin }. Gleiche Regel wie bei `panels`: mit Dienst
     // erst, wenn er laeuft. Die Liste der Typen fuehrt DesktopWidgets.qml
     // mit den eingebauten zusammen (Vertrag in plugins/README.md).
     readonly property var widgets: {
@@ -298,7 +298,9 @@ Singleton {
                     continue;
                 out[type] = {
                     pluginId: h.pluginId,
+                    pluginName: h.name,
                     title: w.title ?? type,
+                    desc: w.desc ?? "",
                     icon: w.icon ?? h.icon,
                     url: h.url(w.component),
                     size: Array.isArray(w.size) ? w.size : [10, 6],

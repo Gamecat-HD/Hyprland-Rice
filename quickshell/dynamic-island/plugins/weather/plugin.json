@@ -14,6 +14,7 @@
     "widgets": {
         "weather": {
             "title": "Wetter",
+            "desc": "Wetter jetzt, in den nächsten Stunden oder für die Woche",
             "icon": "partly_cloudy_day",
             "component": "WeatherWidget.qml",
             "size": [18, 10],

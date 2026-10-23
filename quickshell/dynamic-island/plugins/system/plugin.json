@@ -12,6 +12,7 @@
     "widgets": {
         "system": {
             "title": "System",
+            "desc": "CPU, Grafik, RAM und Temperaturen als Ringe, Balken oder Zahlen",
             "icon": "monitor_heart",
             "component": "SystemWidget.qml",
             "size": [20, 9],

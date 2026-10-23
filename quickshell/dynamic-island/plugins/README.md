@@ -104,6 +104,7 @@ als Komponente bauen (`"parent": "desktop"`, s.u.). Je Typ:
 "widgets": {
     "matrix": {
         "title": "Matrix",
+        "desc": "Fallende Zeichen als GPU-Shader",
         "icon": "code",
         "component": "MatrixWidget.qml",
         "size": [30, 20],
@@ -115,7 +116,8 @@ als Komponente bauen (`"parent": "desktop"`, s.u.). Je Typ:
 }
 ```
 
-`size` = ungefähre Größe in Grundeinheiten (16 px bei 1440p) für die
+`desc` = eine Zeile für die Widget-Auswahl (Leiste „Widget“ bzw. Rechtsklick
+beim Bearbeiten). `size` = ungefähre Größe in Grundeinheiten (16 px bei 1440p) für die
 automatische Platzierung; `options` erscheinen als Chips in der
 Bearbeitungsleiste (`values` = Auswahl, `bool` = Schalter) und landen in
 `opts`. Farbe und Akzent hat jedes Widget von selbst.

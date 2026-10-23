@@ -12,6 +12,7 @@
     "widgets": {
         "nowplaying": {
             "title": "Jetzt läuft",
+            "desc": "Cover und Titel des laufenden Songs, auch als Schallplatte",
             "icon": "album",
             "component": "NowPlayingWidget.qml",
             "size": [22, 7],

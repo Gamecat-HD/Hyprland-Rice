@@ -94,7 +94,23 @@ PanelWindow {
 
         // Maus ueber Leiste oder Optionsfeld: Widgets darunter nehmen nichts an
         readonly property bool overUi: (barLoader.item?.hovered ?? false)
+                                       || (pickerLoader.item?.hovered ?? false)
                                        || (stage.selectedHost?.panelHovered ?? false)
+
+        // Liegt ein Punkt (Buehnenkoordinaten) auf der Leiste oder der
+        // Widget-Auswahl? Die nehmen Klicks selbst an, Qt 6 reicht sie aber
+        // trotzdem an die Handler darunter weiter
+        function onUi(x: real, y: real): bool {
+            for (const l of [barLoader, pickerLoader]) {
+                const it = l.item;
+                if (!it)
+                    continue;
+                const p = it.mapFromItem(stage, x, y);
+                if (p.x >= 0 && p.y >= 0 && p.x <= it.width && p.y <= it.height)
+                    return true;
+            }
+            return false;
+        }
 
         // Esc: erst Auswahl weg, dann Abbrechen (alles zurueck). Enter: Fertig.
         Keys.onPressed: event => {
@@ -148,16 +164,11 @@ PanelWindow {
             TapHandler {
                 onTapped: point => {
                     const x = point.position.x, y = point.position.y;
-                    // Die Leiste nimmt Klicks selbst an, Qt 6 reicht sie aber
-                    // trotzdem hierher weiter – sonst schloesse "Widget" seine
-                    // eigene Liste gleich wieder und jeder Knopf hoebe die
-                    // Auswahl auf
-                    const bar = barLoader.item;
-                    if (bar) {
-                        const p = bar.mapFromItem(stage, x, y);
-                        if (p.x >= 0 && p.y >= 0 && p.x <= bar.width && p.y <= bar.height)
-                            return;
-                    }
+                    // Klicks auf Leiste/Auswahl sind kein Klick ins Leere –
+                    // sonst schloesse "Widget" seine Auswahl gleich wieder
+                    // und jeder Knopf hoebe die Auswahl auf
+                    if (stage.onUi(x, y))
+                        return;
                     for (const child of stage.children)
                         if (typeof child.owns === "function" && child.owns(x, y))
                             return;
@@ -166,6 +177,25 @@ PanelWindow {
                         return;
                     }
                     Scenes.selected = "";
+                }
+            }
+
+            // Rechtsklick: auf ein Widget = auswaehlen, ins Leere = Widget-
+            // Auswahl an dieser Stelle (das neue Widget kommt genau hierher)
+            TapHandler {
+                acceptedButtons: Qt.RightButton
+                onTapped: point => {
+                    const x = point.position.x, y = point.position.y;
+                    if (stage.onUi(x, y))
+                        return;
+                    const host = stage.hostAt(x, y);
+                    if (host) {
+                        Scenes.adding = false;
+                        Scenes.selected = host.widget.id;
+                        return;
+                    }
+                    Scenes.selected = "";
+                    Scenes.openPicker({ x: x / stage.width, y: y / stage.height });
                 }
             }
 
@@ -297,6 +327,60 @@ PanelWindow {
                     font.weight: Font.DemiBold
                 }
             }
+        }
+
+        // Stelle eines Rechtsklicks: hier landet das neue Widget
+        Rectangle {
+            readonly property var at: win.editingHere && Scenes.adding ? Scenes.addAt : null
+
+            visible: at !== null
+            z: 24
+            x: Math.round((at?.x ?? 0) * stage.width - width / 2)
+            y: Math.round((at?.y ?? 0) * stage.height - height / 2)
+            width: 22
+            height: 22
+            radius: 11
+            color: Colors.alpha(Colors.primary, 0.25)
+            border.width: 2
+            border.color: Colors.primary
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: 6
+                height: 6
+                radius: 3
+                color: Colors.primary
+            }
+        }
+
+        // Widget-Auswahl: ueber der Leiste bzw. am Rechtsklick (rechts unten
+        // davon, am Bildschirmrand eingefangen; unten zu wenig Platz = darueber)
+        Loader {
+            id: pickerLoader
+
+            readonly property var at: Scenes.addAt
+            readonly property real w: item?.width ?? 0
+            readonly property real h: item?.height ?? 0
+
+            active: win.editingHere && Scenes.adding
+            z: 25
+            x: {
+                if (!at)
+                    return Math.round((stage.width - w) / 2);
+                return Math.round(Math.max(16, Math.min(stage.width - w - 16, at.x * stage.width + 18)));
+            }
+            y: {
+                if (!at)
+                    return Math.round(barLoader.y - h - 12);
+                const py = at.y * stage.height;
+                const below = py + 18 + h + 16 <= stage.height;
+                return Math.round(Math.max(16, below ? py + 18 : py - h - 18));
+            }
+
+            sourceComponent: WidgetPicker {}
+
+            // Nach dem Schliessen gehoeren die Tasten wieder der Buehne
+            onActiveChanged: if (!active && win.editingHere) stage.forceActiveFocus()
         }
 
         // Bearbeitungsleiste unten mittig

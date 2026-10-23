@@ -283,7 +283,22 @@ Item {
             function redock(): void {
                 pop.heldX = NaN;
                 pop.heldY = NaN;
-                Qt.callLater(pop.hold);
+                holdLater.restart();
+            }
+
+            // Statt Qt.callLater: ein Timer stirbt mit dem Feld (callLater
+            // liefe nach dem Abwaehlen ins zerstoerte Objekt)
+            Timer {
+                id: holdLater
+
+                interval: 0
+                onTriggered: pop.hold()
+            }
+            Timer {
+                id: redockLater
+
+                interval: 0
+                onTriggered: pop.redock()
             }
 
             readonly property bool misplaced: {
@@ -301,8 +316,8 @@ Item {
             }
             // Erst nach der Auswertung umsetzen: redock aendert, wovon
             // `misplaced` abhaengt (sonst Binding-Schleife)
-            onMisplacedChanged: if (pop.misplaced) Qt.callLater(pop.redock)
-            Component.onCompleted: Qt.callLater(pop.hold)
+            onMisplacedChanged: if (pop.misplaced) redockLater.restart()
+            Component.onCompleted: holdLater.restart()
             Connections {
                 target: host
 

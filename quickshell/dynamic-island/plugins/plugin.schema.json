@@ -88,6 +88,7 @@
                 "required": ["component"],
                 "properties": {
                     "title": { "type": "string" },
+                    "desc": { "type": "string", "description": "Eine Zeile fuer die Widget-Auswahl" },
                     "icon": { "type": "string" },
                     "component": { "type": "string", "pattern": "^[^/].*\\.qml$" },
                     "size": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },

@@ -12,6 +12,7 @@
     "widgets": {
         "matrix": {
             "title": "Matrix",
+            "desc": "Fallende Zeichen als GPU-Shader – kostet fast nichts",
             "icon": "code",
             "component": "MatrixWidget.qml",
             "size": [30, 20],

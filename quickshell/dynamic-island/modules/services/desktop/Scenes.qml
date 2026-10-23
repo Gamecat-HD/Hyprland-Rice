@@ -88,8 +88,19 @@ Singleton {
     property string editScreen: ""
     property string target: ""
     property string selected: ""
-    // Liste "Widget hinzufuegen" in der Leiste offen (Esc/Klick ins Leere schliesst)
+    // Widget-Auswahl offen (WidgetPicker; Esc/Klick ins Leere schliesst).
+    // `addAt`: per Rechtsklick an einer Stelle geoeffnet – { x, y } als
+    // Anteil des Bildschirms, das neue Widget kommt genau dorthin. null =
+    // ueber die Leiste geoeffnet, Platz sucht `place`.
     property bool adding: false
+    property var addAt: null
+
+    onAddingChanged: if (!root.adding) root.addAt = null
+
+    function openPicker(at: var): void {
+        root.addAt = at ?? null;
+        root.adding = true;
+    }
     readonly property var selectedWidget: root.widgets.find(w => w.id === root.selected) ?? null
 
     // Ein auf einen Monitor festgelegtes Widget wird gerade ueber den Rand
@@ -219,7 +230,8 @@ Singleton {
             monitor: "*",
             opts: DesktopWidgets.defaults(type)
         };
-        const spot = root.place(info.size ?? [10, 6], 1, root.widgets);
+        const at = root.addAt;
+        const spot = at ? root.spotAt(info.size ?? [10, 6], at) : root.place(info.size ?? [10, 6], 1, root.widgets);
         if (spot) {
             w.x = spot.x;
             w.y = spot.y;
@@ -318,6 +330,31 @@ Singleton {
                 }
             }
         }
+    }
+
+    // Stelle fuer ein Widget der Groesse `cells` mit Mittelpunkt bei `at`
+    // (Rechtsklick), so verschoben, dass es ganz auf den Bildschirm passt.
+    // Textfarbe nach dem Untergrund, wenn die Analyse schon da ist.
+    function spotAt(cells: var, at: var): var {
+        const fw = Math.min(0.9, cells[0] * 16 / 2560);
+        const fh = Math.min(0.9, cells[1] * 16 / 1440);
+        const x = Math.max(fw / 2 + 0.01, Math.min(1 - fw / 2 - 0.01, at.x));
+        const y = Math.max(fh / 2 + 0.01, Math.min(1 - fh / 2 - 0.01, at.y));
+        let dark = false;
+        const a = root.analysis;
+        if (a) {
+            let luma = 0, n = 0;
+            const x0 = Math.floor((x - fw / 2) * a.cols), x1 = Math.ceil((x + fw / 2) * a.cols);
+            const y0 = Math.floor((y - fh / 2) * a.rows), y1 = Math.ceil((y + fh / 2) * a.rows);
+            for (let cy = Math.max(0, y0); cy < Math.min(a.rows, y1); cy++) {
+                for (let cx = Math.max(0, x0); cx < Math.min(a.cols, x1); cx++) {
+                    luma += a.luma[cy * a.cols + cx];
+                    n++;
+                }
+            }
+            dark = n > 0 && luma / n > 0.62;
+        }
+        return { x: Number(x.toFixed(4)), y: Number(y.toFixed(4)), dark };
     }
 
     // Beste Stelle fuer ein Widget der Groesse `cells` (in Einheiten, s.

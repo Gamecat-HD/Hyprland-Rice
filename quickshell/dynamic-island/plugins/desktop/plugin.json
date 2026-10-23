@@ -39,6 +39,7 @@
     "widgets": {
         "clock": {
             "title": "Uhr",
+            "desc": "Große Uhr mit Datum – sechs Stile von Sperrbildschirm bis Wörter",
             "icon": "schedule",
             "component": "widgets/ClockWidget.qml",
             "size": [10, 6],
@@ -49,6 +50,7 @@
         },
         "visualizer": {
             "title": "Visualiser",
+            "desc": "Pegel der laufenden Musik, auch als Band am unteren Rand",
             "icon": "graphic_eq",
             "component": "widgets/VisualizerWidget.qml",
             "size": [26, 7],
@@ -61,6 +63,7 @@
         },
         "lyrics": {
             "title": "Songtext",
+            "desc": "Synchroner Songtext zum laufenden Titel",
             "icon": "lyrics",
             "component": "widgets/LyricsWidget.qml",
             "size": [28, 6],

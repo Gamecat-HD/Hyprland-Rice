@@ -76,27 +76,6 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 10
 
-        // ---- Hinzufuegen (klappt ueber der Leiste auf) ----
-        Flow {
-            visible: bar.adding
-            spacing: 6
-            Layout.maximumWidth: 720
-            Layout.preferredWidth: implicitWidth
-            Layout.alignment: Qt.AlignHCenter
-
-            Repeater {
-                model: DesktopWidgets.typeNames
-
-                EditChip {
-                    required property string modelData
-
-                    icon: DesktopWidgets.info(modelData)?.icon ?? "widgets"
-                    text: DesktopWidgets.info(modelData)?.title ?? modelData
-                    onClicked: Scenes.add(modelData)
-                }
-            }
-        }
-
         RowLayout {
             spacing: 6
             Layout.alignment: Qt.AlignHCenter
@@ -149,7 +128,13 @@ Rectangle {
                 icon: "add"
                 text: "Widget"
                 on: bar.adding
-                onClicked: Scenes.adding = !Scenes.adding
+                // Auswahl ueber der Leiste (WidgetPicker, DesktopScreen)
+                onClicked: {
+                    if (Scenes.adding)
+                        Scenes.adding = false;
+                    else
+                        Scenes.openPicker(null);
+                }
             }
 
             EditChip {
@@ -186,8 +171,9 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             Layout.maximumWidth: 760
             text: `${bar.scope}  ·  Ziehen verschiebt, Ecke = Größe  ·  `
-                  + (Scenes.selected !== "" ? "Pfeile (+Shift) · + / − · Entf · Esc Auswahl aufheben"
-                     : Scenes.adding ? "Esc schließt die Liste" : "Enter fertig · Esc bricht ab")
+                  + (Scenes.adding ? "Tippen filtert · Pfeile wählen · Enter fügt hinzu · Esc schließt"
+                     : Scenes.selected !== "" ? "Pfeile (+Shift) · + / − · Entf · Esc Auswahl aufheben"
+                     : "Rechtsklick: Widget hier einfügen · Enter fertig · Esc bricht ab")
             color: Colors.fgSurfaceVariant
             font.family: Config.font
             font.pixelSize: 10

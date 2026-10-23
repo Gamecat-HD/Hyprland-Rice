@@ -12,6 +12,7 @@
     "widgets": {
         "calendar": {
             "title": "Kalender",
+            "desc": "Monatsblatt, Woche oder Streifen mit Feiertagen",
             "icon": "calendar_month",
             "component": "CalendarWidget.qml",
             "size": [15, 18],

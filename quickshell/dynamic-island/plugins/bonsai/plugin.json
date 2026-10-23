@@ -12,6 +12,7 @@
     "widgets": {
         "bonsai": {
             "title": "Bonsai",
+            "desc": "ASCII-Bonsai, wächst einmal sichtbar und steht dann still",
             "icon": "park",
             "component": "BonsaiWidget.qml",
             "size": [26, 22],
