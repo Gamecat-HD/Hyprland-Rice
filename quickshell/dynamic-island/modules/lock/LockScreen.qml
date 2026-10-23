@@ -10,10 +10,11 @@ import qs.modules.services.wallpaper
 
 // Was auf jedem Monitor zu sehen ist, solange gesperrt ist:
 //
-//   - ein Foto des Desktops von kurz vor dem Sperren (Lock.qml, grim); beim
-//     Sperren zieht es sich heran und wird unscharf, beim Entsperren laeuft
-//     das genau rueckwaerts, bis es deckungsgleich mit dem echten Desktop
-//     ist – erst dann faellt die Sperre. Ohne Foto: das Wallpaper.
+//   - der Hintergrund: beim Sperren zieht ein Foto des Desktops von kurz
+//     vorher (Lock.qml, grim) sich heran, wird unscharf und blendet dabei ins
+//     Wallpaper ueber (lock.background "wallpaper") oder bleibt das Foto
+//     ("desktop"). Beim Entsperren laeuft das genau rueckwaerts, bis es
+//     deckungsgleich mit dem echten Desktop ist – erst dann faellt die Sperre.
 //   - oben die Notch (LockNotch), die zum Passwortfeld aufklappt
 //   - die Uhr: Stunden in Schriftfarbe, Minuten im Akzent des Wallpapers
 //   - unten die Medien-Karte, nur auf dem Monitor, der beim Sperren den
@@ -94,17 +95,45 @@ Item {
             NumberAnimation { duration: view.sceneTime; easing.type: view.sceneCurve }
         }
 
-        Image {
-            id: wall
+        Item {
+            id: stack
 
             anchors.fill: parent
-            source: view.snapshot !== "" ? view.snapshot
-                  : Wallpapers.actualCurrent !== "" ? "file://" + Wallpapers.actualCurrent : ""
-            sourceSize: Qt.size(view.width, view.height)
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: false
-            // Das Foto liegt bei jeder Sperre unter demselben Namen
-            cache: view.snapshot === ""
+
+            Image {
+                id: shot
+
+                anchors.fill: parent
+                visible: view.snapshot !== ""
+                source: view.snapshot
+                sourceSize: Qt.size(view.width, view.height)
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: false
+                // Das Foto liegt bei jeder Sperre unter demselben Namen
+                cache: false
+            }
+
+            // Wallpaper-Modus: liegt ueber dem Foto und blendet im selben Zug
+            // ein, in dem das Bild unscharf wird – und beim Entsperren wieder
+            // aus, damit am Ende das Foto (= der Desktop) steht
+            Image {
+                id: wall
+
+                readonly property bool wanted: view.snapshot === ""
+                    || (Config.lock.background !== "desktop" && view.shown)
+
+                anchors.fill: parent
+                visible: opacity > 0
+                opacity: wall.wanted ? 1 : 0
+                source: Wallpapers.actualCurrent !== "" ? "file://" + Wallpapers.actualCurrent : ""
+                sourceSize: Qt.size(view.width, view.height)
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: false
+
+                Behavior on opacity {
+                    NumberAnimation { duration: view.sceneTime; easing.type: view.sceneCurve }
+                }
+            }
         }
 
         // Auch bei blur 0 zeichnet der Effekt das Bild eine Spur weicher und
@@ -114,8 +143,8 @@ Item {
             id: effect
 
             anchors.fill: parent
-            source: wall
-            visible: wall.status === Image.Ready
+            source: stack
+            visible: (shot.status === Image.Ready || wall.status === Image.Ready)
                      && (effect.blur > 0.002 || effect.brightness < -0.002 || effect.saturation > 0.002)
 
             blurEnabled: Config.lock.blur
@@ -340,6 +369,7 @@ Item {
 
             LockWidget {
                 active: view.shown
+                preview: view.preview
             }
         }
     }

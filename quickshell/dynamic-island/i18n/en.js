@@ -818,5 +818,7 @@ var strings = {
     "Sperre retten (hyprlock)": "Recover lock (hyprlock)",
     "Wallpaper unscharf": "Blur wallpaper",
     "Zu viele Fehlversuche – kurz warten": "Too many failed attempts – wait a moment",
-    "Zu viele Versuche": "Too many attempts"
+    "Zu viele Versuche": "Too many attempts",
+    "Hintergrund": "Background",
+    "wallpaper": "wallpaper"
 };

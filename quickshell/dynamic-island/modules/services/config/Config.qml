@@ -109,6 +109,12 @@ Singleton {
             title: "Songtexte", desc: "Spotify-Extension, sonst lrclib.net"
         },
         // Sperrbildschirm (modules/lock)
+        // Was hinter dem Sperrbildschirm liegt. Das Desktop-Foto braucht er
+        // ohnehin fuer den Uebergang, "wallpaper" blendet nur dahin ueber
+        "lock.background": {
+            title: "Hintergrund",
+            options: ["wallpaper", "desktop"]
+        },
         "lock.blur": { title: "Wallpaper unscharf" },
         // Sichtbarkeit von Uhr/Karte steht im Anordnungs-Editor (lock.layout
         // hidden); der alte Schalter gilt nur noch als Vorgabe dafuer
@@ -535,6 +541,8 @@ Singleton {
 
             // Sperrbildschirm (modules/lock)
             property JsonObject lock: JsonObject {
+                // "wallpaper" | "desktop" (Foto des Desktops, LockScreen.qml)
+                property string background: "wallpaper"
                 property bool blur: true
                 property bool media: true
                 property bool notifications: true
