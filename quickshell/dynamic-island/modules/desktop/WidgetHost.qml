@@ -417,7 +417,10 @@ Item {
     // Linien einer Achse: Bildschirm (Mitte und Drittel fuer Mittelpunkte,
     // Rand mit Abstand fuer Kanten; senkrecht mehr wegen der Notch) und die
     // anderen Widgets (Kanten fuer Kanten, Mitte fuer Mitte).
-    // { at, center } – center = nur fuer Mittelpunkte
+    // { at, center } – center = nur fuer Mittelpunkte.
+    // Kanten sind immer die des sichtbaren Rahmens (host.frame um das
+    // Widget): daran richtet man aus, dort liegen die Hilfslinien, und
+    // Kante an Kante laesst zwischen zwei Widgets den doppelten Rahmen frei
     function snapLines(vertical: bool): var {
         const total = vertical ? host.areaH : host.areaW;
         const margin = total * (vertical ? 0.07 : 0.035);
@@ -431,17 +434,21 @@ Item {
         for (const o of host.others()) {
             const a = vertical ? o.y : o.x;
             const len = vertical ? o.height : o.width;
-            lines.push({ at: a, center: false }, { at: a + len, center: false }, { at: a + len / 2, center: true });
+            lines.push({ at: a - host.frame, center: false },
+                       { at: a + len + host.frame, center: false },
+                       { at: a + len / 2, center: true });
         }
         return lines;
     }
 
-    // Verschieben: Mittelpunkt c (Laenge len) so, dass eine Kante oder die
-    // Mitte auf der naechsten Linie liegt. { v, line } – line -1 = frei
+    // Verschieben: Mittelpunkt c (Laenge len ohne Rahmen) so, dass eine
+    // Rahmenkante oder die Mitte auf der naechsten Linie liegt.
+    // { v, line } – line -1 = frei
     function snapMove(c: real, len: real, lines: var): var {
+        const half = len / 2 + host.frame;
         let best = { v: c, line: -1, d: host.snapRange };
         for (const l of lines)
-            for (const part of l.center ? [0] : [-len / 2, len / 2]) {
+            for (const part of l.center ? [0] : [-half, half]) {
                 const v = l.at - part;
                 const d = Math.abs(v - c);
                 if (d < best.d)
@@ -450,23 +457,31 @@ Item {
         return best;
     }
 
-    // Skalieren: Faktor r (Laenge relativ zum Start len0), so dass die
-    // gezogene Kante (feste Kante bei a, Richtung dir) auf einer Linie liegt
-    // oder die Laenge gleich der eines anderen Widgets ist.
-    // { r, line, match, d } – d = Abstand in px
-    function snapResize(r: real, a: real, dir: int, len0: real, lines: var, lengths: var): var {
-        let best = { r: r, line: -1, match: null, d: host.snapRange };
-        const test = (rr, line, match) => {
-            const d = Math.abs(rr - r) * len0;
-            if (rr > 0 && d < best.d)
-                best = { r: rr, line: line, match: match, d: d };
+    // Skalieren: Groesse s so, dass die gezogene Rahmenkante auf einer
+    // Linie liegt oder die Laenge gleich der eines anderen Widgets ist.
+    // a = feste Inhaltsecke, dir = Richtung, k = px je Groesseneinheit.
+    // { s, line, match, d } – d = Abstand in px
+    function snapResize(s: real, a: real, dir: int, k: real, lines: var, lengths: var): var {
+        let best = { s: s, line: -1, match: null, d: host.snapRange };
+        const test = (ss, line, match) => {
+            const d = Math.abs(ss - s) * k;
+            if (ss > 0 && d < best.d)
+                best = { s: ss, line: line, match: match, d: d };
         };
         for (const l of lines)
             if (!l.center)
-                test(dir * (l.at - a) / len0, l.at, null);
+                test((dir * (l.at - a) - host.frame) / k, l.at, null);
         for (const m of lengths)
-            test(m.len / len0, -1, m);
+            test(m.len / k, -1, m);
         return best;
+    }
+
+    // Wie weit die Maus seit dem Druck gewandert ist, in Fensterkoordinaten.
+    // Nicht `translation`: die misst Qt im Element des Handlers, und das
+    // wandert hier selbst mit (Einrasten, Groesse) – das schaukelte sich auf
+    function moved(handler: var): point {
+        const c = handler.centroid;
+        return Qt.point(c.scenePosition.x - c.scenePressPosition.x, c.scenePosition.y - c.scenePressPosition.y);
     }
 
     // Shift gedrueckt: frei, ohne Einrasten
@@ -490,7 +505,7 @@ Item {
         id: dragger
 
         // Ein laufendes Ziehen nicht abbrechen, wenn es ueber die Leiste geht
-        enabled: host.editing && host.dock === "" && (!host.blocked || dragger.active)
+        enabled: host.editing && host.dock === "" && (dragger.active || (!host.blocked && !host.resizing))
         margin: host.frame
         target: null
         dragThreshold: 4
@@ -527,17 +542,18 @@ Item {
             });
         }
 
-        onTranslationChanged: {
+        onCentroidChanged: {
             if (!dragger.active)
                 return;
-            const pw = host.parent.width, ph = host.parent.height;
-            const other = host.pinned ? host.otherScreenAt(dragger.startX + dragger.translation.x,
-                                                           dragger.startY + dragger.translation.y) : null;
+            const m = host.moved(dragger);
+            const nx = dragger.startX + m.x;
+            const ny = dragger.startY + m.y;
+            const other = host.pinned ? host.otherScreenAt(nx, ny) : null;
             if (other) {
                 // Auf dem anderen Monitor: hier ungerastet weiter (wird am
                 // Rand abgeschnitten), dort die Vorschau
-                host.dragX = dragger.startX + dragger.translation.x;
-                host.dragY = dragger.startY + dragger.translation.y;
+                host.dragX = nx;
+                host.dragY = ny;
                 host.guideX.at = -1;
                 host.guideY.at = -1;
                 const gx = host.shellScreen.x + host.dragX - other.x;
@@ -555,8 +571,6 @@ Item {
             }
             if (Scenes.crossing)
                 Scenes.crossing = null;
-            const nx = dragger.startX + dragger.translation.x;
-            const ny = dragger.startY + dragger.translation.y;
             const free = host.free(dragger);
             const sx = free ? { v: nx, line: -1 } : host.snapMove(nx, host.width, dragger.linesX);
             const sy = free ? { v: ny, line: -1 } : host.snapMove(ny, host.height, dragger.linesY);
@@ -602,6 +616,8 @@ Item {
 
                 target: null
                 dragThreshold: 1
+                // Der Griff gewinnt gegen alles darunter (Widget-Ziehen, Optionsfeld)
+                grabPermissions: PointerHandler.CanTakeOverFromAnything
 
                 property real startSize: 1
                 property real startW: 1
@@ -645,30 +661,35 @@ Item {
                     Scenes.patch(host.widget.id, patch);
                 }
 
-                onTranslationChanged: {
+                onCentroidChanged: {
                     if (!sizer.active)
                         return;
-                    const min = 0.3 / sizer.startSize, max = 8 / sizer.startSize;
+                    const m = host.moved(sizer);
                     // Angedockt: nur die Hoehe (unten angedockt waechst nach oben)
                     if (host.dock !== "") {
-                        const r = (sizer.startH - grip.dy * sizer.translation.y) / sizer.startH;
-                        host.liveSize = sizer.startSize * Math.max(min, Math.min(max, r));
+                        const r = (sizer.startH + grip.dy * m.y) / sizer.startH;
+                        host.liveSize = Math.max(0.3, Math.min(8, sizer.startSize * r));
                         return;
                     }
-                    // Ecke unter der Maus, projiziert auf die Diagonale der
-                    // festen Ecke – waechst und schrumpft gleichmaessig, egal
-                    // ob man eher waagerecht oder senkrecht zieht
-                    const w0 = sizer.startW, h0 = sizer.startH;
-                    const rx = (w0 + grip.dx * sizer.translation.x) / w0;
-                    const ry = (h0 + grip.dy * sizer.translation.y) / h0;
-                    let r = (rx * w0 * w0 + ry * h0 * h0) / (w0 * w0 + h0 * h0);
+                    // px je Groesseneinheit, jedes Mal frisch gemessen: Widgets
+                    // wachsen nicht ganz linear mit `size` (Raender, Rundung,
+                    // Mindestbreite) – mit dem Startwert rastete es daneben ein
+                    const kw = Math.max(1, host.width) / host.liveSize;
+                    const kh = Math.max(1, host.height) / host.liveSize;
+                    // Gewuenschte Inhaltsgroesse: die gezogene Ecke unter der
+                    // Maus. Beide Achsen gewichtet zu einer Groesse – waechst
+                    // und schrumpft gleichmaessig, egal ob man eher waagerecht
+                    // oder senkrecht zieht
+                    const w = sizer.startW + grip.dx * m.x;
+                    const h = sizer.startH + grip.dy * m.y;
+                    let s = (w * kw + h * kh) / (kw * kw + kh * kh);
                     let lineX = -1, lineY = -1, match = null;
                     if (!host.free(sizer)) {
-                        const sx = host.snapResize(r, host.anchorX, grip.dx, w0, sizer.linesX, sizer.widths);
-                        const sy = host.snapResize(r, host.anchorY, grip.dy, h0, sizer.linesY, sizer.heights);
+                        const sx = host.snapResize(s, host.anchorX, grip.dx, kw, sizer.linesX, sizer.widths);
+                        const sy = host.snapResize(s, host.anchorY, grip.dy, kh, sizer.linesY, sizer.heights);
                         const best = sx.d <= sy.d ? sx : sy;
                         if (best.d < host.snapRange) {
-                            r = best.r;
+                            s = best.s;
                             match = best.match;
                             if (best === sx)
                                 lineX = best.line;
@@ -676,8 +697,7 @@ Item {
                                 lineY = best.line;
                         }
                     }
-                    r = Math.max(min, Math.min(max, r));
-                    host.liveSize = sizer.startSize * r;
+                    host.liveSize = Math.max(0.3, Math.min(8, s));
                     host.sizeMatch = match;
                     if (host.parent)
                         host.parent.sizeMatch = match;

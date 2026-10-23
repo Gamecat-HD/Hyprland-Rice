@@ -81,7 +81,6 @@ Item {
         }
     }
 
-    // Grosse Ziffern: Display-Schnitt, eng gesetzt, Ziffern gleich breit
     // Grosse Ziffern: Display-Schnitt, eng gesetzt, Ziffern gleich breit.
     // Die Hoehe ist die echte Ziffernhoehe (aus den Glyphen gemessen), die
     // Grundlinie liegt an der Unterkante – die Zeilenbox der Schrift ist fuer
@@ -94,7 +93,11 @@ Item {
         property int w: Font.Medium
         property color tint: root.color
 
-        readonly property rect glyphs: metrics.tightBoundingRect("0123456789")
+        // Die Schriftgroesse lesen, damit neu gemessen wird: der Aufruf allein
+        // ist fuer QML keine Abhaengigkeit – beim Skalieren blieb sonst die
+        // alte Hoehe stehen und die Ziffern ragten aus dem Rahmen
+        readonly property rect glyphs: metrics.font.pixelSize > 0 && metrics.font.family !== ""
+                                       ? metrics.tightBoundingRect("0123456789") : Qt.rect(0, 0, 0, 0)
 
         implicitWidth: label.implicitWidth
         implicitHeight: Math.ceil(-digits.glyphs.y)
