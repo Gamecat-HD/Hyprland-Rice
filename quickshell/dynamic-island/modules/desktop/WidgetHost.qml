@@ -676,13 +676,17 @@ Item {
                     // Mindestbreite) – mit dem Startwert rastete es daneben ein
                     const kw = Math.max(1, host.width) / host.liveSize;
                     const kh = Math.max(1, host.height) / host.liveSize;
-                    // Gewuenschte Inhaltsgroesse: die gezogene Ecke unter der
-                    // Maus. Beide Achsen gewichtet zu einer Groesse – waechst
-                    // und schrumpft gleichmaessig, egal ob man eher waagerecht
-                    // oder senkrecht zieht
-                    const w = sizer.startW + grip.dx * m.x;
-                    const h = sizer.startH + grip.dy * m.y;
-                    let s = (w * kw + h * kh) / (kw * kw + kh * kh);
+                    // Groesse, bei der die Rahmenkante je Achse unter der Maus
+                    // laege. Das Seitenverhaeltnis ist fest, also gewinnt die
+                    // Achse, auf der weiter gezogen wurde – dort klebt die Ecke
+                    // an der Maus, egal wie schraeg man zieht (eine Mittelung
+                    // liess waagerechtes Ziehen an hohen Widgets fast nichts
+                    // tun). Zeigen die Achsen in verschiedene Richtungen,
+                    // heben sie sich auf: so springt es beim Wechsel nie
+                    const s0 = sizer.startSize;
+                    const a = (sizer.startW + grip.dx * m.x) / kw - s0;
+                    const b = (sizer.startH + grip.dy * m.y) / kh - s0;
+                    let s = s0 + (a * b < 0 ? a + b : Math.abs(a) > Math.abs(b) ? a : b);
                     let lineX = -1, lineY = -1, match = null;
                     if (!host.free(sizer)) {
                         const sx = host.snapResize(s, host.anchorX, grip.dx, kw, sizer.linesX, sizer.widths);
