@@ -1,0 +1,26 @@
+{
+    "$schema": "../plugin.schema.json",
+    "id": "nowplaying",
+    "name": "Jetzt läuft",
+    "version": "1.0.0",
+    "api": 1,
+    "parent": "desktop",
+    "icon": "album",
+    "description": "Cover, Titel und Fortschritt des laufenden Songs (alle MPRIS-Player), getönt in der Farbe des Covers. Passt zu Songtext und Visualiser.",
+    "author": "gamecat",
+    "defaultEnabled": true,
+    "widgets": {
+        "nowplaying": {
+            "title": "Jetzt läuft",
+            "icon": "album",
+            "component": "NowPlayingWidget.qml",
+            "size": [22, 7],
+            "options": {
+                "style": { "title": "Stil", "values": ["zeile", "cover", "vinyl"], "default": "zeile" },
+                "progress": { "title": "Fortschritt", "bool": true, "default": true },
+                "tint": { "title": "Coverfarbe", "bool": true, "default": true },
+                "idle": { "title": "Ohne Musik", "values": ["ausblenden", "ruhig"], "default": "ausblenden" }
+            }
+        }
+    }
+}

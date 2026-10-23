@@ -14,6 +14,7 @@ import qs.modules.services.audio
 import qs.modules.services.core
 import qs.modules.services.media
 import qs.modules.services.plugins
+import qs.modules.services.system
 import qs.modules.widgets
 import qs.modules.widgets.clock
 
