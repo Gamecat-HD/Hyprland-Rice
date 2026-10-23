@@ -179,7 +179,7 @@ hl.config({
 		numlock_by_default = true,
 		repeat_delay = cfg.repeatDelay,
 		repeat_rate = cfg.repeatRate,
-		follow_mouse = 0,
+		follow_mouse = 1,
 		touchpad = {
 			natural_scroll = true,
 			disable_while_typing = true,
