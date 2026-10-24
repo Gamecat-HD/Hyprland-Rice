@@ -34,10 +34,13 @@ Item {
     readonly property bool isChoice: !row.isBool && !row.isNumber && Array.isArray(row.entry?.options)
     // Eigener Editor statt Bedienelement (meta.editor), z.B. der Kachel-Aufbau
     readonly property bool isEditor: (row.entry?.editor ?? "") !== ""
+    // Verweis auf eine Plugin-Seite (SettingsCard haengt sie als Zeile an):
+    // die ganze Zeile oeffnet die Seite
+    readonly property bool isLink: (row.entry?.link ?? "") !== ""
     // Schrift-Auswahl: jede Option in ihrer eigenen Schrift zeigen und nur
     // anbieten, was auch installiert ist
     readonly property bool isFont: row.isChoice && String(row.entry?.key ?? "").toLowerCase().includes("font")
-    readonly property bool interactive: row.isBool || row.isChoice || row.isNumber
+    readonly property bool interactive: row.isBool || row.isChoice || row.isNumber || row.isLink
 
     // Voraussetzung erfuellt? Sonst ist die Zeile gedimmt und gesperrt.
     readonly property bool available: Plugins.satisfied(row.entry?.requires)
@@ -60,7 +63,7 @@ Item {
             return label;
         return row.isChoice && !row.isFont ? I18n.tr(v) : v;
     }
-    readonly property bool changed: !Plugins.isDefault(row.entry?.section ?? "", row.entry?.key ?? "")
+    readonly property bool changed: !row.isLink && !Plugins.isDefault(row.entry?.section ?? "", row.entry?.key ?? "")
 
     readonly property var choices: {
         if (!row.isChoice)
@@ -160,9 +163,11 @@ Item {
             height: row.lineHeight
 
             TapHandler {
-                enabled: (row.isBool || row.isChoice) && row.available
+                enabled: (row.isBool || row.isChoice || row.isLink) && row.available
                 onTapped: {
-                    if (row.isBool)
+                    if (row.isLink)
+                        SettingsState.openPage(row.entry.link, {});
+                    else if (row.isBool)
                         Plugins.set(row.entry.section, row.entry.key, !row.entry.value);
                     else
                         row.expanded = !row.expanded;
@@ -290,8 +295,17 @@ Item {
                     rightMargin: 14
                     verticalCenter: parent.verticalCenter
                 }
-                width: row.isBool ? 40 : row.isNumber ? numberControl.width : row.isEditor ? 0 : valueRow.width
+                width: row.isBool ? 40 : row.isNumber ? numberControl.width : row.isEditor ? 0 : row.isLink ? 20 : valueRow.width
                 height: 28
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: row.isLink
+                    text: "chevron_right"
+                    color: Colors.fgSurfaceVariant
+                    font.family: "Material Symbols Outlined"
+                    font.pixelSize: 20
+                }
 
                 // Schalter fuer Wahrheitswerte
                 Rectangle {
@@ -424,7 +438,7 @@ Item {
 
                     anchors.verticalCenter: parent.verticalCenter
                     // Ein Editor zeigt den Rohwert nicht – der steht in ihm selbst
-                    visible: !row.isBool && !row.isNumber && !row.isEditor
+                    visible: !row.isBool && !row.isNumber && !row.isEditor && !row.isLink
                     spacing: 4
 
                     Text {

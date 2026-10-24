@@ -249,6 +249,18 @@ Surface {
                     || card.sectionTitle(section).toLowerCase().includes(needle))
                     out.push(entry);
             }
+            // Seiten des Plugins (Manifest `pages`) als Zeilen mit Pfeil in
+            // seiner Gruppe – dort sucht man sie, nicht in der Leiste
+            if (Plugins.isPluginSection(section)) {
+                for (const p of Plugins.pages.filter(p => p.pluginId === Plugins.idOf(section))) {
+                    const title = I18n.tr(p.title);
+                    if (needle === "" || title.toLowerCase().includes(needle)
+                        || card.sectionTitle(section).toLowerCase().includes(needle))
+                        out.push({ id: `${section}.@${p.key}`, section, key: "@" + p.key, group: "", value: null,
+                                   title, desc: "", options: null, labels: null, unit: "", requires: null,
+                                   editor: "", preview: "", link: Plugins.pageSection(p.key) });
+                }
+            }
         }
         return out;
     }
@@ -525,7 +537,10 @@ Surface {
                     property bool sub: false
 
                     // In der Bibliothek sucht man Bilder – die Leiste bleibt scharf
-                    readonly property bool current: (!card.searching || card.browsing) && card.section === button.key
+                    // Offene Plugin-Seite: ihre Plugin-Gruppe bleibt markiert
+                    readonly property bool current: (!card.searching || card.browsing)
+                        && (card.section === button.key
+                            || (card.paging && card.pageInfo !== null && button.key === Plugins.sectionPrefix + card.pageInfo.pluginId))
 
                     // parent ist beim Abbau eines Plugin-Eintrags kurz null
                     width: parent?.width ?? 0
@@ -698,8 +713,9 @@ Surface {
                             sub: true
                         }
 
+                        // Mit eigener Gruppe stehen die Seiten dort als Zeilen
                         Repeater {
-                            model: pluginEntry.modelData.pages
+                            model: pluginEntry.modelData.section === "" ? pluginEntry.modelData.pages : []
 
                             SectionButton {
                                 required property var modelData
@@ -868,13 +884,55 @@ Surface {
         // Kopf: Gruppentitel + Suche. Der Titel nimmt sich seine Breite,
         // laesst dem Suchfeld aber mindestens 150 px; das Feld waechst mit
         // dem Fenster bis 520 px und bleibt vor dem Schliessen-Knopf stehen.
+        // Plugin-Seite: zurueck zur Gruppe ihres Plugins
+        readonly property string backSection: card.paging && card.pageInfo !== null
+            && Plugins.sections.includes(Plugins.sectionPrefix + card.pageInfo.pluginId)
+            ? Plugins.sectionPrefix + card.pageInfo.pluginId : ""
+
+        Item {
+            id: backButton
+
+            anchors {
+                left: parent.left
+                leftMargin: 16
+                verticalCenter: searchBox.verticalCenter
+            }
+            width: content.backSection !== "" ? 30 : 0
+            height: 30
+            visible: width > 0
+
+            Rectangle {
+                anchors.fill: parent
+                radius: height / 2
+                color: backHover.hovered ? Colors.alpha(Colors.fgSurface, 0.12) : "transparent"
+            }
+
+            Text {
+                anchors.centerIn: parent
+                text: "arrow_back"
+                color: Colors.fgSurfaceVariant
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 18
+            }
+
+            HoverHandler {
+                id: backHover
+
+                cursorShape: Qt.PointingHandCursor
+            }
+
+            TapHandler {
+                onTapped: card.select(content.backSection, false)
+            }
+        }
+
         Text {
             id: heading
             font.family: Config.font
 
             anchors {
-                left: parent.left
-                leftMargin: 24
+                left: backButton.visible ? backButton.right : parent.left
+                leftMargin: backButton.visible ? 6 : 24
                 verticalCenter: searchBox.verticalCenter
             }
             width: Math.max(0, Math.min(heading.implicitWidth, closeButton.x - 10 - heading.x - 12 - 150))

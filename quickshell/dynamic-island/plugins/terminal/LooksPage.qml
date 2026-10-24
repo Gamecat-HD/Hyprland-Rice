@@ -102,7 +102,59 @@ Item {
     readonly property bool busy: page.svc?.busy ?? false
     readonly property bool rawOn: page.look?.sizes?.[page.size]?.raw === true
 
-    readonly property string monoFont: "monospace"
+    // Deckt Nerd-Icons und Balkenzeichen (▰▱) ab; fehlt sie, nimmt Qt monospace
+    readonly property string monoFont: Qt.fontFamilies().includes("CaskaydiaCove Nerd Font Mono")
+        ? "CaskaydiaCove Nerd Font Mono" : "monospace"
+
+    // Vorschau-Zeile in Laeufe zerlegen, die wie im Terminal in Zellen
+    // stehen: Zeichen mit fremder Breite (Ersatzschrift) bekommen einzeln
+    // genau ihre Zellen, statt die Zeile nach rechts zu schieben
+    property var advanceCache: ({})
+
+    function advance(ch: string): real {
+        let a = page.advanceCache[ch];
+        if (a === undefined) {
+            a = metrics.advanceWidth(ch);
+            page.advanceCache[ch] = a;
+        }
+        return a;
+    }
+
+    function cellRuns(segs: var): var {
+        const cw = previewPanel.charW;
+        const out = [];
+        let col = 0;
+        for (const s of segs) {
+            let buf = "";
+            let start = col;
+            const flush = () => {
+                if (buf !== "")
+                    out.push({ x: start, n: col - start, t: buf, s: s, odd: false });
+                buf = "";
+                start = col;
+            };
+            for (const ch of String(s.t)) {
+                const w = LookModel.cellWidth(ch);
+                if (w === 0) {
+                    buf += ch;
+                    continue;
+                }
+                if (Math.abs(page.advance(ch) - w * cw) > 0.5) {
+                    flush();
+                    out.push({ x: col, n: w, t: ch, s: s, odd: true });
+                    col += w;
+                    start = col;
+                } else {
+                    if (buf === "")
+                        start = col;
+                    buf += ch;
+                    col += w;
+                }
+            }
+            flush();
+        }
+        return out;
+    }
 
     // ---- Hilfen ----
     function tr(s: string): string {
@@ -1515,7 +1567,7 @@ Item {
         readonly property real textW: Math.max(previewPanel.cols, page.preview?.width ?? 0) * previewPanel.charW
         readonly property real naturalW: previewPanel.pad * 2 + previewPanel.cardW + previewPanel.textW + 8
         readonly property real naturalH: previewPanel.pad * 2 + previewPanel.shownRows * previewPanel.lineH
-        readonly property real fit: Math.min(1, previewPanel.width / previewPanel.naturalW,
+        readonly property real fit: Math.min(page.wide ? 1.25 : 1, previewPanel.width / previewPanel.naturalW,
                                              page.wide ? 1 : Math.max(0.35, (page.height * 0.42) / previewPanel.naturalH))
 
         anchors {
@@ -1523,7 +1575,7 @@ Item {
             top: errorRow.bottom
             topMargin: 12
         }
-        width: page.wide ? Math.max(360, Math.min(page.width * 0.5, previewPanel.naturalW)) : page.width
+        width: page.wide ? Math.max(360, Math.min(page.width - 460, previewPanel.naturalW * 1.25)) : page.width
         height: Math.round(previewPanel.naturalH * previewPanel.fit) + sizeBar.height + 8
 
         FontMetrics {
@@ -1597,7 +1649,7 @@ Item {
 
                         readonly property bool over: (page.preview?.overflow ?? []).includes(line.index) || line.index >= previewPanel.rows
 
-                        width: Math.max(previewPanel.textW, lineText.implicitWidth)
+                        width: previewPanel.textW
                         height: previewPanel.lineH
 
                         Rectangle {
@@ -1606,15 +1658,40 @@ Item {
                             color: Colors.alpha(Colors.error, 0.16)
                         }
 
-                        Text {
-                            id: lineText
+                        Repeater {
+                            model: page.cellRuns(line.modelData)
 
-                            anchors.verticalCenter: parent.verticalCenter
-                            font.family: page.monoFont
-                            font.pixelSize: 12
-                            color: "#d8d8dc"
-                            textFormat: Text.StyledText
-                            text: LookModel.previewHtml([line.modelData], "#d8d8dc")
+                            Item {
+                                id: run
+
+                                required property var modelData
+
+                                x: run.modelData.x * previewPanel.charW
+                                width: run.modelData.n * previewPanel.charW
+                                height: previewPanel.lineH
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    visible: !!run.modelData.s.bg
+                                    color: run.modelData.s.bg || "transparent"
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    x: run.modelData.odd ? (parent.width - width) / 2 : 0
+                                    // Breitere Ersatz-Glyphe in ihre Zelle stauchen
+                                    scale: run.modelData.odd && implicitWidth > parent.width ? parent.width / implicitWidth : 1
+                                    font.family: page.monoFont
+                                    font.pixelSize: 12
+                                    font.bold: !!run.modelData.s.b
+                                    font.italic: !!run.modelData.s.i
+                                    font.underline: !!run.modelData.s.u
+                                    opacity: run.modelData.s.d ? 0.6 : 1
+                                    color: run.modelData.s.fg || "#d8d8dc"
+                                    textFormat: Text.PlainText
+                                    text: run.modelData.t
+                                }
+                            }
                         }
                     }
                 }
@@ -2171,13 +2248,13 @@ Item {
                                                 width: 28
                                                 height: 28
                                                 radius: 8
-                                                color: page.colorOf(segRow.modelData.color) || Colors.alpha(Colors.fgSurface, 0.08)
+                                                color: page.colorOf(segRow.modelData?.color ?? "") || Colors.alpha(Colors.fgSurface, 0.08)
                                                 border.width: 1
                                                 border.color: Colors.alpha("#ffffff", 0.18)
 
                                                 Text {
                                                     anchors.centerIn: parent
-                                                    visible: !segRow.modelData.color
+                                                    visible: !segRow.modelData?.color
                                                     text: "format_color_text"
                                                     color: Colors.fgSurfaceVariant
                                                     font.family: "Material Symbols Outlined"
@@ -2205,7 +2282,7 @@ Item {
                                                     required property var modelData
 
                                                         icon: modelData.icon
-                                                    active: segRow.modelData[modelData.key] === true
+                                                    active: segRow.modelData?.[modelData.key] === true
                                                     tint: active ? Colors.fgBackground : Colors.fgSurfaceVariant
                                                     onClicked: {
                                                         const p = {};
@@ -2218,7 +2295,7 @@ Item {
                                             Field {
                                                 width: Math.max(80, rowEditor.width - 26 - 4 * 30 - 30 - 24)
                                                 mono: true
-                                                value: segRow.modelData.text
+                                                value: segRow.modelData?.text ?? ""
                                                 onEdited: text => page.setSeg(segRow.index, { text: text })
                                             }
 
