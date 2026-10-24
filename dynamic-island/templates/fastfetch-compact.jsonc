@@ -62,7 +62,7 @@
         },
         { "type": "wm", "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰕮  WM      ", "format": "{pretty-name}" },
         { "type": "command",  "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰸉  Theme   ", "text": "w=$(cat ~/.local/state/dynamic-island/wallpaper/path.txt); basename \"$(dirname \"$w\")\"", "format": "{result} \u001b[38;2;{{ outline.ansi }}m· {{ mode }}\u001b[0m" },
-        { "type": "media", "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰎈  Musik   ", "format": "{combined}" },
+        { "type": "media", "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰎈  Musik   ", "format": "{combined:-34}" },
         { "type": "shell", "key": "\u001b[38;2;{{ outline.ansi }}m╰\u001b[38;2;{{ primary.ansi }}m 󰆍  Shell   ", "format": "{pretty-name} {version}" },
         {
             "type": "colors",

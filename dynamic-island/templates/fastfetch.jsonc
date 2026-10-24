@@ -96,7 +96,7 @@
         { "type": "command",  "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰸉  Theme   ", "text": "w=$(cat ~/.local/state/dynamic-island/wallpaper/path.txt); basename \"$(dirname \"$w\")\"", "format": "{result} \u001b[38;2;{{ outline.ansi }}m· {{ mode }}\u001b[0m" },
         { "type": "shell",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰆍  Shell   ", "format": "{pretty-name} {version}" },
         // Musik faellt weg, wenn nichts laeuft – darum schliesst das Terminal den Baum
-        { "type": "media",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰎈  Musik   ", "format": "{combined}" },
+        { "type": "media",    "key": "\u001b[38;2;{{ outline.ansi }}m│\u001b[38;2;{{ primary.ansi }}m 󰎈  Musik   ", "format": "{combined:-46}" },
         { "type": "terminal", "key": "\u001b[38;2;{{ outline.ansi }}m╰\u001b[38;2;{{ primary.ansi }}m 󰄛  Terminal", "format": "{pretty-name}" },
 
         "break",
