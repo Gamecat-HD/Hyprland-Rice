@@ -256,16 +256,14 @@ Rectangle {
                 Layout.preferredWidth: pop.labelWidth
             }
 
+            // Ein Schalter: an = nur auf einem Monitor (dem festgelegten),
+            // aus = auf beiden
             EditChip {
-                text: I18n.tr("Beide")
-                on: !pop.widget?.monitor || pop.widget.monitor === "*"
-                onClicked: pop.store.patch(pop.widget.id, { monitor: "*" })
-            }
+                readonly property bool pinned: !!pop.widget?.monitor && pop.widget.monitor !== "*"
 
-            EditChip {
-                text: I18n.tr("Nur %1").arg(pop.screenName)
-                on: pop.widget?.monitor === pop.screenName
-                onClicked: pop.store.patch(pop.widget.id, { monitor: pop.screenName })
+                text: I18n.tr("Nur %1").arg(pinned ? pop.widget.monitor : pop.screenName)
+                on: pinned
+                onClicked: pop.store.patch(pop.widget.id, { monitor: pinned ? "*" : pop.screenName })
             }
         }
     }

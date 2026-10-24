@@ -80,8 +80,42 @@ Singleton {
     readonly property string shownKey: root.editing ? root.target : root.currentKey
     readonly property var widgets: root.scenes[root.shownKey] ?? []
 
+    // Auf einen Monitor festgelegte Widgets duerfen ueber dessen Rand ragen
+    // (halb links, halb rechts) – der Nachbar zeichnet sie dann mit. Ob sie
+    // hinueberreichen, sagt ihre Groesse in px, die der Host auf dem eigenen
+    // Monitor meldet (`extents`), beim Ziehen/Skalieren `live`
     function widgetsFor(screenName: string): var {
-        return root.widgets.filter(w => !w.monitor || w.monitor === "*" || w.monitor === screenName);
+        const own = root.screenNamed(screenName);
+        return root.widgets.filter(w => {
+            if (!w.monitor || w.monitor === "*" || w.monitor === screenName)
+                return true;
+            if (root.live?.id === w.id)
+                return true;
+            const home = root.screenNamed(w.monitor);
+            const e = root.extents[w.id];
+            if (!own || !home || !e)
+                return false;
+            const gx = home.x + w.x * home.width, gy = home.y + w.y * home.height;
+            return gx + e.w / 2 > own.x && gx - e.w / 2 < own.x + own.width
+                   && gy + e.h / 2 > own.y && gy - e.h / 2 < own.y + own.height;
+        });
+    }
+
+    function screenNamed(name: string): var {
+        for (const s of Quickshell.screens)
+            if (s.name === name)
+                return s;
+        return null;
+    }
+
+    // { <id>: { w, h } } in px (WidgetHost.report)
+    property var extents: ({})
+
+    function setExtent(id: string, w: real, h: real): void {
+        const e = root.extents[id];
+        if (e && e.w === w && e.h === h)
+            return;
+        root.extents = Object.assign({}, root.extents, { [id]: { w: w, h: h } });
     }
 
     // ---- Bearbeiten ----
@@ -105,23 +139,10 @@ Singleton {
     }
     readonly property var selectedWidget: root.widgets.find(w => w.id === root.selected) ?? null
 
-    // Ein auf einen Monitor festgelegtes Widget wird gerade ueber den Rand
-    // gezogen: { id, title, screen, x, y, w, h } (x/y Mittelpunkt als Anteil,
-    // w/h in px). Der Zielmonitor zeigt dort eine Vorschau (DesktopScreen).
-    property var crossing: null
-
-    // Loslassen auf dem anderen Monitor: Widget zieht um, die Bearbeitung
-    // wechselt mit (Auswahl bleibt)
-    function moveTo(id: string, screenName: string, x: real, y: real): void {
-        root.crossing = null;
-        root.patch(id, {
-            monitor: screenName,
-            x: Number(Math.max(0, Math.min(1, x)).toFixed(4)),
-            y: Number(Math.max(0, Math.min(1, y)).toFixed(4))
-        });
-        root.editScreen = screenName;
-        root.selected = id;
-    }
+    // Ein festgelegtes Widget wird gerade gezogen oder skaliert:
+    // { id, gx, gy, size } – Mittelpunkt in globalen px. Seine Kopien auf
+    // den anderen Monitoren folgen damit live (WidgetHost)
+    property var live: null
 
     // Wohin Aenderungen gehen koennen: [{ key, label, own }]
     readonly property var targets: {
@@ -149,12 +170,13 @@ Singleton {
         root.editScreen = screenName || (Hyprland.focusedMonitor?.name ?? "");
         root.selected = "";
         root.adding = false;
+        root.live = null;
         root.editing = true;
         root.analyse();
     }
 
     function done(): void {
-        root.crossing = null;
+        root.live = null;
         root.adding = false;
         root.editing = false;
         root.selected = "";
@@ -167,7 +189,7 @@ Singleton {
             root.data = JSON.parse(root.snapshot);
             root.save();
         }
-        root.crossing = null;
+        root.live = null;
         root.adding = false;
         root.editing = false;
         root.selected = "";

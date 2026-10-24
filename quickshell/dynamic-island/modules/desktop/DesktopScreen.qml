@@ -16,9 +16,10 @@ import qs.modules.window
 // Normal: Layer "bottom" (ueber dem Wallpaper, unter allen Fenstern), ohne
 // Eingabe (leere Maske – Klicks gehen auf den Desktop durch), ohne Tastatur.
 // Bearbeiten: auf allen Monitoren rutscht die Ebene nach "top" (ueber die
-// Fenster), nimmt die Maus und zeigt die Bearbeitungsleiste (EditBar.qml).
-// Tastatur und Widget-Auswahl gehoeren dem Monitor, auf dem zuletzt gedrueckt
-// wurde (Scenes.editScreen) – Exclusive-Fokus kann nur eine Flaeche haben.
+// Fenster, deckend mit dem Wallpaper) und nimmt Maus und Tastatur. Exclusive
+// auf ALLEN: Hyprland laesst den Zeiger nur auf Flaechen mit exklusivem
+// Fokus. Leiste (EditBar.qml), Widget-Auswahl und Optionsfeld nur auf dem
+// Monitor, auf dem zuletzt gedrueckt wurde (Scenes.editScreen).
 //
 // Pausieren: sieht man den Desktop nicht (Fenster auf dem Workspace bzw. nur
 // bei Vollbild, Einstellung desktop.pause; Game-Mode immer), bekommen alle
@@ -33,8 +34,6 @@ PanelWindow {
     readonly property string screenName: win.modelData.name
     readonly property bool editing: Scenes.editing
     readonly property bool focusHere: Scenes.editing && Scenes.editScreen === win.screenName
-    // Ein Widget wird von einem anderen Monitor hierher gezogen
-    readonly property var incoming: Scenes.crossing?.screen === win.screenName ? Scenes.crossing : null
     // Grundeinheit: 16 px bei 1440p
     readonly property real unit: 16 * win.modelData.height / 1440
 
@@ -50,7 +49,7 @@ PanelWindow {
     screen: win.modelData
     WlrLayershell.layer: win.editing ? WlrLayer.Top : WlrLayer.Bottom
     WlrLayershell.namespace: "dynamic-island-desktop"
-    WlrLayershell.keyboardFocus: win.focusHere ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: win.editing ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
     anchors {
         top: true
@@ -73,7 +72,7 @@ PanelWindow {
         id: stage
 
         anchors.fill: parent
-        focus: win.focusHere
+        focus: win.editing
 
         // Druck irgendwo auf diesem Monitor: Tastatur und Widget-Auswahl
         // wandern hierher. Passiver Griff – Ziehen/Klicks bleiben unberuehrt
@@ -126,7 +125,7 @@ PanelWindow {
 
         // Esc: erst Auswahl weg, dann Abbrechen (alles zurueck). Enter: Fertig.
         Keys.onPressed: event => {
-            if (!win.focusHere)
+            if (!win.editing)
                 return;
             const sel = Scenes.selectedWidget;
             const step = event.modifiers & Qt.ShiftModifier ? 0.02 : 0.004;
@@ -324,41 +323,6 @@ PanelWindow {
             }
         }
 
-        // Vorschau fuer ein Widget, das gerade von einem anderen Monitor
-        // hierher gezogen wird
-        Rectangle {
-            visible: win.incoming !== null
-            z: 15
-            x: Math.round((win.incoming?.x ?? 0) * parent.width - width / 2)
-            y: Math.round((win.incoming?.y ?? 0) * parent.height - height / 2)
-            width: (win.incoming?.w ?? 0) + 16
-            height: (win.incoming?.h ?? 0) + 16
-            radius: 12
-            color: Colors.alpha(Colors.primary, 0.14)
-            border.width: 2
-            border.color: Colors.primary
-
-            Rectangle {
-                x: 10
-                y: -height / 2
-                width: ghostLabel.implicitWidth + 12
-                height: 18
-                radius: 9
-                color: Colors.primary
-
-                Text {
-                    id: ghostLabel
-
-                    anchors.centerIn: parent
-                    text: I18n.tr(win.incoming?.title ?? "") + " → " + win.screenName
-                    color: Colors.fgPrimary
-                    font.family: Config.font
-                    font.pixelSize: 10
-                    font.weight: Font.DemiBold
-                }
-            }
-        }
-
         // Stelle eines Rechtsklicks: hier landet das neue Widget
         Rectangle {
             readonly property var at: win.focusHere && Scenes.adding ? Scenes.addAt : null
@@ -410,14 +374,14 @@ PanelWindow {
             sourceComponent: WidgetPicker {}
 
             // Nach dem Schliessen gehoeren die Tasten wieder der Buehne
-            onActiveChanged: if (!active && win.focusHere) stage.forceActiveFocus()
+            onActiveChanged: if (!active && win.editing) stage.forceActiveFocus()
         }
 
         // Bearbeitungsleiste unten mittig
         Loader {
             id: barLoader
 
-            active: win.editing
+            active: win.focusHere
             // ueber den Widgets (auch ueber dem Visualiser "unten")
             z: 20
             anchors.horizontalCenter: parent.horizontalCenter
