@@ -122,6 +122,11 @@ def available_looks() -> list[dict]:
         for d in sorted(FASTFETCH.iterdir(), key=lambda p: p.name.lower()):
             if d.is_dir() and (d / "config.jsonc").is_file():
                 title = " ".join(w.capitalize() for w in d.name.replace("_", "-").split("-"))
+                # Titel aus dem Looks-Editor (plugins/terminal/looks.py), falls gesetzt
+                try:
+                    title = json.loads((d / "look.json").read_text()).get("title") or title
+                except (OSError, ValueError, AttributeError):
+                    pass
                 looks.append({"id": d.name, "title": title, "desc": f"~/.config/fastfetch/{d.name}",
                               "card": card(d / "Pictures"), "cards": len(list((d / "Pictures").glob("*.png")))})
     return looks
