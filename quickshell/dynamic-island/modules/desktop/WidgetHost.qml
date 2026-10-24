@@ -17,8 +17,9 @@ import qs.modules.services.desktop
 // Ziehen = frei, ohne Einrasten. Gespeichert wird erst beim Loslassen.
 // Ein auf einen Monitor festgelegtes Widget darf ueber dessen Rand ragen
 // (halb links, halb rechts, die Naht rastet ein) oder ganz hinueberziehen;
-// der Nachbar zeichnet den Rest (Scenes.live/extents). Ein "*"-Widget, das
-// man ueber den Rand zieht, wird dabei festgelegt.
+// der Nachbar zeichnet den Rest (Scenes.live/extents). Ein "*"-Widget bleibt
+// auf allen Monitoren an derselben relativen Stelle, auch beim Ziehen.
+// Monitore duerfen beliebig viele, versetzt und verschieden gross sein.
 //
 // Vertrag fuer Widget-Komponenten (eingebaut wie aus Plugins):
 //   property real unit      Grundeinheit in px (16 bei 1440p * size)
@@ -72,40 +73,59 @@ Item {
 
     // Festgelegt auf einen anderen Monitor, ragt aber hierher (halb links,
     // halb rechts): dessen Lage relativ zu diesem in px
-    readonly property ShellScreen home: host.pinned ? (Scenes.screenNamed(host.widget.monitor) ?? host.shellScreen) : host.shellScreen
+    readonly property ShellScreen home: host.pinned ? (Scenes.homeOf(host.widget) ?? host.shellScreen) : host.shellScreen
     readonly property real originX: (host.home?.x ?? 0) - (host.shellScreen?.x ?? 0)
     readonly property real originY: (host.home?.y ?? 0) - (host.shellScreen?.y ?? 0)
-    // Wird gerade auf einem anderen Monitor gezogen/skaliert (Scenes.live)
-    readonly property var live: host.pinned && Scenes.live?.id === (host.widget?.id ?? "") ? Scenes.live : null
+    // Groesse wie auf dem eigenen Monitor (Grundeinheit haengt an dessen
+    // Hoehe) – sonst passten die Haelften bei verschiedenen Aufloesungen nicht
+    readonly property real homeScale: (host.home?.height ?? 1) / (host.shellScreen?.height ?? 1)
+    // Wird gerade gezogen/skaliert, hier oder auf einem anderen Monitor (Scenes.live)
+    readonly property var live: Scenes.live?.id === (host.widget?.id ?? "") ? Scenes.live : null
 
     readonly property real size: host.resizing ? host.liveSize : (host.live?.size ?? host.widget?.size ?? 1)
-    readonly property real cx: dragger.active ? host.dragX
-                             : host.resizing ? host.anchorX + host.resizeDx * host.width / 2
-                             : host.live ? host.live.gx - (host.shellScreen?.x ?? 0)
+    // Festgelegt: global (ueber den Rand ragend), "*": auf jedem Monitor an
+    // derselben relativen Stelle – auch der gezogene selbst, der springt
+    // also auf dem Nachbarn an die gespiegelte Stelle hier
+    readonly property real cx: host.resizing ? host.anchorX + host.resizeDx * host.width / 2
+                             : dragger.active && host.pinned ? host.dragX
+                             : host.live ? (host.pinned ? host.live.gx - (host.shellScreen?.x ?? 0) : host.live.rx * host.areaW)
+                             : dragger.active ? host.dragX
                              : host.originX + (host.widget?.x ?? 0.5) * (host.home?.width ?? host.areaW)
-    readonly property real cy: dragger.active ? host.dragY
-                             : host.resizing ? host.anchorY + host.resizeDy * host.height / 2
-                             : host.live ? host.live.gy - (host.shellScreen?.y ?? 0)
+    readonly property real cy: host.resizing ? host.anchorY + host.resizeDy * host.height / 2
+                             : dragger.active && host.pinned ? host.dragY
+                             : host.live ? (host.pinned ? host.live.gy - (host.shellScreen?.y ?? 0) : host.live.ry * host.areaH)
+                             : dragger.active ? host.dragY
                              : host.originY + (host.widget?.y ?? 0.5) * (host.home?.height ?? host.areaH)
 
     // Ziehen/Skalieren hier: die Kopien auf den anderen Monitoren folgen
     function publish(): void {
-        if (!host.pinned || !(dragger.active || host.resizing))
+        if (!(dragger.active || host.resizing) || !host.widget)
             return;
+        const lx = dragger.active ? host.dragX : host.cx;
+        const ly = dragger.active ? host.dragY : host.cy;
+        const own = host.shellScreen;
+        const gx = (own?.x ?? 0) + lx, gy = (own?.y ?? 0) + ly;
+        // Monitor unter dem Mittelpunkt (zwischen Monitoren: dieser)
+        const t = host.otherScreenAt(lx, ly) ?? own;
+        const rel = (v, a, len) => Math.max(0, Math.min(1, (v - a) / len));
         Scenes.live = {
             id: host.widget.id,
-            gx: (host.shellScreen?.x ?? 0) + host.cx,
-            gy: (host.shellScreen?.y ?? 0) + host.cy,
+            gx: gx,
+            gy: gy,
+            rx: t ? rel(gx, t.x, t.width) : rel(lx, 0, host.areaW),
+            ry: t ? rel(gy, t.y, t.height) : rel(ly, 0, host.areaH),
             size: host.size
         };
     }
-    onCxChanged: host.publish()
-    onCyChanged: host.publish()
-    onSizeChanged: host.publish()
+    onDragXChanged: host.publish()
+    onDragYChanged: host.publish()
+    onCxChanged: if (host.resizing) host.publish()
+    onCyChanged: if (host.resizing) host.publish()
+    onSizeChanged: if (host.resizing) host.publish()
 
     // Auf dem eigenen Monitor die Groesse melden – daran sieht der Nachbar,
     // ob das Widget zu ihm herueberragt (Scenes.widgetsFor)
-    readonly property bool isHome: host.pinned && host.widget?.monitor === host.screenName
+    readonly property bool isHome: host.pinned && host.home?.name === host.screenName
     function report(): void {
         if (host.isHome)
             Scenes.setExtent(host.widget.id, host.width, host.height);
@@ -163,7 +183,7 @@ Item {
     Binding {
         target: loader.item
         property: "unit"
-        value: host.unit * host.size
+        value: host.unit * host.homeScale * host.size
         when: loader.item !== null
     }
     Binding {
@@ -473,12 +493,14 @@ Item {
             { at: margin, center: false },
             { at: total - margin, center: false }
         ];
-        // Naht zum Nachbarmonitor: Mitte darauf = halb links, halb rechts
-        const mid = vertical ? host.areaW / 2 : host.areaH / 2;
-        if (vertical ? host.otherScreenAt(mid, -1) : host.otherScreenAt(-1, mid))
-            lines.push({ at: 0, center: true, seam: true });
-        if (vertical ? host.otherScreenAt(mid, total + 1) : host.otherScreenAt(total + 1, mid))
-            lines.push({ at: total, center: true, seam: true });
+        // Naht zu einem Nachbarmonitor: Mitte darauf = halb hier, halb dort.
+        // Nur festgelegte – ein "*"-Widget ragt nie hinueber
+        if (host.pinned) {
+            if (host.touches(vertical, false))
+                lines.push({ at: 0, center: true, seam: true });
+            if (host.touches(vertical, true))
+                lines.push({ at: total, center: true, seam: true });
+        }
         for (const o of host.others()) {
             const a = vertical ? o.y : o.x;
             const len = vertical ? o.height : o.width;
@@ -549,22 +571,37 @@ Item {
         return null;
     }
 
-    // Wohin ein losgelassenes Widget gehoert (Mittelpunkt lx/ly lokal): { x, y },
-    // mit `monitor`, wenn es dabei festgelegt wird bzw. umzieht. Festgelegte
-    // gehoeren dem Monitor unter ihrem Mittelpunkt; ein "*"-Widget wird
-    // festgelegt, sobald es auf einen anderen Monitor ragt – halb links,
-    // halb rechts steht es nur einmal da
+    // Grenzt ein anderer Monitor an diese Kante (auch versetzt oder anders
+    // gross)? vertical = obere/untere Kante, far = rechte/untere
+    function touches(vertical: bool, far: bool): bool {
+        const o = host.shellScreen;
+        if (!o)
+            return false;
+        for (const s of Quickshell.screens) {
+            if (s.name === o.name)
+                continue;
+            if (vertical ? (far ? s.y === o.y + o.height : s.y + s.height === o.y) && s.x < o.x + o.width && s.x + s.width > o.x
+                         : (far ? s.x === o.x + o.width : s.x + s.width === o.x) && s.y < o.y + o.height && s.y + s.height > o.y)
+                return true;
+        }
+        return false;
+    }
+
+    // Wohin ein losgelassenes Widget gehoert (Mittelpunkt lx/ly lokal): Anteil
+    // des Monitors unter dem Mittelpunkt (zwischen Monitoren: dieser). Ein
+    // festgelegtes zieht dabei auf diesen Monitor um (`monitor`), ein "*"-
+    // Widget bleibt auf allen
     function placement(lx: real, ly: real): var {
         const clamp = v => Number(Math.max(0, Math.min(1, v)).toFixed(4));
         const own = host.shellScreen;
-        const hw = host.width / 2 - 1, hh = host.height / 2 - 1;
-        const overhang = host.otherScreenAt(lx - hw, ly) || host.otherScreenAt(lx + hw, ly)
-                         || host.otherScreenAt(lx, ly - hh) || host.otherScreenAt(lx, ly + hh);
-        const target = !own ? null : host.otherScreenAt(lx, ly) ?? (host.pinned || overhang ? own : null);
-        if (!target)
+        if (!own)
             return { x: clamp(lx / host.areaW), y: clamp(ly / host.areaH) };
+        const t = host.otherScreenAt(lx, ly) ?? own;
         const gx = own.x + lx, gy = own.y + ly;
-        return { monitor: target.name, x: clamp((gx - target.x) / target.width), y: clamp((gy - target.y) / target.height) };
+        const out = { x: clamp((gx - t.x) / t.width), y: clamp((gy - t.y) / t.height) };
+        if (host.pinned)
+            out.monitor = t.name;
+        return out;
     }
 
     // Aenderung nach dem Loslassen speichern. Zieht das Widget von diesem
@@ -619,13 +656,27 @@ Item {
             const m = host.moved(dragger);
             const nx = dragger.startX + m.x;
             const ny = dragger.startY + m.y;
-            // Mittelpunkt schon auf dem Nachbarmonitor: dort rastet nur die
+            const other = host.otherScreenAt(nx, ny);
+            const free = host.free(dragger);
+            if (other && !host.pinned) {
+                // "*"-Widget mit dem Mittelpunkt auf einem anderen Monitor: es
+                // steht hier an der gespiegelten Stelle – dort einrasten
+                const own = host.shellScreen;
+                const kx = host.areaW / other.width, ky = host.areaH / other.height;
+                const wx = (own.x + nx - other.x) * kx, wy = (own.y + ny - other.y) * ky;
+                const mx = free ? { v: wx, line: -1 } : host.snapMove(wx, host.width, dragger.linesX);
+                const my = free ? { v: wy, line: -1 } : host.snapMove(wy, host.height, dragger.linesY);
+                host.dragX = other.x - own.x + mx.v / kx;
+                host.dragY = other.y - own.y + my.v / ky;
+                host.guideX.at = mx.line;
+                host.guideY.at = my.line;
+                return;
+            }
+            // Festgelegt und schon auf dem Nachbarmonitor: dort rastet nur die
             // Naht ein (dessen Linien kennt dieser Host nicht). Der Rest wird
             // hier am Rand abgeschnitten und dort gezeichnet (Scenes.live)
-            const away = host.otherScreenAt(nx, ny) !== null;
-            const linesX = away ? dragger.linesX.filter(l => l.seam) : dragger.linesX;
-            const linesY = away ? dragger.linesY.filter(l => l.seam) : dragger.linesY;
-            const free = host.free(dragger);
+            const linesX = other ? dragger.linesX.filter(l => l.seam) : dragger.linesX;
+            const linesY = other ? dragger.linesY.filter(l => l.seam) : dragger.linesY;
             const sx = free ? { v: nx, line: -1 } : host.snapMove(nx, host.width, linesX);
             const sy = free ? { v: ny, line: -1 } : host.snapMove(ny, host.height, linesY);
             host.dragX = sx.v;

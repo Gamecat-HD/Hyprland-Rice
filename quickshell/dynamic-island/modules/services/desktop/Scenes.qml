@@ -87,11 +87,11 @@ Singleton {
     function widgetsFor(screenName: string): var {
         const own = root.screenNamed(screenName);
         return root.widgets.filter(w => {
-            if (!w.monitor || w.monitor === "*" || w.monitor === screenName)
+            if (!w.monitor || w.monitor === "*")
                 return true;
-            if (root.live?.id === w.id)
+            const home = root.homeOf(w);
+            if (home?.name === screenName || root.live?.id === w.id)
                 return true;
-            const home = root.screenNamed(w.monitor);
             const e = root.extents[w.id];
             if (!own || !home || !e)
                 return false;
@@ -99,6 +99,12 @@ Singleton {
             return gx + e.w / 2 > own.x && gx - e.w / 2 < own.x + own.width
                    && gy + e.h / 2 > own.y && gy - e.h / 2 < own.y + own.height;
         });
+    }
+
+    // Monitor eines festgelegten Widgets. Gibt es ihn nicht (anderer Rechner,
+    // Anschluss umbenannt), der erste – sonst waere das Widget unsichtbar
+    function homeOf(w: var): var {
+        return root.screenNamed(w?.monitor ?? "") ?? (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
     }
 
     function screenNamed(name: string): var {
@@ -139,9 +145,10 @@ Singleton {
     }
     readonly property var selectedWidget: root.widgets.find(w => w.id === root.selected) ?? null
 
-    // Ein festgelegtes Widget wird gerade gezogen oder skaliert:
-    // { id, gx, gy, size } – Mittelpunkt in globalen px. Seine Kopien auf
-    // den anderen Monitoren folgen damit live (WidgetHost)
+    // Ein Widget wird gerade gezogen oder skaliert: { id, gx, gy, rx, ry,
+    // size } – Mittelpunkt in globalen px bzw. als Anteil des Monitors darunter.
+    // Seine Kopien auf den anderen Monitoren folgen damit live (WidgetHost):
+    // festgelegte ueber gx/gy, "*"-Widgets an derselben relativen Stelle
     property var live: null
 
     // Wohin Aenderungen gehen koennen: [{ key, label, own }]
