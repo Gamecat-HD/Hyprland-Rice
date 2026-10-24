@@ -1340,6 +1340,39 @@ ColumnLayout {
                         }
                     }
 
+                    // Editor: freie Zellen als leere Blasen (wie Android) –
+                    // man sieht, wo noch etwas hinpasst. Zielt ein Ziehen auf
+                    // die Reihe, leuchten sie auf. Breitenziehen zaehlt mit
+                    // der Vorschau-Breite, die Blasen weichen also live.
+                    Repeater {
+                        model: root.editable
+                               ? Math.max(0, QuickLayout.columns - tileRow.modelData.reduce(
+                                     (sum, t) => sum + root.edit.previewSpan(t.id, t.span), 0))
+                               : 0
+
+                        Rectangle {
+                            readonly property bool targeted: root.edit.target !== null
+                                                             && !root.edit.hideTarget
+                                                             && root.edit.target.rowIndex === tileRow.index
+                                                             && !(root.edit.target.newRow ?? false)
+
+                            Layout.preferredWidth: root.cellWidth(1)
+                            Layout.preferredHeight: 54
+                            Layout.alignment: Qt.AlignVCenter
+                            radius: height / 2
+                            color: targeted ? Colors.alpha(Colors.primary, 0.16) : Colors.alpha(Colors.fgSurface, 0.05)
+                            border.width: 1
+                            border.color: targeted ? Colors.alpha(Colors.primary, 0.5) : Colors.alpha(Colors.outline, 0.18)
+
+                            Behavior on color {
+                                ColorAnimation { duration: 120 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 120 }
+                            }
+                        }
+                    }
+
                     // Rest der Reihe bleibt frei
                     Item {
                         Layout.fillWidth: true
