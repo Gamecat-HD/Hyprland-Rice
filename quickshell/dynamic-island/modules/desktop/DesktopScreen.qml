@@ -9,6 +9,7 @@ import qs.modules.services.config
 import qs.modules.services.desktop
 import qs.modules.services.hypr
 import qs.modules.services.system
+import qs.modules.window
 
 // Die Widget-Ebene eines Monitors.
 //
@@ -57,7 +58,8 @@ PanelWindow {
         left: true
         right: true
     }
-    color: "transparent"
+    // Beim Bearbeiten deckend: keine Fenster dahinter, nur Wallpaper + Widgets
+    color: win.editing ? Colors.background : "transparent"
     // Leere Maske = keine Eingabe; beim Bearbeiten das ganze Fenster
     mask: win.editing ? null : noInput
 
@@ -156,6 +158,16 @@ PanelWindow {
                 return;
             }
             event.accepted = true;
+        }
+
+        // Bearbeiten: das Wallpaper deckt die Fenster ab (nur solange geladen)
+        Loader {
+            anchors.fill: parent
+            active: win.editing
+
+            sourceComponent: WallpaperStage {
+                decodeSize: Qt.size(win.modelData.width, win.modelData.height)
+            }
         }
 
         // Bearbeiten: Grund leicht abdunkeln, Drittel-Linien andeuten
