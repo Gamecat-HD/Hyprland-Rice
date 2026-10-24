@@ -59,6 +59,11 @@ Item {
     property string segSource: "\u0000"
     property int dragFrom: -1
     property int dragTo: -1
+    // Einfuegelinie beim Hover: -2 keine, -1 vor der ersten Zeile, sonst nach Zeile n
+    property int gapIndex: -2
+    // Frisch eingefuegte Zeile, blinkt kurz auf
+    property int flashRow: -1
+    property string moduleFilter: ""
 
     // Palette
     property string renaming: ""
@@ -99,8 +104,11 @@ Item {
     readonly property var conf: page.look ? LookModel.sizeConf(page.look, page.size) : ({})
     readonly property var budget: ({ config: [64, 23], compact: [50, 19], mini: [32, 7] })[page.size]
     readonly property bool wide: page.width >= 1000
+    // Breit stehen die Zeilen als eigene Spalte, der Reiter entfaellt
+    readonly property string editTab: page.wide && page.tab === "rows" ? "palette" : page.tab
     readonly property bool busy: page.svc?.busy ?? false
     readonly property bool rawOn: page.look?.sizes?.[page.size]?.raw === true
+    readonly property bool overflowing: page.preview?.tooTall || (page.preview?.overflow?.length ?? 0) > 0
 
     // Deckt Nerd-Icons und Balkenzeichen (▰▱) ab; fehlt sie, nimmt Qt monospace
     readonly property string monoFont: Qt.fontFamilies().includes("CaskaydiaCove Nerd Font Mono")
@@ -574,11 +582,74 @@ Item {
             page.selected = to;
     }
 
+    // Modul-Popover oeffnen; `after` = Zeile, hinter der eingefuegt wird
+    // (-1 = ganz oben), sonst hinter der Auswahl bzw. am Ende
+    function insertAt(after: int, x: real, y: real): void {
+        page.moduleFilter = "";
+        page.openMenuAt("modules", x, y, after);
+    }
+
     function addModule(type: string): void {
         const m = LookModel.makeModule(type, page.look, page.size);
-        const at = page.selected >= 0 ? page.selected : page.look.rows.length - 1;
-        page.setLook(LookModel.addRow(page.look, at, m, []));
-        page.selected = at + 1;
+        const after = typeof page.menuData === "number" ? page.menuData
+                    : page.selected >= 0 ? page.selected : page.look.rows.length - 1;
+        // Nicht in mini, ausser mini ist gerade gewaehlt – mini bleibt knapp
+        const only = page.size === "mini" ? ["mini"] : page.sizes.filter(s => s !== "mini");
+        page.setLook(LookModel.addRow(page.look, after, m, only));
+        page.selected = after + 1;
+        page.flashRow = after + 1;
+        flashTimer.restart();
+        revealTimer.restart();
+        Qt.callLater(() => page.revealRow(after + 1));
+    }
+
+    function revealRow(i: int): void {
+        const it = rowsRepeater.itemAt(i);
+        if (!it)
+            return;
+        const max = Math.max(0, rowsFlick.contentHeight - rowsFlick.height);
+        const top = rowsTab.y + it.y, bottom = top + it.height;
+        if (top - 4 < rowsFlick.contentY)
+            rowsFlick.contentY = Math.max(0, top - 4);
+        else if (bottom + 4 > rowsFlick.contentY + rowsFlick.height)
+            rowsFlick.contentY = Math.min(max, bottom + 4 - rowsFlick.height);
+    }
+
+    Timer {
+        id: flashTimer
+
+        interval: 900
+        onTriggered: page.flashRow = -1
+    }
+
+    Timer {
+        id: revealTimer
+
+        interval: Appearance.fadeDuration + 40
+        onTriggered: page.revealRow(page.selected)
+    }
+
+    // Einfuegelinie zur Mausposition (y relativ zur Zeilenliste)
+    function updateGap(y: real): void {
+        if (page.dragFrom >= 0) {
+            page.gapIndex = -2;
+            return;
+        }
+        let best = -2;
+        for (let i = 0; i < rowsRepeater.count; i++) {
+            const it = rowsRepeater.itemAt(i);
+            if (!it)
+                continue;
+            if (i === 0 && Math.abs(y - it.y) <= 5) {
+                best = -1;
+                break;
+            }
+            if (Math.abs(y - (it.y + it.height)) <= 5) {
+                best = i;
+                break;
+            }
+        }
+        page.gapIndex = best;
     }
 
     // HTML einer Zeile fuer die Liste (Key, Trenner, Format)
@@ -813,19 +884,24 @@ Item {
             if (!row)
                 return [];
             const on = LookModel.present(row, page.size);
+            const x = page.menuX, y = page.menuY;
             return [
                 { title: on ? I18n.tr("In %1 ausblenden").arg(page.size) : I18n.tr("In %1 einblenden").arg(page.size),
                   icon: on ? "visibility_off" : "visibility", action: () => { page.closeMenu(); page.togglePresent(i, page.size); } },
+                { title: I18n.tr("Darüber einfügen"), icon: "add", sub: true, action: () => page.insertAt(i - 1, x, y) },
+                { title: I18n.tr("Darunter einfügen"), icon: "add", sub: true, action: () => page.insertAt(i, x, y) },
                 { title: I18n.tr("Nach oben"), icon: "arrow_upward", enabled: i > 0, action: () => { page.closeMenu(); page.moveRow(i, i - 1); } },
                 { title: I18n.tr("Nach unten"), icon: "arrow_downward", enabled: i < page.look.rows.length - 1, action: () => { page.closeMenu(); page.moveRow(i, i + 1); } },
                 { title: I18n.tr("Löschen"), icon: "delete", danger: true, action: () => { page.closeMenu(); page.removeRow(i); } }
             ];
         }
-        if (m === "modules")
-            return LookModel.MODULES.map(d => ({
+        if (m === "modules") {
+            const q = page.moduleFilter.trim().toLowerCase();
+            return LookModel.MODULES.filter(d => q === "" || I18n.tr(d.title).toLowerCase().includes(q) || d.type.includes(q)).map(d => ({
                 title: I18n.tr(d.title), desc: d.type === "break" || d.type === "custom" ? "" : d.type,
                 action: () => { page.closeMenu(); page.addModule(d.type); }
             }));
+        }
         if (m === "scope")
             return [
                 { title: I18n.tr("Alle Größen"), current: page.scope === "all", action: () => { page.closeMenu(); page.scope = "all"; } },
@@ -1107,6 +1183,7 @@ Item {
         property bool number: false
         signal edited(string text)
         signal finished()
+        signal accepted()
 
         implicitHeight: 28
         implicitWidth: 120
@@ -1145,6 +1222,7 @@ Item {
             text: field.value
             onTextEdited: field.edited(text)
             onEditingFinished: field.finished()
+            onAccepted: field.accepted()
             Keys.onEscapePressed: event => {
                 input.text = field.value;
                 field.edited(input.text);
@@ -1253,9 +1331,41 @@ Item {
         }
     }
 
+    // Groessen-Reiter und Masse der Vorschau (Kopf, sonst unter der Vorschau)
+    component SizeTabs: Row {
+        spacing: 2
+
+        Repeater {
+            model: page.sizes
+
+            Tab {
+                required property string modelData
+
+                label: modelData
+                mono: true
+                current: page.size === modelData
+                onClicked: page.size = modelData
+            }
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            leftPadding: 12
+            font.family: page.monoFont
+            visible: page.preview !== null && !page.preview.failed
+            text: `${page.preview?.width ?? 0}×${page.preview?.height ?? 0} / ${previewPanel.cols}×${previewPanel.rows}`
+            color: page.overflowing ? Colors.error : Colors.fgSurfaceVariant
+            font.pixelSize: 10
+        }
+    }
+
     // ================= Kopf =================
     Item {
         id: header
+
+        // Reiter nur im Kopf, wenn sie neben Look-Auswahl und Knoepfen Platz haben
+        readonly property bool hasSizes: page.look !== null && !page.titleEditing
+            && lookButton.width + 14 + headerSizes.implicitWidth + 16 + headerRight.implicitWidth <= header.width
 
         anchors {
             left: parent.left
@@ -1263,6 +1373,17 @@ Item {
             top: parent.top
         }
         height: 34
+
+        SizeTabs {
+            id: headerSizes
+
+            anchors {
+                left: lookButton.right
+                leftMargin: 14
+                verticalCenter: parent.verticalCenter
+            }
+            visible: header.hasSizes
+        }
 
         // Look-Auswahl: Karte, Titel, Pfeil
         Rectangle {
@@ -1568,15 +1689,16 @@ Item {
         readonly property real naturalW: previewPanel.pad * 2 + previewPanel.cardW + previewPanel.textW + 8
         readonly property real naturalH: previewPanel.pad * 2 + previewPanel.shownRows * previewPanel.lineH
         readonly property real fit: Math.min(page.wide ? 1.25 : 1, previewPanel.width / previewPanel.naturalW,
-                                             page.wide ? 1 : Math.max(0.35, (page.height * 0.42) / previewPanel.naturalH))
+                                             page.wide ? 1.25 : Math.max(0.35, (page.height * 0.42) / previewPanel.naturalH))
 
         anchors {
             left: parent.left
             top: errorRow.bottom
             topMargin: 12
         }
-        width: page.wide ? Math.max(360, Math.min(page.width - 460, previewPanel.naturalW * 1.25)) : page.width
-        height: Math.round(previewPanel.naturalH * previewPanel.fit) + sizeBar.height + 8
+        // Breit: die linke Spalte bleibt mindestens 440 breit (Reiter darunter)
+        width: page.wide ? Math.max(Math.min(440, page.width - 460), Math.min(page.width - 460, previewPanel.naturalW * 1.25)) : page.width
+        height: Math.round(previewPanel.naturalH * previewPanel.fit) + (sizeBar.visible ? sizeBar.height + 6 : 0)
 
         FontMetrics {
             id: metrics
@@ -1700,63 +1822,36 @@ Item {
             opacity: page.preview ? 1 : 0.4
         }
 
-        // Groessen und Masse
+        // Groessen und Masse – nur, wenn sie im Kopf keinen Platz haben
         Item {
             id: sizeBar
 
             anchors {
                 left: parent.left
-                right: parent.right
                 bottom: parent.bottom
             }
-            width: Math.round(previewPanel.naturalW * previewPanel.fit)
-            height: 28
+            height: visible ? 28 : 0
+            visible: page.look !== null && !header.hasSizes
 
-            Row {
+            SizeTabs {
                 id: sizeTabs
 
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 2
-
-                Repeater {
-                    model: page.sizes
-
-                    Tab {
-                        required property string modelData
-
-                        label: modelData
-                        mono: true
-                        current: page.size === modelData
-                        onClicked: page.size = modelData
-                    }
-                }
             }
-
-            // Rechtsbuendig unter dem Vorschaublock, bei schmalem Block (mini)
-            // aber nie ueber den Reitern
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                x: Math.max(sizeTabs.width + 16, Math.round(previewPanel.naturalW * previewPanel.fit) - 6 - implicitWidth)
-                font.family: page.monoFont
-                visible: page.preview !== null && !page.preview.failed
-                text: (page.rawOn ? I18n.tr("Eigene Datei") + "  " : "") + `${page.preview?.width ?? 0}×${page.preview?.height ?? 0} / ${previewPanel.cols}×${previewPanel.rows}`
-                color: (page.preview?.tooTall || (page.preview?.overflow?.length ?? 0) > 0) ? Colors.error : Colors.fgSurfaceVariant
-                font.pixelSize: 10
-            }
-
         }
     }
 
     // ================= Editor =================
+    // Breit: linke Spalte unter der Vorschau (Farben, Darstellung, Karten,
+    // Datei); schmal: alles untereinander, die Zeilen als weiterer Reiter
     Item {
         id: editor
 
         anchors {
-            left: page.wide ? previewPanel.right : parent.left
-            leftMargin: page.wide ? 20 : 0
-            right: parent.right
-            top: page.wide ? previewPanel.top : previewPanel.bottom
-            topMargin: page.wide ? 0 : 10
+            left: parent.left
+            right: page.wide ? previewPanel.right : parent.right
+            top: previewPanel.bottom
+            topMargin: page.wide ? 12 : 10
             bottom: parent.bottom
         }
         visible: page.look !== null
@@ -1773,17 +1868,17 @@ Item {
             Repeater {
                 model: [
                     { key: "palette", title: "Farben" },
-                    { key: "rows", title: "Zeilen" },
+                    { key: "rows", title: "Zeilen", narrow: true },
                     { key: "display", title: "Darstellung" },
                     { key: "cards", title: "Karten" },
                     { key: "raw", title: "Datei" }
-                ]
+                ].filter(t => !t.narrow || !page.wide)
 
                 Tab {
                     required property var modelData
 
                     label: I18n.tr(modelData.title)
-                    current: page.tab === modelData.key
+                    current: page.editTab === modelData.key
                     onClicked: page.tab = modelData.key
                 }
             }
@@ -1799,6 +1894,7 @@ Item {
                 bottom: parent.bottom
                 topMargin: 8
             }
+            visible: page.editTab !== "rows"
             clip: true
             contentWidth: width
             contentHeight: content.implicitHeight + 8
@@ -1823,7 +1919,6 @@ Item {
 
                 width: flick.width
                 implicitHeight: paletteTab.visible ? paletteTab.implicitHeight
-                              : rowsTab.visible ? rowsTab.implicitHeight
                               : displayTab.visible ? displayTab.implicitHeight
                               : cardsTab.visible ? cardsTab.implicitHeight
                               : rawTab.implicitHeight
@@ -1833,7 +1928,7 @@ Item {
                     id: paletteTab
 
                     width: parent.width
-                    visible: page.tab === "palette"
+                    visible: page.editTab === "palette"
                     spacing: 2
 
                     Repeater {
@@ -1957,12 +2052,491 @@ Item {
                     }
                 }
 
-                // ---------- Zeilen ----------
+                // ---------- Darstellung ----------
+                Column {
+                    id: displayTab
+
+                    width: parent.width
+                    visible: page.editTab === "display"
+                    spacing: 2
+
+                    Text {
+                        font.family: Config.font
+                        text: I18n.tr("Für %1").arg(page.size)
+                        color: Colors.fgSurfaceVariant
+                        font.pixelSize: 10
+                        bottomPadding: 6
+                    }
+
+                    Setting {
+                        label: I18n.tr("Trenner")
+
+                        Field {
+                            width: 90
+                            mono: true
+                            value: page.confValue(["display", "separator"]) ?? ""
+                            onEdited: text => page.setConf(["display", "separator"], text === "" ? null : text)
+                        }
+                    }
+
+                    Setting {
+                        label: I18n.tr("Farbe der Keys")
+
+                        ColorPick {
+                            path: ["display", "color", "keys"]
+                        }
+                    }
+
+                    Setting {
+                        label: I18n.tr("Farbe des Trenners")
+
+                        ColorPick {
+                            path: ["display", "color", "separator"]
+                        }
+                    }
+
+                    Setting {
+                        label: I18n.tr("Prozentanzeige")
+
+                        Quiet {
+                            id: percentButton
+
+                            label: page.percentLabel()
+                            chevron: true
+                            active: page.menu === "percent"
+                            onClicked: page.menu === "percent" ? page.closeMenu() : page.openAt("percent", percentButton)
+                        }
+                    }
+
+                    Setting {
+                        label: I18n.tr("Balkenzeichen")
+
+                        Field {
+                            width: 44
+                            mono: true
+                            value: page.confValue(["display", "bar", "char", "elapsed"]) ?? ""
+                            onEdited: text => page.setConf(["display", "bar", "char", "elapsed"], text === "" ? null : text)
+                        }
+
+                        Field {
+                            width: 44
+                            mono: true
+                            value: page.confValue(["display", "bar", "char", "total"]) ?? ""
+                            onEdited: text => page.setConf(["display", "bar", "char", "total"], text === "" ? null : text)
+                        }
+                    }
+
+                    Setting {
+                        label: I18n.tr("Balkenbreite")
+
+                        Field {
+                            width: 54
+                            mono: true
+                            value: String(page.confValue(["display", "bar", "width"]) ?? "")
+                            onEdited: text => {
+                                const n = parseInt(text, 10);
+                                page.setConf(["display", "bar", "width"], isNaN(n) ? null : n);
+                            }
+                        }
+                    }
+
+                    Setting {
+                        label: I18n.tr("Balken, gefüllt")
+
+                        ColorPick {
+                            path: ["display", "bar", "color", "elapsed"]
+                        }
+                    }
+
+                    Setting {
+                        label: I18n.tr("Balken, Rest")
+
+                        ColorPick {
+                            path: ["display", "bar", "color", "total"]
+                        }
+                    }
+                }
+
+                // ---------- Karten ----------
+                Column {
+                    id: cardsTab
+
+                    width: parent.width
+                    visible: page.editTab === "cards"
+                    spacing: 8
+
+                    Flow {
+                        id: cardFlow
+
+                        width: parent.width
+                        spacing: 8
+
+                        Repeater {
+                            model: page.cards
+
+                            Rectangle {
+                                id: cardTile
+
+                                required property var modelData
+
+                                readonly property bool current: page.cardSelected === cardTile.modelData.name
+                                readonly property bool inUse: page.cardFor(page.lookId) === cardTile.modelData.path
+
+                                width: 84
+                                height: 112
+                                radius: 8
+                                color: Colors.alpha(Colors.fgSurface, 0.06)
+                                border.width: cardTile.current ? 2 : 0
+                                border.color: Colors.primary
+                                clip: true
+
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: cardTile.current ? 2 : 0
+                                    source: "file://" + cardTile.modelData.path
+                                    sourceSize: Qt.size(168, 224)
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                }
+
+                                HoverHandler {
+                                    cursorShape: Qt.PointingHandCursor
+                                }
+
+                                TapHandler {
+                                    onTapped: {
+                                        page.cardArmed = false;
+                                        page.cardSelected = cardTile.current ? "" : cardTile.modelData.name;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Row {
+                        spacing: 4
+
+                        Quiet {
+                            id: cardAddButton
+
+                            icon: "add"
+                            label: I18n.tr("Neue Karte")
+                            chevron: true
+                            tint: Colors.fgSurfaceVariant
+                            active: ["folders", "images", "cardcolor"].includes(page.menu) && page.imagesFor === "card"
+                            onClicked: {
+                                if (page.menu !== "") {
+                                    page.closeMenu();
+                                    return;
+                                }
+                                const folder = page.folderFor(page.lookId);
+                                page.imagesFolder = folder !== "" ? folder : (WallManager.folders[0] ?? "");
+                                page.imagesFor = "card";
+                                page.openAt(page.imagesFolder === "" ? "folders" : "images", cardAddButton);
+                            }
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: page.cardSelected !== ""
+                            leftPadding: 8
+                            rightPadding: 4
+                            font.family: Config.font
+                            text: page.cardSelected
+                            color: Colors.fgSurfaceVariant
+                            font.pixelSize: 11
+                        }
+
+                        Quiet {
+                            visible: page.cardSelected !== ""
+                            icon: page.cardArmed ? "check" : "delete"
+                            label: page.cardArmed ? I18n.tr("Wirklich entfernen?") : I18n.tr("Entfernen")
+                            tint: Colors.error
+                            onClicked: {
+                                if (page.cardArmed)
+                                    page.removeCard();
+                                else {
+                                    page.cardArmed = true;
+                                    disarmCard.restart();
+                                }
+                            }
+                        }
+                    }
+
+                    Timer {
+                        id: disarmCard
+
+                        interval: 3000
+                        onTriggered: page.cardArmed = false
+                    }
+                }
+
+                // ---------- Datei ----------
+                Column {
+                    id: rawTab
+
+                    width: parent.width
+                    visible: page.editTab === "raw"
+                    spacing: 8
+
+                    Flow {
+                        width: parent.width
+                        spacing: 4
+
+                        Text {
+                            height: 28
+                            verticalAlignment: Text.AlignVCenter
+                            rightPadding: 8
+                            font.family: Config.font
+                            text: page.rawOn ? I18n.tr("%1.jsonc – eigene Datei").arg(page.size) : I18n.tr("%1.jsonc – erzeugt").arg(page.size)
+                            color: Colors.fgSurface
+                            font.pixelSize: 12
+                        }
+
+                        Quiet {
+                            visible: !page.rawOn && !page.rawEditing
+                            icon: "edit"
+                            label: I18n.tr("Als eigene Datei bearbeiten")
+                            onClicked: page.ensureSaved(() => page.rawLoad())
+                        }
+
+                        Quiet {
+                            visible: page.rawOn && !page.rawEditing
+                            icon: "edit"
+                            label: I18n.tr("Bearbeiten")
+                            onClicked: page.rawLoad()
+                        }
+
+                        Quiet {
+                            visible: page.rawEditing
+                            icon: "save"
+                            label: I18n.tr("Datei speichern")
+                            filled: true
+                            enabled: page.rawText !== page.rawLoaded || !page.rawOn
+                            onClicked: page.rawSave()
+                        }
+
+                        Quiet {
+                            visible: page.rawEditing
+                            label: I18n.tr("Abbrechen")
+                            tint: Colors.fgSurfaceVariant
+                            onClicked: {
+                                page.rawEditing = false;
+                                page.rawError = "";
+                            }
+                        }
+
+                        Quiet {
+                            visible: page.rawOn
+                            label: I18n.tr("Übernehmen")
+                            tint: Colors.fgSurfaceVariant
+                            onClicked: page.ensureSaved(() => page.rawOff(true))
+                        }
+
+                        Quiet {
+                            visible: page.rawOn
+                            label: I18n.tr("Verwerfen")
+                            tint: Colors.error
+                            onClicked: page.ensureSaved(() => page.rawOff(false))
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        visible: page.rawError !== ""
+                        font.family: Config.font
+                        text: page.rawError
+                        color: Colors.error
+                        font.pixelSize: 11
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        // Fuellt den Rest der Seite, der Text scrollt darin
+                        height: Math.max(200, flick.height - 60 - (page.rawError !== "" ? 24 : 0))
+                        visible: page.rawEditing
+                        radius: 10
+                        color: "#0f0f12"
+                        border.width: 1
+                        border.color: rawEdit.activeFocus ? Colors.alpha(Colors.primary, 0.5) : Colors.alpha(Colors.outline, 0.3)
+                        clip: true
+
+                        Flickable {
+                            id: rawFlick
+
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            contentWidth: Math.max(width, rawEdit.implicitWidth)
+                            contentHeight: rawEdit.implicitHeight
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            interactive: false
+
+                            function ensureVisible(r: rect): void {
+                                if (contentY >= r.y)
+                                    contentY = r.y;
+                                else if (contentY + height <= r.y + r.height)
+                                    contentY = r.y + r.height - height;
+                            }
+
+                            WheelHandler {
+                                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+                                onWheel: event => {
+                                    const delta = event.angleDelta.y !== 0 ? event.angleDelta.y / 120 : event.pixelDelta.y / 40;
+                                    const max = Math.max(0, rawFlick.contentHeight - rawFlick.height);
+                                    rawFlick.contentY = Math.max(0, Math.min(max, rawFlick.contentY - delta * 60));
+                                    event.accepted = true;
+                                }
+                            }
+
+                            TextEdit {
+                                id: rawEdit
+
+                                width: Math.max(rawFlick.width, implicitWidth)
+                                font.family: page.monoFont
+                                font.pixelSize: 11
+                                color: "#d8d8dc"
+                                selectionColor: Colors.alpha(Colors.primary, 0.35)
+                                wrapMode: TextEdit.NoWrap
+                                tabStopDistance: 32
+                                text: page.rawText
+                                onTextChanged: if (text !== page.rawText) page.rawText = text
+                                onCursorRectangleChanged: rawFlick.ensureVisible(cursorRectangle)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Weiche Kante unten
+        Rectangle {
+            anchors {
+                left: flick.left
+                right: flick.right
+                bottom: flick.bottom
+            }
+            height: 24
+            visible: flick.visible && flick.contentHeight - flick.contentY - flick.height > 2
+            gradient: Gradient {
+                GradientStop { position: 0; color: Colors.alpha(Colors.background, 0) }
+                GradientStop { position: 1; color: Colors.background }
+            }
+        }
+    }
+
+    // ================= Zeilen =================
+    // Breit: eigene Spalte rechts ueber die volle Hoehe; schmal: Reiter "Zeilen"
+    Item {
+        id: rowsPanel
+
+        anchors {
+            left: page.wide ? previewPanel.right : parent.left
+            leftMargin: page.wide ? 20 : 0
+            right: parent.right
+            top: page.wide ? previewPanel.top : editor.top
+            topMargin: page.wide ? 0 : tabs.height + 8
+            bottom: parent.bottom
+        }
+        visible: page.look !== null && (page.wide || page.tab === "rows")
+
+        // Kopf der Spalte: Titel (nur breit), Status "Eigene Datei" fuehrt zum Reiter Datei
+        Item {
+            id: rowsHead
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+            }
+            height: visible ? 28 : 0
+            visible: page.wide || page.rawOn
+
+            Text {
+                anchors {
+                    left: parent.left
+                    leftMargin: 4
+                    verticalCenter: parent.verticalCenter
+                }
+                visible: page.wide
+                font.family: Config.font
+                text: I18n.tr("Zeilen")
+                color: Colors.fgBackground
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+            }
+
+            Quiet {
+                anchors {
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                }
+                visible: page.rawOn
+                label: I18n.tr("Eigene Datei")
+                icon: "description"
+                tint: Colors.fgSurfaceVariant
+                onClicked: page.tab = "raw"
+            }
+        }
+
+        Flickable {
+            id: rowsFlick
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: rowsHead.bottom
+                bottom: parent.bottom
+                topMargin: page.wide ? 2 : 0
+            }
+            clip: true
+            contentWidth: width
+            contentHeight: rowsContent.implicitHeight + 8
+            boundsBehavior: Flickable.StopAtBounds
+            interactive: false
+
+            onContentHeightChanged: rowsFlick.contentY = Math.max(0, Math.min(rowsFlick.contentY, rowsFlick.contentHeight - rowsFlick.height))
+
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+                onWheel: event => {
+                    const delta = event.angleDelta.y !== 0 ? event.angleDelta.y / 120 : event.pixelDelta.y / 40;
+                    const max = Math.max(0, rowsFlick.contentHeight - rowsFlick.height);
+                    rowsFlick.contentY = Math.max(0, Math.min(max, rowsFlick.contentY - delta * 60));
+                    event.accepted = true;
+                }
+            }
+
+            Item {
+                id: rowsContent
+
+                width: rowsFlick.width
+                implicitHeight: rowsTab.y + rowsTab.implicitHeight
+                // Eigene Datei fuer diese Groesse: die Liste gilt dann nicht
+                opacity: page.rawOn ? 0.35 : 1
+                enabled: !page.rawOn
+
+                Behavior on opacity {
+                    NumberAnimation { duration: Appearance.fadeDuration }
+                }
+
+                HoverHandler {
+                    id: gapHover
+
+                    enabled: !page.rawOn
+                    onPointChanged: page.updateGap(point.position.y - rowsTab.y)
+                    onHoveredChanged: if (!hovered) page.gapIndex = -2
+                }
+
                 Column {
                     id: rowsTab
 
+                    // Platz fuer die Einfuegelinie ueber der ersten Zeile
+                    y: 6
                     width: parent.width
-                    visible: page.tab === "rows"
                     spacing: 1
 
                     Repeater {
@@ -1993,6 +2567,22 @@ Item {
 
                             Behavior on height {
                                 NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+                            }
+
+                            // Frisch eingefuegt: kurz aufleuchten, dann ausblenden
+                            Rectangle {
+                                id: flash
+
+                                readonly property bool flashing: page.flashRow === rowItem.index
+
+                                anchors.fill: parent
+                                radius: parent.radius
+                                color: Colors.alpha(Colors.primary, 0.35)
+                                opacity: flash.flashing ? 1 : 0
+
+                                Behavior on opacity {
+                                    NumberAnimation { duration: flash.flashing ? 120 : 700; easing.type: Easing.OutCubic }
+                                }
                             }
 
                             // Einfuegemarke beim Ziehen
@@ -2368,363 +2958,69 @@ Item {
                         chevron: true
                         tint: Colors.fgSurfaceVariant
                         active: page.menu === "modules"
-                        onClicked: page.menu === "modules" ? page.closeMenu() : page.openAt("modules", addButton)
-                    }
-                }
-
-                // ---------- Darstellung ----------
-                Column {
-                    id: displayTab
-
-                    width: parent.width
-                    visible: page.tab === "display"
-                    spacing: 2
-
-                    Text {
-                        font.family: Config.font
-                        text: I18n.tr("Für %1").arg(page.size)
-                        color: Colors.fgSurfaceVariant
-                        font.pixelSize: 10
-                        bottomPadding: 6
-                    }
-
-                    Setting {
-                        label: I18n.tr("Trenner")
-
-                        Field {
-                            width: 90
-                            mono: true
-                            value: page.confValue(["display", "separator"]) ?? ""
-                            onEdited: text => page.setConf(["display", "separator"], text === "" ? null : text)
-                        }
-                    }
-
-                    Setting {
-                        label: I18n.tr("Farbe der Keys")
-
-                        ColorPick {
-                            path: ["display", "color", "keys"]
-                        }
-                    }
-
-                    Setting {
-                        label: I18n.tr("Farbe des Trenners")
-
-                        ColorPick {
-                            path: ["display", "color", "separator"]
-                        }
-                    }
-
-                    Setting {
-                        label: I18n.tr("Prozentanzeige")
-
-                        Quiet {
-                            id: percentButton
-
-                            label: page.percentLabel()
-                            chevron: true
-                            active: page.menu === "percent"
-                            onClicked: page.menu === "percent" ? page.closeMenu() : page.openAt("percent", percentButton)
-                        }
-                    }
-
-                    Setting {
-                        label: I18n.tr("Balkenzeichen")
-
-                        Field {
-                            width: 44
-                            mono: true
-                            value: page.confValue(["display", "bar", "char", "elapsed"]) ?? ""
-                            onEdited: text => page.setConf(["display", "bar", "char", "elapsed"], text === "" ? null : text)
-                        }
-
-                        Field {
-                            width: 44
-                            mono: true
-                            value: page.confValue(["display", "bar", "char", "total"]) ?? ""
-                            onEdited: text => page.setConf(["display", "bar", "char", "total"], text === "" ? null : text)
-                        }
-                    }
-
-                    Setting {
-                        label: I18n.tr("Balkenbreite")
-
-                        Field {
-                            width: 54
-                            mono: true
-                            value: String(page.confValue(["display", "bar", "width"]) ?? "")
-                            onEdited: text => {
-                                const n = parseInt(text, 10);
-                                page.setConf(["display", "bar", "width"], isNaN(n) ? null : n);
+                        onClicked: {
+                            if (page.menu === "modules") {
+                                page.closeMenu();
+                                return;
                             }
-                        }
-                    }
-
-                    Setting {
-                        label: I18n.tr("Balken, gefüllt")
-
-                        ColorPick {
-                            path: ["display", "bar", "color", "elapsed"]
-                        }
-                    }
-
-                    Setting {
-                        label: I18n.tr("Balken, Rest")
-
-                        ColorPick {
-                            path: ["display", "bar", "color", "total"]
+                            const pos = addButton.mapToItem(page, 0, addButton.height);
+                            page.insertAt(page.selected >= 0 ? page.selected : page.look.rows.length - 1, pos.x, pos.y + 4);
                         }
                     }
                 }
 
-                // ---------- Karten ----------
-                Column {
-                    id: cardsTab
+
+                // Einfuegelinie zwischen zwei Zeilen (Hover), Klick oeffnet die Module
+                Item {
+                    id: gapLine
+
+                    readonly property Item anchorRow: page.gapIndex >= -1 ? rowsRepeater.itemAt(Math.max(0, page.gapIndex)) : null
 
                     width: parent.width
-                    visible: page.tab === "cards"
-                    spacing: 8
+                    height: 12
+                    y: gapLine.anchorRow ? rowsTab.y + (page.gapIndex < 0 ? gapLine.anchorRow.y : gapLine.anchorRow.y + gapLine.anchorRow.height) - 6 : 0
+                    z: 2
+                    visible: page.gapIndex >= -1 && page.dragFrom < 0 && gapLine.anchorRow !== null
 
-                    Flow {
-                        id: cardFlow
-
-                        width: parent.width
-                        spacing: 8
-
-                        Repeater {
-                            model: page.cards
-
-                            Rectangle {
-                                id: cardTile
-
-                                required property var modelData
-
-                                readonly property bool current: page.cardSelected === cardTile.modelData.name
-                                readonly property bool inUse: page.cardFor(page.lookId) === cardTile.modelData.path
-
-                                width: 84
-                                height: 112
-                                radius: 8
-                                color: Colors.alpha(Colors.fgSurface, 0.06)
-                                border.width: cardTile.current ? 2 : 0
-                                border.color: Colors.primary
-                                clip: true
-
-                                Image {
-                                    anchors.fill: parent
-                                    anchors.margins: cardTile.current ? 2 : 0
-                                    source: "file://" + cardTile.modelData.path
-                                    sourceSize: Qt.size(168, 224)
-                                    fillMode: Image.PreserveAspectCrop
-                                    asynchronous: true
-                                }
-
-                                HoverHandler {
-                                    cursorShape: Qt.PointingHandCursor
-                                }
-
-                                TapHandler {
-                                    onTapped: {
-                                        page.cardArmed = false;
-                                        page.cardSelected = cardTile.current ? "" : cardTile.modelData.name;
-                                    }
-                                }
-                            }
+                    Rectangle {
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            leftMargin: 20
+                            rightMargin: 8
+                            verticalCenter: parent.verticalCenter
                         }
-                    }
-
-                    Row {
-                        spacing: 4
-
-                        Quiet {
-                            id: cardAddButton
-
-                            icon: "add"
-                            label: I18n.tr("Neue Karte")
-                            chevron: true
-                            tint: Colors.fgSurfaceVariant
-                            active: ["folders", "images", "cardcolor"].includes(page.menu) && page.imagesFor === "card"
-                            onClicked: {
-                                if (page.menu !== "") {
-                                    page.closeMenu();
-                                    return;
-                                }
-                                const folder = page.folderFor(page.lookId);
-                                page.imagesFolder = folder !== "" ? folder : (WallManager.folders[0] ?? "");
-                                page.imagesFor = "card";
-                                page.openAt(page.imagesFolder === "" ? "folders" : "images", cardAddButton);
-                            }
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: page.cardSelected !== ""
-                            leftPadding: 8
-                            rightPadding: 4
-                            font.family: Config.font
-                            text: page.cardSelected
-                            color: Colors.fgSurfaceVariant
-                            font.pixelSize: 11
-                        }
-
-                        Quiet {
-                            visible: page.cardSelected !== ""
-                            icon: page.cardArmed ? "check" : "delete"
-                            label: page.cardArmed ? I18n.tr("Wirklich entfernen?") : I18n.tr("Entfernen")
-                            tint: Colors.error
-                            onClicked: {
-                                if (page.cardArmed)
-                                    page.removeCard();
-                                else {
-                                    page.cardArmed = true;
-                                    disarmCard.restart();
-                                }
-                            }
-                        }
-                    }
-
-                    Timer {
-                        id: disarmCard
-
-                        interval: 3000
-                        onTriggered: page.cardArmed = false
-                    }
-                }
-
-                // ---------- Datei ----------
-                Column {
-                    id: rawTab
-
-                    width: parent.width
-                    visible: page.tab === "raw"
-                    spacing: 8
-
-                    Flow {
-                        width: parent.width
-                        spacing: 4
-
-                        Text {
-                            height: 28
-                            verticalAlignment: Text.AlignVCenter
-                            rightPadding: 8
-                            font.family: Config.font
-                            text: page.rawOn ? I18n.tr("%1.jsonc – eigene Datei").arg(page.size) : I18n.tr("%1.jsonc – erzeugt").arg(page.size)
-                            color: Colors.fgSurface
-                            font.pixelSize: 12
-                        }
-
-                        Quiet {
-                            visible: !page.rawOn && !page.rawEditing
-                            icon: "edit"
-                            label: I18n.tr("Als eigene Datei bearbeiten")
-                            onClicked: page.ensureSaved(() => page.rawLoad())
-                        }
-
-                        Quiet {
-                            visible: page.rawOn && !page.rawEditing
-                            icon: "edit"
-                            label: I18n.tr("Bearbeiten")
-                            onClicked: page.rawLoad()
-                        }
-
-                        Quiet {
-                            visible: page.rawEditing
-                            icon: "save"
-                            label: I18n.tr("Datei speichern")
-                            filled: true
-                            enabled: page.rawText !== page.rawLoaded || !page.rawOn
-                            onClicked: page.rawSave()
-                        }
-
-                        Quiet {
-                            visible: page.rawEditing
-                            label: I18n.tr("Abbrechen")
-                            tint: Colors.fgSurfaceVariant
-                            onClicked: {
-                                page.rawEditing = false;
-                                page.rawError = "";
-                            }
-                        }
-
-                        Quiet {
-                            visible: page.rawOn
-                            label: I18n.tr("Übernehmen")
-                            tint: Colors.fgSurfaceVariant
-                            onClicked: page.ensureSaved(() => page.rawOff(true))
-                        }
-
-                        Quiet {
-                            visible: page.rawOn
-                            label: I18n.tr("Verwerfen")
-                            tint: Colors.error
-                            onClicked: page.ensureSaved(() => page.rawOff(false))
-                        }
-                    }
-
-                    Text {
-                        width: parent.width
-                        visible: page.rawError !== ""
-                        font.family: Config.font
-                        text: page.rawError
-                        color: Colors.error
-                        font.pixelSize: 11
-                        wrapMode: Text.WordWrap
+                        height: 2
+                        radius: 1
+                        color: Colors.primary
                     }
 
                     Rectangle {
-                        width: parent.width
-                        // Fuellt den Rest der Seite, der Text scrollt darin
-                        height: Math.max(200, flick.height - 60 - (page.rawError !== "" ? 24 : 0))
-                        visible: page.rawEditing
-                        radius: 10
-                        color: "#0f0f12"
-                        border.width: 1
-                        border.color: rawEdit.activeFocus ? Colors.alpha(Colors.primary, 0.5) : Colors.alpha(Colors.outline, 0.3)
-                        clip: true
+                        anchors {
+                            left: parent.left
+                            leftMargin: 2
+                            verticalCenter: parent.verticalCenter
+                        }
+                        width: 16
+                        height: 16
+                        radius: 8
+                        color: Colors.primary
 
-                        Flickable {
-                            id: rawFlick
+                        Text {
+                            anchors.centerIn: parent
+                            text: "add"
+                            color: Colors.fgPrimary
+                            font.family: "Material Symbols Outlined"
+                            font.pixelSize: 13
+                        }
+                    }
 
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            contentWidth: Math.max(width, rawEdit.implicitWidth)
-                            contentHeight: rawEdit.implicitHeight
-                            clip: true
-                            boundsBehavior: Flickable.StopAtBounds
-                            interactive: false
-
-                            function ensureVisible(r: rect): void {
-                                if (contentY >= r.y)
-                                    contentY = r.y;
-                                else if (contentY + height <= r.y + r.height)
-                                    contentY = r.y + r.height - height;
-                            }
-
-                            WheelHandler {
-                                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-
-                                onWheel: event => {
-                                    const delta = event.angleDelta.y !== 0 ? event.angleDelta.y / 120 : event.pixelDelta.y / 40;
-                                    const max = Math.max(0, rawFlick.contentHeight - rawFlick.height);
-                                    rawFlick.contentY = Math.max(0, Math.min(max, rawFlick.contentY - delta * 60));
-                                    event.accepted = true;
-                                }
-                            }
-
-                            TextEdit {
-                                id: rawEdit
-
-                                width: Math.max(rawFlick.width, implicitWidth)
-                                font.family: page.monoFont
-                                font.pixelSize: 11
-                                color: "#d8d8dc"
-                                selectionColor: Colors.alpha(Colors.primary, 0.35)
-                                wrapMode: TextEdit.NoWrap
-                                tabStopDistance: 32
-                                text: page.rawText
-                                onTextChanged: if (text !== page.rawText) page.rawText = text
-                                onCursorRectangleChanged: rawFlick.ensureVisible(cursorRectangle)
-                            }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: mouse => {
+                            const pos = gapLine.mapToItem(page, 0, gapLine.height);
+                            page.insertAt(page.gapIndex, pos.x + 20, pos.y);
                         }
                     }
                 }
@@ -2734,12 +3030,12 @@ Item {
         // Weiche Kante unten
         Rectangle {
             anchors {
-                left: flick.left
-                right: flick.right
-                bottom: flick.bottom
+                left: rowsFlick.left
+                right: rowsFlick.right
+                bottom: rowsFlick.bottom
             }
             height: 24
-            visible: flick.contentHeight - flick.contentY - flick.height > 2
+            visible: rowsFlick.contentHeight - rowsFlick.contentY - rowsFlick.height > 2
             gradient: Gradient {
                 GradientStop { position: 0; color: Colors.alpha(Colors.background, 0) }
                 GradientStop { position: 1; color: Colors.background }
@@ -2853,6 +3149,31 @@ Item {
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
+                    }
+                }
+
+                // ---- Suche (Module) ----
+                Item {
+                    width: parent.width
+                    height: 34
+                    visible: page.menu === "modules"
+
+                    Field {
+                        id: moduleSearch
+
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            leftMargin: 4
+                            rightMargin: 4
+                            verticalCenter: parent.verticalCenter
+                        }
+                        value: page.moduleFilter
+                        placeholder: I18n.tr("Suchen…")
+                        onVisibleChanged: if (visible) focusInput()
+                        onEdited: text => page.moduleFilter = text
+                        // Eingabe nimmt den ersten Treffer
+                        onAccepted: if (page.popRows.length > 0) page.popRows[0].action()
                     }
                 }
 

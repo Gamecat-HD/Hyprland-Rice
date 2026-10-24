@@ -512,7 +512,39 @@ var MODULES = [
     { type: "colors", title: "Farbbalken", symbol: "block" }
 ];
 
-// Neues Modul aus dem Katalog, Key passend zur Groesse eingerueckt
+// Nerd-Font-Symbole je Modul (Material Design, wie in den bestehenden Looks)
+var ICONS = {
+    title: "\u{f0004}",
+    os: "\u{f08c7}",
+    kernel: "\u{f048b}",
+    uptime: "\u{f13ab}",
+    packages: "\u{f03d7}",
+    wm: "\u{f056e}",
+    shell: "\u{f018d}",
+    terminal: "\u{f011b}",
+    cpu: "\u{f0ee0}",
+    gpu: "\u{f035b}",
+    memory: "\u{f061a}",
+    disk: "\u{f02ca}",
+    media: "\u{f0388}",
+    de: "\u{f0379}",
+    terminalfont: "\u{f0b34}",
+    swap: "\u{f04c5}",
+    display: "\u{f0379}",
+    localip: "\u{f0317}",
+    battery: "\u{f0079}",
+    datetime: "\u{f00f0}",
+    locale: "\u{f05ca}",
+    theme: "\u{f03d8}",
+    icons: "\u{f02e9}",
+    font: "\u{f0b34}",
+    cursor: "\u{f01bf}",
+    command: "\u{f018d}"
+};
+
+// Neues Modul aus dem Katalog, Key im Stil der anderen Keys der Groesse:
+// gleicher Einzug, Symbol davor, wenn die anderen eins haben, Grossbuchstaben,
+// wenn die anderen gross sind, aufgefuellt auf die uebliche Breite
 function makeModule(type, look, size) {
     const def = MODULES.find(m => m.type === type);
     if (!def || type === "break")
@@ -522,10 +554,16 @@ function makeModule(type, look, size) {
         if (k !== "type" && k !== "title")
             m[k] = def[k];
     if (typeof m.key === "string") {
-        // Einzug wie die anderen Keys der Groesse
-        const sample = rowsIn(look, size).map(i => rowValue(look.rows[i], size)).find(v => isObj(v) && typeof v.key === "string");
-        const indent = sample ? (plain(sample.key).match(/^ */)[0]) : "";
-        m.key = padKey(indent + m.key, keyWidth(look, size));
+        const keys = rowsIn(look, size).map(i => rowValue(look.rows[i], size))
+            .filter(v => isObj(v) && typeof v.key === "string").map(v => plain(v.key));
+        const indent = keys.length ? keys[0].match(/^ */)[0] : "";
+        const words = keys.map(k => k.trim().replace(/^[^\x00-\x7f]+\s+/u, "")).filter(k => /[A-Za-z]/.test(k));
+        const upper = words.length > 0 && words.filter(k => k === k.toUpperCase()).length * 2 > words.length;
+        const iconed = keys.length > 0 && keys.filter(k => /^\s*[^\x00-\x7f]\s/u.test(k)).length * 2 > keys.length;
+        let key = upper ? m.key.toUpperCase() : m.key;
+        if (iconed && ICONS[type])
+            key = ICONS[type] + " " + key;
+        m.key = padKey(indent + key, keyWidth(look, size));
     }
     return m;
 }

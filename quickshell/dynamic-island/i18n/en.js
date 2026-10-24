@@ -913,6 +913,8 @@ var strings = {
     "Look": "Look",
     "Neuer Look": "New look",
     "Modul hinzufügen": "Add module",
+    "Darüber einfügen": "Insert above",
+    "Darunter einfügen": "Insert below",
     "Gilt für": "Applies to",
     "Rahmenfarbe": "Frame colour",
     "Balken und Zahl": "Bar and number",
