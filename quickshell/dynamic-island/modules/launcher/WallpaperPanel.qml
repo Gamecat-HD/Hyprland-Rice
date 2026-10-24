@@ -128,6 +128,9 @@ Item {
         // Die Sektion hat die Tastatur: Suchfeld fokussieren, Vorschau ihrer
         // markierten Kachel zeigen. Kann beim Erzeugen schon true sein.
         readonly property bool focused: panel.sectionFocused
+        // Pfad des markierten Bilds der lokalen Reihe ("" ohne Bilder) – fuer
+        // Sektionen, die etwas zu diesem Bild zeigen (Terminal-Look)
+        readonly property string currentPath: panel.targetPath
 
         // Die Sektion will die Tastatur (Klick oder Rad auf eine Kachel)
         function takeFocus(): void {
@@ -148,6 +151,11 @@ Item {
         // Strg+Links/Rechts: Stil des markierten lokalen Bilds
         function cycleStyle(delta: int): void {
             panel.cycleStyle(delta);
+        }
+        // Links/Rechts in einer Sektion ohne eigene Liste: in der lokalen
+        // Reihe weiterblaettern (die Tastatur bleibt in der Sektion)
+        function moveBy(delta: int): void {
+            walls.item?.moveBy(delta);
         }
     }
 

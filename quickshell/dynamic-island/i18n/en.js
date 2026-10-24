@@ -503,6 +503,8 @@ var strings = {
     "Ordner": "Folder",
     "ordner": "folder",
     "Ordner %1": "Folder %1",
+    "Ordner „%1“": "Folder “%1”",
+    "kein eigener Look": "no look of its own",
     "Ordner heißt wie der Look": "folder is named like the look",
     "Ordner im Dateimanager": "Folder in file manager",
     "Ordner ist leer": "Folder is empty",

@@ -26,6 +26,9 @@
     "pages": {
         "looks": { "title": "Looks bearbeiten", "icon": "palette", "component": "LooksPage.qml" }
     },
+    "panels": {
+        "wallpaper": { "component": "Section.qml", "icon": "terminal" }
+    },
     "files": [
         { "path": "~/.config/fish/functions/fastfetch.fish" },
         { "path": "~/.config/fish/functions/__terminal_look.fish" },

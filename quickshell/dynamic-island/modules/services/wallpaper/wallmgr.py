@@ -39,7 +39,7 @@ VARIANTS_FILE = STATE / "wallpaper/variants.json"
 PATH_FILE = STATE / "wallpaper/path.txt"
 CURRENT_LINK = STATE / "wallpaper/current"
 THUMBS = HOME / ".cache/dynamic-island/thumbs"
-FASTFETCH = HOME / ".config/fastfetch"
+FASTFETCH = Path(os.environ.get("DYNAMIC_ISLAND_FASTFETCH_DIR") or HOME / ".config/fastfetch")
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".jxl", ".gif"}
 

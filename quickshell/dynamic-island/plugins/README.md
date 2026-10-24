@@ -382,11 +382,13 @@ keys in its own search field.
 |---|---|
 | `listHeight`, `imageWidth` | dimensions of the local row (carousel height, tile width) |
 | `focused` | the section has the keyboard → focus the search field, show your own preview |
+| `currentPath` | path of the selected image in the local row (`""` without images), bindable – for sections that show something about that image (the terminal plugin's look preview) |
 | `takeFocus()` | the section wants the keyboard (click/scroll on a tile) |
 | `leaveFocus()` | keyboard back to the local row (Up/Down) |
 | `toggle()` | Ctrl+W: next section or close |
 | `close()` | close the picker (Esc) |
 | `cycleStyle(delta)` | Ctrl+Left/Right: style of the selected local image |
+| `moveBy(delta)` | move the selection of the local row (for sections without a list of their own, e.g. Left/Right in the terminal section) |
 
 Background preview: `Wallpapers.preview(path)` like the local row,
 `Wallpapers.previewThumb(path)` for a small image (only scaled up, not decoded
