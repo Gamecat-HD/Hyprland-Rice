@@ -14,6 +14,7 @@ JSON-Zeile auf stdout: {"ok": true, ...} oder {"ok": false, "error": "..."}.
   preview SIZE [--raw ID]       look.json (--json/stdin, auch ungespeichert) mit
                                 fastfetch rendern -> Zeilen mit Farbsegmenten;
                                 --raw: stattdessen die Datei SIZE.jsonc von ID
+                                ("scheme" = Schema-Variante aus dem Theme)
   check ID                      alle Groessen rendern, Budget-Ueberlauf melden
   new ID --from LOOK [--title T] neuen Look als Kopie anlegen
   delete ID                     Look-Ordner in den Papierkorb (nicht miku)
@@ -671,7 +672,17 @@ def preview_conf(conf: dict, size: str) -> dict:
 
 
 def preview_raw(lid: str, size: str) -> dict:
-    return preview_conf(load_jsonc(look_dir(lid) / f"{size}.jsonc"), size)
+    """Datei so, wie das Terminal sie liest; "scheme" = die aus dem
+    Farbschema gerenderten Vorlagen (templates/fastfetch*.jsonc)."""
+    if lid == "scheme":
+        p = STATE / "theme" / ("fastfetch.jsonc" if size == "config" else f"fastfetch-{size}.jsonc")
+        if not p.is_file():
+            raise Fail("Schema-fastfetch fehlt (noch kein Theme gerendert)")
+        return preview_conf(load_jsonc(p), size)
+    p = look_dir(lid) / f"{size}.jsonc"
+    if not p.is_file():
+        raise Fail(f"{lid}: {size}.jsonc fehlt")
+    return preview_conf(load_jsonc(p), size)
 
 
 # ---- Karten ----

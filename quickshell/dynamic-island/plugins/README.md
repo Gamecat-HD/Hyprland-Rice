@@ -101,9 +101,10 @@ only appears once it is running. Component contract: "Sections" below.
 }
 ```
 
-A page of its own in the settings window: it shows up in the sidebar as a
-sub-entry below the plugin's settings group (like "Bibliothek" below
-"Wallpaper") and takes the whole area instead of the row cards. `title` goes
+A page of its own in the settings window: it shows up as a row with an arrow
+in the plugin's settings group (a plugin without settings gets it as a
+sidebar entry instead) and takes the whole area instead of the row cards;
+the group stays highlighted and the header gets a back arrow. `title` goes
 through `I18n.tr`, `icon` defaults to the plugin icon. If the plugin has a
 service (`main`), the page only appears once it is running (the terminal
 plugin's editor talks to looks.py through `plugin.main`). While the search
