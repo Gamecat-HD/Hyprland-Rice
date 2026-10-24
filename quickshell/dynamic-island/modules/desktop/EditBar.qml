@@ -117,8 +117,11 @@ Rectangle {
             onClicked: {
                 if (Scenes.adding)
                     Scenes.adding = false;
-                else
+                else {
+                    // auf dem Monitor dieser Leiste
+                    Scenes.editScreen = bar.screenName;
                     Scenes.openPicker(null);
+                }
             }
         }
 

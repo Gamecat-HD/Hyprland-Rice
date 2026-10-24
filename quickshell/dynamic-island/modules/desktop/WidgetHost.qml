@@ -35,6 +35,8 @@ Item {
     property real unit: 16
     property bool active: true
     property bool editing: false
+    // Optionsfeld des ausgewaehlten Widgets zeigen (nur auf einem Monitor)
+    property bool showOptions: true
     property Item guideX
     // Maus liegt ueber Optionsfeld oder Leiste (DesktopScreen): Qt 6 reicht
     // einen Druck auch an die Handler darunterliegender Elemente weiter,
@@ -263,7 +265,7 @@ Item {
     Loader {
         id: options
 
-        active: host.selected && !host.dragging
+        active: host.selected && host.showOptions && !host.dragging
         z: 10
 
         sourceComponent: WidgetOptions {
