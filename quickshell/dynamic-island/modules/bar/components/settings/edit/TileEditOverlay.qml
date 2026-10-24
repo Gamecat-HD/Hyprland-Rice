@@ -4,18 +4,13 @@ import QtQuick
 import qs
 import qs.modules.services.config
 
-// Liegt ueber jeder Kachel der eingebetteten Steuerung (ein Loader je Platz
-// in SettingsTiles baut es, nur dort).
+// Liegt ueber jeder Kachel des Kachel-Editors (ein Loader je Platz in
+// SettingsTiles baut es, nur wenn `editable`).
 //
-// Normal: unsichtbar und durchlaessig – nur ein passiver TapHandler wartet
-// auf den langen Druck (~450 ms), der den Bearbeitungsmodus oeffnet. Die
-// Kachel-Handler darunter tragen dieselbe Schwelle (SettingsTiles.holdSeconds),
-// sonst wuerde das Loslassen nach dem langen Druck noch schalten.
-//
-// Im Bearbeitungsmodus frisst der exklusive TapHandler jede Eingabe, damit
-// die Kachel nicht schaltet (ReleaseWithinBounds greift beim Druecken
-// exklusiv – Handler darunter bekommen den Punkt nicht mehr, Items auch
-// nicht; dasselbe Prinzip wie die MiniButtons der Kacheln). Dazu:
+// Der exklusive TapHandler frisst jede Eingabe, damit die Kachel nicht
+// schaltet (ReleaseWithinBounds greift beim Druecken exklusiv – Handler
+// darunter bekommen den Punkt nicht mehr, Items auch nicht; dasselbe
+// Prinzip wie die MiniButtons der Kacheln). Dazu:
 //   antippen            waehlt (Akzent-Ring)
 //   ziehen              umsortieren (Geist + Markierung, siehe QuickEdit)
 //   Griff rechts ziehen Breite in Spalten (nur bei gewaehlter Kachel)
@@ -35,14 +30,7 @@ Item {
     // Kachel ist eine Pille: Ring und Griff folgen ihrem Radius
     readonly property real tileRadius: height / 2
 
-    // ---- Langer Druck oeffnet den Modus (passiv, stoert normale Taps nicht) ----
-    TapHandler {
-        enabled: !overlay.edit.editing
-        longPressThreshold: 0.45
-        onLongPressed: overlay.edit.begin(overlay.tileId)
-    }
-
-    // ---- Bearbeiten: Eingaben schlucken, antippen waehlt ----
+    // ---- Eingaben schlucken, antippen waehlt ----
     TapHandler {
         enabled: overlay.editing
         gesturePolicy: TapHandler.ReleaseWithinBounds

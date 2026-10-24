@@ -248,7 +248,7 @@ Singleton {
             options: ["alle", "ordner"]
         },
         // `editor` statt Bedienelement: das Menue laedt dafuer einen eigenen
-        // Editor (modules/settings/QuickLayoutEditor.qml)
+        // Editor (z. B. modules/settings/QuickTilesEditor.qml)
         // Regler am rechten Rand (modules/osd)
         "osd.enabled": { title: "Regler am rechten Rand" },
         "osd.hover": { title: "Beim Hovern zeigen", requires: "osd.enabled" },

@@ -4,30 +4,26 @@ import QtQuick
 import qs
 import qs.modules.services.config
 
-// Knopf der Bearbeitungs-Leisten der Steuerung (Entfernen, Zuruecksetzen,
-// Fertig): Symbol + Text als Pille. `accent` = Akzent-Fuellung (Fertig),
-// `danger` = rot (Entfernen), sonst neutral.
+// Knopf der Leiste des Kachel-Editors (Entfernen, Zuruecksetzen): Symbol +
+// Text als Pille. `danger` = rot (Entfernen), sonst neutral.
 Rectangle {
     id: button
 
     property string icon: ""
     property string text: ""
-    property bool accent: false
     property bool danger: false
     signal clicked()
 
     implicitWidth: row.implicitWidth + (button.text !== "" ? 24 : 14)
     implicitHeight: 30
     radius: 15
-    color: button.accent ? Colors.alpha(Colors.primary, hover.hovered ? 0.3 : 0.18)
-         : button.danger ? Colors.alpha(Colors.error, hover.hovered ? 0.26 : 0.14)
+    color: button.danger ? Colors.alpha(Colors.error, hover.hovered ? 0.26 : 0.14)
          : Colors.alpha(Colors.fgSurface, hover.hovered ? 0.14 : 0.07)
     border.width: 1
-    border.color: button.accent ? Colors.alpha(Colors.primary, 0.5)
-                : button.danger ? Colors.alpha(Colors.error, 0.45)
+    border.color: button.danger ? Colors.alpha(Colors.error, 0.45)
                 : Colors.alpha(Colors.outline, 0.3)
 
-    readonly property color fg: button.accent ? Colors.primary : button.danger ? Colors.error : Colors.fgSurface
+    readonly property color fg: button.danger ? Colors.error : Colors.fgSurface
 
     Behavior on color {
         ColorAnimation { duration: 120 }

@@ -476,7 +476,7 @@ Item {
         Component {
             id: quickEditor
 
-            QuickLayoutEditor {}
+            QuickTilesEditor {}
         }
 
         Component {

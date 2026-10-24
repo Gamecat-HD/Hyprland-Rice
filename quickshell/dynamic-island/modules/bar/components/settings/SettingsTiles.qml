@@ -53,13 +53,12 @@ ColumnLayout {
         return root.unit * span + root.gridSpacing * (span - 1);
     }
 
-    // ---------- Bearbeitungsmodus (nur die eingebettete Steuerung) ----------
-    // Vorbild Android 16 "Kacheln bearbeiten": langer Druck auf eine Kachel
-    // oder der Stift unten oeffnet ihn; Kacheln werden an Ort und Stelle
-    // gewaehlt, gezogen und in der Breite geaendert, im Modus "Layout" die
-    // Reihen als Bloecke verschoben. Zustand und Trefferrechnung: QuickEdit
-    // (edit/), die Oberflaeche liegt in edit/ und wird nur gebaut, wenn
-    // `editable` – die Settings-Pille der Leiste bleibt unveraendert.
+    // ---------- Kachel-Editor (nur im Einstellungs-Menue) ----------
+    // Vorbild Android 16 "Kacheln bearbeiten": Kacheln werden an Ort und
+    // Stelle gewaehlt, gezogen und in der Breite geaendert, im Modus "Layout"
+    // die Reihen als Bloecke verschoben. Zustand und Trefferrechnung:
+    // QuickEdit (edit/). Nur QuickTilesEditor setzt `editable` – dann ist der
+    // Modus immer an; Steuerung und Settings-Pille bleiben unveraendert.
     property bool editable: false
     readonly property QuickEdit edit: QuickEdit {
         editable: root.editable
@@ -70,11 +69,6 @@ ColumnLayout {
         rowGap: root.spacing
         slotGap: root.gridSpacing
     }
-    // Schwelle des langen Drucks. Die Kachel-Handler tragen sie ebenfalls:
-    // ein TapHandler meldet `tapped` nur, wenn kuerzer gedrueckt wurde –
-    // so schaltet die Kachel nicht mehr, wenn der lange Druck den Modus
-    // oeffnet. Ohne Bearbeitung bleibt es beim Qt-Standard (0,8 s).
-    readonly property real holdSeconds: root.editable ? 0.45 : 0.8
     // Im Bearbeitungsmodus bekommt das Raster einen Rahmen mit Polster
     property real framePad: root.edit.editing ? 10 : 0
 
@@ -322,7 +316,6 @@ ColumnLayout {
 
         TapHandler {
             enabled: tile.tapEnabled
-            longPressThreshold: root.holdSeconds
             onTapped: tile.toggled()
         }
 
@@ -377,7 +370,6 @@ ColumnLayout {
 
         TapHandler {
             gesturePolicy: TapHandler.ReleaseWithinBounds   // exklusiv: kein Kachel-Toggle
-            longPressThreshold: root.holdSeconds
             onTapped: mini.tapped()
         }
     }
@@ -412,7 +404,6 @@ ColumnLayout {
         }
 
         TapHandler {
-            longPressThreshold: root.holdSeconds
             onTapped: circle.toggled()
         }
 
@@ -444,7 +435,6 @@ ColumnLayout {
             TapHandler {
                 id: wifiTap
 
-                longPressThreshold: root.holdSeconds
                 onTapped: {
                     if (wifiTile.compact || wifiTap.point.position.x < wifiTile.width - 46)
                         root.toggleWifi();
@@ -507,7 +497,6 @@ ColumnLayout {
             TapHandler {
                 id: bluetoothTap
 
-                longPressThreshold: root.holdSeconds
                 onTapped: {
                     if (bluetoothTile.compact || bluetoothTap.point.position.x < bluetoothTile.width - 46)
                         root.toggleBt();
@@ -583,7 +572,6 @@ ColumnLayout {
             TapHandler {
                 id: vpnTap
 
-                longPressThreshold: root.holdSeconds
                 onTapped: {
                     if (vpnTile.compact || vpnTap.point.position.x < vpnTile.width - 46)
                         Vpn.toggle();
@@ -613,7 +601,6 @@ ColumnLayout {
 
                 TapHandler {
                     gesturePolicy: TapHandler.ReleaseWithinBounds
-                    longPressThreshold: root.holdSeconds
                     onTapped: {
                         root.vpnMenuOpen = !root.vpnMenuOpen;
                         if (root.vpnMenuOpen) {
@@ -740,7 +727,6 @@ ColumnLayout {
             TapHandler {
                 id: pillTap
 
-                longPressThreshold: root.holdSeconds
                 // Taps im Dropdown-Bereich (rechts) gehoeren dem Dropdown
                 onTapped: {
                     if (noSleepTile.compact || pillTap.point.position.x < noSleepTile.width - 96)
@@ -791,7 +777,6 @@ ColumnLayout {
 
                 TapHandler {
                     gesturePolicy: TapHandler.ReleaseWithinBounds   // exklusiv: kein Pillen-Toggle
-                    longPressThreshold: root.holdSeconds
                     onTapped: {
                         root.sleepMenuOpen = !root.sleepMenuOpen;
                         if (root.sleepMenuOpen) {
@@ -937,7 +922,6 @@ ColumnLayout {
             TapHandler {
                 id: recordTap
 
-                longPressThreshold: root.holdSeconds
                 onTapped: {
                     if (recordTile.compact || recordTap.point.position.x < recordTile.width - 90)
                         Recorder.toggle();
@@ -1404,7 +1388,7 @@ ColumnLayout {
         }
     }
 
-    // ---------- Stift bzw. Ansicht-Pille + Fertig ----------
+    // ---------- Ansicht-Pille ----------
     Loader {
         Layout.fillWidth: true
         active: root.editable

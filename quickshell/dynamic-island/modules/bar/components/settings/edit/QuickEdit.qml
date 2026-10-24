@@ -3,10 +3,10 @@ import QtQuick
 
 import qs.modules.services.config
 
-// Zustand des Bearbeitungsmodus der Steuerung (Vorbild: Android 16, "Kacheln
-// bearbeiten"). Je SettingsTiles eine Instanz; nur die in der Notch
-// eingebettete Steuerung schaltet ihn frei (`editable`) – die Settings-Pille
-// der Leiste traegt denselben Zustand, aber er bleibt dort immer aus.
+// Zustand des Kachel-Editors (Vorbild: Android 16, "Kacheln bearbeiten").
+// Je SettingsTiles eine Instanz; bearbeitet wird nur in der Instanz im
+// Einstellungs-Menue (`editable`, editor "quick" -> QuickTilesEditor) – dort
+// ist der Modus immer an. Steuerung und Settings-Pille bleiben unberuehrt.
 //
 // Zwei Ansichten, umgeschaltet ueber die Pille unten (EditFooter):
 //   "tiles"   Kacheln an Ort und Stelle: antippen waehlt, Griff rechts zieht
@@ -22,15 +22,12 @@ QtObject {
     id: edit
 
     property bool editable: false
-    property bool editing: false
+    readonly property bool editing: edit.editable
     property string mode: "tiles"       // "tiles" | "layout"
     readonly property bool tilesMode: edit.editing && edit.mode === "tiles"
     readonly property bool layoutMode: edit.editing && edit.mode === "layout"
 
     property string selectedId: ""
-
-    // Meldet den Start – der Footer holt sich darauf den Tastaturfokus (Esc)
-    signal started()
 
     // ---- Verschieben einer Kachel ----
     property string dragId: ""
@@ -53,25 +50,6 @@ QtObject {
     property Item tray: null        // Ablage "Verfuegbar" – Ziel: ausblenden
     property real rowGap: 10
     property real slotGap: 10
-
-    function begin(id: string): void {
-        if (!edit.editable)
-            return;
-        edit.mode = "tiles";
-        edit.selectedId = id;
-        if (!edit.editing) {
-            edit.editing = true;
-            edit.started();
-        }
-    }
-
-    function finish(): void {
-        edit.editing = false;
-        edit.selectedId = "";
-        edit.dragId = "";
-        edit.target = null;
-        edit.resizeId = "";
-    }
 
     // Antippen waehlt, erneutes Antippen hebt die Wahl auf
     function select(id: string): void {
