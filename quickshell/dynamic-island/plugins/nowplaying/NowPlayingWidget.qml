@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Effects
 
 import qs
+import qs.modules.services.audio
 import qs.modules.services.config
 import qs.modules.services.core
 import qs.modules.services.media
@@ -374,11 +375,39 @@ Item {
         implicitWidth: vinyl.size
         implicitHeight: vinyl.size
 
+        // Weiterdrehen nach vergangener Zeit, nicht um feste Schritte – so
+        // ist die Drehzahl gleich, egal welcher Takt gerade schiebt
+        property real lastStep: 0
+
+        function step(): void {
+            const now = Date.now();
+            const dt = vinyl.lastStep > 0 ? Math.min(200, now - vinyl.lastStep) : 1000 / Math.max(1, root.fps);
+            vinyl.lastStep = now;
+            vinyl.angle = (vinyl.angle + 360 * vinyl.rpm / 60 * dt / 1000) % 360;
+        }
+
+        onSpinningChanged: vinyl.lastStep = 0
+
+        // Laeuft cava (Visualizer daneben), im selben Takt mitdrehen: zwei
+        // freie 30-Hz-Takte lagen versetzt und liessen das Fenster bis zu 60x/s
+        // zeichnen. Der Timer springt nur ein, wenn keine Frames kommen (Stille
+        // – cava ueberspringt gleiche Frames – oder Szene ohne Visualizer).
+        Connections {
+            target: vinyl.spinning && Cava.enabled ? Cava : null
+
+            function onValuesChanged(): void {
+                vinyl.step();
+                spinTimer.restart();
+            }
+        }
+
         Timer {
+            id: spinTimer
+
             running: vinyl.spinning
-            interval: Math.round(1000 / Math.max(1, root.fps))
+            interval: Math.round(1000 / Math.max(1, root.fps) * (Cava.enabled ? 1.5 : 1))
             repeat: true
-            onTriggered: vinyl.angle = (vinyl.angle + 360 * vinyl.rpm / 60 / Math.max(1, root.fps)) % 360
+            onTriggered: vinyl.step()
         }
 
         // Schatten unter der Scheibe (statisch, kein Layer)
