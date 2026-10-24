@@ -19,7 +19,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-NAMES = ("message", "shutter", "plug", "unplug", "lock", "unlock")
+NAMES = ("message", "shutter", "plug", "unplug", "lock", "unlock", "connect", "disconnect")
 MAX_SEC = 5.0
 FADE = 0.3
 DIR = Path(os.environ.get("DYNAMIC_ISLAND_SOUNDS_DIR")

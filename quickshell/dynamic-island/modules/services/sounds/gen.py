@@ -151,6 +151,19 @@ def main() -> None:
         (0.06, 1.0, pop(560, 420, decay=0.05)),
     )), peak=0.5)
 
+    # Bluetooth verbunden: zwei weiche Pops nach oben, dazu ein leiser Thock
+    write("connect", room(mix(
+        (0.00, 0.5, thock(200, 2000, seed=5, weight=0.8)),
+        (0.02, 0.9, pop(420, 300, decay=0.045)),
+        (0.10, 1.0, pop(630, 470, decay=0.06)),
+    )), peak=0.5)
+
+    # Bluetooth getrennt: dieselben Pops nach unten, gedaempft
+    write("disconnect", room(lowpass(mix(
+        (0.00, 0.9, pop(630, 470, decay=0.04)),
+        (0.10, 1.0, pop(400, 250, decay=0.06)),
+    ), 2000)), peak=0.42)
+
 
 if __name__ == "__main__":
     main()

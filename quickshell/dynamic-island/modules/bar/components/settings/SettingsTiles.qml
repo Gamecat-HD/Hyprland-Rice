@@ -504,8 +504,7 @@ ColumnLayout {
             icon: root.btOn ? "bluetooth" : "bluetooth_disabled"
             title: "Bluetooth"
             subtitle: !root.btOn ? I18n.tr("Aus")
-                      : BluetoothService.adapter?.devices?.values.some(device => device.connected)
-                        ? I18n.tr("Verbunden") : I18n.tr("An")
+                      : BluetoothService.summary || I18n.tr("An")
             active: root.btOn
             onToggled: root.toggleBt()
 

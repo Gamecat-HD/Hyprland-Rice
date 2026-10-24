@@ -35,6 +35,7 @@ Singleton {
     readonly property alias lock: adapter.lock
     readonly property alias idle: adapter.idle
     readonly property alias sounds: adapter.sounds
+    readonly property alias bluetooth: adapter.bluetooth
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -154,6 +155,11 @@ Singleton {
         "idle.media": { title: "Nicht bei laufender Musik", group: "Ausnahmen", requires: "idle.enabled" },
         "idle.fullscreen": { title: "Nicht bei Vollbild-Apps", group: "Ausnahmen", requires: "idle.enabled" },
         "idle.lockOnSleep": { title: "Vor dem Ruhezustand sperren", group: "Sperren" },
+        // Bluetooth (services/bluetooth); den Adapter waehlt das Bluetooth-Panel
+        "bluetooth.adapter": { hidden: true },
+        "bluetooth.notify": { title: "Verbinden und Trennen melden", group: "Meldungen", desc: "Nur was von allein passiert, nicht Klicks im Panel" },
+        "bluetooth.lowBattery": { title: "Warnung bei schwachem Akku", group: "Meldungen", min: 0, max: 50, step: 5, unit: "%", desc: "0 = aus" },
+        "bluetooth.scanSeconds": { title: "Suche endet nach", group: "Suche", min: 15, max: 300, step: 15, unit: "s" },
         // Kurze Systemklaenge (services/sounds)
         "sounds.enabled": { title: "Systemklänge" },
         "sounds.volume": { title: "Lautstärke", min: 10, max: 100, step: 5, unit: "%", requires: "sounds.enabled" },
@@ -161,6 +167,7 @@ Singleton {
         "sounds.screenshot": { title: "Screenshot", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.power": { title: "Ladekabel", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.lock": { title: "Sperren und Entsperren", group: "Anlässe", requires: "sounds.enabled" },
+        "sounds.bluetooth": { title: "Bluetooth verbunden/getrennt", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.library": { title: "Eigene Klänge", group: "Eigene Klänge", editor: "sounds" },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
@@ -269,10 +276,11 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "osd", "notch", "media", "lock", "idle", "sounds", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "quick": "dashboard_customize",
+        "bluetooth": "bluetooth",
         "osd": "volume_up",
         "notch": "web_asset",
         "media": "music_note",
@@ -288,6 +296,7 @@ Singleton {
     readonly property var sectionMeta: ({
         "bar": "Leiste",
         "quick": "Schnelleinstellungen",
+        "bluetooth": "Bluetooth",
         "osd": "Regler am Rand",
         "notifications": "Benachrichtigungen",
         "vpn": "VPN",
@@ -591,6 +600,16 @@ Singleton {
                 property bool lockOnSleep: true
             }
 
+            // Bluetooth (services/bluetooth/BluetoothService.qml)
+            property JsonObject bluetooth: JsonObject {
+                // adapterId ("hci1"), leer = automatisch
+                property string adapter: ""
+                property bool notify: true
+                // Prozent, 0 = aus
+                property int lowBattery: 15
+                property int scanSeconds: 60
+            }
+
             property JsonObject sounds: JsonObject {
                 property bool enabled: false
                 property int volume: 60
@@ -598,6 +617,7 @@ Singleton {
                 property bool screenshot: true
                 property bool power: true
                 property bool lock: false
+                property bool bluetooth: true
                 // Nur Anker fuer den Editor (SoundsEditor); die Dateien liegen
                 // in ~/.config/dynamic-island/sounds
                 property string library: ""

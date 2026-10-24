@@ -26,7 +26,7 @@ Singleton {
 
     readonly property string dir: Quickshell.shellPath("modules/services/sounds/sounds/")
     readonly property string helper: Quickshell.shellPath("modules/services/sounds/soundmgr.py")
-    readonly property var names: ["message", "shutter", "plug", "unplug", "lock", "unlock"]
+    readonly property var names: ["message", "shutter", "plug", "unplug", "lock", "unlock", "connect", "disconnect"]
 
     // { name: pfad } eigene Klaenge
     property var custom: ({})

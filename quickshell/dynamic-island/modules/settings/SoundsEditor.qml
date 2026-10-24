@@ -21,7 +21,9 @@ Column {
         { name: "plug", title: "Ladekabel an" },
         { name: "unplug", title: "Ladekabel ab" },
         { name: "lock", title: "Sperren" },
-        { name: "unlock", title: "Entsperren" }
+        { name: "unlock", title: "Entsperren" },
+        { name: "connect", title: "Bluetooth verbunden" },
+        { name: "disconnect", title: "Bluetooth getrennt" }
     ]
 
     Repeater {

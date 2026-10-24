@@ -5,19 +5,32 @@ import qs.modules.services.bluetooth
 
 import qs
 import qs.modules.services.config
+import qs.modules.services.core
 
 Item {
     id: panel
 
     property bool active: false
     property string menuAddress: ""
-    readonly property bool pairingInputOpen: active && BluetoothService.pairingInputRequired
+    // Geraet, dessen Name gerade getippt wird (Eingabezeile unter der Reihe)
+    property string renameAddress: ""
+    property bool adapterMenuOpen: false
+    // Settings.qml haengt den Tastaturfokus hieran (typingPin) – gilt deshalb
+    // auch fuer die Umbenennen-Zeile, nicht nur fuer PIN/Passkey
+    readonly property bool pairingInputOpen: active && (BluetoothService.pairingInputRequired || renameAddress !== "")
     readonly property real rowHeight: 50
     readonly property real listHeight: 268
 
     signal closed()
 
     implicitHeight: header.height + 6 + listWrapper.height
+
+    // Sortierte Liste und Audio-Profile gibt es nur auf Anfrage. `visible`
+    // haelt sie waehrend des Ausblendens, damit die Liste nicht vorher leer wird
+    DemandRequest {
+        demand: BluetoothService.demand
+        active: panel.active || panel.visible
+    }
 
     // In der Pille entsteht die Seite erst beim Oeffnen, also bereits aktiv –
     // dann gibt es kein Wechsel-Signal, die Startarbeit wird nachgeholt
@@ -26,6 +39,8 @@ Item {
     onActiveChanged: {
         if (!active) {
             panel.menuAddress = "";
+            panel.renameAddress = "";
+            panel.adapterMenuOpen = false;
             BluetoothService.setDiscovering(false);
             if (BluetoothService.pairingDevice)
                 BluetoothService.cancelPairing();
@@ -34,10 +49,12 @@ Item {
         }
     }
 
+    // Menuezeile: { icon, label, danger?, active? } – `active` setzt ein Haekchen
     component Action: Rectangle {
         id: actionRow
 
         required property var modelData
+        readonly property bool current: actionRow.modelData.active ?? false
         signal triggered()
 
         implicitHeight: 30
@@ -50,25 +67,50 @@ Item {
             anchors {
                 left: parent.left
                 leftMargin: 10
+                right: checkMark.left
+                rightMargin: 6
                 verticalCenter: parent.verticalCenter
             }
             spacing: 8
 
             Text {
+                id: actionIcon
+
                 anchors.verticalCenter: parent.verticalCenter
                 text: actionRow.modelData.icon
                 font.family: "Material Symbols Outlined"
                 font.pixelSize: 15
-                color: actionRow.modelData.danger ? Colors.error : Colors.fgSurfaceVariant
+                color: actionRow.modelData.danger ? Colors.error
+                     : actionRow.current ? Colors.primary : Colors.fgSurfaceVariant
             }
 
             Text {
                 font.family: Config.font
                 anchors.verticalCenter: parent.verticalCenter
+                width: parent.width - actionIcon.width - parent.spacing
                 text: actionRow.modelData.label
                 font.pixelSize: 12
-                color: actionRow.modelData.danger ? Colors.error : Colors.fgBackground
+                font.weight: actionRow.current ? Font.DemiBold : Font.Normal
+                color: actionRow.modelData.danger ? Colors.error
+                     : actionRow.current ? Colors.primary : Colors.fgBackground
+                elide: Text.ElideRight
             }
+        }
+
+        Text {
+            id: checkMark
+
+            anchors {
+                right: parent.right
+                rightMargin: actionRow.current ? 10 : 0
+                verticalCenter: parent.verticalCenter
+            }
+            width: actionRow.current ? implicitWidth : 0
+            visible: actionRow.current
+            text: "check"
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 15
+            color: Colors.primary
         }
 
         MouseArea {
@@ -84,6 +126,8 @@ Item {
     function toggleMenu(address: string, index: int): void {
         const opening = panel.menuAddress !== address;
         panel.menuAddress = opening ? address : "";
+        panel.renameAddress = "";
+        panel.adapterMenuOpen = false;
         if (opening)
             Qt.callLater(() => list.positionViewAtIndex(index, ListView.Beginning));
     }
@@ -97,6 +141,8 @@ Item {
             right: parent.right
         }
         height: 36
+        // Das Adapter-Menue haengt ueber der Liste
+        z: panel.adapterMenuOpen ? 300 : 0
 
         Rectangle {
             id: backButton
@@ -139,6 +185,131 @@ Item {
             color: Colors.fgBackground
             font.pixelSize: 14
             font.weight: Font.DemiBold
+        }
+
+        // Adapterwahl – nur mit mehreren Adaptern (Onboard + USB-Stick)
+        Rectangle {
+            id: adapterButton
+
+            anchors {
+                right: visibleButton.left
+                rightMargin: 4
+                verticalCenter: parent.verticalCenter
+            }
+            width: 30
+            height: 30
+            visible: BluetoothService.adapters.length > 1
+            radius: 15
+            color: panel.adapterMenuOpen ? Colors.alpha(Colors.fgSurface, 0.14)
+                 : adapterArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.1) : "transparent"
+
+            Text {
+                anchors.centerIn: parent
+                text: "settings_input_antenna"
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 16
+                color: BluetoothService.autoAdapter ? Colors.fgSurfaceVariant : Colors.primary
+            }
+
+            MouseArea {
+                id: adapterArea
+
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    panel.menuAddress = "";
+                    panel.renameAddress = "";
+                    panel.adapterMenuOpen = !panel.adapterMenuOpen;
+                }
+            }
+        }
+
+        // Adapter-Menue: "Automatisch" (zeigt die aktuelle Wahl) plus ein
+        // Eintrag je Adapter. Eintraege entstehen erst beim Aufklappen
+        Rectangle {
+            anchors {
+                top: parent.bottom
+                topMargin: 4
+                right: parent.right
+            }
+            width: Math.min(parent.width, 300)
+            height: panel.adapterMenuOpen ? adapterLoader.implicitHeight + 12 : 0
+            visible: height > 0
+            radius: 14
+            color: Colors.surfaceContainer
+            border.width: 1
+            border.color: Colors.outlineVariant
+            clip: true
+
+            Loader {
+                id: adapterLoader
+
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                    margins: 6
+                }
+                active: panel.adapterMenuOpen
+
+                sourceComponent: Column {
+                    id: adapterColumn
+
+                    readonly property var entries: {
+                        const current = BluetoothService.adapter?.adapterId ?? "";
+                        const auto = BluetoothService.autoAdapter;
+                        const rows = [{
+                            id: "",
+                            icon: "auto_mode",
+                            label: auto && current !== "" ? `${I18n.tr("Automatisch")} · ${current}` : I18n.tr("Automatisch"),
+                            active: auto
+                        }];
+                        for (const a of BluetoothService.adapters) {
+                            rows.push({
+                                id: a.adapterId,
+                                icon: "bluetooth",
+                                label: BluetoothService.adapterLabel(a),
+                                active: !auto && a.adapterId === current
+                            });
+                        }
+                        return rows;
+                    }
+
+                    spacing: 2
+
+                    Item {
+                        width: adapterColumn.width
+                        height: 18
+
+                        Text {
+                            font.family: Config.font
+                            anchors {
+                                left: parent.left
+                                leftMargin: 10
+                                bottom: parent.bottom
+                                bottomMargin: 2
+                            }
+                            text: I18n.tr("Adapter")
+                            color: Colors.fgSurfaceVariant
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                        }
+                    }
+
+                    Repeater {
+                        model: adapterColumn.entries
+
+                        Action {
+                            width: adapterColumn.width
+                            onTriggered: {
+                                BluetoothService.selectAdapter(modelData.id);
+                                panel.adapterMenuOpen = false;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         Rectangle {
@@ -296,20 +467,40 @@ Item {
                 required property int index
 
                 readonly property bool menuOpen: panel.menuAddress === row.modelData.address
+                readonly property bool renaming: panel.renameAddress === row.modelData.address
                 readonly property bool rareDevice: BluetoothService.isRareDevice(row.modelData)
                 readonly property bool showSection: row.index === 0
                     || row.rareDevice !== BluetoothService.isRareDevice(BluetoothService.devices[row.index - 1])
+                // Laufender Vorgang ("connect"/"disconnect"), letzter Fehler, Akku
+                readonly property string busy: BluetoothService.busy(row.modelData)
+                readonly property string error: BluetoothService.errorFor(row.modelData)
+                readonly property int battery: BluetoothService.batteryLevel(row.modelData)
+                readonly property bool spinning: row.busy !== "" || row.modelData.pairing
+                // Solange etwas laeuft oder das Geraet blockiert ist, tut der Hauptknopf nichts
+                readonly property bool locked: row.spinning || row.modelData.blocked
+                // Audio-Profile gibt es nur fuer verbundene Audio-Geraete
+                readonly property var audio: row.modelData.connected ? BluetoothService.audioInfo(row.modelData) : null
+                readonly property var profiles: row.audio?.profiles ?? []
                 readonly property var actions: row.modelData.paired ? [
+                    { action: "rename", icon: "edit", label: I18n.tr("Umbenennen") },
                     {
                         action: "trust",
                         icon: row.modelData.trusted ? "heart_minus" : "favorite",
                         label: row.modelData.trusted ? I18n.tr("Vertrauen entziehen") : I18n.tr("Vertrauen")
+                    },
+                    {
+                        action: "block",
+                        icon: row.modelData.blocked ? "lock_open" : "block",
+                        label: row.modelData.blocked ? I18n.tr("Freigeben") : I18n.tr("Blockieren")
                     },
                     { action: "forget", icon: "delete", label: I18n.tr("Entfernen"), danger: true }
                 ] : []
 
                 function runPrimary(): void {
                     panel.menuAddress = "";
+                    panel.renameAddress = "";
+                    if (row.locked)
+                        return;
                     if (row.modelData.connected)
                         BluetoothService.disconnectDevice(row.modelData);
                     else if (row.modelData.paired)
@@ -320,10 +511,19 @@ Item {
 
                 function runAction(action: string): void {
                     panel.menuAddress = "";
-                    if (action === "trust")
+                    if (action === "rename")
+                        panel.renameAddress = row.modelData.address;
+                    else if (action === "trust")
                         BluetoothService.toggleTrusted(row.modelData);
+                    else if (action === "block")
+                        BluetoothService.toggleBlocked(row.modelData);
                     else if (action === "forget")
                         BluetoothService.forget(row.modelData);
+                }
+
+                function setProfile(name: string): void {
+                    panel.menuAddress = "";
+                    BluetoothService.setAudioProfile(row.modelData, name);
                 }
 
                 width: ListView.view.width
@@ -378,6 +578,7 @@ Item {
                         font.family: "Material Symbols Outlined"
                         font.pixelSize: 20
                         color: row.modelData.connected ? Colors.primary : Colors.fgSurfaceVariant
+                        opacity: row.modelData.blocked ? 0.5 : 1
                     }
 
                     Column {
@@ -400,28 +601,67 @@ Item {
                             elide: Text.ElideRight
                         }
 
-                        Text {
-                            font.family: Config.font
+                        // Status, dahinter Akku als Symbol + Prozent
+                        Row {
                             width: parent.width
-                            text: {
-                                const parts = [];
-                                if (row.modelData.connected)
-                                    parts.push(I18n.tr("Verbunden"));
-                                else if (row.modelData.pairing)
-                                    parts.push(I18n.tr("Kopplung läuft"));
-                                else if (row.modelData.paired)
-                                    parts.push(I18n.tr("Gekoppelt"));
-                                else
-                                    parts.push(I18n.tr("Verfügbar"));
-                                if (row.modelData.trusted)
-                                    parts.push(I18n.tr("vertraut"));
-                                if (row.modelData.batteryAvailable)
-                                    parts.push(`${Math.round(row.modelData.battery * 100)}%`);
-                                return parts.join(" · ");
+                            spacing: 4
+
+                            Text {
+                                id: statusText
+
+                                font.family: Config.font
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Math.min(implicitWidth, Math.max(0, parent.width
+                                    - (batteryIcon.visible ? batteryIcon.width + batteryText.width + 2 * parent.spacing : 0)))
+                                text: {
+                                    if (row.error !== "")
+                                        return row.error;
+                                    if (row.busy === "connect")
+                                        return I18n.tr("Verbinde…");
+                                    if (row.busy === "disconnect")
+                                        return I18n.tr("Trenne…");
+                                    const parts = [];
+                                    if (row.modelData.blocked)
+                                        parts.push(I18n.tr("Blockiert"));
+                                    else if (row.modelData.connected)
+                                        parts.push(I18n.tr("Verbunden"));
+                                    else if (row.modelData.pairing)
+                                        parts.push(I18n.tr("Kopplung läuft"));
+                                    else if (row.modelData.paired)
+                                        parts.push(I18n.tr("Gekoppelt"));
+                                    else
+                                        parts.push(I18n.tr("Verfügbar"));
+                                    if (row.modelData.trusted && !row.modelData.blocked)
+                                        parts.push(I18n.tr("vertraut"));
+                                    return parts.join(" · ");
+                                }
+                                color: row.error !== "" ? Colors.error
+                                     : row.busy !== "" ? Colors.primary : Colors.fgSurfaceVariant
+                                font.pixelSize: 11
+                                elide: Text.ElideRight
                             }
-                            color: Colors.fgSurfaceVariant
-                            font.pixelSize: 11
-                            elide: Text.ElideRight
+
+                            Text {
+                                id: batteryIcon
+
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: row.battery >= 0
+                                text: BluetoothService.batteryIcon(row.battery)
+                                font.family: "Material Symbols Outlined"
+                                font.pixelSize: 13
+                                color: row.battery <= 10 ? Colors.error : Colors.fgSurfaceVariant
+                            }
+
+                            Text {
+                                id: batteryText
+
+                                font.family: Config.font
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: row.battery >= 0
+                                text: `${row.battery} %`
+                                color: row.battery <= 10 ? Colors.error : Colors.fgSurfaceVariant
+                                font.pixelSize: 11
+                            }
                         }
                     }
 
@@ -437,22 +677,39 @@ Item {
                         height: 28
                         radius: 14
                         color: primaryArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.1) : "transparent"
+                        opacity: row.modelData.blocked ? 0.4 : 1
 
                         Text {
+                            id: primaryIcon
+
                             anchors.centerIn: parent
-                            text: row.modelData.connected ? "link_off"
-                                : row.modelData.pairing ? "progress_activity"
+                            text: row.spinning ? "progress_activity"
+                                : row.modelData.blocked ? "block"
+                                : row.modelData.connected ? "link_off"
                                 : row.modelData.paired ? "bluetooth_connected" : "add_link"
                             font.family: "Material Symbols Outlined"
                             font.pixelSize: 16
-                            color: row.modelData.connected ? Colors.error : Colors.fgSurfaceVariant
+                            color: row.spinning ? Colors.primary
+                                 : row.modelData.connected ? Colors.error : Colors.fgSurfaceVariant
+
+                            // Dreht, solange verbunden/getrennt/gekoppelt wird
+                            RotationAnimator {
+                                target: primaryIcon
+                                from: 0
+                                to: 360
+                                duration: 900
+                                loops: Animation.Infinite
+                                running: row.spinning && primaryIcon.visible
+                                onRunningChanged: if (!running)
+                                    primaryIcon.rotation = 0
+                            }
                         }
 
                         MouseArea {
                             id: primaryArea
 
                             anchors.fill: parent
-                            enabled: !row.modelData.pairing
+                            enabled: !row.locked
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: row.runPrimary()
@@ -492,14 +749,16 @@ Item {
                         }
                     }
 
+                    // Geraetemenue: oben das Audioprofil (falls vorhanden),
+                    // darunter die Aktionen. Inhalt entsteht erst beim Aufklappen
                     Rectangle {
                         anchors {
                             top: parent.bottom
                             topMargin: 4
                             right: parent.right
                         }
-                        width: Math.min(parent.width, 240)
-                        height: row.menuOpen ? row.actions.length * 30 + (row.actions.length - 1) * 2 + 12 : 0
+                        width: Math.min(parent.width, row.profiles.length > 0 ? 300 : 240)
+                        height: row.menuOpen ? menuLoader.implicitHeight + 12 : 0
                         visible: height > 0
                         z: 200
                         radius: 14
@@ -508,8 +767,8 @@ Item {
                         border.color: Colors.outlineVariant
                         clip: true
 
-                        Column {
-                            id: actionColumn
+                        Loader {
+                            id: menuLoader
 
                             anchors {
                                 top: parent.top
@@ -517,14 +776,200 @@ Item {
                                 right: parent.right
                                 margins: 6
                             }
-                            spacing: 2
+                            active: row.menuOpen
 
-                            Repeater {
-                                model: row.actions
+                            sourceComponent: Column {
+                                id: actionColumn
 
-                                Action {
+                                spacing: 2
+
+                                Item {
                                     width: actionColumn.width
-                                    onTriggered: row.runAction(modelData.action)
+                                    height: 18
+                                    visible: row.profiles.length > 0
+
+                                    Text {
+                                        font.family: Config.font
+                                        anchors {
+                                            left: parent.left
+                                            leftMargin: 10
+                                            bottom: parent.bottom
+                                            bottomMargin: 2
+                                        }
+                                        text: I18n.tr("Audioprofil")
+                                        color: Colors.fgSurfaceVariant
+                                        font.pixelSize: 10
+                                        font.weight: Font.DemiBold
+                                    }
+                                }
+
+                                Repeater {
+                                    model: row.profiles
+
+                                    BluetoothProfileRow {
+                                        width: actionColumn.width
+                                        current: (row.audio?.active ?? "") === modelData.name
+                                        onTriggered: row.setProfile(modelData.name)
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: actionColumn.width
+                                    height: 1
+                                    visible: row.profiles.length > 0
+                                    color: Colors.outlineVariant
+                                }
+
+                                Repeater {
+                                    model: row.actions
+
+                                    Action {
+                                        width: actionColumn.width
+                                        onTriggered: row.runAction(modelData.action)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Umbenennen: Eingabezeile unter dem Geraet (wie das Passwortfeld
+                // in WifiPanel). Enter uebernimmt, Esc bricht ab, leer setzt den
+                // Geraetenamen zurueck. Entsteht nur, solange getippt wird
+                Loader {
+                    width: parent.width
+                    height: row.renaming ? 46 : 0
+                    active: row.renaming
+                    visible: active
+
+                    sourceComponent: Item {
+                        Rectangle {
+                            id: renameField
+
+                            function submit(): void {
+                                BluetoothService.rename(row.modelData, renameInput.text);
+                                panel.renameAddress = "";
+                            }
+
+                            anchors.fill: parent
+                            anchors.topMargin: 4
+                            radius: 14
+                            color: Colors.shade(Colors.background, 0.08)
+                            border.width: 1
+                            border.color: renameInput.activeFocus ? Colors.primary : "transparent"
+
+                            Text {
+                                id: renameIcon
+
+                                anchors {
+                                    left: parent.left
+                                    leftMargin: 14
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                text: "edit"
+                                font.family: "Material Symbols Outlined"
+                                font.pixelSize: 16
+                                color: Colors.fgSurfaceVariant
+                            }
+
+                            TextInput {
+                                id: renameInput
+                                font.family: Config.font
+
+                                anchors {
+                                    left: renameIcon.right
+                                    leftMargin: 10
+                                    right: renameButtons.left
+                                    rightMargin: 8
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                maximumLength: 64
+                                color: Colors.fgBackground
+                                font.pixelSize: 12
+                                selectionColor: Colors.alpha(Colors.primary, 0.35)
+                                clip: true
+
+                                // Fokus wie beim PIN-Feld erst nach dem Aufbau holen
+                                Component.onCompleted: {
+                                    renameInput.text = row.modelData.name ?? "";
+                                    renameInput.selectAll();
+                                    Qt.callLater(() => renameInput.forceActiveFocus());
+                                }
+
+                                Keys.onEscapePressed: panel.renameAddress = ""
+                                Keys.onReturnPressed: renameField.submit()
+                                Keys.onEnterPressed: renameField.submit()
+
+                                Text {
+                                    anchors.fill: parent
+                                    visible: renameInput.text === ""
+                                    text: row.modelData.deviceName || row.modelData.address
+                                    color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
+                                    font: renameInput.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            Row {
+                                id: renameButtons
+
+                                anchors {
+                                    right: parent.right
+                                    rightMargin: 6
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                spacing: 2
+
+                                // Zurueck zum Geraetenamen – nur wenn ein eigener Name gesetzt ist
+                                Rectangle {
+                                    width: 28
+                                    height: 28
+                                    visible: (row.modelData.deviceName ?? "") !== ""
+                                             && row.modelData.name !== row.modelData.deviceName
+                                    radius: 14
+                                    color: resetArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.1) : "transparent"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "restart_alt"
+                                        font.family: "Material Symbols Outlined"
+                                        font.pixelSize: 16
+                                        color: Colors.fgSurfaceVariant
+                                    }
+
+                                    MouseArea {
+                                        id: resetArea
+
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            BluetoothService.rename(row.modelData, "");
+                                            panel.renameAddress = "";
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: 28
+                                    height: 28
+                                    radius: 14
+                                    color: Colors.primary
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "check"
+                                        font.family: "Material Symbols Outlined"
+                                        font.pixelSize: 16
+                                        color: Colors.fgPrimary
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: renameField.submit()
+                                    }
                                 }
                             }
                         }
