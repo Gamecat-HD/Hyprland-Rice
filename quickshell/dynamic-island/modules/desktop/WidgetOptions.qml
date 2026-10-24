@@ -23,6 +23,8 @@ Rectangle {
     property var store: Scenes
     // Zeile "Monitor" (nur der Desktop kennt Widgets je Monitor)
     property bool monitors: true
+    // Auf einen Monitor festgelegt ("Nur <name>") statt auf beiden
+    readonly property bool pinned: !!pop.widget?.monitor && pop.widget.monitor !== "*"
 
     readonly property var info: pop.widget ? DesktopWidgets.info(pop.widget.type) : null
     readonly property real size: pop.widget?.size ?? 1
@@ -256,14 +258,18 @@ Rectangle {
                 Layout.preferredWidth: pop.labelWidth
             }
 
-            // Ein Schalter: an = nur auf einem Monitor (dem festgelegten),
-            // aus = auf beiden
+            // Genau einer an. Festgelegt heisst der zweite wie der Monitor des
+            // Widgets – auch wenn es nur hierher ragt (halb links, halb rechts)
             EditChip {
-                readonly property bool pinned: !!pop.widget?.monitor && pop.widget.monitor !== "*"
+                text: I18n.tr("Beide")
+                on: !pop.pinned
+                onClicked: pop.store.patch(pop.widget.id, { monitor: "*" })
+            }
 
-                text: I18n.tr("Nur %1").arg(pinned ? pop.widget.monitor : pop.screenName)
-                on: pinned
-                onClicked: pop.store.patch(pop.widget.id, { monitor: pinned ? "*" : pop.screenName })
+            EditChip {
+                text: I18n.tr("Nur %1").arg(pop.pinned ? pop.widget.monitor : pop.screenName)
+                on: pop.pinned
+                onClicked: if (!pop.pinned) pop.store.patch(pop.widget.id, { monitor: pop.screenName })
             }
         }
     }
