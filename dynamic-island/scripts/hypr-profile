@@ -32,11 +32,13 @@ declare -A PROFILE_SHELL=(
 # braucht drei Dinge: profiles/<name>.lua, einen Eintrag oben und einen hier.
 PROFILE_ORDER=(caelestia simple shell2)
 
-# Startbefehl je Shell. Ohne Eintrag wird `qs -c <name> -n -d` benutzt —
-# shell2 laeuft genau so, ohne eigenen CLI-Wrapper.
+# Startbefehl je Shell (Schluessel = Shell-Name aus PROFILE_SHELL, nicht der
+# Profilname). Ohne Eintrag wird `qs -c <name> -n -d` benutzt — shell2 laeuft
+# genau so, ohne eigenen CLI-Wrapper. dynamic-island muss ueber die CLI starten,
+# sonst fehlt die MALLOC-Env (shell.py SHELL_ENV).
 declare -A SHELL_START=(
     [caelestia]="caelestia shell -d"
-    [simple]="dynamic-island shell -d"
+    [dynamic-island]="dynamic-island shell -d"
 )
 
 # Profile, deren Shell Inaktivitaet selbst verwaltet (sperren, Displays aus,

@@ -586,6 +586,8 @@ Item {
             clip: true
             spacing: 4
             model: Network.radioOn ? Network.networks : []
+            // Kein Highlight-Nachfuehren (siehe LauncherPanel.qml)
+            highlightFollowsCurrentItem: false
             boundsBehavior: Flickable.StopAtBounds
 
             WheelHandler {

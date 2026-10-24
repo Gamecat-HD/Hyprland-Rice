@@ -56,8 +56,10 @@ Surface {
     // Schmale Karte: Leiste nur mit Symbolen
     readonly property bool compact: card.width < 820
     readonly property real sidebarWidth: card.compact ? 64 : 236
-    // Platz der Liste rechts der Leiste (Zielwert, nicht der animierte)
-    readonly property real listRoom: card.width - card.sidebarWidth - 44
+    // Platz der Liste rechts der Leiste (Zielwert, nicht der animierte).
+    // Direkt aus der Breite: ueber sidebarWidth gelesen war der Wert beim
+    // Entstehen des Fensters kurz veraltet und baute die Karten einmal extra.
+    readonly property real listRoom: card.width - (card.width < 820 ? 64 : 236) - 44
 
     // Gruppen aus shell.json in Menue-Reihenfolge, unbekannte hinten dran
     readonly property var sections: {
@@ -209,8 +211,9 @@ Surface {
 
     // Die Karten auf Baender verteilt: ein Band ist entweder ein Raster aus
     // Spalten (jede Karte in die bisher kuerzeste) oder eine breite Karte.
-    // Je Band { width, columns: [[Kartenindex, …], …] }.
-    readonly property var layoutBands: {
+    // Je Band { wide, columns: [[Kartenindex, …], …] }, die Breiten getrennt
+    // daneben (colWidth/wideWidth) – siehe bandModel.
+    readonly property var layoutShape: {
         const gap = list.gap;
         const room = Math.max(0, card.listRoom);
         // Grobe Hoehe je Karte, um die kuerzeste Spalte zu finden
@@ -252,9 +255,9 @@ Surface {
         const colWidth = cols === 1 && hasWide ? wideWidth
                                                : Math.min(560, (room - gap * (cols - 1)) / cols);
 
-        return runs.map(r => {
+        const bands = runs.map(r => {
             if (r.wide)
-                return { width: wideWidth, columns: [r.cards] };
+                return { wide: true, columns: [r.cards] };
             const n = Math.min(cols, r.cards.length);
             const columns = Array.from({ length: n }, () => []);
             const heights = new Array(n).fill(0);
@@ -263,8 +266,49 @@ Surface {
                 columns[k].push(i);
                 heights[k] += weight(card.groupCards[i]);
             }
-            return { width: colWidth, columns };
+            return { wide: false, columns };
         });
+        return { bands, colWidth, wideWidth };
+    }
+
+    // Modell der Baender, nur neu gesetzt, wenn sich die Aufteilung oder die
+    // Karten selbst aendern. Haengt die Breite mit drin, baute jede
+    // Breitenaenderung (Fenster entsteht, Hyprland setzt die Groesse, Ziehen
+    // am Rand) alle Karten neu – beim Oeffnen dreimal hintereinander.
+    // Reine Breitenaenderungen werden 40 ms gesammelt: beim Entstehen springt
+    // die Breite 0 → 1379 → 520 → 1379, beim Ziehen am Rand bei jedem Schritt.
+    property var bandModel: []
+    property string bandKey: ""
+    property int cardsRevision: 0
+    property int builtRevision: -1
+
+    onGroupCardsChanged: {
+        card.cardsRevision++;
+        Qt.callLater(card.syncBands);
+    }
+    onLayoutShapeChanged: {
+        if (card.bandModel.length === 0 || card.builtRevision !== card.cardsRevision)
+            Qt.callLater(card.syncBands);
+        else
+            bandSettle.restart();
+    }
+
+    Timer {
+        id: bandSettle
+
+        interval: 40
+        onTriggered: card.syncBands()
+    }
+
+    function syncBands(): void {
+        if (card.width <= 0)
+            return;
+        const key = card.cardsRevision + JSON.stringify(card.layoutShape.bands);
+        if (key === card.bandKey)
+            return;
+        card.bandKey = key;
+        card.builtRevision = card.cardsRevision;
+        card.bandModel = card.layoutShape.bands;
     }
 
     // Beim Zeigen auf die Symbolspalte: der Knopf, dessen Name daneben steht
@@ -283,7 +327,10 @@ Surface {
 
     // Zaehler der Bibliothek in der Leiste (die Liste ist sonst erst da,
     // wenn die Auswahl oder die Bibliothek einmal offen war)
-    Component.onCompleted: Wallpapers.ensureLoaded()
+    Component.onCompleted: {
+        card.syncBands();
+        Wallpapers.ensureLoaded();
+    }
 
     // ================= Linke Leiste =================
     Item {
@@ -945,7 +992,7 @@ Surface {
         }
 
         // ---- Die Liste ----
-        // Karten in Baendern (siehe layoutBands), linksbuendig unter dem
+        // Karten in Baendern (siehe layoutShape/bandModel), linksbuendig unter dem
         // Titel, damit Kopf und Karten eine Kante haben
         Flickable {
             id: list
@@ -995,7 +1042,7 @@ Surface {
                 spacing: list.gap
 
                 Repeater {
-                    model: card.layoutBands
+                    model: card.bandModel
 
                     Row {
                         id: band
@@ -1012,7 +1059,7 @@ Surface {
 
                                 required property var modelData
 
-                                width: band.modelData.width
+                                width: band.modelData.wide ? card.layoutShape.wideWidth : card.layoutShape.colWidth
                                 spacing: list.gap
 
                                 Repeater {

@@ -273,6 +273,8 @@ Item {
             clip: true
             spacing: 4
             model: BluetoothService.enabled ? BluetoothService.devices : []
+            // Kein Highlight-Nachfuehren (siehe LauncherPanel.qml)
+            highlightFollowsCurrentItem: false
             boundsBehavior: Flickable.StopAtBounds
 
             WheelHandler {

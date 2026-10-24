@@ -347,6 +347,8 @@ Item {
             model: ScriptModel {
                 values: Notifications.groups
             }
+            // Kein Highlight-Nachfuehren (siehe LauncherPanel.qml)
+            highlightFollowsCurrentItem: false
             boundsBehavior: Flickable.StopAtBounds
             opacity: root.open ? 1 : 0
             visible: opacity > 0

@@ -29,14 +29,14 @@ ViewPanel {
     maxContentHeight: root.trayHeight + embeddedSettings.maxHeight
 
     // Unterseiten zuruecksetzen, wenn die Ansicht geht. Beim Oeffnen schon
-    // mal die WLAN-Liste aus dem Cache holen (~60 ms) – klappt man die
-    // WLAN-Seite auf, steht sie dann sofort da.
+    // mal die WLAN-Liste aus dem Cache holen (~60 ms, nur wenn aelter als
+    // 15 s) – klappt man die WLAN-Seite auf, steht sie dann sofort da.
     // Per LazyPanel entsteht die Ansicht bereits aktiv – dann gibt es kein
     // Wechsel-Signal, die Startarbeit (Fokus, Suchfeld) wird nachgeholt
     Component.onCompleted: if (root.active) Qt.callLater(root.activeChanged)
 
     onActiveChanged: if (active) {
-        Network.refresh(false);
+        Network.refreshIfStale(15000);
     } else {
         embeddedSettings.wifiOpen = false;
         embeddedSettings.bluetoothOpen = false;

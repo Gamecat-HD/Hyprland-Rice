@@ -395,7 +395,8 @@ Item {
             model: panel.rows
             reuseItems: true
             boundsBehavior: Flickable.StopAtBounds
-            highlightMoveDuration: 0
+            // Kein Highlight-Nachfuehren (siehe LauncherPanel.qml)
+            highlightFollowsCurrentItem: false
             currentIndex: panel.current
 
             // Abschnitte nur, wenn es Angeheftetes gibt – sonst ist der

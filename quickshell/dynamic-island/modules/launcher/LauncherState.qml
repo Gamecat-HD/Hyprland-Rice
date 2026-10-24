@@ -28,6 +28,43 @@ Singleton {
     //   "system"     Auslastung und Temperaturen
     property string mode: "apps"
 
+    // App-Liste fuer den Launcher als gesammelter Schnappschuss. DesktopEntries
+    // scannt erst beim ersten Zugriff und meldet dann Eintrag fuer Eintrag;
+    // direkt gebunden sortierte jeder davon die Treffer neu und setzte das
+    // Modell zurueck (erstes Oeffnen nach dem Start: rund 130 Resets in
+    // 330 ms, alle Zeilen flackerten mit ihrem Intro). Darum kurz nach dem
+    // Start vorwaermen und Aenderungen 80 ms sammeln.
+    property var apps: []
+    property bool appsWarm: false
+
+    function warmApps(): void {
+        if (root.appsWarm)
+            return;
+        root.appsWarm = true;
+        root.apps = DesktopEntries.applications.values.slice();
+    }
+
+    Timer {
+        running: !root.appsWarm
+        interval: 3000
+        onTriggered: root.warmApps()
+    }
+
+    Timer {
+        id: appsSettle
+
+        interval: 80
+        onTriggered: root.apps = DesktopEntries.applications.values.slice()
+    }
+
+    Connections {
+        target: root.appsWarm ? DesktopEntries.applications : null
+
+        function onValuesChanged(): void {
+            appsSettle.restart();
+        }
+    }
+
     // Die Ansichten, durch die man in der Notch blaettert (Mausrad kippen,
     // Touchpad wischen). "overview" ist keine Launcher-Ansicht, sondern die
     // Hover-Karte der Notch selbst – Blaettern dorthin schliesst den Launcher.

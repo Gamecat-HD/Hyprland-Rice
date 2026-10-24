@@ -112,7 +112,17 @@ Singleton {
         return keys;
     }
 
+    // Rohtext des letzten Laufs (mit Sprache). Die Uebersicht liest bei
+    // jedem Oeffnen neu; ein unveraenderter Stand baute sonst alle ~140
+    // Zeilen mitten in der Oeffnen-Animation neu auf (~50 ms).
+    property string lastText: ""
+
     function parse(text: string): void {
+        const key = I18n.language + "\n" + text;
+        if (root.loaded && key === root.lastText)
+            return;
+        root.lastText = key;
+
         let binds = [];
         try {
             binds = JSON.parse(text);

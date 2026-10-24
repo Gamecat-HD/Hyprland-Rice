@@ -69,7 +69,11 @@ Item {
 
     // Per LazyPanel entsteht die Ansicht bereits aktiv – dann gibt es kein
     // Wechsel-Signal, die Startarbeit (Fokus, Suchfeld) wird nachgeholt
-    Component.onCompleted: if (panel.active) Qt.callLater(panel.activeChanged)
+    Component.onCompleted: {
+        LauncherState.warmApps();
+        if (panel.active)
+            Qt.callLater(panel.activeChanged);
+    }
 
     onActiveChanged: {
         if (active) {
@@ -100,7 +104,7 @@ Item {
 
     function appResults(needle: string): var {
         const scored = [];
-        for (const entry of DesktopEntries.applications.values) {
+        for (const entry of LauncherState.apps) {
             if (entry.noDisplay)
                 continue;
 
@@ -343,7 +347,11 @@ Item {
             spacing: 2
             model: panel.results
             boundsBehavior: Flickable.StopAtBounds
-            highlightMoveDuration: 0
+            // Ohne Highlight-Item trotzdem aus: sonst fuehrt die ListView ein
+            // unsichtbares Highlight dem aktuellen Eintrag nach (400 px/s, auch
+            // highlightMoveDuration: 0 zaehlt als "nicht gesetzt") – bei ~600 px
+            // Zeilenbreite zeichnete das Fenster nach jedem Oeffnen 1,5 s mit 180 Hz.
+            highlightFollowsCurrentItem: false
 
             // Mausrad: weich animiert, drei Zeilen pro Rastung. Hi-Res-Räder
             // liefern Bruchteile davon, das ergibt hier von selbst ein

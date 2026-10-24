@@ -28,6 +28,8 @@ ListView {
     model: ScriptModel {
         values: MediaQueue.next.slice(1)
     }
+    // Kein Highlight-Nachfuehren (siehe LauncherPanel.qml)
+    highlightFollowsCurrentItem: false
 
     clip: true
     spacing: 1

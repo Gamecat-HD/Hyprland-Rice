@@ -189,7 +189,11 @@ Item {
     readonly property bool notificationsOpen: launcherOpen && LauncherState.mode === "notifications"
     readonly property bool systemOpen: launcherOpen && LauncherState.mode === "system"
     readonly property bool viewOpen: mediaOpen || controlOpen || notificationsOpen || systemOpen
-    readonly property bool appsOpen: launcherOpen && !wallpaperOpen && !themeOpen && !powerOpen && !keysOpen && !clipboardOpen && !viewOpen
+    // Direkt am Modus, nicht als "keine der anderen": die abgeleiteten
+    // Flags oben werden nach `launcherOpen` neu ausgewertet, waren also kurz
+    // noch false – dann war appsOpen fuer einen Moment wahr und jedes andere
+    // Menue baute beim Oeffnen den App-Launcher mit (~25 ms) und warf ihn weg.
+    readonly property bool appsOpen: launcherOpen && LauncherState.mode === "apps"
     readonly property bool authOpen: Auth.active && Auth.screen === hostScreen
     readonly property bool open: expanded || launcherOpen || authOpen
 
@@ -1179,7 +1183,9 @@ Item {
                 + (batteryRing.toLength - batteryRing.fromLength) * chargeProgress
             readonly property real pathLength: Math.max(0, batteryRing.toLength - pathStart)
             readonly property real distance: pathStart + pathLength * travel
-            readonly property var point: batteryRing.pointAt(distance)
+            // Nur waehrend des Impulses: sonst rechnete der Punkt jede
+            // Groessenaenderung der Pille mit (~1000x/s waehrend eines Morphs)
+            readonly property var point: running ? batteryRing.pointAt(distance) : Qt.point(0, 0)
             readonly property int travelDuration: Math.round(750 - rateFactor * 400)
             readonly property int pulseInterval: Math.round(1800 - rateFactor * 1200)
 

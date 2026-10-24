@@ -137,6 +137,8 @@ ViewPanel {
         model: ScriptModel {
             values: Notifications.groups
         }
+        // Kein Highlight-Nachfuehren (siehe LauncherPanel.qml)
+        highlightFollowsCurrentItem: false
         boundsBehavior: Flickable.StopAtBounds
 
         // Nur senkrecht scrollen – waagerecht gehoert der Notch. Das Rad

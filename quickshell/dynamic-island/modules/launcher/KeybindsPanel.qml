@@ -275,6 +275,15 @@ Item {
     // Per LazyPanel entsteht die Ansicht bereits aktiv – dann gibt es kein
     // Wechsel-Signal, die Startarbeit (Fokus, Suchfeld) wird nachgeholt
     Component.onCompleted: if (panel.active) Qt.callLater(panel.activeChanged)
+
+    // Gilt bis kurz nach dem Aufklappen (siehe Gruppen-Loader unten)
+    property bool opening: true
+
+    Timer {
+        running: panel.opening
+        interval: 600
+        onTriggered: panel.opening = false
+    }
     Component.onDestruction: Keybinds.stopCapture()
 
     onActiveChanged: {
@@ -666,8 +675,24 @@ Item {
                         Repeater {
                             model: column.modelData
 
-                            GroupBlock {
+                            // Beim Oeffnen asynchron: alle ~140 Zeilen am
+                            // Stueck kosteten 48 ms, bevor die Karte ueberhaupt
+                            // aufging. Die Hoehe steht vorher fest (groupHeight),
+                            // die Karte springt also nicht. Beim Tippen wieder
+                            // synchron, sonst flackerten die Treffer.
+                            Loader {
+                                id: groupLoader
+
+                                required property var modelData
+
                                 width: column.width
+                                height: panel.groupHeight(groupLoader.modelData)
+                                asynchronous: panel.opening
+
+                                sourceComponent: GroupBlock {
+                                    width: groupLoader.width
+                                    modelData: groupLoader.modelData
+                                }
                             }
                         }
                     }

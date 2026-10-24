@@ -120,6 +120,16 @@ Singleton {
         }
     }
 
+    // Wie refresh(false), aber nur wenn die Liste aelter als `maxAge` ms ist.
+    // Fuers Vorladen beim Oeffnen der Steuerung: wer sie schnell hinterein-
+    // ander auf- und zumacht, startet nicht jedes Mal den nmcli-Lauf (~70 ms CPU).
+    property real lastScan: 0
+
+    function refreshIfStale(maxAge: int): void {
+        if (Date.now() - root.lastScan > maxAge)
+            root.refresh(false);
+    }
+
     // ---- Aktionen ----
     function setRadio(on: bool): void {
         root.run(["nmcli", "radio", "wifi", on ? "on" : "off"],
@@ -473,6 +483,7 @@ Singleton {
 
                 root.networks = list;
                 root.loaded = true;
+                root.lastScan = Date.now();
 
                 if (scan.pending) {
                     scan.pending = false;

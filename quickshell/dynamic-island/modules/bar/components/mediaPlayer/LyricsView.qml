@@ -238,6 +238,8 @@ Item {
             model: ScriptModel {
                 values: Lyrics.lines
             }
+            // Kein Highlight-Nachfuehren (siehe LauncherPanel.qml)
+            highlightFollowsCurrentItem: false
 
             // Halbe Flaeche Luft oben und unten, damit auch die erste und
             // letzte Zeile in der Mitte stehen koennen. Oben eine Zeile
