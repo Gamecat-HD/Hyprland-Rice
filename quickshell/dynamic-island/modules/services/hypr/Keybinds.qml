@@ -32,6 +32,12 @@ Singleton {
                                    || Quickshell.env("HOME") + "/.config/dynamic-island/keybinds.json"
     readonly property string luaPath: Quickshell.env("DYNAMIC_ISLAND_KEYBINDS_LUA")
                                       || Quickshell.env("HOME") + "/.local/state/dynamic-island/keybinds.lua"
+    // Nur die installierte Shell (oder eine mit eigener Lua-Datei) schreibt
+    // nach Hyprland. Eine Testkopie mit eigener plugins.json hat sonst die
+    // Plugin-Binds der echten Shell geloescht (2026-10-25: SUPER+ALT+D weg) –
+    // und die echte schreibt erst wieder, wenn sich ihr Stand aendert.
+    readonly property bool writesHypr: !!Quickshell.env("DYNAMIC_ISLAND_KEYBINDS_LUA")
+                                       || Quickshell.shellPath("shell.qml") === Quickshell.env("HOME") + "/.config/quickshell/dynamic-island/shell.qml"
 
     property var data: ({ format: 1, overrides: {}, custom: [] })
     property bool loaded: false
@@ -374,7 +380,7 @@ Singleton {
 
         interval: 300
         onTriggered: {
-            if (luaFile.text() === root.luaText) {
+            if (!root.writesHypr || luaFile.text() === root.luaText) {
                 // Hyprland hat beim Laden schon diesen Stand gelesen
                 root.revision++;
                 return;
