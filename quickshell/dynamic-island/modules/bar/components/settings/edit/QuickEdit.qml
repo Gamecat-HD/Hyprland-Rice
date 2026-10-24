@@ -33,7 +33,8 @@ QtObject {
     property string dragId: ""
     readonly property bool dragging: edit.dragId !== ""
     property point dragPos: Qt.point(0, 0)
-    // { rowIndex, index, newRow } | { hide: true } | null
+    // { rowIndex, index, newRow } | { rowIndex, column, span } (auf freie
+    // Zellen, siehe freeTarget) | { hide: true } | null
     property var target: null
     readonly property bool hideTarget: edit.target !== null && edit.target.hide === true
     // Einfuege-Markierung in frame-Koordinaten; Breite 0 = keine
@@ -96,6 +97,8 @@ QtObject {
             QuickLayout.hide(id);
             if (edit.selectedId === id)
                 edit.selectedId = "";
+        } else if (t.column !== undefined) {
+            QuickLayout.placeAt(id, t.rowIndex, t.column);
         } else {
             QuickLayout.place(id, t.rowIndex, t.index ?? 0, t.newRow ?? false);
         }
@@ -132,6 +135,9 @@ QtObject {
                 return g.y >= row.y - reach ? ({ rowIndex: i, index: 0, newRow: true }) : null;
             }
             if (g.y <= row.y + row.height) {
+                const free = edit.freeTarget(row, i, g.x - row.x);
+                if (free)
+                    return free;
                 const slots = row.slots;
                 let index = slots.count;
                 for (let j = 0; j < slots.count; j++) {
@@ -151,11 +157,38 @@ QtObject {
         return null;
     }
 
+    // Zeiger ueber einer freien Zelle (Luecke, Rest der Reihe oder der eigene
+    // Platz der gezogenen Kachel)? Dann landet die Kachel genau dort – sie
+    // darf dafuer nach links rutschen, solange sie die Zelle unter dem Zeiger
+    // noch abdeckt. null = Zelle belegt oder nichts passt (dann zaehlt die
+    // Einfuege-Position zwischen den Kacheln).
+    function freeTarget(row: Item, rowIndex: int, x: real): var {
+        const columns = QuickLayout.columns;
+        // Spalte c beginnt bei c * step (Kachelbreiten sind Spalten + Luecken)
+        const step = (row.width + edit.slotGap) / columns;
+        const col = Math.floor(x / step);
+        if (col < 0 || col >= columns)
+            return null;
+        const entries = row.entries;
+        const starts = row.starts;
+        const taken = c => entries.some((t, k) => t.id !== QuickLayout.gap && t.id !== edit.dragId
+                                                  && starts[k] <= c && c < starts[k] + t.span);
+        if (taken(col))
+            return null;
+        for (let c = col; c >= 0 && !taken(c); c--) {
+            const span = QuickLayout.fitAt(edit.dragId, rowIndex, c);
+            if (span > 0 && c + span > col)
+                return ({ rowIndex, column: c, span });
+        }
+        return null;
+    }
+
     // Geometrie der Markierung zu einem Ziel (frame-Koordinaten): waagerechte
     // Linie fuer eine neue Reihe, senkrechte zwischen den Kacheln
     function markerFor(t: var): rect {
         const none = Qt.rect(0, 0, 0, 0);
-        if (!t || t.hide || !edit.grid || !edit.rows)
+        // Ziele auf freie Zellen zeigen die Blasen selbst (edit/CellBubble)
+        if (!t || t.hide || t.column !== undefined || !edit.grid || !edit.rows)
             return none;
         const n = edit.rows.count;
         if (t.newRow) {

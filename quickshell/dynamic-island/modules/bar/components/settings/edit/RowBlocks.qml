@@ -94,10 +94,13 @@ Item {
 
                         required property var modelData     // { id, span }
 
+                        // Luecken ("_") bleiben leer, sie halten nur den Platz
+                        readonly property bool isGap: ghostTile.modelData.id === QuickLayout.gap
+
                         width: blocks.cellWidth(ghostTile.modelData.span)
                         height: 30
                         radius: 15
-                        color: Colors.alpha(Colors.fgSurface, 0.1)
+                        color: ghostTile.isGap ? "transparent" : Colors.alpha(Colors.fgSurface, 0.1)
 
                         Text {
                             anchors.centerIn: parent
