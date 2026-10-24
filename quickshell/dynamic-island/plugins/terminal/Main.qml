@@ -142,7 +142,9 @@ QtObject {
     }
 
     function next(): void {
-        if (root.queue.length === 0)
+        // busy: ein call() aus einem Rueckruf hat schon den naechsten
+        // gestartet, bevor das callLater aus complete() hier ankommt
+        if (root.busy || root.queue.length === 0)
             return;
         const job = root.queue[0];
         root.queue = root.queue.slice(1);

@@ -128,6 +128,7 @@ Scope {
         settingsCount: root.settingKeys.length,
         tiles: Object.keys(root.manifest?.tiles ?? {}),
         panels: Object.keys(root.manifest?.panels ?? {}),
+        pages: Object.keys(root.manifest?.pages ?? {}),
         // Tastenkuerzel: [{ id, keys, title }]
         keybinds: Object.keys(root.manifest?.keybinds ?? {}).map(k => ({
             id: k,
@@ -270,6 +271,11 @@ Scope {
             const w = m.widgets[type];
             if (!/^[a-z][a-z0-9-]*$/.test(type) || typeof w?.component !== "string" || w.component.includes(".."))
                 return `widgets.${type}: Typ oder component ungueltig`;
+        }
+        for (const name in m.pages ?? {}) {
+            const p = m.pages[name];
+            if (!/^[a-z][a-z0-9-]*$/.test(name) || typeof p?.component !== "string" || p.component.includes(".."))
+                return `pages.${name}: Schluessel oder component ungueltig`;
         }
         for (const bid in m.keybinds ?? {}) {
             const b = m.keybinds[bid];

@@ -70,6 +70,17 @@ Item {
     readonly property bool lookTheme: Plugins.get(page.terminalSection, "theme") === true
     readonly property bool lookFolders: Plugins.get(page.terminalSection, "folderLooks") === true
     readonly property bool looksActive: page.terminalOn && page.lookTheme && page.lookFolders
+    // Looks-Editor des Terminal-Plugins (Plugin-Seite, nur solange es laeuft)
+    readonly property string editorSection: Plugins.pageSection("terminal/looks")
+    readonly property bool editorAvailable: page.terminalOn && Plugins.pageFor(page.editorSection) !== null
+    // Look, der zum offenen Ordner gehoert (Name oder feste Zuordnung), "" = keiner
+    readonly property string folderEditLook: {
+        const named = WallManager.conventionLook(page.folder);
+        if (named !== "")
+            return named;
+        const own = page.folderLook;
+        return own.source === "ordner" && own.id !== "scheme" && own.id !== "" ? own.id : "";
+    }
     // Stil wirkt nur beim dynamischen Schema
     readonly property bool dynamicScheme: Themes.currentName === "dynamic"
 
@@ -1402,6 +1413,20 @@ Item {
                         icon: "palette", card: l.card, current: hasOwn && own === l.id, enabled: page.looksActive,
                         action: () => { WallManager.setLook(key, l.id); page.closeMenu(); }
                     });
+                // Ordner: zum Looks-Editor des Terminal-Plugins (Seite
+                // "terminal/looks") – den Look des Ordners bearbeiten oder
+                // einen fuer ihn anlegen
+                if (forFolder && page.editorAvailable) {
+                    const edit = page.folderEditLook;
+                    out.push({
+                        title: edit !== "" ? I18n.tr("Look bearbeiten") : I18n.tr("Eigenen Look anlegen"),
+                        icon: edit !== "" ? "edit" : "add",
+                        action: () => {
+                            page.closeMenu();
+                            SettingsState.openPage(page.editorSection, edit !== "" ? { look: edit } : { create: page.folder.split("/").pop() });
+                        }
+                    });
+                }
                 return out;
             }
             return [];

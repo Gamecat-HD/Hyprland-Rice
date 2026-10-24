@@ -101,6 +101,20 @@
                 }
             }
         },
+        "pages": {
+            "type": "object",
+            "description": "Eigene Seiten im Einstellungs-Fenster, als Unterpunkte der Plugin-Gruppe (Vertrag in README.md)",
+            "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+            "additionalProperties": {
+                "type": "object",
+                "required": ["component"],
+                "properties": {
+                    "title": { "type": "string" },
+                    "icon": { "type": "string" },
+                    "component": { "type": "string", "pattern": "^[^/].*\\.qml$" }
+                }
+            }
+        },
         "widgets": {
             "type": "object",
             "description": "Desktop-Widgets fuer die Szenen je Wallpaper (Vertrag in README.md)",

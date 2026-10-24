@@ -51,6 +51,13 @@ Surface {
     // die Bilder statt die Einstellungen, die Seite bleibt also stehen
     readonly property string wallsKey: "@wallpapers"
     readonly property bool browsing: card.section === card.wallsKey
+    // Plugin-Seite (Manifest `pages`, Plugins.pages): "@page:<plugin>/<seite>",
+    // geladen ueber ihre URL statt der Zeilenliste; waehrend der Suche
+    // zeigt die Karte wie bei der Verwaltung die Treffer
+    readonly property var pageInfo: Plugins.pageFor(card.section)
+    readonly property bool paging: !card.searching && Plugins.isPageSection(card.section)
+    // Argumente fuer die Seite (SettingsState.openPage), leer bei Klick in der Leiste
+    property var pageArgs: ({})
 
     // ---- Breite ----
     // Schmale Karte: Leiste nur mit Symbolen
@@ -72,6 +79,58 @@ Surface {
     // Dahinter die Gruppen der aktiven Plugins
     readonly property var allSections: card.sections.concat(Plugins.sections)
 
+    // Die Leiste unter "Plugins": je Plugin seine Gruppe (wenn es
+    // Einstellungen hat) und darunter seine Seiten; Plugins nur mit Seiten
+    // stehen mit diesen allein da
+    readonly property var pluginMenu: {
+        const out = Plugins.sections.map(s => ({ section: s, id: Plugins.idOf(s) }));
+        for (const p of Plugins.pages)
+            if (!out.some(e => e.id === p.pluginId))
+                out.push({ section: "", id: p.pluginId });
+        return out.map(e => ({ section: e.section, id: e.id, pages: Plugins.pages.filter(p => p.pluginId === e.id) }));
+    }
+
+    // Die gewaehlte Seite verschwindet (Plugin aus): zur Verwaltung – aber
+    // erst, wenn sie einmal da war und eine Weile fehlt (beim Start und bei
+    // `plugins reload` ist sie nur kurz weg)
+    property bool pageSeen: false
+
+    onPageInfoChanged: {
+        if (card.pageInfo !== null) {
+            card.pageSeen = true;
+            pageGone.stop();
+        } else if (card.pageSeen && Plugins.isPageSection(card.section))
+            pageGone.restart();
+    }
+
+    Timer {
+        id: pageGone
+
+        interval: 2000
+        onTriggered: {
+            if (card.pageInfo === null && Plugins.isPageSection(card.section))
+                card.section = card.managerKey;
+        }
+    }
+
+    // Wunsch von aussen (SettingsState.openPage): Gruppe/Seite samt Argumenten
+    function applyRequest(): void {
+        const r = SettingsState.takeRequest();
+        if (!r)
+            return;
+        card.pageArgs = r.args ?? {};
+        card.select(r.section, true);
+    }
+
+    Connections {
+        target: SettingsState
+
+        function onRequestChanged(): void {
+            if (SettingsState.request)
+                card.applyRequest();
+        }
+    }
+
     // Die gewaehlte Plugin-Gruppe verschwindet (Plugin aus oder entfernt):
     // zur Verwaltung. Nur, wenn sie vorher da war – beim Einlesen der
     // Plugins (die Hosts entstehen einzeln) fehlt sie sonst nur kurz.
@@ -92,6 +151,8 @@ Surface {
             return "Plugins";
         if (s === card.wallsKey)
             return I18n.tr("Bibliothek");
+        if (Plugins.isPageSection(s))
+            return I18n.tr(Plugins.pageFor(s)?.title ?? s.slice(Plugins.pagePrefix.length));
         if (Plugins.isPluginSection(s))
             return I18n.tr(Plugins.sectionTitle(s));
         return I18n.tr(Config.sectionMeta[s] ?? s);
@@ -107,7 +168,10 @@ Surface {
         return typeof values === "object" && values !== null ? Object.keys(values).length : 0;
     }
 
-    function select(s: string): void {
+    // keepArgs: die Argumente einer Seite stehen schon (applyRequest)
+    function select(s: string, keepArgs: bool): void {
+        if (!keepArgs)
+            card.pageArgs = {};
         card.section = s;
         if (card.searching) {
             search.text = "";
@@ -330,6 +394,7 @@ Surface {
     Component.onCompleted: {
         card.syncBands();
         Wallpapers.ensureLoaded();
+        card.applyRequest();
     }
 
     // ================= Linke Leiste =================
@@ -462,7 +527,8 @@ Surface {
                     // In der Bibliothek sucht man Bilder – die Leiste bleibt scharf
                     readonly property bool current: (!card.searching || card.browsing) && card.section === button.key
 
-                    width: parent.width
+                    // parent ist beim Abbau eines Plugin-Eintrags kurz null
+                    width: parent?.width ?? 0
                     height: button.sub ? 32 : 38
                     radius: 12
                     color: button.current ? Colors.alpha(Colors.primary, 0.16)
@@ -612,16 +678,38 @@ Surface {
                 }
 
                 Repeater {
-                    model: Plugins.sections
+                    model: card.pluginMenu
 
-                    SectionButton {
-                        required property string modelData
+                    // Gruppe des Plugins, darunter seine Seiten (Manifest `pages`)
+                    Column {
+                        id: pluginEntry
 
-                        key: modelData
-                        label: I18n.tr(Plugins.sectionTitle(modelData))
-                        icon: Plugins.sectionIcon(modelData)
-                        count: card.countIn(modelData)
-                        sub: true
+                        required property var modelData
+
+                        width: parent.width
+                        spacing: 2
+
+                        SectionButton {
+                            visible: pluginEntry.modelData.section !== ""
+                            key: pluginEntry.modelData.section
+                            label: I18n.tr(Plugins.sectionTitle(pluginEntry.modelData.section))
+                            icon: Plugins.sectionIcon(pluginEntry.modelData.section)
+                            count: card.countIn(pluginEntry.modelData.section)
+                            sub: true
+                        }
+
+                        Repeater {
+                            model: pluginEntry.modelData.pages
+
+                            SectionButton {
+                                required property var modelData
+
+                                key: Plugins.pageSection(modelData.key)
+                                label: I18n.tr(modelData.title)
+                                icon: modelData.icon
+                                sub: true
+                            }
+                        }
                     }
                 }
             }
@@ -991,6 +1079,66 @@ Surface {
             }
         }
 
+        // ---- Plugin-Seite statt der Liste ----
+        // Geladen ueber die URL aus Plugins.pages (mit Ladezeitpunkt, siehe
+        // PluginHost.url): ein Plugin-Reload gibt eine neue URL, die Seite
+        // wird dann neu gebaut. Die Seite bekommt `plugin` (Kontext) beim
+        // Entstehen und `args` auch danach (SettingsState.openPage).
+        Loader {
+            id: pageLoader
+
+            readonly property string pageUrl: card.pageInfo?.url ?? ""
+            // Zuletzt gesetzte URL – `source` kaeme aufgeloest (qs:/…) zurueck
+            // und verglich sich nie gleich, jede Pruefung baute die Seite neu
+            property string loadedUrl: ""
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: searchBox.bottom
+                bottom: parent.bottom
+                leftMargin: 24
+                rightMargin: 16
+                topMargin: 12
+                bottomMargin: 16
+            }
+            active: card.paging && card.pageInfo !== null
+            visible: active
+
+            function sync(): void {
+                // Abgeschaltet: beim naechsten Mal frisch mit den dann
+                // gueltigen Argumenten bauen (statt der gemerkten alten)
+                if (!pageLoader.active)
+                    pageLoader.loadedUrl = "";
+                if (!pageLoader.active || pageLoader.pageUrl === "")
+                    return;
+                if (pageLoader.loadedUrl !== pageLoader.pageUrl) {
+                    pageLoader.loadedUrl = pageLoader.pageUrl;
+                    pageLoader.setSource(pageLoader.pageUrl, { plugin: card.pageInfo.plugin, args: card.pageArgs });
+                } else if (pageLoader.item && "args" in pageLoader.item)
+                    pageLoader.item.args = card.pageArgs;
+            }
+
+            onActiveChanged: pageLoader.sync()
+            onPageUrlChanged: pageLoader.sync()
+            onLoaded: {
+                if (pageLoader.item && "args" in pageLoader.item)
+                    pageLoader.item.args = card.pageArgs;
+            }
+            onStatusChanged: {
+                if (pageLoader.status === Loader.Error)
+                    console.warn(`settings: Seite ${card.section} laedt nicht: ${pageLoader.sourceComponent?.errorString() ?? pageLoader.pageUrl}`);
+            }
+        }
+
+        Connections {
+            target: card
+
+            function onPageArgsChanged(): void {
+                pageLoader.sync();
+            }
+        }
+
         // ---- Die Liste ----
         // Karten in Baendern (siehe layoutShape/bandModel), linksbuendig unter dem
         // Titel, damit Kopf und Karten eine Kante haben
@@ -1009,7 +1157,7 @@ Surface {
                 topMargin: 16
                 bottomMargin: 16
             }
-            visible: !card.managing && !card.browsing
+            visible: !card.managing && !card.browsing && !card.paging
             clip: true
             contentWidth: width
             contentHeight: bands.height + 8

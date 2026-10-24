@@ -32,6 +32,7 @@ Core: `modules/services/plugins/Plugins.qml` (singleton) + `PluginHost.qml`
 | `settings` | – | settings, see below |
 | `tiles` | – | quick settings tiles, see below |
 | `panels` | – | sections in the shell's views (so far: wallpaper picker), see below |
+| `pages` | – | own pages in the settings window, see below |
 | `widgets` | – | desktop widgets (types for the per-wallpaper scenes), see below |
 | `keybinds` | – | Hyprland keybinds while the plugin is enabled, see below |
 | `files` | – | files outside the plugin folder that belong to it (for export/import) |
@@ -91,6 +92,42 @@ The only view so far: `wallpaper`, the notch's wallpaper picker (expands below
 the local row and the style row). `icon` (default: plugin icon) becomes a
 button in its search bar. If the plugin has a service (`main`), the section
 only appears once it is running. Component contract: "Sections" below.
+
+### `pages`
+
+```json
+"pages": {
+    "looks": { "title": "Looks bearbeiten", "icon": "palette", "component": "LooksPage.qml" }
+}
+```
+
+A page of its own in the settings window: it shows up in the sidebar as a
+sub-entry below the plugin's settings group (like "Bibliothek" below
+"Wallpaper") and takes the whole area instead of the row cards. `title` goes
+through `I18n.tr`, `icon` defaults to the plugin icon. If the plugin has a
+service (`main`), the page only appears once it is running (the terminal
+plugin's editor talks to looks.py through `plugin.main`). While the search
+field is in use the window shows the search results instead; the page comes
+back when the search is cleared.
+
+The component is loaded through `plugin.url(component)` (so a `plugins
+reload` rebuilds it) and receives:
+
+| Property | Meaning |
+|---|---|
+| `plugin` | plugin context, as for tiles (`required property var plugin`) |
+| `args` | object from `SettingsState.openPage` (`{}` when opened from the sidebar); set again on every jump, also while the page is open – react in `onArgsChanged` |
+
+Jumping there from anywhere in the shell:
+
+```qml
+SettingsState.openPage(Plugins.pageSection("terminal/looks"), { look: "miku" })
+```
+
+opens the window on the focused screen and selects the page (`"@plugins"`,
+`"@wallpapers"` and plain groups like `"bar"` work too). From the command
+line: `qs -c dynamic-island ipc call settings page "@page:terminal/looks"`.
+Reference: `plugins/terminal/LooksPage.qml`.
 
 ### `widgets`
 

@@ -11,8 +11,9 @@ JSON-Zeile auf stdout: {"ok": true, ...} oder {"ok": false, "error": "..."}.
                                 compact/mini.jsonc daraus erzeugen
   import ID                     look.json aus den vorhandenen .jsonc anlegen
                                 (Originale nach .orig/)
-  preview SIZE                  look.json (--json/stdin, auch ungespeichert) mit
-                                fastfetch rendern -> Zeilen mit Farbsegmenten
+  preview SIZE [--raw ID]       look.json (--json/stdin, auch ungespeichert) mit
+                                fastfetch rendern -> Zeilen mit Farbsegmenten;
+                                --raw: stattdessen die Datei SIZE.jsonc von ID
   check ID                      alle Groessen rendern, Budget-Ueberlauf melden
   new ID --from LOOK [--title T] neuen Look als Kopie anlegen
   delete ID                     Look-Ordner in den Papierkorb (nicht miku)
@@ -552,7 +553,7 @@ def save(lid: str, look: dict, force: bool = False) -> dict:
         force = True
     written = render_files(lid, look, force)
     write_look(lid, look)
-    return {"written": written}
+    return {"written": written, "generated": look["generated"]}
 
 
 # ---- Vorschau ----
@@ -817,7 +818,7 @@ def op_list():
     return {"looks": out}
 
 
-VALUE_OPTS = ("--from", "--title", "--json", "--text")
+VALUE_OPTS = ("--from", "--title", "--json", "--text", "--raw")
 
 
 def main(argv):
@@ -879,6 +880,8 @@ def main(argv):
         return save(pos[0], look, True)
     if op == "preview":
         size = size_arg(0)
+        if opt("--raw"):
+            return preview_raw(opt("--raw"), size)
         return preview_conf(build(json_in(), size), size)
     if op == "check":
         need(1)

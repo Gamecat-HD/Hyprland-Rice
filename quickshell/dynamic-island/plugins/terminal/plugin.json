@@ -23,6 +23,9 @@
             "requires": "theme"
         }
     },
+    "pages": {
+        "looks": { "title": "Looks bearbeiten", "icon": "palette", "component": "LooksPage.qml" }
+    },
     "files": [
         { "path": "~/.config/fish/functions/fastfetch.fish" },
         { "path": "~/.config/fish/functions/__terminal_look.fish" },

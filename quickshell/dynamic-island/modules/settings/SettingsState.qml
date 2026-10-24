@@ -73,6 +73,25 @@ Singleton {
         root.toggle(root.focusedScreen());
     }
 
+    // Sprung zu einer Gruppe oder Seite der Karte, mit Argumenten fuer die
+    // Seite ("@page:terminal/looks" mit { look: "miku" }; auch "@wallpapers",
+    // "@plugins" oder eine Gruppe wie "bar" gehen). Oeffnet das Fenster auf
+    // dem fokussierten Bildschirm. Die Karte entsteht erst mit dem Fenster
+    // und holt sich den Wunsch beim Entstehen (takeRequest) – ist sie schon
+    // offen, reagiert sie auf die Aenderung von `request`.
+    property var request: null
+
+    function openPage(section: string, args: var): void {
+        root.request = { section, args: args ?? {}, serial: (root.request?.serial ?? 0) + 1 };
+        root.show(root.focusedScreen());
+    }
+
+    function takeRequest(): var {
+        const r = root.request;
+        root.request = null;
+        return r;
+    }
+
     // Erreichbar ueber:  qs -c dynamic-island ipc call settings toggle
     IpcHandler {
         target: "settings"
@@ -87,6 +106,11 @@ Singleton {
 
         function close(): void {
             root.close();
+        }
+
+        // qs -c dynamic-island ipc call settings page "@page:terminal/looks"
+        function page(section: string): void {
+            root.openPage(section, {});
         }
     }
 }

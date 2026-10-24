@@ -284,6 +284,54 @@ Singleton {
         return out;
     }
 
+    // Seiten im Einstellungs-Fenster (Manifest `pages`): [{ key: "<plugin>/<seite>",
+    // pluginId, pluginName, page, title, icon, url, plugin }]. SettingsCard
+    // haengt sie als Unterpunkte an die Gruppe des Plugins und laedt `url`
+    // mit { plugin, args } statt der Zeilenliste. Gleiche Regel wie bei
+    // `panels`: mit Dienst erst, wenn er laeuft. Gruppen-Schluessel in der
+    // Karte: pagePrefix + key ("@page:terminal/looks").
+    readonly property string pagePrefix: "@page:"
+    readonly property var pages: {
+        const out = [];
+        for (const h of root.hosts) {
+            if (!h.enabled || !h.valid || (h.manifest.main && !h.instance))
+                continue;
+            const pages = h.manifest.pages ?? {};
+            for (const name in pages) {
+                const p = pages[name];
+                if (!p?.component)
+                    continue;
+                out.push({
+                    key: `${h.pluginId}/${name}`,
+                    pluginId: h.pluginId,
+                    pluginName: h.name,
+                    page: name,
+                    title: p.title ?? name,
+                    icon: p.icon ?? h.icon,
+                    url: h.url(p.component),
+                    plugin: h.context
+                });
+            }
+        }
+        return out;
+    }
+
+    function pageSection(key: string): string {
+        return root.pagePrefix + key;
+    }
+
+    function isPageSection(section: string): bool {
+        return section.startsWith(root.pagePrefix);
+    }
+
+    // Seite zu einem Gruppen-Schluessel, null wenn es sie (gerade) nicht gibt
+    function pageFor(section: string): var {
+        if (!root.isPageSection(section))
+            return null;
+        const key = section.slice(root.pagePrefix.length);
+        return root.pages.find(p => p.key === key) ?? null;
+    }
+
     // Desktop-Widgets (Manifest `widgets`): "<typ>" -> { pluginId, pluginName,
     // title, desc, icon, url, size, options, plugin }. Gleiche Regel wie bei `panels`: mit Dienst
     // erst, wenn er laeuft. Die Liste der Typen fuehrt DesktopWidgets.qml
