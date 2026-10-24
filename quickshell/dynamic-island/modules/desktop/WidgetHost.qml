@@ -647,6 +647,10 @@ Item {
             }
             host.guideX.at = -1;
             host.guideY.at = -1;
+            // Leiste und Optionsfeld wandern mit auf den Monitor, auf dem es landet
+            const landed = host.otherScreenAt(host.dragX, host.dragY);
+            if (landed)
+                Scenes.editScreen = landed.name;
             host.commit(host.placement(host.dragX, host.dragY));
         }
 
