@@ -8,6 +8,7 @@
 # Die eigenen Wallpaper (die Sammlung aus dem fremden Repo bleibt draussen)
 !/wallpapers/
 !/hyprlock/
+!/nvim/
 
 # innerhalb von quickshell nur die eigene Shell
 /quickshell/*
