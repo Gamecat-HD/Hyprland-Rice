@@ -681,6 +681,24 @@ button[data-encore-id="buttonTertiary"] { transition: color .15s var(--island-ea
   backdrop-filter: blur(28px) saturate(1.2);
   box-shadow: inset 0 0 0 1px var(--island-line), var(--island-shadow) !important;
 }
+/* Menues selbst ohne backdrop-filter: der macht die <ul> (overflow:auto) zum
+   Containing Block des Popper-Untermenues -> Untermenue abgeschnitten, Menue
+   seitlich scrollbar. Blur liegt deshalb auf einem ::before des Wrappers
+   (#context-menu hat 4px Padding, Untermenue-Wrapper ist deckungsgleich). */
+[role="menu"],
+.main-contextMenu-menu { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+#context-menu::before,
+[role="menu"] div:has(> [role="menu"])::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: var(--island-radius-card);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+  backdrop-filter: blur(28px) saturate(1.2);
+}
+[role="menu"] div:has(> [role="menu"])::before { inset: 0; }
 [role="menu"] [role="menuitem"],
 .main-contextMenu-menuItemButton { border-radius: var(--island-radius-sm); }
 [role="menu"] [role="menuitem"]:hover,
@@ -772,6 +790,11 @@ html.island-focus .Root__top-container { grid-template-columns: 0 minmax(0, 1fr)
 .add-to-playlist-item__folder { background-color: var(--island-card-hi) !important; border-radius: 6px; }
 .add-to-playlist-item:hover { background-color: var(--island-hover) !important; border-radius: var(--island-radius-sm); }
 .add-to-playlist-item__folder svg { fill: var(--spice-subtext); }
+/* Bild steht neben dem Knopf -> Knopf muss schrumpfen duerfen, sonst laufen
+   lange Namen ueber und das Menue wird seitlich scrollbar */
+.add-to-playlist-item > button { flex: 1 1 auto; min-width: 0; }
+.add-to-playlist-item__img,
+.add-to-playlist-item__folder { flex-shrink: 0; }
 
 /* ---------- Marketplace ----------------------------------------------------- */
 .marketplace-header { padding-top: 8px; }
