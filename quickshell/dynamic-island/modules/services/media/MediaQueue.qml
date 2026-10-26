@@ -22,6 +22,12 @@ import Quickshell.Io
 // Die Antwort auf "lyrics" ist {"type":"lyrics","uri","title","synced",
 // "lines":[{"t":ms,"text"}]} und landet in `lyrics` (Lyrics.qml liest sie).
 //
+// Andere lokale Clients duerfen die Extension mitsteuern: Nachrichten mit
+// "cmd" reicht der Server an alle anderen Clients weiter, Antworten der
+// Extension mit eigenem "type" (alles ausser queue/lyrics) ebenso, z. B.
+//   {"cmd":"play","query":"…","kind":"track|artist|album|playlist"}
+//   -> {"type":"play_result","ok",…}
+//
 // Benutzung:  MediaQueue.previous?.title, MediaQueue.upcoming?.art, MediaQueue.next
 Singleton {
     id: root
@@ -144,6 +150,21 @@ Singleton {
 
     // ---- Server ---------------------------------------------------------
 
+    // Fremde Befehle/Antworten zwischen den Clients durchreichen (siehe oben)
+    function relay(from: var, text: string): void {
+        let msg;
+        try {
+            msg = JSON.parse(text);
+        } catch (e) {
+            return;
+        }
+        if (!msg?.cmd && (!msg?.type || msg.type === "queue" || msg.type === "lyrics"))
+            return;
+        for (const socket of root.sockets)
+            if (socket !== from && socket.status === WebSocket.Open)
+                socket.sendTextMessage(text);
+    }
+
     function receive(text: string): void {
         let msg;
         try {
@@ -218,6 +239,7 @@ Singleton {
             root.clients++;
             let gone = false; // Error und Closed koennen beide kommen
             socket.textMessageReceived.connect(root.receive);
+            socket.textMessageReceived.connect(text => root.relay(socket, text));
             socket.statusChanged.connect(() => {
                 if (gone || (socket.status !== WebSocket.Closed && socket.status !== WebSocket.Error))
                     return;

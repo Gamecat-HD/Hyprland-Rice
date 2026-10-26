@@ -104,6 +104,7 @@
 			if (msg.cmd === "refresh") send(true);
 			else if (msg.cmd === "skip") skip(msg);
 			else if (msg.cmd === "lyrics") lyrics();
+			else if (msg.cmd === "play") play(msg);
 		};
 		ws.onclose = schedule;
 		ws.onerror = () => ws?.close();
@@ -152,6 +153,32 @@
 			} catch (e) {
 				// 404 = Spotify hat keinen Text
 			}
+		}
+		if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(answer));
+	}
+
+	// Suchen und abspielen (fuer lokale Clients ueber die Shell, z. B. Sprachsteuerung):
+	// erster Treffer der Spotify-Suche mit dem eigenen Login. Antwort immer schicken.
+	async function play({ query = "", kind = "track" }) {
+		const types = ["track", "artist", "album", "playlist"];
+		const type = types.includes(kind) ? kind : "track";
+		const answer = { type: "play_result", ok: false, query, kind: type };
+		try {
+			const res = await Spicetify.CosmosAsync.get(
+				`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=1`,
+			);
+			const hit = res?.[`${type}s`]?.items?.find(Boolean);
+			if (hit?.uri) {
+				await Spicetify.Player.playUri(hit.uri);
+				Object.assign(answer, {
+					ok: true,
+					uri: hit.uri,
+					title: hit.name || "",
+					artist: (hit.artists || []).map((a) => a.name).join(", ") || hit.owner?.display_name || "",
+				});
+			} else answer.error = "no result";
+		} catch (e) {
+			answer.error = String(e?.message || e);
 		}
 		if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(answer));
 	}
