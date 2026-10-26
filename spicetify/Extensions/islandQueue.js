@@ -157,26 +157,51 @@
 		if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(answer));
 	}
 
-	// Suchen und abspielen (fuer lokale Clients ueber die Shell, z. B. Sprachsteuerung):
-	// erster Treffer der Spotify-Suche mit dem eigenen Login. Antwort immer schicken.
+	// Suchen und abspielen (fuer lokale Clients ueber die Shell, z. B. Sprachsteuerung).
+	// Playlists zuerst in der eigenen Bibliothek (auch private, unscharf nach Namen), "liked"/
+	// "lieblings…" = Lieblingssongs; sonst erster Treffer der Spotify-Suche. Antwort immer schicken.
+	const norm = (t) => (t || "").toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\b(playlist|my|meine?n?|die|the)\b/g, " ").replace(/\s+/g, " ").trim();
+
+	async function ownPlaylists() {
+		const out = [];
+		let url = "https://api.spotify.com/v1/me/playlists?limit=50";
+		for (let i = 0; url && i < 6; i++) {
+			const res = await Spicetify.CosmosAsync.get(url);
+			out.push(...(res?.items || []).filter(Boolean));
+			url = res?.next;
+		}
+		return out;
+	}
+
 	async function play({ query = "", kind = "track" }) {
 		const types = ["track", "artist", "album", "playlist"];
 		const type = types.includes(kind) ? kind : "track";
 		const answer = { type: "play_result", ok: false, query, kind: type };
+		const done = (uri, title, artist = "", source = "") => Object.assign(answer, { ok: true, uri, title, artist, source });
 		try {
-			const res = await Spicetify.CosmosAsync.get(
-				`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=1`,
-			);
-			const hit = res?.[`${type}s`]?.items?.find(Boolean);
-			if (hit?.uri) {
-				await Spicetify.Player.playUri(hit.uri);
-				Object.assign(answer, {
-					ok: true,
-					uri: hit.uri,
-					title: hit.name || "",
-					artist: (hit.artists || []).map((a) => a.name).join(", ") || hit.owner?.display_name || "",
-				});
-			} else answer.error = "no result";
+			const q = norm(query);
+			if (/\b(liked|lieblings\w*|favorit\w*|gespeichert\w*)\b/.test(q)) {
+				await Spicetify.Player.playUri(`spotify:user:${Spicetify.Platform?.username}:collection`);
+				done("collection", "Liked Songs", "", "library");
+			} else if (type === "playlist") {
+				const mine = await ownPlaylists();
+				const hit = mine.find((p) => norm(p.name) === q) || mine.find((p) => norm(p.name).includes(q))
+					|| mine.find((p) => q.includes(norm(p.name)) && norm(p.name).length > 2);
+				if (hit) {
+					await Spicetify.Player.playUri(hit.uri);
+					done(hit.uri, hit.name, hit.owner?.display_name || "", "library");
+				} else answer.yourPlaylists = mine.map((p) => p.name).slice(0, 40);
+			}
+			if (!answer.ok) {
+				const res = await Spicetify.CosmosAsync.get(
+					`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=1`,
+				);
+				const hit = res?.[`${type}s`]?.items?.find(Boolean);
+				if (hit?.uri) {
+					await Spicetify.Player.playUri(hit.uri);
+					done(hit.uri, hit.name || "", (hit.artists || []).map((a) => a.name).join(", ") || hit.owner?.display_name || "", "search");
+				} else answer.error = "no result";
+			}
 		} catch (e) {
 			answer.error = String(e?.message || e);
 		}
