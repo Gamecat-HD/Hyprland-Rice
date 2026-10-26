@@ -105,6 +105,7 @@
 			else if (msg.cmd === "skip") skip(msg);
 			else if (msg.cmd === "lyrics") lyrics();
 			else if (msg.cmd === "play") play(msg);
+			else if (msg.cmd === "introspect") introspect();
 		};
 		ws.onclose = schedule;
 		ws.onerror = () => ws?.close();
@@ -162,7 +163,29 @@
 	// "lieblings…" = Lieblingssongs; sonst erster Treffer der Spotify-Suche. Antwort immer schicken.
 	const norm = (t) => (t || "").toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\b(playlist|my|meine?n?|die|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
+	// Ersten Eintrag mit passender URI irgendwo in einer (GraphQL-)Antwort finden – Spotify baut die
+	// Struktur je Version um, die URIs bleiben gleich.
+	function findEntities(obj, prefix, out = [], seen = new Set()) {
+		if (!obj || typeof obj !== "object" || seen.has(obj) || out.length > 30) return out;
+		seen.add(obj);
+		if (typeof obj.uri === "string" && obj.uri.startsWith(prefix) && !out.some((o) => o.uri === obj.uri)) out.push(obj);
+		for (const v of Array.isArray(obj) ? obj : Object.values(obj)) findEntities(v, prefix, out, seen);
+		return out;
+	}
+
+	const entityName = (d) => d?.name || d?.profile?.name || d?.data?.name || "";
+	const entityArtists = (d) => (d?.artists?.items || d?.albumOfTrack?.artists?.items || [])
+		.map((a) => a?.profile?.name).filter(Boolean).join(", ") || d?.ownerV2?.data?.name || "";
+
 	async function ownPlaylists() {
+		// Interne Bibliothek (die Web-API ist aus dem Client heraus blockiert)
+		const lib = Spicetify.Platform?.LibraryAPI;
+		if (lib?.getContents) {
+			const res = await lib.getContents({ limit: 500, offset: 0, filters: ["Playlists"] }).catch(() => null)
+				|| await lib.getContents({ limit: 500 }).catch(() => null);
+			const found = findEntities(res, "spotify:playlist:");
+			if (found.length) return found.map((p) => ({ uri: p.uri, name: entityName(p), owner: p.owner }));
+		}
 		const out = [];
 		let url = "https://api.spotify.com/v1/me/playlists?limit=50";
 		for (let i = 0; url && i < 6; i++) {
@@ -173,10 +196,61 @@
 		return out;
 	}
 
+	// Suche wie der Client selbst (GraphQL searchDesktop); REST ueber CosmosAsync nur als Rueckfall.
+	// Liefert {uri, name, artist} oder null; Fehler landen in debug.
+	async function search(query, type, debug) {
+		const gql = Spicetify.GraphQL;
+		const defs = gql?.Definitions || {};
+		// the operation name differs between Spotify versions: take the first that exists
+		const name = ["searchDesktop", "searchTopResultsList", "searchTracks", "searchModalResults"].find((n) => defs[n])
+			|| Object.keys(defs).find((n) => /^search/i.test(n));
+		const def = name ? defs[name] : null;
+		if (def) {
+			try {
+				const res = await gql.Request(def, {
+					searchTerm: query, offset: 0, limit: 10, numberOfTopResults: 5,
+					includeAudiobooks: false, includeArtistHasConcertsField: false, includePreReleases: false,
+					includeLocalConcertsField: false, includeAuthors: false,
+				});
+				const hit = findEntities(res?.data ?? res, `spotify:${type}:`)[0];
+				if (hit) return { uri: hit.uri, name: entityName(hit), artist: entityArtists(hit) };
+				const v2 = res?.data?.searchV2;
+				debug.push("graphql " + name + ": no " + type + " (" + Object.keys(v2 || res?.data || res || {}).slice(0, 8).join(",") + ")");
+			} catch (e) {
+				debug.push("graphql: " + String(e?.message || e));
+			}
+		} else debug.push("graphql: no search definition");
+		try {
+			const res = await Spicetify.CosmosAsync.get(
+				`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=1`,
+			);
+			const hit = res?.[`${type}s`]?.items?.find(Boolean);
+			if (hit?.uri) return { uri: hit.uri, name: hit.name || "", artist: (hit.artists || []).map((a) => a.name).join(", ") || hit.owner?.display_name || "" };
+			debug.push("rest: " + (res?.error?.message || res?.message || res?.code || "empty"));
+		} catch (e) {
+			debug.push("rest: " + String(e?.message || e));
+		}
+		return null;
+	}
+
+	// Welche Such-Werkzeuge bietet diese Spotify-Version? (Fehlersuche)
+	function introspect() {
+		const defs = Object.keys(Spicetify.GraphQL?.Definitions || {});
+		const answer = {
+			type: "introspect_result",
+			graphql: defs.filter((n) => /search/i.test(n)),
+			graphqlCount: defs.length,
+			platform: Object.keys(Spicetify.Platform || {}).filter((n) => /search|library|playlist/i.test(n)),
+			version: Spicetify.Platform?.version || "",
+		};
+		if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(answer));
+	}
+
 	async function play({ query = "", kind = "track" }) {
 		const types = ["track", "artist", "album", "playlist"];
 		const type = types.includes(kind) ? kind : "track";
 		const answer = { type: "play_result", ok: false, query, kind: type };
+		const debug = [];
 		const done = (uri, title, artist = "", source = "") => Object.assign(answer, { ok: true, uri, title, artist, source });
 		try {
 			const q = norm(query);
@@ -184,27 +258,30 @@
 				await Spicetify.Player.playUri(`spotify:user:${Spicetify.Platform?.username}:collection`);
 				done("collection", "Liked Songs", "", "library");
 			} else if (type === "playlist") {
-				const mine = await ownPlaylists();
+				let mine = [];
+				try {
+					mine = await ownPlaylists();
+				} catch (e) {
+					debug.push("library: " + String(e?.message || e));
+				}
 				const hit = mine.find((p) => norm(p.name) === q) || mine.find((p) => norm(p.name).includes(q))
 					|| mine.find((p) => q.includes(norm(p.name)) && norm(p.name).length > 2);
 				if (hit) {
 					await Spicetify.Player.playUri(hit.uri);
-					done(hit.uri, hit.name, hit.owner?.display_name || "", "library");
-				} else answer.yourPlaylists = mine.map((p) => p.name).slice(0, 40);
+					done(hit.uri, hit.name, hit.owner?.display_name || hit.owner?.name || "", "library");
+				} else if (mine.length) answer.yourPlaylists = mine.map((p) => p.name).slice(0, 40);
 			}
 			if (!answer.ok) {
-				const res = await Spicetify.CosmosAsync.get(
-					`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=1`,
-				);
-				const hit = res?.[`${type}s`]?.items?.find(Boolean);
-				if (hit?.uri) {
+				const hit = await search(query, type, debug);
+				if (hit) {
 					await Spicetify.Player.playUri(hit.uri);
-					done(hit.uri, hit.name || "", (hit.artists || []).map((a) => a.name).join(", ") || hit.owner?.display_name || "", "search");
+					done(hit.uri, hit.name, hit.artist, "search");
 				} else answer.error = "no result";
 			}
 		} catch (e) {
 			answer.error = String(e?.message || e);
 		}
+		if (debug.length) answer.debug = debug;
 		if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(answer));
 	}
 
