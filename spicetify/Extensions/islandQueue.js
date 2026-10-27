@@ -106,6 +106,7 @@
 			else if (msg.cmd === "lyrics") lyrics();
 			else if (msg.cmd === "play") play(msg);
 			else if (msg.cmd === "introspect") introspect();
+			else if (msg.cmd === "library") library();
 		};
 		ws.onclose = schedule;
 		ws.onerror = () => ws?.close();
@@ -243,6 +244,20 @@
 			platform: Object.keys(Spicetify.Platform || {}).filter((n) => /search|library|playlist/i.test(n)),
 			version: Spicetify.Platform?.version || "",
 		};
+		if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(answer));
+	}
+
+	// Eigene Playlists auflisten (fuer "welche Playlists habe ich?")
+	async function library() {
+		const answer = { type: "library_result", playlists: [] };
+		try {
+			answer.playlists = (await ownPlaylists()).map((p) => ({
+				name: p.name,
+				owner: p.owner?.display_name || p.owner?.name || (typeof p.owner === "string" ? p.owner : ""),
+			}));
+		} catch (e) {
+			answer.error = String(e?.message || e);
+		}
 		if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(answer));
 	}
 
