@@ -1173,19 +1173,6 @@ Item {
             }
         }
 
-        // Angedockt (notch.batteryStyle "ring"): Ring innen am Rand, Batterie
-        // unten in der Mitte. Wie der Insel-Ring nur eingeklappt.
-        NotchBatteryRing {
-            anchors.fill: parent
-            opacity: notch.docked && notch.batteryRingStyle && notch.batteryWanted && !notch.open ? 1 : 0
-            visible: opacity > 0
-            percent: Power.percent
-            charging: Power.charging
-            bottomRadius: pill.radius
-
-            Fade on opacity {}
-        }
-
         // Der leere Teil bleibt ein statischer Pfad und wird deshalb nur bei
         // einer Aenderung des Akkustands neu aufgebaut.
         Audioslider {
@@ -1469,6 +1456,22 @@ Item {
         visible: notch.docked
 
         Morph on size {}
+    }
+
+    // Angedockt (notch.batteryStyle "ring"): Ring entlang der Kante bis in
+    // die Schultern, Batterie unten in der Mitte. Steht hier neben den
+    // Schultern und nicht in der Karte – die schneidet alles ausserhalb ab.
+    // Wie der Insel-Ring nur eingeklappt.
+    NotchBatteryRing {
+        anchors.fill: pill
+        opacity: notch.docked && notch.batteryRingStyle && notch.batteryWanted && !notch.open ? 1 : 0
+        visible: opacity > 0
+        percent: Power.percent
+        charging: Power.charging
+        bottomRadius: pill.radius
+        shoulder: notch.shoulder
+
+        Fade on opacity {}
     }
 
     // Reiner Hover-Sensor fuer das Auf-/Zuklappen.

@@ -9,20 +9,30 @@ import qs.modules.widgets
 // Gegenstueck zum Ring der Insel (Audioslider als batteryRing), aber fuer
 // ihre Form: oben gerade am Bildschirmrand, unten abgerundet.
 //
-// Der Ring laeuft innen, `inset` vom Rand, nur aussen herum: als U von oben
-// links die linke Seite runter, unten entlang (abgerundet wie die Notch)
-// und rechts wieder hoch – an der Oberkante (Bildschirmrand) nicht. Unten
-// in der Mitte bleibt eine Luecke, in der eine kleine Batterie sitzt. Der
-// Fuellstand laeuft von oben links bis oben rechts. Kostet keine Breite.
+// Der Ring folgt dem Umriss der Notch knapp innerhalb der Kante: aus der
+// linken Schulter (NotchShoulder) an der Bildschirmkante herein, die linke
+// Seite runter, unten entlang, rechts hoch und in die rechte Schulter wieder
+// hinaus – an der Oberkante nicht. Unten in der Mitte bleibt eine Luecke mit
+// einer kleinen Batterie. Der Fuellstand laeuft von links nach rechts.
+//
+// Die Schultern liegen ausserhalb der Notch-Breite, deshalb steht der Ring
+// neben ihnen in der Notch und nicht in der Karte (die schneidet ab).
+// Die Schulterkurve (Quad von (0, s) nach (-s, 0), Kontrollpunkt (0, 0))
+// wird als Viertelkreis um (-s, s) genaehert; der Ring liegt auf dem um
+// `edge` nach innen versetzten Kreis und laeuft oben aus dem Bild. Je naeher
+// am Rand, desto weiter reicht er in die Schulter hinaus – die Kurve wird zur
+// Spitze hin duenn.
 Item {
     id: ring
 
     property int percent: 0
     property bool charging: false
     property real arcWidth: 2
-    property real inset: 3
-    // Rundung der Notch unten (Surface.radius)
+    // Abstand der Ringmitte zur Kante
+    property real edge: 2
+    // Rundung der Notch unten (Surface.radius) und Groesse der Schultern
     property real bottomRadius: 12
+    property real shoulder: 10
 
     // Voll = Akzent, leer = Fehlerfarbe; der Exponent haelt die Mitte
     // ausgewogen (gleiche Rechnung wie batteryRing der Insel)
@@ -31,34 +41,41 @@ Item {
                                                        : Colors.mix(Colors.primary, Colors.error, ring.drain)
 
     // ---- Geometrie ----
-    readonly property real half: ring.arcWidth / 2
-    readonly property real x0: ring.inset + ring.half
-    readonly property real x1: ring.width - ring.inset - ring.half
-    readonly property real y0: ring.inset + ring.half
-    readonly property real y1: ring.height - ring.inset - ring.half
-    readonly property real rb: Math.max(0, Math.min(ring.bottomRadius - ring.inset - ring.half, (ring.x1 - ring.x0) / 2, (ring.y1 - ring.y0) / 2))
+    readonly property real x0: ring.edge
+    readonly property real x1: ring.width - ring.edge
+    readonly property real y1: ring.height - ring.edge
+    readonly property real rb: Math.max(0, Math.min(ring.bottomRadius - ring.edge, (ring.x1 - ring.x0) / 2, ring.y1 - ring.shoulder))
+    // Schulterbogen: Kreis um (-s, s) bzw. (W + s, s) mit Radius s + edge,
+    // bis knapp ueber die Bildschirmkante (die runde Kappe bleibt unsichtbar)
+    readonly property real sr: ring.shoulder + ring.edge
+    readonly property real sweep: {
+        const sin = Math.max(-1, Math.min(1, (-ring.arcWidth - ring.shoulder) / ring.sr));
+        return -Math.asin(sin) * 180 / Math.PI;     // Grad, positiv
+    }
     readonly property real cx: ring.width / 2
 
     // Luecke fuer die Batterie samt Luft links und rechts
     readonly property real gapLength: glyph.width + 10
 
-    // Abschnitte von oben links an, gegen den Uhrzeigersinn (Bildschirm):
-    // Gerade { x, y, dx, dy } oder Viertelbogen { mx, my, r, a } (Mittelpunkt,
-    // Startwinkel in Grad, 90 = unten, hier abnehmend)
+    // Abschnitte von links oben an: Gerade { x, y, dx, dy } oder Bogen
+    // { mx, my, r, a, sweep } (Mittelpunkt, Start- und Drehwinkel in Grad;
+    // 0 = rechts, 90 = unten, positiv = im Uhrzeigersinn auf dem Bildschirm)
     readonly property var segments: {
-        const q = Math.PI / 2;
+        const s = ring.shoulder;
         const list = [
-            { kind: 0, x: ring.x0, y: ring.y0, dx: 0, dy: ring.y1 - ring.rb - ring.y0 },
-            { kind: 1, mx: ring.x0 + ring.rb, my: ring.y1 - ring.rb, r: ring.rb, a: 180 },
+            { kind: 1, mx: -s, my: s, r: ring.sr, a: -ring.sweep, sweep: ring.sweep },
+            { kind: 0, x: ring.x0, y: s, dx: 0, dy: ring.y1 - ring.rb - s },
+            { kind: 1, mx: ring.x0 + ring.rb, my: ring.y1 - ring.rb, r: ring.rb, a: 180, sweep: -90 },
             { kind: 0, x: ring.x0 + ring.rb, y: ring.y1, dx: ring.x1 - ring.x0 - 2 * ring.rb, dy: 0 },
-            { kind: 1, mx: ring.x1 - ring.rb, my: ring.y1 - ring.rb, r: ring.rb, a: 90 },
-            { kind: 0, x: ring.x1, y: ring.y1 - ring.rb, dx: 0, dy: -(ring.y1 - ring.rb - ring.y0) }
+            { kind: 1, mx: ring.x1 - ring.rb, my: ring.y1 - ring.rb, r: ring.rb, a: 90, sweep: -90 },
+            { kind: 0, x: ring.x1, y: ring.y1 - ring.rb, dx: 0, dy: -(ring.y1 - ring.rb - s) },
+            { kind: 1, mx: ring.width + s, my: s, r: ring.sr, a: 180, sweep: ring.sweep }
         ];
         let at = 0;
-        for (const s of list) {
-            s.length = s.kind === 0 ? Math.abs(s.dx) + Math.abs(s.dy) : q * s.r;
-            s.start = at;
-            at += s.length;
+        for (const seg of list) {
+            seg.length = seg.kind === 0 ? Math.abs(seg.dx) + Math.abs(seg.dy) : Math.abs(seg.sweep) * Math.PI / 180 * seg.r;
+            seg.start = at;
+            at += seg.length;
         }
         return list;
     }
@@ -75,7 +92,8 @@ Item {
             const f = seg.length > 0 ? t / seg.length : 0;
             return { x: seg.x + seg.dx * f, y: seg.y + seg.dy * f };
         }
-        const a = (seg.a - (seg.r > 0 ? t / seg.r : 0) * 180 / Math.PI) * Math.PI / 180;
+        const turn = seg.r > 0 ? t / seg.r * 180 / Math.PI : 0;
+        const a = (seg.a + (seg.sweep < 0 ? -turn : turn)) * Math.PI / 180;
         return { x: seg.mx + seg.r * Math.cos(a), y: seg.my + seg.r * Math.sin(a) };
     }
 
@@ -89,7 +107,7 @@ Item {
     }
 
     // Pfadstueck zwischen zwei Laengen als SVG, die Luecke ausgespart:
-    // Geraden als L, Viertelboegen als A (Richtung 0 = gegen den Uhrzeigersinn)
+    // Geraden als L, Boegen als A (Richtungsflag aus dem Vorzeichen)
     function buildPath(from: real, to: real): string {
         return ring.buildRun(from, Math.min(to, ring.gapFrom)) + " " + ring.buildRun(Math.max(from, ring.gapTo), to);
     }
@@ -105,7 +123,7 @@ Item {
             if (b <= a)
                 continue;
             const p = ring.pointIn(seg, b - seg.start);
-            d += seg.kind === 0 ? ` L ${p.x} ${p.y}` : ` A ${seg.r} ${seg.r} 0 0 0 ${p.x} ${p.y}`;
+            d += seg.kind === 0 ? ` L ${p.x} ${p.y}` : ` A ${seg.r} ${seg.r} 0 0 ${seg.sweep > 0 ? 1 : 0} ${p.x} ${p.y}`;
         }
         return d;
     }
@@ -151,10 +169,9 @@ Item {
     BatteryGlyph {
         id: glyph
 
-        // einen halben Pixel ueber der Ringlinie, sonst klebt sie an der
-        // Unterkante der Notch
-        x: ring.cx - width / 2
-        y: ring.y1 - height / 2 - 0.5
+        // auf der Ringlinie, aber nie ueber die Unterkante der Notch hinaus
+        x: Math.round(ring.cx - width / 2)
+        y: Math.min(ring.y1 - height / 2, ring.height - height - 1)
         bodyWidth: 14
         bodyHeight: 7
         percent: ring.percent
