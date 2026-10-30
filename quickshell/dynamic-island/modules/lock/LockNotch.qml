@@ -50,7 +50,7 @@ Item {
     property int batteryPercent: Power.percent
     property bool batteryCharging: Power.charging
     readonly property color batteryColor: notch.batteryCharging ? Colors.primary
-                                        : notch.batteryPercent <= 15 ? Colors.error
+                                        : notch.batteryPercent < 10 ? Colors.error
                                         : notch.fg
     // Eingeklappt so breit wie der Inhalt. Vor dem Erscheinen so breit wie
     // die eingeklappte Notch der Leiste, aus der sie hervorgeht.
@@ -176,65 +176,28 @@ Item {
                     color: Colors.tertiary
                 }
 
-                // Akku: Zahl + liegende Batterie, Fuellung nach Ladestand;
-                // beim Laden Blitz davor und Fuellung im Akzent, unter 15 % rot
+                // Akku: Zahl + liegende Batterie (BatteryGlyph, Stufen wie in
+                // der Leiste, Blitz beim Laden in der Batterie), unter 10 % rot
                 Row {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 5
                     visible: notch.showBattery
 
-                    Row {
+                    Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-
-                        Icon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: notch.batteryCharging
-                            text: "bolt"
-                            size: 14
-                            color: Colors.primary
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: notch.batteryPercent
-                            color: notch.batteryCharging ? notch.fg : notch.batteryColor
+                        text: notch.batteryPercent
+                        color: notch.batteryCharging ? notch.fg : notch.batteryColor
                         font.family: Config.font
                         font.pixelSize: 13
                         font.weight: Font.DemiBold
-                            font.features: { "tnum": 1 }
-                        }
+                        font.features: { "tnum": 1 }
                     }
 
-                    Row {
+                    BatteryGlyph {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-
-                        Rectangle {
-                            width: 20
-                            height: 11
-                            radius: 3.5
-                            color: "transparent"
-                            border.width: 1.5
-                            border.color: Colors.alpha(notch.fg, 0.55)
-
-                            Rectangle {
-                                x: 2.5
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: Math.max(2, (parent.width - 5) * Math.min(100, notch.batteryPercent) / 100)
-                                height: parent.height - 5
-                                radius: 1.5
-                                color: notch.batteryColor
-                            }
-                        }
-
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 2
-                            height: 4
-                            radius: 1
-                            color: Colors.alpha(notch.fg, 0.55)
-                        }
+                        percent: notch.batteryPercent
+                        charging: notch.batteryCharging
+                        fg: notch.fg
                     }
                 }
 

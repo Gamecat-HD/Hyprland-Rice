@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import qs.modules.services.config
 import qs.modules.services.plugins
+import qs.modules.services.system
 import qs.modules.services.wallpaper
 import qs.modules.widgets
 
@@ -231,8 +232,8 @@ Surface {
                     // Ohne Eintrag in der Tabelle: ehrlich sagen,
                     // dass der Schluessel neu ist
                     desc: meta?.desc ? I18n.tr(meta.desc) : (meta ? "" : I18n.tr("Schlüssel \"%1\" aus shell.json").arg(key)),
-                    options: meta?.options ?? null,
-                    labels: meta?.labels ?? null,
+                    options: card.liveOptions(meta)?.options ?? meta?.options ?? null,
+                    labels: card.liveOptions(meta)?.labels ?? meta?.labels ?? null,
                     min: meta?.min,
                     max: meta?.max,
                     step: meta?.step,
@@ -263,6 +264,17 @@ Surface {
             }
         }
         return out;
+    }
+
+    // Auswahlen, die erst zur Laufzeit feststehen (meta.source) – etwa
+    // welche Akkus gerade verbunden sind
+    function liveOptions(meta: var): var {
+        switch (meta?.source ?? "") {
+        case "batteries":
+            return { options: Power.targetChoices, labels: Power.targetLabels };
+        default:
+            return null;
+        }
     }
 
     // Die Karten: aufeinanderfolgende Zeilen mit gleicher Gruppe und

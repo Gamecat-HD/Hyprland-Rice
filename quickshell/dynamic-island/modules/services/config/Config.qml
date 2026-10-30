@@ -46,6 +46,8 @@ Singleton {
     //
     // Felder:  title, desc        Beschriftung
     //          options: [...]     feste Auswahl (Chips) fuer Strings
+    //          source             Auswahl samt Namen live statt `options`:
+    //                             "batteries" (UPower-Akkus)
     //          labels: {...}      Anzeigenamen der Optionen (sonst I18n.tr(Wert))
     //          min, max, step     Zahl mit Schieberegler; `unit` haengt hinten dran
     //          requires           Zeile nur aktiv, wenn erfuellt: "bar.battery"
@@ -66,6 +68,11 @@ Singleton {
         "bar.media": { title: "Medien-Karte", group: "Module" },
         "bar.notifications": { title: "Benachrichtigungen", group: "Module" },
         "bar.battery": { title: "Akkuanzeige", group: "Akku" },
+        // Auswahl kommt live aus UPower (source "batteries", siehe SettingsCard)
+        "bar.batteryDevice": {
+            title: "Akku von", group: "Akku", source: "batteries", requires: "bar.battery",
+            desc: "Automatisch = Systemakku, sonst der schwächste Geräte-Akku"
+        },
         // Anzeigen in der eingeklappten Notch (nur Notch-Layout)
         "notch.workspaces": {
             group: "Anzeigen",
@@ -556,6 +563,8 @@ Singleton {
                 property bool stats: false
                 property bool battery: true
                 property bool batteryPulse: true
+                // "auto", "system" oder das Modell eines Geraets (Power.target)
+                property string batteryDevice: "auto"
             }
 
             // Was die eingeklappte Notch im Notch-Layout zeigt

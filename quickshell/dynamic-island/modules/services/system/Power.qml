@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Services.UPower
 
 import qs
+import qs.modules.services.config
 
 // Akku und Energieprofile.
 //
@@ -40,34 +41,83 @@ Singleton {
         return out;
     }
 
-    // Was die Pille zeigt: der Systemakku, sonst der schwaechste Geraete-Akku
-    readonly property var shown: root.hasSystemBattery ? UPower.displayDevice
-                                                       : (root.deviceBatteries[0] ?? null)
+    // Schluessel eines Akkus fuer die Einstellung bar.batteryDevice. UPower
+    // kennt keine Seriennummer; das Modell ueberlebt Neuverbindungen,
+    // hidpp_battery_N dagegen zaehlt bei jedem Einstecken hoch.
+    function deviceKey(device: var): string {
+        return device?.model || device?.nativePath || "";
+    }
+
+    // Welcher Akku angezeigt wird (bar.batteryDevice):
+    //   "auto"    Systemakku, sonst der schwaechste Geraete-Akku
+    //   "system"  nur der Systemakku
+    //   Modell    genau dieses Geraet ("Logitech G502 X PLUS")
+    // Fehlt das gewaehlte Geraet (Maus aus), zeigt die Leiste gar keinen
+    // Akku – ein anderer Wert unter demselben Symbol waere irrefuehrend.
+    readonly property string target: Config.bar.batteryDevice || "auto"
+    readonly property var shown: {
+        if (root.target === "auto")
+            return root.hasSystemBattery ? UPower.displayDevice : (root.deviceBatteries[0] ?? null);
+        if (root.target === "system")
+            return root.hasSystemBattery ? UPower.displayDevice : null;
+        return root.deviceBatteries.find(d => root.deviceKey(d) === root.target) ?? null;
+    }
     readonly property bool hasBattery: root.shown !== null
+    // Zeigt die Anzeige den Systemakku oder ein Geraet (dann gehoert das
+    // Geraetesymbol dazu)?
+    readonly property bool showsSystem: root.hasBattery && root.shown === UPower.displayDevice
+
+    // Auswahl fuer das Einstellungs-Menue (Config.meta source "batteries"):
+    // Automatisch, Systemakku und alle Geraete, alphabetisch – nach Ladestand
+    // sortiert sprangen die Chips bei jeder Aenderung umher
+    readonly property var targetChoices: {
+        const devices = root.deviceBatteries.map(d => root.deviceKey(d)).filter(k => k !== "");
+        return ["auto"].concat(root.hasSystemBattery ? ["system"] : [],
+                               [...new Set(devices)].sort((a, b) => a.localeCompare(b)));
+    }
+    readonly property var targetLabels: ({
+        "auto": I18n.tr("Automatisch"),
+        "system": I18n.tr("Systemakku")
+    })
+
     readonly property int percent: Math.round((root.shown?.percentage ?? 0) * 100)
-    readonly property bool activelyCharging: root.hasSystemBattery
-        && UPower.displayDevice.state === UPowerDeviceState.Charging
+    readonly property bool activelyCharging: root.hasBattery
+        && root.shown.state === UPowerDeviceState.Charging
     // UPower meldet die momentane Energieaenderung in Watt.
     readonly property real chargeRate: root.activelyCharging
-        ? Math.max(0, UPower.displayDevice.changeRate ?? 0) : 0
+        ? Math.max(0, root.shown.changeRate ?? 0) : 0
     readonly property bool charging: {
         const s = root.shown?.state ?? UPowerDeviceState.Unknown;
         return s === UPowerDeviceState.Charging || s === UPowerDeviceState.FullyCharged
             || s === UPowerDeviceState.PendingCharge;
     }
 
-    // Symbol fuer den Akkustand; geladen hat eine eigene Reihe
+    // Stufen, nach denen sich Farbe und Warnung richten. Am Kabel ist nichts
+    // knapp – auch nicht, wenn ein Geraet dabei Unsinn meldet (die G915
+    // sagt "fully-charged" bei 12 %).
+    //   kritisch  unter 10 %   rot, Warnung
+    //   knapp     bis 20 %     Mischton, Warnung
+    readonly property bool critical: root.hasBattery && !root.charging && root.percent < 10
+    readonly property bool low: root.hasBattery && !root.charging && root.percent <= 20
+
+    // Material-Symbol fuer den Akkustand (fuer Stellen, die nur Symbole
+    // setzen; sonst BatteryGlyph). Die Stufen sind ungleich breit: unten
+    // fein, damit "fast leer" frueh zu sehen ist, oben grob.
     readonly property string batteryIcon: {
         if (!root.hasBattery)
             return "battery_unknown";
-        const step = Math.max(0, Math.min(6, Math.floor(root.percent / 100 * 7)));
+        const p = root.percent;
         if (root.charging) {
-            // Material Symbols hat keine gleichmaessigen 10er-Stufen; Namen
-            // wie battery_charging_40 werden sonst als Klartext dargestellt.
-            const levels = [20, 30, 50, 60, 80, 90];
-            return step >= 6 ? "battery_charging_full" : `battery_charging_${levels[step]}`;
+            // Material Symbols hat nur diese Ladestufen; Namen wie
+            // battery_charging_40 erscheinen sonst als Klartext.
+            const steps = [[95, "full"], [85, "90"], [70, "80"], [55, "60"], [40, "50"], [25, "30"]];
+            const hit = steps.find(s => p >= s[0]);
+            return `battery_charging_${hit ? hit[1] : "20"}`;
         }
-        return step >= 6 ? "battery_full" : `battery_${step}_bar`;
+        const steps = [[95, "full"], [80, "6_bar"], [65, "5_bar"], [50, "4_bar"],
+                       [35, "3_bar"], [20, "2_bar"], [10, "1_bar"], [5, "0_bar"]];
+        const hit = steps.find(s => p >= s[0]);
+        return hit ? `battery_${hit[1]}` : "battery_alert";
     }
 
     // Womit der Akku steckt – am Desktop sagt "Maus" mehr als ein Akku-Symbol

@@ -610,36 +610,41 @@ Item {
                 }
             }
 
-            // Akku (nur mit Systemakku und Einstellung "Akkuanzeige"). Der Ring
+            // Akku (Einstellung "Akkuanzeige", Geraet per "Akku von"). Der Ring
             // des Insel-Layouts passt nicht um die angedockte Notch – hier
-            // stehen Symbol und Prozent, knapp = rot.
+            // stehen Zahl und gezeichnete Batterie; zeigt sie ein Geraet statt
+            // des Systemakkus, sagt ein kleines Symbol davor, welches.
             Row {
                 id: compactBattery
 
-                readonly property bool low: Power.percent <= 20 && !Power.charging
-
                 anchors.verticalCenter: parent.verticalCenter
-                visible: Power.hasSystemBattery && Config.bar.battery
-                spacing: 2
+                visible: Power.hasBattery && Config.bar.battery
+                spacing: 4
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Power.batteryIcon
-                    rotation: 90
-                    color: compactBattery.low ? Colors.error
-                         : Power.charging ? Colors.primary
-                         : Colors.alpha(Colors.fgBackground, 0.7)
+                    visible: !Power.showsSystem
+                    text: Power.deviceIcon(Power.shown)
+                    color: Colors.alpha(Colors.fgBackground, 0.5)
                     font.family: "Material Symbols Outlined"
-                    font.pixelSize: 15
+                    font.pixelSize: 13
                 }
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: `${Power.percent}%`
-                    color: compactBattery.low ? Colors.error : Colors.alpha(Colors.fgBackground, 0.7)
+                    text: Power.percent
+                    color: Power.critical ? Colors.error : Colors.alpha(Colors.fgBackground, 0.7)
                     font.family: Config.font
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
+                    font.features: { "tnum": 1 }
+                }
+
+                BatteryGlyph {
+                    anchors.verticalCenter: parent.verticalCenter
+                    percent: Power.percent
+                    charging: Power.charging
+                    fg: Colors.alpha(Colors.fgBackground, 0.75)
                 }
             }
 

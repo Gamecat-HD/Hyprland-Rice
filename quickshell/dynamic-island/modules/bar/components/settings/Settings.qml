@@ -334,8 +334,6 @@ Surface {
             id: battery
 
             readonly property bool shown: settings.peek && Power.hasBattery && Config.bar.battery
-            readonly property bool low: Power.percent <= 20 && !Power.charging
-
             anchors.verticalCenter: parent.verticalCenter
             width: battery.shown ? implicitWidth + 6 : 0
             visible: width > 0
@@ -350,15 +348,21 @@ Surface {
                 NumberAnimation { duration: 160 }
             }
 
+            // Steckt der Akku in einem Geraet, sagt das Maus- bzw.
+            // Tastatursymbol davor, wessen Akku es ist
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-
-                // Ohne Systemakku steckt der Akku in einem Geraet – dann sagt
-                // das Maus- bzw. Tastatursymbol mehr als ein Akku-Symbol
-                text: Power.hasSystemBattery ? Power.batteryIcon : Power.deviceIcon(Power.shown)
-                color: battery.low ? Colors.error : Colors.secondary
+                visible: !Power.showsSystem
+                text: Power.deviceIcon(Power.shown)
+                color: Colors.secondary
                 font.family: "Material Symbols Outlined"
-                font.pixelSize: 15
+                font.pixelSize: 14
+            }
+
+            BatteryGlyph {
+                anchors.verticalCenter: parent.verticalCenter
+                percent: Power.percent
+                charging: Power.charging
             }
 
             Text {
@@ -366,9 +370,10 @@ Surface {
                 anchors.verticalCenter: parent.verticalCenter
 
                 text: `${Power.percent} %`
-                color: battery.low ? Colors.error : Colors.fgBackground
+                color: Power.critical ? Colors.error : Colors.fgBackground
                 font.pixelSize: 11
                 font.weight: Font.DemiBold
+                font.features: { "tnum": 1 }
             }
         }
     }

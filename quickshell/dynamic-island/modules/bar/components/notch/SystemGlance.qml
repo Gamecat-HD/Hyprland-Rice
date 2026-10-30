@@ -23,7 +23,7 @@ Row {
         const list = ["cpu", "mem"];
         if (SystemStats.cpuTemp > 0)
             list.push("cpuTemp");
-        if (Power.hasSystemBattery && Config.bar.battery)
+        if (Power.hasBattery && Config.bar.battery)
             list.push("battery");
         if (SystemStats.hasGpu && SystemStats.gpuTemp > 0)
             list.push("gpuTemp");
@@ -40,7 +40,7 @@ Row {
         case "cpuTemp":
             return { icon: "thermostat", text: SystemStats.formatTemp(SystemStats.cpuTemp), warn: SystemStats.cpuTemp >= 80 };
         case "battery":
-            return { icon: Power.batteryIcon, text: `${Power.percent} %`, warn: Power.percent <= 20 && !Power.charging };
+            return { icon: Power.showsSystem ? Power.batteryIcon : Power.deviceIcon(Power.shown), text: `${Power.percent} %`, warn: Power.low };
         default:
             return { icon: "videogame_asset", text: SystemStats.formatTemp(SystemStats.gpuTemp), warn: SystemStats.gpuTemp >= 85 };
         }
