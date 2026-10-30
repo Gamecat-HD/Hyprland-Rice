@@ -96,7 +96,8 @@ Item {
     readonly property real pageWidth: 548
     readonly property real panelBottom: collapsedHeight + clockDropMax + panel.outerHeight
     readonly property bool showNowPlaying: Media.available
-    readonly property real overviewBottom: systemGlance.y + systemGlance.height
+    readonly property real overviewBottom: batteryGlance.visible ? batteryGlance.y + batteryGlance.height
+                                                                 : systemGlance.y + systemGlance.height
     // Seiten-Indikator: Punkte fuer Uebersicht + Untermenues
     readonly property bool pagerShown: docked && (overviewShown || viewOpen)
     // Mitte der Kopfzeile: Uhr (Uebersicht) bzw. Titel (Untermenue) stehen
@@ -882,6 +883,20 @@ Item {
             width: parent.width - 2 * notch.overviewInset
             opacity: notch.overviewShown ? 1 : 0
             visible: opacity > 0
+
+            Fade on opacity {}
+        }
+
+        // ---- Uebersicht: Akkus aller Geraete ----
+        BatteryGlance {
+            id: batteryGlance
+            transform: Translate { x: notch.slide }
+
+            x: notch.overviewInset
+            y: systemGlance.y + systemGlance.height + 6
+            width: parent.width - 2 * notch.overviewInset
+            opacity: notch.overviewShown ? 1 : 0
+            enabled: notch.overviewShown
 
             Fade on opacity {}
         }

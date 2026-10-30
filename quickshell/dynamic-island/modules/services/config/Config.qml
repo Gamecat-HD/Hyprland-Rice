@@ -36,6 +36,7 @@ Singleton {
     readonly property alias idle: adapter.idle
     readonly property alias sounds: adapter.sounds
     readonly property alias bluetooth: adapter.bluetooth
+    readonly property alias battery: adapter.battery
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -186,6 +187,11 @@ Singleton {
         "sounds.bluetooth": { title: "Bluetooth verbunden/getrennt", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.library": { title: "Eigene Klänge", group: "Eigene Klänge", editor: "sounds" },
         "battery.history": { title: "Akkuverlauf", editor: "battery" },
+        "battery.warnLow": { title: "Warnung bei schwachem Akku", group: "Meldungen", min: 0, max: 50, step: 5, unit: "%", desc: "0 = aus" },
+        "battery.warnCritical": { title: "Warnung bei fast leerem Akku", group: "Meldungen", min: 0, max: 20, step: 1, unit: "%", desc: "0 = aus" },
+        "battery.notifyFull": { title: "Meldung bei vollem Akku", group: "Meldungen" },
+        "battery.kdeconnect": { title: "Handy über KDE Connect", group: "Quellen" },
+        "battery.novabase": { title: "Headset über novabase", group: "Quellen" },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
@@ -650,6 +656,13 @@ Singleton {
             // die Daten schreibt upowerd nach /var/lib/upower
             property JsonObject battery: JsonObject {
                 property string history: ""
+                // Meldungen (Power.checkWarnings), 0 = aus
+                property int warnLow: 15
+                property int warnCritical: 5
+                property bool notifyFull: true
+                // Akkus, die UPower nicht kennt (Power.extraBatteries)
+                property bool kdeconnect: true
+                property bool novabase: true
             }
 
             // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine

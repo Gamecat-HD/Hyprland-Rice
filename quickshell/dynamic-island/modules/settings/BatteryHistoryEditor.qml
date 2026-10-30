@@ -39,13 +39,26 @@ Column {
 
     // Geraete der letzten 30 Tage – die USV vom Sommer braucht keinen Chip
     readonly property var devices: BatteryHistory.devices.filter(d => d.points[d.points.length - 1].t > root.now - 30 * 86400)
-    readonly property var device: root.devices.find(d => d.key === root.selectedKey) ?? root.devices[0] ?? null
+    // Gewaehlt (Chip) > angefragt (Klick in der Uebersicht) > das Geraet der
+    // Leiste > das zuletzt gesehene
+    readonly property var device: root.devices.find(d => d.key === root.selectedKey)
+        ?? root.devices.find(d => BatteryHistory.focusModel !== "" && d.aliases.includes(BatteryHistory.focusModel))
+        ?? root.devices.find(d => Power.hasBattery && d.aliases.includes(Power.shown?.model ?? ""))
+        ?? root.devices[0] ?? null
 
-    // Das passende UPower-Geraet (nur wenn es gerade da ist)
+    Connections {
+        target: BatteryHistory
+        function onFocusSerialChanged(): void {
+            root.selectedKey = "";
+        }
+    }
+
+    // Das passende Geraet von jetzt (UPower oder Zusatzquelle), null wenn
+    // es gerade nicht da ist
     function liveFor(device: var): var {
         if (!device)
             return null;
-        for (const d of UPower.devices?.values ?? []) {
+        for (const d of (UPower.devices?.values ?? []).concat(Power.extraBatteries)) {
             if (d?.isPresent && d.model !== "" && device.aliases.includes(d.model))
                 return d;
         }
@@ -73,7 +86,8 @@ Column {
              : n.includes("mouse") || n.includes("g502") || n.includes("g pro") ? "mouse"
              : n.includes("controller") || n.includes("gamepad") ? "sports_esports"
              : n.includes("ups") ? "power"
-             : n.includes("headset") || n.includes("buds") ? "headphones"
+             : n.includes("headset") || n.includes("buds") || n.includes("arctis") ? "headphones"
+             : n.includes("phone") || n.includes("poco") || n.includes("pixel") ? "smartphone"
              : "battery_full";
     }
 

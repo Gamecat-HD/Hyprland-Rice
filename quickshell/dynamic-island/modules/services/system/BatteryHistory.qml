@@ -31,6 +31,9 @@ Singleton {
     id: root
 
     readonly property string dir: "/var/lib/upower"
+    // Handy und Headset (Power.extraBatteries) – die kennt upowerd nicht,
+    // Power schreibt ihren Verlauf im selben Format selbst
+    readonly property string ownDir: Power.historyDir
 
     // [{ key, name, aliases, serial, points: [{ t, v, state }], segments: [[Index…]] }]
     // points: zeitlich sortiert, ohne Lueckenmarken; t in Sekunden.
@@ -38,6 +41,16 @@ Singleton {
     property var devices: []
     property bool loading: false
     property double loadedAt: 0
+
+    // Welches Geraet die Akku-Seite zeigen soll (Klick auf einen Chip in der
+    // Uebersicht) – als Modellname, die Seite sucht es in `aliases`
+    property string focusModel: ""
+    property int focusSerial: 0
+
+    function focus(model: string): void {
+        root.focusModel = model;
+        root.focusSerial++;
+    }
 
     function refresh(): void {
         if (!reader.running)
@@ -202,11 +215,13 @@ Singleton {
         id: reader
 
         command: ["sh", "-c",
-            'cd "$1" 2>/dev/null || exit 0;'
-            + ' for f in history-charge-*.dat; do'
-            + '   [ -r "$f" ] || continue;'
-            + '   echo "#$f"; cat "$f"; echo;'
-            + ' done', "sh", root.dir]
+            'for d in "$@"; do'
+            + '  cd "$d" 2>/dev/null || continue;'
+            + '  for f in history-charge-*.dat; do'
+            + '    [ -r "$f" ] || continue;'
+            + '    echo "#$f"; cat "$f"; echo;'
+            + '  done;'
+            + ' done', "sh", root.dir, root.ownDir]
         onRunningChanged: root.loading = running
 
         stdout: StdioCollector {
