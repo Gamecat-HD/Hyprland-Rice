@@ -95,8 +95,18 @@ Singleton {
             title: "Visualiser in der Notch",
             requires: { "appearance.layout": "notch" }
         },
+        // Akku in der eingeklappten Notch: Batterie neben der Uhr oder Ring
+        // innen am Rand mit Batterie unten in der Mitte (NotchBatteryRing)
+        "notch.batteryStyle": {
+            group: "Anzeigen",
+            title: "Akkuanzeige in der Notch",
+            options: ["symbol", "ring"],
+            labels: { "symbol": "Symbol neben der Uhr", "ring": "Ring mit Symbol unten" },
+            requires: { "appearance.layout": "notch" }
+        },
         // Wer in der eingeklappten Notch weicht, wenn Musik laeuft und ein
-        // Akku angezeigt wird (Notch.batteryWins)
+        // Akku angezeigt wird (Notch.batteryWins) – nur beim Symbol, der
+        // Ring kostet keinen Platz
         "notch.batteryPriority": {
             group: "Anzeigen",
             title: "Akku oder Visualiser",
@@ -591,6 +601,8 @@ Singleton {
                 property bool date: true
                 property bool media: true
                 property bool visualizer: true
+                // "symbol" | "ring"
+                property string batteryStyle: "symbol"
                 // "system" | "akku" | "visualiser"
                 property string batteryPriority: "system"
                 property bool messages: true

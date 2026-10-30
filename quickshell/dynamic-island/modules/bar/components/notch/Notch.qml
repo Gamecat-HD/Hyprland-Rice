@@ -65,7 +65,10 @@ Item {
     readonly property bool visualizerWanted: docked && Config.notch.visualizer && Media.playing
     readonly property bool batteryWins: Config.notch.batteryPriority === "akku"
         || (Config.notch.batteryPriority !== "visualiser" && Power.showsSystem)
-    readonly property bool showBattery: batteryWanted && !(visualizerWanted && !batteryWins)
+    // Ring-Stil (NotchBatteryRing): der Akku liegt am Rand und nimmt keinem
+    // etwas weg – dann gibt es keinen Vorrang und keine Seiten-Batterie
+    readonly property bool batteryRingStyle: Config.notch.batteryStyle === "ring"
+    readonly property bool showBattery: batteryWanted && !batteryRingStyle && !(visualizerWanted && !batteryWins)
     readonly property real batteryAddLeft: compactLeft > 0 ? compactBattery.implicitWidth + compactRight.spacing
                                                            : compactBattery.implicitWidth
     readonly property real batteryAddRight: compactRight.implicitWidth > 0 ? compactBattery.implicitWidth + compactRight.spacing
@@ -238,7 +241,7 @@ Item {
     // auf beiden Seiten gleich breiter, die Uhr bleibt also mittig.
     readonly property bool showMedia: docked && Config.notch.media && Media.playing
     // Pegel rechts – eigene Einstellung, unabhaengig vom Cover
-    readonly property bool showVisualizer: visualizerWanted && !(batteryWanted && batteryWins)
+    readonly property bool showVisualizer: visualizerWanted && !(batteryWanted && !batteryRingStyle && batteryWins)
     readonly property real mediaArtSize: 20
     readonly property real mediaEdge: 8
 
@@ -1168,6 +1171,19 @@ Item {
             Behavior on opacity {
                 NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
             }
+        }
+
+        // Angedockt (notch.batteryStyle "ring"): Ring innen am Rand, Batterie
+        // unten in der Mitte. Wie der Insel-Ring nur eingeklappt.
+        NotchBatteryRing {
+            anchors.fill: parent
+            opacity: notch.docked && notch.batteryRingStyle && notch.batteryWanted && !notch.open ? 1 : 0
+            visible: opacity > 0
+            percent: Power.percent
+            charging: Power.charging
+            bottomRadius: pill.radius
+
+            Fade on opacity {}
         }
 
         // Der leere Teil bleibt ein statischer Pfad und wird deshalb nur bei

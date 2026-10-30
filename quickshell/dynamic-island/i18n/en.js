@@ -88,6 +88,7 @@ var strings = {
     "Akku von": "Battery of",
     "Akku-Ladeimpuls": "Battery charge pulse",
     "Akkuanzeige": "Battery indicator",
+    "Akkuanzeige in der Notch": "Battery indicator in the notch",
     "Akkuverlauf": "Battery history",
     "Aktiv (unbegrenzt)": "Active (unlimited)",
     "Aktuell": "Current",
