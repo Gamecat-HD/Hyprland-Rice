@@ -254,9 +254,14 @@ Item {
     // Maße: eingeklappt exakt wie vorher, ausgeklappt wächst die Karte nach
     // unten und mittig etwas in die Breite.
     // Angedockt: 1 px hoeher, weil der obere Rand ausserhalb liegt (y < 0)
-    readonly property real collapsedHeight: docked ? parent.height - 8 : parent.height - verticalMargin
+    // Mit Akku-Ring (NotchBatteryRing) etwas groesser: der Ring nimmt am
+    // Rand Platz, die Batterie unten braucht Luft unter der Uhr
+    readonly property bool batteryRingShown: docked && batteryRingStyle && batteryWanted
+    readonly property real ringGrowX: batteryRingShown ? 12 : 0
+    readonly property real ringGrowY: batteryRingShown ? 3 : 0
+    readonly property real collapsedHeight: docked ? parent.height - 8 + ringGrowY : parent.height - verticalMargin
     readonly property real collapsedWidth: docked
-        ? Math.max(compactMinWidth, clock.implicitWidth + 2 * (compactSide + compactGap + compactEdge))
+        ? Math.max(compactMinWidth, clock.implicitWidth + 2 * (compactSide + compactGap + compactEdge)) + ringGrowX
         : clock.implicitWidth + 50 + recordReserve
     readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth
                                         : themeOpen ? themes.outerWidth
@@ -1464,7 +1469,7 @@ Item {
     // Wie der Insel-Ring nur eingeklappt.
     NotchBatteryRing {
         anchors.fill: pill
-        opacity: notch.docked && notch.batteryRingStyle && notch.batteryWanted && !notch.open ? 1 : 0
+        opacity: notch.batteryRingShown && !notch.open ? 1 : 0
         visible: opacity > 0
         percent: Power.percent
         charging: Power.charging
