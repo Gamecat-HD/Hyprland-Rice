@@ -28,8 +28,10 @@ Item {
     property int percent: 0
     property bool charging: false
     property real arcWidth: 2
-    // Abstand der Ringmitte zur Kante
-    property real edge: 2
+    // Abstand der Ringmitte zur Kante: halbe Linienbreite plus rund 2,5 px
+    // Luft, damit der Ring nicht an der Kante klebt. Mehr kostet Reichweite
+    // in die Schultern (sie sind nur `shoulder` gross und laufen spitz aus).
+    property real edge: ring.arcWidth / 2 + 2.5
     // Rundung der Notch unten (Surface.radius) und Groesse der Schultern
     property real bottomRadius: 12
     property real shoulder: 10
