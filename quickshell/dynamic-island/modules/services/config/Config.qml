@@ -94,6 +94,15 @@ Singleton {
             title: "Visualiser in der Notch",
             requires: { "appearance.layout": "notch" }
         },
+        // Wer in der eingeklappten Notch weicht, wenn Musik laeuft und ein
+        // Akku angezeigt wird (Notch.batteryWins)
+        "notch.batteryPriority": {
+            group: "Anzeigen",
+            title: "Akku oder Visualiser",
+            options: ["system", "akku", "visualiser"],
+            labels: { "system": "Nur Systemakku vor Visualiser", "akku": "Akku vor Visualiser", "visualiser": "Visualiser vor Akku" },
+            requires: { "appearance.layout": "notch" }
+        },
         "notch.messages": {
             group: "Anzeigen",
             title: "Nachrichten-Zaehler",
@@ -576,6 +585,8 @@ Singleton {
                 property bool date: true
                 property bool media: true
                 property bool visualizer: true
+                // "system" | "akku" | "visualiser"
+                property string batteryPriority: "system"
                 property bool messages: true
                 property string clockStyle: "digital"
                 property string workspaceStyle: "staebchen"

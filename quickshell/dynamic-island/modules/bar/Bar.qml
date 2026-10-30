@@ -91,12 +91,13 @@ Variants {
         // ueberschrieb die des anderen.
         //
         // Visualiser (eigener Prozess): nur, solange etwas spielt UND jemand
-        // die Pegel zeigt – Medien-Pille, eingeklappte Notch (notch.visualizer),
+        // die Pegel zeigt – Medien-Pille, eingeklappte Notch (notch.showVisualizer,
+        // weicht ggf. dem Akku),
         // Uebersicht oder Medien-Untermenue.
         DemandRequest {
             demand: Cava.demand
             active: Media.playing && (bar.notchMode
-                ? Config.notch.visualizer || notch.wantsVisualizer
+                ? notch.showVisualizer || notch.wantsVisualizer
                 : Config.bar.media || notch.mediaOpen)
         }
 

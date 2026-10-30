@@ -82,6 +82,7 @@ var strings = {
     "acht": "eight",
     "Adapter": "Adapter",
     "Akku": "Battery",
+    "Akku oder Visualiser": "Battery or visualiser",
     "Akku schwach: %1 %": "Battery low: %1 %",
     "Akku von": "Battery of",
     "Akku-Ladeimpuls": "Battery charge pulse",

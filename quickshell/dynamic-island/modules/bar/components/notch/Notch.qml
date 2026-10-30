@@ -58,7 +58,14 @@ Item {
     // Akku (compactBattery) sitzt auf der schmaleren Seite: die Seiten sind
     // gleich breit, ein Symbol auf der breiteren Seite liesse gegenueber eine
     // Luecke. Bei Gleichstand bleibt er rechts.
-    readonly property bool showBattery: docked && Power.hasBattery && Config.bar.battery
+    // Akku und Visualiser teilen sich den Platz: laeuft Musik, weicht einer
+    // (Config.notch.batteryPriority). Vorgabe: ein fester Systemakku (Laptop)
+    // schlaegt die Pegel, Geraete-Akkus (Maus, Tastatur …) weichen ihnen.
+    readonly property bool batteryWanted: docked && Power.hasBattery && Config.bar.battery
+    readonly property bool visualizerWanted: docked && Config.notch.visualizer && Media.playing
+    readonly property bool batteryWins: Config.notch.batteryPriority === "akku"
+        || (Config.notch.batteryPriority !== "visualiser" && Power.showsSystem)
+    readonly property bool showBattery: batteryWanted && !(visualizerWanted && !batteryWins)
     readonly property real batteryAddLeft: compactLeft > 0 ? compactBattery.implicitWidth + compactRight.spacing
                                                            : compactBattery.implicitWidth
     readonly property real batteryAddRight: compactRight.implicitWidth > 0 ? compactBattery.implicitWidth + compactRight.spacing
@@ -230,7 +237,7 @@ Item {
     // auf beiden Seiten gleich breiter, die Uhr bleibt also mittig.
     readonly property bool showMedia: docked && Config.notch.media && Media.playing
     // Pegel rechts – eigene Einstellung, unabhaengig vom Cover
-    readonly property bool showVisualizer: docked && Config.notch.visualizer && Media.playing
+    readonly property bool showVisualizer: visualizerWanted && !(batteryWanted && batteryWins)
     readonly property real mediaArtSize: 20
     readonly property real mediaEdge: 8
 
