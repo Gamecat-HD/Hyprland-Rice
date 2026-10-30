@@ -561,7 +561,7 @@ Item {
                 rightMargin: (notch.showVisualizer ? notch.mediaEdge + 3 : notch.compactEdge) + notch.growth
                 verticalCenter: clock.verticalCenter
             }
-            spacing: 8
+            spacing: 7
             opacity: notch.docked && !notch.open ? 1 : 0
             visible: opacity > 0
 
@@ -610,42 +610,16 @@ Item {
                 }
             }
 
-            // Akku (Einstellung "Akkuanzeige", Geraet per "Akku von"). Der Ring
-            // des Insel-Layouts passt nicht um die angedockte Notch – hier
-            // stehen Zahl und gezeichnete Batterie; zeigt sie ein Geraet statt
-            // des Systemakkus, sagt ein kleines Symbol davor, welches.
-            Row {
-                id: compactBattery
-
+            // Akku (Einstellung "Akkuanzeige", Geraet per "Akku von"): nur die
+            // gezeichnete Batterie – Zahl und Geraetesymbol machten die Notch
+            // auf beiden Seiten breit (die Seiten sind gleich breit). Die
+            // Prozentzahl steht in der Uebersicht (Hover).
+            BatteryGlyph {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: Power.hasBattery && Config.bar.battery
-                spacing: 4
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: !Power.showsSystem
-                    text: Power.deviceIcon(Power.shown)
-                    color: Colors.alpha(Colors.fgBackground, 0.5)
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 13
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Power.percent
-                    color: Power.critical ? Colors.error : Colors.alpha(Colors.fgBackground, 0.7)
-                    font.family: Config.font
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                    font.features: { "tnum": 1 }
-                }
-
-                BatteryGlyph {
-                    anchors.verticalCenter: parent.verticalCenter
-                    percent: Power.percent
-                    charging: Power.charging
-                    fg: Colors.alpha(Colors.fgBackground, 0.75)
-                }
+                percent: Power.percent
+                charging: Power.charging
+                fg: Colors.alpha(Colors.fgBackground, 0.75)
             }
 
             // Wochentag und Tag, gedaempft – die Uhr bleibt der Blickfang
