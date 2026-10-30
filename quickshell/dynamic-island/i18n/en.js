@@ -118,6 +118,7 @@ var strings = {
     "Anordnen": "Arrange",
     "Anordnung": "Layout",
     "Anordnung je Wallpaper in ~/.config/dynamic-island/scenes.json": "Arrangement per wallpaper in ~/.config/dynamic-island/scenes.json",
+    "Anzeige": "Display",
     "Anzeigedauer": "Display duration",
     "Anzeigen": "Indicators",
     "App-Menü": "App menu",

@@ -54,6 +54,8 @@ Singleton {
     //          requires           Zeile nur aktiv, wenn erfuellt: "bar.battery"
     //                             (Wahrheitswert) oder { "appearance.layout": "notch" }
     //          hidden             nicht im Menue (wird anderswo bedient)
+    //          page               auf einer anderen Seite zeigen ("battery"),
+    //                             gespeichert wird weiter unter dem eigenen Schluessel
     //          group              Karte innerhalb der Gruppe ("Workspaces", "Akku" …);
     //                             ohne Angabe teilen sich die Zeilen eine Karte ohne Titel
     readonly property var meta: ({
@@ -68,10 +70,12 @@ Singleton {
         "bar.settings": { title: "Settings-Karte", group: "Module" },
         "bar.media": { title: "Medien-Karte", group: "Module" },
         "bar.notifications": { title: "Benachrichtigungen", group: "Module" },
-        "bar.battery": { title: "Akkuanzeige", group: "Akku" },
+        // Akku-Zeilen stehen auf der Seite "Akku" (meta.page), gespeichert
+        // bleiben sie unter bar/notch
+        "bar.battery": { title: "Akkuanzeige", group: "Anzeige", page: "battery" },
         // Auswahl kommt live aus UPower (source "batteries", siehe SettingsCard)
         "bar.batteryDevice": {
-            title: "Akku von", group: "Akku", source: "batteries", requires: "bar.battery",
+            title: "Akku von", group: "Anzeige", page: "battery", source: "batteries", requires: "bar.battery",
             desc: "Automatisch = Systemakku, sonst der schwächste Geräte-Akku"
         },
         // Anzeigen in der eingeklappten Notch (nur Notch-Layout)
@@ -98,7 +102,8 @@ Singleton {
         // Akku in der eingeklappten Notch: Batterie neben der Uhr oder Ring
         // innen am Rand mit Batterie unten in der Mitte (NotchBatteryRing)
         "notch.batteryStyle": {
-            group: "Anzeigen",
+            group: "Anzeige",
+            page: "battery",
             title: "Akkuanzeige in der Notch",
             options: ["symbol", "ring"],
             labels: { "symbol": "Symbol neben der Uhr", "ring": "Ring mit Symbol unten" },
@@ -108,7 +113,8 @@ Singleton {
         // Akku angezeigt wird (Notch.batteryWins) – nur beim Symbol, der
         // Ring kostet keinen Platz
         "notch.batteryPriority": {
-            group: "Anzeigen",
+            group: "Anzeige",
+            page: "battery",
             title: "Akku oder Visualiser",
             options: ["system", "akku", "visualiser"],
             labels: { "system": "Nur Systemakku vor Visualiser", "akku": "Akku vor Visualiser", "visualiser": "Visualiser vor Akku" },
@@ -205,7 +211,7 @@ Singleton {
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
-        "bar.batteryPulse": { title: "Akku-Ladeimpuls", group: "Akku", requires: "bar.battery" },
+        "bar.batteryPulse": { title: "Akku-Ladeimpuls", group: "Anzeige", page: "battery", requires: "bar.battery" },
         "notifications.dnd": { title: "Nicht stören" },
         "vpn.provider": {
             title: "VPN-Anbieter",

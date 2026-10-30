@@ -9,11 +9,11 @@ import qs.modules.widgets
 // Gegenstueck zum Ring der Insel (Audioslider als batteryRing), aber fuer
 // ihre Form: oben gerade am Bildschirmrand, unten abgerundet.
 //
-// Der Ring laeuft innen, `inset` vom Rand, als abgerundetes Rechteck. Unten
+// Der Ring laeuft innen, `inset` vom Rand, nur aussen herum: als U von oben
+// links die linke Seite runter, unten entlang (abgerundet wie die Notch)
+// und rechts wieder hoch – an der Oberkante (Bildschirmrand) nicht. Unten
 // in der Mitte bleibt eine Luecke, in der eine kleine Batterie sitzt. Der
-// Fuellstand beginnt links neben der Luecke und laeuft im Uhrzeigersinn
-// (links hoch, oben rueber, rechts runter) bis rechts neben die Luecke –
-// wie bei der Insel. Kostet keine Breite, die Seiten bleiben frei.
+// Fuellstand laeuft von oben links bis oben rechts. Kostet keine Breite.
 Item {
     id: ring
 
@@ -21,9 +21,8 @@ Item {
     property bool charging: false
     property real arcWidth: 2
     property real inset: 3
-    // Rundung der Notch unten (Surface.radius) und eine kleine oben
+    // Rundung der Notch unten (Surface.radius)
     property real bottomRadius: 12
-    property real topRadius: 4
 
     // Voll = Akzent, leer = Fehlerfarbe; der Exponent haelt die Mitte
     // ausgewogen (gleiche Rechnung wie batteryRing der Insel)
@@ -38,27 +37,22 @@ Item {
     readonly property real y0: ring.inset + ring.half
     readonly property real y1: ring.height - ring.inset - ring.half
     readonly property real rb: Math.max(0, Math.min(ring.bottomRadius - ring.inset - ring.half, (ring.x1 - ring.x0) / 2, (ring.y1 - ring.y0) / 2))
-    readonly property real rt: Math.max(0, Math.min(ring.topRadius, (ring.y1 - ring.y0) / 2 - ring.rb))
     readonly property real cx: ring.width / 2
 
     // Luecke fuer die Batterie samt Luft links und rechts
     readonly property real gapLength: glyph.width + 10
 
-    // Abschnitte ab der Mitte unten, im Uhrzeigersinn: Gerade { x, y, dx, dy }
-    // oder Viertelbogen { mx, my, r, a } (Mittelpunkt, Startwinkel in Grad,
-    // 90 = unten, im Bildschirm-Uhrzeigersinn wachsend)
+    // Abschnitte von oben links an, gegen den Uhrzeigersinn (Bildschirm):
+    // Gerade { x, y, dx, dy } oder Viertelbogen { mx, my, r, a } (Mittelpunkt,
+    // Startwinkel in Grad, 90 = unten, hier abnehmend)
     readonly property var segments: {
         const q = Math.PI / 2;
         const list = [
-            { kind: 0, x: ring.cx, y: ring.y1, dx: -(ring.cx - ring.x0 - ring.rb), dy: 0 },
-            { kind: 1, mx: ring.x0 + ring.rb, my: ring.y1 - ring.rb, r: ring.rb, a: 90 },
-            { kind: 0, x: ring.x0, y: ring.y1 - ring.rb, dx: 0, dy: -(ring.y1 - ring.rb - ring.y0 - ring.rt) },
-            { kind: 1, mx: ring.x0 + ring.rt, my: ring.y0 + ring.rt, r: ring.rt, a: 180 },
-            { kind: 0, x: ring.x0 + ring.rt, y: ring.y0, dx: ring.x1 - ring.x0 - 2 * ring.rt, dy: 0 },
-            { kind: 1, mx: ring.x1 - ring.rt, my: ring.y0 + ring.rt, r: ring.rt, a: 270 },
-            { kind: 0, x: ring.x1, y: ring.y0 + ring.rt, dx: 0, dy: ring.y1 - ring.rb - ring.y0 - ring.rt },
-            { kind: 1, mx: ring.x1 - ring.rb, my: ring.y1 - ring.rb, r: ring.rb, a: 0 },
-            { kind: 0, x: ring.x1 - ring.rb, y: ring.y1, dx: -(ring.x1 - ring.rb - ring.cx), dy: 0 }
+            { kind: 0, x: ring.x0, y: ring.y0, dx: 0, dy: ring.y1 - ring.rb - ring.y0 },
+            { kind: 1, mx: ring.x0 + ring.rb, my: ring.y1 - ring.rb, r: ring.rb, a: 180 },
+            { kind: 0, x: ring.x0 + ring.rb, y: ring.y1, dx: ring.x1 - ring.x0 - 2 * ring.rb, dy: 0 },
+            { kind: 1, mx: ring.x1 - ring.rb, my: ring.y1 - ring.rb, r: ring.rb, a: 90 },
+            { kind: 0, x: ring.x1, y: ring.y1 - ring.rb, dx: 0, dy: -(ring.y1 - ring.rb - ring.y0) }
         ];
         let at = 0;
         for (const s of list) {
@@ -72,15 +66,16 @@ Item {
         const last = ring.segments[ring.segments.length - 1];
         return last.start + last.length;
     }
-    readonly property real fromLength: ring.gapLength / 2
-    readonly property real toLength: ring.totalLength - ring.gapLength / 2
+    // Die Luecke liegt mittig auf der Strecke (die Form ist symmetrisch)
+    readonly property real gapFrom: (ring.totalLength - ring.gapLength) / 2
+    readonly property real gapTo: (ring.totalLength + ring.gapLength) / 2
 
     function pointIn(seg: var, t: real): var {
         if (seg.kind === 0) {
             const f = seg.length > 0 ? t / seg.length : 0;
             return { x: seg.x + seg.dx * f, y: seg.y + seg.dy * f };
         }
-        const a = (seg.a + (seg.r > 0 ? t / seg.r : 0) * 180 / Math.PI) * Math.PI / 180;
+        const a = (seg.a - (seg.r > 0 ? t / seg.r : 0) * 180 / Math.PI) * Math.PI / 180;
         return { x: seg.mx + seg.r * Math.cos(a), y: seg.my + seg.r * Math.sin(a) };
     }
 
@@ -93,9 +88,13 @@ Item {
         return ring.pointIn(last, last.length);
     }
 
-    // Pfadstueck zwischen zwei Laengen als SVG: Geraden als L, Viertelboegen
-    // als A (Richtung 1 = im Uhrzeigersinn auf dem Bildschirm)
+    // Pfadstueck zwischen zwei Laengen als SVG, die Luecke ausgespart:
+    // Geraden als L, Viertelboegen als A (Richtung 0 = gegen den Uhrzeigersinn)
     function buildPath(from: real, to: real): string {
+        return ring.buildRun(from, Math.min(to, ring.gapFrom)) + " " + ring.buildRun(Math.max(from, ring.gapTo), to);
+    }
+
+    function buildRun(from: real, to: real): string {
         if (to <= from || ring.width <= 0)
             return "";
         const p0 = ring.pointAt(from);
@@ -106,13 +105,17 @@ Item {
             if (b <= a)
                 continue;
             const p = ring.pointIn(seg, b - seg.start);
-            d += seg.kind === 0 ? ` L ${p.x} ${p.y}` : ` A ${seg.r} ${seg.r} 0 0 1 ${p.x} ${p.y}`;
+            d += seg.kind === 0 ? ` L ${p.x} ${p.y}` : ` A ${seg.r} ${seg.r} 0 0 0 ${p.x} ${p.y}`;
         }
         return d;
     }
 
-    readonly property real fillEnd: ring.fromLength
-        + (ring.toLength - ring.fromLength) * Math.max(0, Math.min(1, ring.percent / 100))
+    // Fuellstand ueber die sichtbare Strecke (ohne Luecke) verteilt
+    readonly property real fillEnd: {
+        const visible = ring.totalLength - ring.gapLength;
+        const l = visible * Math.max(0, Math.min(1, ring.percent / 100));
+        return l <= ring.gapFrom ? l : l + ring.gapLength;
+    }
 
     Shape {
         anchors.fill: parent
@@ -128,7 +131,7 @@ Item {
             capStyle: ShapePath.RoundCap
 
             PathSvg {
-                path: ring.buildPath(ring.fillEnd, ring.toLength)
+                path: ring.buildPath(ring.fillEnd, ring.totalLength)
             }
         }
 
@@ -139,7 +142,7 @@ Item {
             capStyle: ShapePath.RoundCap
 
             PathSvg {
-                path: ring.buildPath(ring.fromLength, ring.fillEnd)
+                path: ring.buildPath(0, ring.fillEnd)
             }
         }
     }
@@ -152,8 +155,8 @@ Item {
         // Unterkante der Notch
         x: ring.cx - width / 2
         y: ring.y1 - height / 2 - 0.5
-        bodyWidth: 13
-        bodyHeight: 6
+        bodyWidth: 14
+        bodyHeight: 7
         percent: ring.percent
         charging: ring.charging
         fg: Colors.alpha(Colors.fgBackground, 0.75)

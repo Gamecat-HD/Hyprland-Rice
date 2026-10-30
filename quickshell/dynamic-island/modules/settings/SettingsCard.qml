@@ -163,10 +163,30 @@ Surface {
         return Plugins.isPluginSection(s) ? Plugins.raw[s] : Config.raw[s];
     }
 
-    // Anzahl Zeilen je Gruppe (fuer die Leiste)
+    // Anzahl Zeilen je Gruppe (fuer die Leiste), mit meta.page verschobene
+    // Zeilen dort gezaehlt, wo sie stehen
     function countIn(s: string): int {
         const values = card.valuesOf(s);
-        return typeof values === "object" && values !== null ? Object.keys(values).length : 0;
+        const own = typeof values === "object" && values !== null
+            ? Object.keys(values).filter(k => (Plugins.metaFor(`${s}.${k}`)?.page ?? s) === s).length : 0;
+        return own + card.movedInto(s).length;
+    }
+
+    // Zeilen anderer Gruppen, die per meta.page auf Seite `s` stehen:
+    // [{ section, key, value }]
+    function movedInto(s: string): var {
+        const out = [];
+        for (const id in Config.meta) {
+            if (Config.meta[id]?.page !== s)
+                continue;
+            const dot = id.indexOf(".");
+            const section = id.slice(0, dot);
+            const key = id.slice(dot + 1);
+            const values = card.valuesOf(section);
+            if (section !== s && values && values[key] !== undefined)
+                out.push({ section, key, value: values[key] });
+        }
+        return out;
     }
 
     // keepArgs: die Argumente einer Seite stehen schon (applyRequest)
@@ -206,28 +226,38 @@ Surface {
             if (needle === "" && card.section !== "" && section !== card.section)
                 continue;
 
+            // Zeilen dieser Seite: die eigenen Schluessel ohne die, die per
+            // meta.page woanders stehen, plus die von anderswo hierher
+            // geholten (gespeichert wird weiter unter ihrem eigenen Schluessel)
             const values = card.valuesOf(section) ?? {};
-            const sorted = Object.keys(values).sort((a, b) =>
-                rank(`${section}.${a}`) - rank(`${section}.${b}`) || a.localeCompare(b));
+            const items = Object.keys(values)
+                .filter(key => (Plugins.metaFor(`${section}.${key}`)?.page ?? section) === section)
+                .map(key => ({ section, key, value: values[key] }))
+                .concat(card.movedInto(section));
+            const sorted = items.sort((a, b) =>
+                rank(`${a.section}.${a.key}`) - rank(`${b.section}.${b.key}`) || a.key.localeCompare(b.key));
             // Zeilen einer Karte (meta.group) zusammenziehen, Karten in der
             // Reihenfolge ihrer ersten Zeile
-            const groupOf = key => Plugins.metaFor(`${section}.${key}`)?.group ?? "";
+            const groupOf = item => Plugins.metaFor(`${item.section}.${item.key}`)?.group ?? "";
             const groupOrder = [...new Set(sorted.map(groupOf))];
-            const keys = sorted.map((key, i) => ({ key, i }))
-                .sort((a, b) => groupOrder.indexOf(groupOf(a.key)) - groupOrder.indexOf(groupOf(b.key)) || a.i - b.i)
-                .map(k => k.key);
-            for (const key of keys) {
-                const id = `${section}.${key}`;
+            const rows = sorted.map((item, i) => ({ item, i }))
+                .sort((a, b) => groupOrder.indexOf(groupOf(a.item)) - groupOrder.indexOf(groupOf(b.item)) || a.i - b.i)
+                .map(r => r.item);
+            for (const row of rows) {
+                const key = row.key;
+                const id = `${row.section}.${key}`;
                 const meta = Plugins.metaFor(id);
                 // Schluessel, die woanders bedient werden (meta.hidden)
                 if (meta?.hidden)
                     continue;
                 const entry = {
                     id,
-                    section,
+                    section: row.section,
+                    // Seite, auf der die Zeile steht (meta.page), fuer die Karten
+                    page: section,
                     key,
                     group: meta?.group ?? "",
-                    value: values[key],
+                    value: row.value,
                     title: meta?.title ? I18n.tr(meta.title) : key,
                     // Ohne Eintrag in der Tabelle: ehrlich sagen,
                     // dass der Schluessel neu ist
@@ -287,11 +317,11 @@ Surface {
         const out = [];
         card.entries.forEach((e, i) => {
             const last = out[out.length - 1];
-            if (last && last.section === e.section && last.group === e.group) {
+            if (last && last.page === (e.page ?? e.section) && last.group === e.group) {
                 last.rows.push(i);
                 last.wide = last.wide || card.wideEditors.includes(e.editor);
             } else {
-                out.push({ section: e.section, group: e.group, rows: [i], wide: card.wideEditors.includes(e.editor) });
+                out.push({ section: e.section, page: e.page ?? e.section, group: e.group, rows: [i], wide: card.wideEditors.includes(e.editor) });
             }
         });
         return out;
@@ -1292,7 +1322,7 @@ Surface {
                                         group: card.groupCards[modelData] ?? null
                                         entries: card.entries
                                         sectionLabel: card.searching || card.section === ""
-                                                      ? card.sectionTitle(group?.section ?? "") : ""
+                                                      ? card.sectionTitle(group?.page ?? group?.section ?? "") : ""
                                     }
                                 }
                             }

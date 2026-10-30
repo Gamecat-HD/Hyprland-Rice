@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 
 import qs
 
@@ -11,6 +12,10 @@ import qs
 //
 // Die Grenzen sind dieselben wie Power.low/critical; percent und charging
 // sind eigene Properties, damit der Sperrbildschirm sie fuer Tests setzen kann.
+//
+// Rahmen, Fuellung und Pol sind Shape-Pfade (CurveRenderer): Rectangles mit
+// 1,5-px-Rand landen auf halben Pixeln und wirken in der Notch-Groesse
+// stufig, die Pfade werden sauber geglaettet.
 Item {
     id: glyph
 
@@ -33,37 +38,66 @@ Item {
     readonly property color frameColor: glyph.critical ? Colors.alpha(Colors.error, 0.8)
                                                        : Colors.alpha(glyph.fg, 0.5)
 
-    implicitWidth: glyph.bodyWidth + 3
+    readonly property real stroke: Math.max(1, glyph.bodyHeight * 0.13)
+    readonly property real radius: glyph.bodyHeight * 0.34
+    // Pol: Halbkreis rechts neben dem Rahmen
+    readonly property real nubHeight: glyph.bodyHeight * 0.42
+    readonly property real nubGap: 1
+
+    implicitWidth: glyph.bodyWidth + glyph.nubGap + glyph.nubHeight / 2
     implicitHeight: glyph.bodyHeight
 
-    Rectangle {
+    // Rahmen und Pol
+    Shape {
+        anchors.fill: parent
+        preferredRendererType: Shape.CurveRenderer
+        antialiasing: true
+
+        ShapePath {
+            strokeWidth: glyph.stroke
+            strokeColor: glyph.frameColor
+            fillColor: "transparent"
+
+            PathRectangle {
+                x: glyph.stroke / 2
+                y: glyph.stroke / 2
+                width: glyph.bodyWidth - glyph.stroke
+                height: glyph.bodyHeight - glyph.stroke
+                radius: glyph.radius - glyph.stroke / 2
+            }
+        }
+
+        ShapePath {
+            strokeWidth: -1
+            fillColor: glyph.frameColor
+
+            PathSvg {
+                readonly property real x0: glyph.bodyWidth + glyph.nubGap
+                readonly property real r: glyph.nubHeight / 2
+                readonly property real cy: glyph.bodyHeight / 2
+                path: `M ${x0} ${cy - r} A ${r} ${r} 0 0 1 ${x0} ${cy + r} Z`
+            }
+        }
+    }
+
+    Item {
         id: body
 
         width: glyph.bodyWidth
         height: glyph.bodyHeight
-        radius: height * 0.32
-        color: "transparent"
-        border.width: 1.5
-        border.color: glyph.frameColor
-
-        Behavior on border.color {
-            ColorAnimation { duration: Appearance.fadeDuration }
-        }
 
         // Fuellung buendig an der Innenkante des Rahmens; links rund wie der
         // Rahmen, rechts gerade, nie ganz weg (leer bleibt als Akku lesbar).
-        // Ein Kasten mit Clip schneidet die volle, abgerundete Fuellung ab –
-        // ein Ueberdeck-Rechteck fuer die gerade Kante gaebe bei
-        // halbtransparenter Farbe einen hellen Streifen.
+        // Ein Kasten mit Clip schneidet die volle, abgerundete Fuellung ab.
         Item {
             id: fill
 
-            readonly property real inset: body.border.width
+            readonly property real inset: glyph.stroke
             readonly property real full: body.width - 2 * fill.inset
 
             x: fill.inset
             y: fill.inset
-            width: Math.max(2, fill.full * glyph.level)
+            width: Math.max(1.5, fill.full * glyph.level)
             height: body.height - 2 * fill.inset
             clip: true
 
@@ -71,17 +105,23 @@ Item {
                 NumberAnimation { duration: Appearance.morphDuration; easing.type: Easing.OutCubic }
             }
 
-            Rectangle {
+            Shape {
                 width: fill.full
                 height: fill.height
-                radius: Math.max(0, body.radius - fill.inset)
-                color: glyph.fillColor
+                preferredRendererType: Shape.CurveRenderer
+                antialiasing: true
 
-                Behavior on color {
-                    ColorAnimation { duration: Appearance.fadeDuration }
+                ShapePath {
+                    strokeWidth: -1
+                    fillColor: glyph.fillColor
+
+                    PathRectangle {
+                        width: fill.full
+                        height: fill.height
+                        radius: Math.max(0, glyph.radius - fill.inset)
+                    }
                 }
             }
-
             // Laden: ein Lichtschimmer wandert durch die Fuellung, dann Pause
             // (zwischen den Durchlaeufen zeichnet die Notch nichts neu)
             Item {
@@ -148,16 +188,5 @@ Item {
                 }
             }
         }
-    }
-
-    // Pluspol
-    Rectangle {
-        anchors.left: body.right
-        anchors.leftMargin: 1
-        anchors.verticalCenter: body.verticalCenter
-        width: 2
-        height: Math.round(glyph.bodyHeight * 0.4)
-        radius: 1
-        color: glyph.frameColor
     }
 }
