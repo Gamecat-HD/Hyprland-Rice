@@ -55,7 +55,20 @@ Item {
     readonly property real compactLeft: showMedia ? mediaArtSize - (compactEdge - mediaEdge)
                                       : showWorkspaces ? compactWorkspaces.implicitWidth
                                       : 0
-    readonly property real compactSide: Math.max(compactLeft, compactRight.implicitWidth)
+    // Akku (compactBattery) sitzt auf der schmaleren Seite: die Seiten sind
+    // gleich breit, ein Symbol auf der breiteren Seite liesse gegenueber eine
+    // Luecke. Bei Gleichstand bleibt er rechts.
+    readonly property bool showBattery: docked && Power.hasBattery && Config.bar.battery
+    readonly property real batteryAddLeft: compactLeft > 0 ? compactBattery.implicitWidth + compactRight.spacing
+                                                           : compactBattery.implicitWidth
+    readonly property real batteryAddRight: compactRight.implicitWidth > 0 ? compactBattery.implicitWidth + compactRight.spacing
+                                                                          : compactBattery.implicitWidth
+    readonly property bool batteryLeft: showBattery
+        && Math.max(compactLeft + batteryAddLeft, compactRight.implicitWidth)
+           < Math.max(compactLeft, compactRight.implicitWidth + batteryAddRight)
+    readonly property real compactSide: !showBattery ? Math.max(compactLeft, compactRight.implicitWidth)
+        : batteryLeft ? Math.max(compactLeft + batteryAddLeft, compactRight.implicitWidth)
+        : Math.max(compactLeft, compactRight.implicitWidth + batteryAddRight)
     // Hoehe des oberen Bands (eingeklappt plus Hover-Wachstum): Uhr und
     // Seitenelemente bleiben darin mittig
     readonly property real bandHeight: collapsedHeight + growth
@@ -549,6 +562,28 @@ Item {
             }
         }
 
+        // ---- Eingeklappt: Akku auf der schmaleren Seite (notch.batteryLeft) ----
+        // Links hinter Workspaces bzw. Cover, rechts vor der Gruppe compactRight.
+        // Nur die Batterie – die Prozentzahl steht in der Uebersicht.
+        BatteryGlyph {
+            id: compactBattery
+
+            readonly property real leftX: notch.compactEdge + notch.growth
+                + (notch.compactLeft > 0 ? notch.compactLeft + compactRight.spacing : 0)
+            readonly property real rightX: parent.width - compactRight.anchors.rightMargin - compactRight.implicitWidth
+                - (compactRight.implicitWidth > 0 ? compactRight.spacing : 0) - width
+
+            x: notch.batteryLeft ? leftX : rightX
+            anchors.verticalCenter: clock.verticalCenter
+            opacity: notch.showBattery && !notch.open ? 1 : 0
+            visible: opacity > 0
+            percent: Power.percent
+            charging: Power.charging
+            fg: Colors.alpha(Colors.fgBackground, 0.75)
+
+            Fade on opacity {}
+        }
+
         // ---- Eingeklappt, rechts: Hinweise + Datum bzw. Pegel ----
         // Von innen nach aussen: Aufnahme-Punkt, Nachrichten-Zaehler, dann
         // Datum – oder, solange Musik laeuft, die Cava-Pegel. Die Notch misst
@@ -608,18 +643,6 @@ Item {
                     font.pixelSize: 10
                     font.weight: Font.DemiBold
                 }
-            }
-
-            // Akku (Einstellung "Akkuanzeige", Geraet per "Akku von"): nur die
-            // gezeichnete Batterie – Zahl und Geraetesymbol machten die Notch
-            // auf beiden Seiten breit (die Seiten sind gleich breit). Die
-            // Prozentzahl steht in der Uebersicht (Hover).
-            BatteryGlyph {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: Power.hasBattery && Config.bar.battery
-                percent: Power.percent
-                charging: Power.charging
-                fg: Colors.alpha(Colors.fgBackground, 0.75)
             }
 
             // Wochentag und Tag, gedaempft – die Uhr bleibt der Blickfang

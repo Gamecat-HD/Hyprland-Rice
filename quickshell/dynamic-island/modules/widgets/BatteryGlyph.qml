@@ -5,7 +5,7 @@ import qs
 // Liegende Batterie, gefuellt nach Ladestand – ein Symbol fuer Notch,
 // Settings-Pille und Sperrbildschirm statt der groben Material-Stufen.
 //
-//   laden / am Kabel   Fuellung im Akzent, Blitz in der Batterie
+//   laden / am Kabel   Fuellung im Akzent, Blitz in der Batterie, Lichtschimmer
 //   bis 20 %           Fuellung bernstein (Rot zum Gelb hin, passt zu jedem Schema)
 //   unter 10 %         Fuellung und Rahmen rot
 //
@@ -20,6 +20,8 @@ Item {
     property color fg: Colors.fgBackground
     property real bodyWidth: 20
     property real bodyHeight: 11
+    // Ladeschimmer (aus fuer Stellen, die nur kurz zu sehen sind)
+    property bool animate: true
 
     readonly property real level: Math.max(0, Math.min(100, glyph.percent)) / 100
     readonly property bool critical: !glyph.charging && glyph.percent < 10
@@ -48,23 +50,70 @@ Item {
             ColorAnimation { duration: Appearance.fadeDuration }
         }
 
-        // Fuellung mit 1 px Luft zum Rahmen; nie ganz weg, damit "leer"
-        // noch als Akku lesbar bleibt
-        Rectangle {
+        // Fuellung buendig an der Innenkante des Rahmens; links rund wie der
+        // Rahmen, rechts gerade, nie ganz weg (leer bleibt als Akku lesbar).
+        // Ein Kasten mit Clip schneidet die volle, abgerundete Fuellung ab –
+        // ein Ueberdeck-Rechteck fuer die gerade Kante gaebe bei
+        // halbtransparenter Farbe einen hellen Streifen.
+        Item {
             id: fill
 
-            x: 2.5
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(2, (body.width - 5) * glyph.level)
-            height: body.height - 5
-            radius: Math.max(1, body.radius - 2)
-            color: glyph.fillColor
+            readonly property real inset: body.border.width
+            readonly property real full: body.width - 2 * fill.inset
+
+            x: fill.inset
+            y: fill.inset
+            width: Math.max(2, fill.full * glyph.level)
+            height: body.height - 2 * fill.inset
+            clip: true
 
             Behavior on width {
                 NumberAnimation { duration: Appearance.morphDuration; easing.type: Easing.OutCubic }
             }
-            Behavior on color {
-                ColorAnimation { duration: Appearance.fadeDuration }
+
+            Rectangle {
+                width: fill.full
+                height: fill.height
+                radius: Math.max(0, body.radius - fill.inset)
+                color: glyph.fillColor
+
+                Behavior on color {
+                    ColorAnimation { duration: Appearance.fadeDuration }
+                }
+            }
+
+            // Laden: ein Lichtschimmer wandert durch die Fuellung, dann Pause
+            // (zwischen den Durchlaeufen zeichnet die Notch nichts neu)
+            Item {
+                anchors.fill: parent
+                visible: glyph.charging
+
+                Rectangle {
+                    id: shimmer
+
+                    width: Math.max(6, body.width * 0.45)
+                    height: parent.height
+                    x: -width
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: "transparent" }
+                        GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0.55) }
+                        GradientStop { position: 1; color: "transparent" }
+                    }
+
+                    SequentialAnimation on x {
+                        running: glyph.charging && glyph.visible && glyph.animate
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            from: -shimmer.width
+                            to: fill.width
+                            duration: Appearance.morphDuration * 3
+                            easing.type: Easing.InOutSine
+                        }
+                        PauseAnimation { duration: Appearance.morphDuration * 7 }
+                    }
+                }
             }
         }
 
