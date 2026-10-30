@@ -176,6 +176,7 @@ Singleton {
         "sounds.lock": { title: "Sperren und Entsperren", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.bluetooth": { title: "Bluetooth verbunden/getrennt", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.library": { title: "Eigene Klänge", group: "Eigene Klänge", editor: "sounds" },
+        "battery.history": { title: "Akkuverlauf", editor: "battery" },
         "media.queueOpen": {
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
@@ -283,9 +284,10 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "battery", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
+        "battery": "battery_horiz_075",
         "quick": "dashboard_customize",
         "bluetooth": "bluetooth",
         "osd": "volume_up",
@@ -302,6 +304,7 @@ Singleton {
 
     readonly property var sectionMeta: ({
         "bar": "Leiste",
+        "battery": "Akku",
         "quick": "Schnelleinstellungen",
         "bluetooth": "Bluetooth",
         "osd": "Regler am Rand",
@@ -630,6 +633,12 @@ Singleton {
                 // Nur Anker fuer den Editor (SoundsEditor); die Dateien liegen
                 // in ~/.config/dynamic-island/sounds
                 property string library: ""
+            }
+
+            // Seite "Akku": nur Anker fuer den Verlauf (BatteryHistoryEditor);
+            // die Daten schreibt upowerd nach /var/lib/upower
+            property JsonObject battery: JsonObject {
+                property string history: ""
             }
 
             // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine

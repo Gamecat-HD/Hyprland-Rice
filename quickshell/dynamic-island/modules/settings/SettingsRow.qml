@@ -484,6 +484,7 @@ Item {
                            : row.entry?.editor === "desktop" ? desktopEditor
                            : row.entry?.editor === "lock" ? lockEditor
                            : row.entry?.editor === "sounds" ? soundsEditor
+                           : row.entry?.editor === "battery" ? batteryEditor
                            : null
         }
 
@@ -503,6 +504,12 @@ Item {
             id: soundsEditor
 
             SoundsEditor {}
+        }
+
+        Component {
+            id: batteryEditor
+
+            BatteryHistoryEditor {}
         }
 
         Component {
