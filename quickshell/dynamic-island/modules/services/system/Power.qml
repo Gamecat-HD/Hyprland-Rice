@@ -192,6 +192,10 @@ Singleton {
 
         command: ["sh", "-c",
             'if [ "$1" = 1 ] && command -v qdbus6 >/dev/null; then'
+            // kdeconnectd startet unter Hyprland nicht von selbst (kein
+            // XDG-Autostart) und beendet sich gelegentlich; qdbus6 aktiviert
+            // nicht, also hier per D-Bus wecken (laeuft er, passiert nichts)
+            + '  qdbus6 org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.StartServiceByName org.kde.kdeconnect 0 >/dev/null 2>&1;'
             + '  for d in $(qdbus6 org.kde.kdeconnect /modules/kdeconnect org.kde.kdeconnect.daemon.devices true true 2>/dev/null); do'
             + '    p=/modules/kdeconnect/devices/$d;'
             + '    c=$(qdbus6 org.kde.kdeconnect $p/battery org.kde.kdeconnect.device.battery.charge 2>/dev/null) || continue;'
