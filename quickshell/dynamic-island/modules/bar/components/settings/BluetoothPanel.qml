@@ -481,8 +481,14 @@ Item {
                 // Audio-Profile gibt es nur fuer verbundene Audio-Geraete
                 readonly property var audio: row.modelData.connected ? BluetoothService.audioInfo(row.modelData) : null
                 readonly property var profiles: row.audio?.profiles ?? []
+                readonly property bool autoConnect: BluetoothService.autoConnects(row.modelData)
                 readonly property var actions: row.modelData.paired ? [
                     { action: "rename", icon: "edit", label: I18n.tr("Umbenennen") },
+                    {
+                        action: "auto",
+                        icon: row.autoConnect ? "sync_disabled" : "sync",
+                        label: row.autoConnect ? I18n.tr("Nicht automatisch verbinden") : I18n.tr("Automatisch verbinden")
+                    },
                     {
                         action: "trust",
                         icon: row.modelData.trusted ? "heart_minus" : "favorite",
@@ -513,6 +519,8 @@ Item {
                     panel.menuAddress = "";
                     if (action === "rename")
                         panel.renameAddress = row.modelData.address;
+                    else if (action === "auto")
+                        BluetoothService.setAutoConnect(row.modelData, !row.autoConnect);
                     else if (action === "trust")
                         BluetoothService.toggleTrusted(row.modelData);
                     else if (action === "block")
@@ -633,6 +641,8 @@ Item {
                                         parts.push(I18n.tr("Verfügbar"));
                                     if (row.modelData.trusted && !row.modelData.blocked)
                                         parts.push(I18n.tr("vertraut"));
+                                    if (row.autoConnect && !row.modelData.blocked)
+                                        parts.push(I18n.tr("automatisch"));
                                     return parts.join(" · ");
                                 }
                                 color: row.error !== "" ? Colors.error

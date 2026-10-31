@@ -255,6 +255,7 @@ Singleton {
             return;
         root.setError(device.dbusPath, "");
         root.setOp(device.dbusPath, "connect");
+        root.setAutoPaused(device, false);
         // Wer verbinden will, vertraut dem Geraet – sonst fragt BlueZ bei
         // jedem Dienst nach (AuthorizeService).
         if (!device.trusted)
@@ -274,6 +275,9 @@ Singleton {
     function disconnectDevice(device: var): void {
         if (!device || root.busy(device) !== "")
             return;
+        // Wer selbst trennt, will das Geraet gerade nicht: Auto-Verbinden
+        // ruht, bis es wieder verbunden ist (Klick, Handy, Neustart der Shell)
+        root.setAutoPaused(device, true);
         root.setError(device.dbusPath, "");
         root.setOp(device.dbusPath, "disconnect");
         device.disconnect();
@@ -304,6 +308,40 @@ Singleton {
         root.setOp(device.dbusPath, "");
         root.setError(device.dbusPath, "");
         device.forget();
+    }
+
+    // ---- Automatisch verbinden ----
+    //
+    // Geraete aus Config.bluetooth.autoConnect werden still nachverbunden (kein Spinner, keine Fehlerzeile): kurz nach dem
+    // Wegfall, dann alle 30/60/120 s, solange sie nicht erreichbar sind.
+    // Der Timer laeuft nur fuer Geraete, die gerade fehlen.
+
+    // { "AA:BB:…": true } – von Hand getrennt, Auto-Verbinden ruht
+    property var autoPaused: ({})
+
+    function autoConnects(device: var): bool {
+        return !!device && Array.prototype.indexOf.call(Config.bluetooth.autoConnect, device.address) >= 0;
+    }
+
+    function setAutoConnect(device: var, on: bool): void {
+        if (!device || root.autoConnects(device) === on)
+            return;
+        const list = Array.prototype.filter.call(Config.bluetooth.autoConnect, a => a !== device.address);
+        if (on)
+            list.push(device.address);
+        Config.bluetooth.autoConnect = list;
+        root.setAutoPaused(device, false);
+    }
+
+    function setAutoPaused(device: var, on: bool): void {
+        if (!device || !!root.autoPaused[device.address] === on)
+            return;
+        const next = Object.assign({}, root.autoPaused);
+        if (on)
+            next[device.address] = true;
+        else
+            delete next[device.address];
+        root.autoPaused = next;
     }
 
     Timer {
@@ -366,8 +404,13 @@ Singleton {
     function deviceConnectedChanged(device: var): void {
         const op = root.ops[device.dbusPath];
         root.setOp(device.dbusPath, "");
-        if (device.connected)
+        if (device.connected) {
             root.setError(device.dbusPath, "");
+            // Nur der Adapter, den das Panel zeigt, hebt die Pause auf – nicht
+            // KDE Connects Zweitverbindung am anderen Adapter
+            if (device.adapter === root.adapter)
+                root.setAutoPaused(device, false);
+        }
         if (root.isAudio(device))
             audioRefresh.restart();
         if (!root.settled || !device.paired)
@@ -416,6 +459,27 @@ Singleton {
                 else if (watch.level <= limit && !watch.warned && watch.modelData.connected) {
                     watch.warned = true;
                     root.notify(watch.modelData, I18n.tr("Akku schwach: %1 %").arg(watch.level));
+                }
+            }
+
+            // Auto-Verbinden an jedem Adapter, an dem das Geraet gekoppelt ist
+            // (das Handy haengt an beiden: hci0 fuer KDE Connect, hci1 mit Akku),
+            // nicht waehrend einer Suche
+            readonly property bool autoMissing: root.autoConnects(watch.modelData)
+                && !root.autoPaused[watch.modelData.address]
+                && (watch.modelData.adapter?.enabled ?? false)
+                && watch.modelData.paired && !watch.modelData.blocked && !watch.modelData.connected
+            readonly property Timer autoTimer: Timer {
+                interval: 3000
+                repeat: true
+                running: watch.autoMissing && !root.discovering && root.busy(watch.modelData) === ""
+                onRunningChanged: {
+                    if (!running)
+                        interval = 3000;
+                }
+                onTriggered: {
+                    watch.modelData.connect();
+                    interval = Math.min(120000, Math.max(30000, interval * 2));
                 }
             }
 
@@ -723,12 +787,13 @@ Singleton {
                 enabled: root.enabled,
                 agent: root.agentReady,
                 connected: root.connectedDevices.map(d => ({ name: root.deviceName(d), battery: root.batteryLevel(d) })),
+                autoConnect: Array.prototype.slice.call(Config.bluetooth.autoConnect),
+                autoPaused: Object.keys(root.autoPaused),
                 audio: root.audioCards
             });
         }
 
         function toggle(): void {
             root.setEnabled(!root.enabled);
-        }
-    }
+        }    }
 }

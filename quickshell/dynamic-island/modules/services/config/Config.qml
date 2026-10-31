@@ -190,6 +190,7 @@ Singleton {
         "idle.lockOnSleep": { title: "Vor dem Ruhezustand sperren", group: "Sperren" },
         // Bluetooth (services/bluetooth); den Adapter waehlt das Bluetooth-Panel
         "bluetooth.adapter": { hidden: true },
+        "bluetooth.autoConnect": { hidden: true },
         "bluetooth.notify": { title: "Verbinden und Trennen melden", group: "Meldungen", desc: "Nur was von allein passiert, nicht Klicks im Panel" },
         "bluetooth.lowBattery": { title: "Warnung bei schwachem Akku", group: "Meldungen", min: 0, max: 50, step: 5, unit: "%", desc: "0 = aus" },
         "bluetooth.scanSeconds": { title: "Suche endet nach", group: "Suche", min: 15, max: 300, step: 15, unit: "s" },
@@ -655,6 +656,9 @@ Singleton {
                 // Prozent, 0 = aus
                 property int lowBattery: 15
                 property int scanSeconds: 60
+                // Adressen ("AA:BB:…") der Geraete, die automatisch verbunden
+                // werden; schaltet das Geraetemenue im Bluetooth-Panel
+                property list<string> autoConnect: []
             }
 
             property JsonObject sounds: JsonObject {
