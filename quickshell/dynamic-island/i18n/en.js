@@ -683,6 +683,7 @@ var strings = {
     "Systemmonitor": "System monitor",
     "Systemtray": "System tray",
     "Szene": "Scene",
+    "Szene löschen": "Delete scene",
     "Szene löschen?": "Delete scene?",
     "Tab": "Tab",
     "Tag der Arbeit": "Labour Day",

@@ -130,9 +130,12 @@ PanelWindow {
             const sel = Scenes.selectedWidget;
             const step = event.modifiers & Qt.ShiftModifier ? 0.02 : 0.004;
             if (event.key === Qt.Key_Escape) {
-                // Erst die Widget-Liste zu, dann die Auswahl weg, dann Abbrechen
+                // Erst Widget-Liste bzw. Szenen-Menue zu, dann die Auswahl
+                // weg, dann Abbrechen
                 if (Scenes.adding)
                     Scenes.adding = false;
+                else if (barLoader.item?.scenesOpen)
+                    barLoader.item.scenesOpen = false;
                 else if (Scenes.selected !== "")
                     Scenes.selected = "";
                 else
@@ -169,13 +172,13 @@ PanelWindow {
             }
         }
 
-        // Bearbeiten: Grund leicht abdunkeln, Drittel-Linien andeuten
-        Rectangle {
+        // Bearbeiten: Drittel-Linien andeuten – kein Schleier, der Desktop
+        // soll so aussehen wie nachher (wie im Sperrbildschirm-Editor)
+        Item {
             id: backdrop
 
             anchors.fill: parent
             visible: win.editing
-            color: Colors.alpha("#000000", 0.28)
 
             // Nur ein Klick auf freie Flaeche hebt die Auswahl auf – nicht auf
             // ein Widget samt Rahmen, Groessen-Griff und Optionsfeld (die
@@ -195,6 +198,10 @@ PanelWindow {
                             return;
                     if (Scenes.adding) {
                         Scenes.adding = false;
+                        return;
+                    }
+                    if (barLoader.item?.scenesOpen) {
+                        barLoader.item.scenesOpen = false;
                         return;
                     }
                     Scenes.selected = "";
@@ -217,6 +224,8 @@ PanelWindow {
                     }
                     Scenes.selected = "";
                     Scenes.editScreen = win.screenName;
+                    if (barLoader.item)
+                        barLoader.item.scenesOpen = false;
                     Scenes.openPicker({ x: x / stage.width, y: y / stage.height });
                 }
             }
@@ -227,9 +236,9 @@ PanelWindow {
                 Rectangle {
                     required property real modelData
 
-                    x: Math.round(parent.width * modelData)
+                    x: Math.round(backdrop.width * modelData)
                     width: 1
-                    height: parent.height
+                    height: backdrop.height
                     color: Colors.alpha("#ffffff", 0.07)
                 }
             }
@@ -240,9 +249,9 @@ PanelWindow {
                 Rectangle {
                     required property real modelData
 
-                    y: Math.round(parent.height * modelData)
+                    y: Math.round(backdrop.height * modelData)
                     height: 1
-                    width: parent.width
+                    width: backdrop.width
                     color: Colors.alpha("#ffffff", 0.07)
                 }
             }
@@ -347,7 +356,7 @@ PanelWindow {
             }
         }
 
-        // Widget-Auswahl: ueber der Leiste bzw. am Rechtsklick (rechts unten
+        // Widget-Auswahl: rechts ueber der Leiste bzw. am Rechtsklick (rechts unten
         // davon, am Bildschirmrand eingefangen; unten zu wenig Platz = darueber)
         Loader {
             id: pickerLoader
@@ -360,7 +369,7 @@ PanelWindow {
             z: 25
             x: {
                 if (!at)
-                    return Math.round((stage.width - w) / 2);
+                    return Math.round(stage.width - w - 36);
                 return Math.round(Math.max(16, Math.min(stage.width - w - 16, at.x * stage.width + 18)));
             }
             y: {
@@ -377,16 +386,16 @@ PanelWindow {
             onActiveChanged: if (!active && win.editing) stage.forceActiveFocus()
         }
 
-        // Bearbeitungsleiste unten mittig
+        // Bearbeitungsleiste rechts unten (wie im Sperrbildschirm-Editor)
         Loader {
             id: barLoader
 
             active: win.focusHere
             // ueber den Widgets (auch ueber dem Visualiser "unten")
             z: 20
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 36
+            anchors.margins: 36
 
             sourceComponent: EditBar {
                 screenName: win.screenName
