@@ -7,6 +7,7 @@
 #   compare/run.sh fallback   Die echten QML-Befehle, mit und ohne Binary im PATH
 #   compare/run.sh plugin     `dynamic-island plugin`, Python gegen Rust
 #   compare/run.sh looks      Terminal-Looks, Python gegen Rust
+#   compare/run.sh colours    scheme und wallpaper, Python gegen Rust
 set -euo pipefail
 
 RUST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -23,6 +24,7 @@ sandbox() {
         --unsetenv HYPRLAND_INSTANCE_SIGNATURE --unsetenv XDG_SESSION_ID \
         --setenv COMPARE_STDERR /tmp/out/stderr.log \
         --ro-bind-try "$HOME/.config/fastfetch" /tmp/ff-echt \
+        --ro-bind-try "$HOME/Pictures/Wallpapers" /tmp/wall-echt \
         "$@"
 }
 
@@ -55,7 +57,15 @@ LOOKS_PY=(python3 -I /tmp/work/quickshell/dynamic-island/plugins/terminal/looks.
 LOOKS_RS=(/tmp/work/dynamic-island/rust/target/release/dynamic-island-looks)
 
 STATUS=0
-if [ "${1:-}" = looks ]; then
+if [ "${1:-}" = colours ]; then
+    # Die Kopie in /tmp/cli enthaelt zusaetzlich Test-Schemata
+    sandbox python3 -I "$C/colours_scenarios.py" /tmp/out/colours.py /tmp/cli/bin/dynamic-island &
+    sandbox python3 -I "$C/colours_scenarios.py" /tmp/out/colours.py2 /tmp/cli/bin/dynamic-island &
+    sandbox python3 -I "$C/colours_scenarios.py" /tmp/out/colours.rs "$CLI_RS" &
+    wait
+    compare colours-baseline "$OUT/colours.py" "$OUT/colours.py2"
+    compare colours "$OUT/colours.py" "$OUT/colours.rs"
+elif [ "${1:-}" = looks ]; then
     sandbox python3 -I "$C/looks_scenarios.py" /tmp/out/looks.py "${LOOKS_PY[@]}" &
     sandbox python3 -I "$C/looks_scenarios.py" /tmp/out/looks.py2 "${LOOKS_PY[@]}" &
     sandbox python3 -I "$C/looks_scenarios.py" /tmp/out/looks.rs "${LOOKS_RS[@]}" &

@@ -407,18 +407,26 @@ build_helpers() {
         warn "cargo fehlt, die Shell nimmt die Python-Helfer"
         return 0
     fi
-    if ! run cargo build --release --quiet --manifest-path "$DI_DIR/rust/Cargo.toml"; then
+    local built="$DI_DIR/rust/target/release"
+    if ! run cargo build --release --quiet --manifest-path "$DI_DIR/rust/Cargo.toml" --target-dir "$DI_DIR/rust/target"; then
         warn "Build gescheitert, die Shell nimmt die Python-Helfer"
         return 0
     fi
     local helper
     for helper in "${RUST_HELPERS[@]}"; do
-        run install -Dm755 "$DI_DIR/rust/target/release/$helper" "$BIN_DIR/$helper"
-        ok "$(short "$BIN_DIR/$helper")"
+        if run install -Dm755 "$built/$helper" "$BIN_DIR/$helper"; then
+            ok "$(short "$BIN_DIR/$helper")"
+        else
+            warn "$helper nicht installiert, die Shell nimmt die Python-Fassung"
+        fi
     done
-    # Neben dem Python-Skript: Es uebernimmt alles, was Rust nicht selbst kann
-    run install -Dm755 "$DI_DIR/rust/target/release/dynamic-island-rs" "$DI_DIR/bin/dynamic-island-rs"
-    link "$DI_DIR/bin/dynamic-island-rs" "$BIN_DIR/dynamic-island"
+    # Neben dem Python-Skript: Es uebernimmt alles, was Rust nicht selbst kann. Der
+    # Symlink zieht erst um, wenn das Binary wirklich dort liegt.
+    if run install -Dm755 "$built/dynamic-island-rs" "$DI_DIR/bin/dynamic-island-rs"; then
+        link "$DI_DIR/bin/dynamic-island-rs" "$BIN_DIR/dynamic-island"
+    else
+        warn "dynamic-island-rs nicht installiert, die CLI bleibt bei Python"
+    fi
 }
 
 check_helpers() {

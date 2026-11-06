@@ -4,7 +4,10 @@
 //! input we do not understand goes to the Python CLI unchanged, so its behaviour
 //! stays what it was.
 
+mod colours;
+mod hypr;
 mod plugin;
+mod theme;
 
 use std::ffi::OsString;
 use std::os::unix::process::CommandExt;
@@ -15,7 +18,7 @@ use clap::Parser;
 use di_common::paths;
 
 /// The Python CLI: where the variable points to, next to this binary, or in the config.
-fn python_cli() -> PathBuf {
+pub fn python_cli() -> PathBuf {
     if let Some(cli) = std::env::var_os("DYNAMIC_ISLAND_PYTHON_CLI") {
         return cli.into();
     }
@@ -34,6 +37,42 @@ fn run_python(args: &[OsString]) -> ! {
     std::process::exit(127);
 }
 
+/// The exit code if this command is ours. None means Python takes it: not ported,
+/// a help text, or something clap does not accept (like an abbreviated option).
+fn run_native(args: &[OsString]) -> Option<i32> {
+    let command = args.first()?.to_str()?;
+    // An empty value is a special case in argparse, Python knows what to do.
+    if args.iter().any(|a| a.is_empty()) {
+        return None;
+    }
+    let tail = || args.iter().cloned();
+    match command {
+        "plugin" => {
+            let cli = plugin::Cli::try_parse_from(tail()).ok()?;
+            (!cli.action.uses_tilde_user()).then(|| plugin::run(&cli.action))
+        }
+        "scheme" => {
+            let cli = colours::SchemeCli::try_parse_from(tail()).ok()?;
+            cli.is_valid().then(|| finish(colours::run_scheme(&cli)))
+        }
+        "wallpaper" => {
+            let cli = colours::WallpaperCli::try_parse_from(tail()).ok()?;
+            cli.is_valid().then(|| finish(colours::run_wallpaper(&cli)))
+        }
+        _ => None,
+    }
+}
+
+fn finish(result: Result<(), String>) -> i32 {
+    match result {
+        Ok(()) => 0,
+        Err(message) => {
+            eprintln!("dynamic-island: {message}");
+            1
+        }
+    }
+}
+
 fn main() {
     // A closed pipe (`dynamic-island plugin list | head`) ends us quietly.
     // SAFETY: called before any other thread exists, SIG_DFL needs no handler.
@@ -42,13 +81,8 @@ fn main() {
     }
 
     let args: Vec<OsString> = std::env::args_os().skip(1).collect();
-    if args.first().is_some_and(|a| a == "plugin")
-        && let Ok(cli) = plugin::Cli::try_parse_from(
-            std::iter::once(OsString::from("plugin")).chain(args[1..].iter().cloned()),
-        )
-        && !cli.action.uses_tilde_user()
-    {
-        std::process::exit(plugin::run(&cli.action));
+    if let Some(code) = run_native(&args) {
+        std::process::exit(code);
     }
     run_python(&args);
 }
