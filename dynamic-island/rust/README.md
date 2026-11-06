@@ -9,12 +9,19 @@ Beide sprechen dasselbe Protokoll. `install.sh` baut und installiert die Binarie
 | `dynamic-island-idle` | `modules/services/idle/idlehelper.py` | `Idle.qml` |
 | `dynamic-island-bluetooth-agent` | `modules/services/bluetooth/agent.py` | `BluetoothService.qml` |
 
+`dynamic-island-rs` ist das neue Frontend von `dynamic-island`. Es macht `plugin`
+selbst. Alles andere, jede Hilfe und jede Eingabe, die es nicht versteht, reicht es
+unveraendert an `bin/dynamic-island` (Python) weiter. Es muss neben diesem Skript
+liegen, und `~/.local/bin/dynamic-island` muss ein Symlink bleiben: `Themes.qml`
+findet darueber die Farbschemata.
+
 ## Zurueck zu Python
 
-Binary loeschen und die Shell neu starten:
+Binary loeschen und die Shell neu starten, fuer die CLI den Symlink umstellen:
 
 ```sh
 rm ~/.local/bin/dynamic-island-idle ~/.local/bin/dynamic-island-bluetooth-agent
+ln -sfn ~/.config/dynamic-island/bin/dynamic-island ~/.local/bin/dynamic-island
 ```
 
 ## Vergleichstests
@@ -29,4 +36,5 @@ cargo build --release
 compare/run.sh            # Python gegen Rust
 compare/run.sh baseline   # Python gegen sich selbst: Sind die Protokolle stabil?
 compare/run.sh fallback   # die echten QML-Befehle, mit und ohne Binary im PATH
+compare/run.sh plugin     # dynamic-island plugin, auch mit boesartigen Paketen
 ```

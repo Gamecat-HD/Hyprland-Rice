@@ -5,6 +5,7 @@
 #   compare/run.sh baseline   Python zweimal: Sind die Protokolle stabil?
 #   compare/run.sh            Python gegen Rust (vorher: cargo build --release)
 #   compare/run.sh fallback   Die echten QML-Befehle, mit und ohne Binary im PATH
+#   compare/run.sh plugin     `dynamic-island plugin`, Python gegen Rust
 set -euo pipefail
 
 RUST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -45,8 +46,21 @@ qml_command() { # qml-datei python-skript
     printf '%s\0' sh -c "$script" sh "$2"
 }
 
+CLI_PY=/tmp/work/dynamic-island/bin/dynamic-island
+CLI_RS=/tmp/work/dynamic-island/rust/target/release/dynamic-island-rs
+
 STATUS=0
-if [ "${1:-}" = fallback ]; then
+if [ "${1:-}" = plugin ]; then
+    sandbox python3 -I "$C/plugin_scenarios.py" /tmp/out/plugin.py "$CLI_PY" "$CLI_PY" &
+    sandbox python3 -I "$C/plugin_scenarios.py" /tmp/out/plugin.py2 "$CLI_PY" "$CLI_PY" &
+    wait
+    sandbox python3 -I "$C/plugin_scenarios.py" /tmp/out/plugin.rs "$CLI_RS" "$CLI_PY" &
+    sandbox python3 -I "$C/plugin_scenarios.py" /tmp/out/plugin.rs2 "$CLI_PY" "$CLI_RS" &
+    wait
+    compare plugin-baseline "$OUT/plugin.py" "$OUT/plugin.py2"
+    compare plugin "$OUT/plugin.py" "$OUT/plugin.rs"
+    compare plugin-rust-pakete "$OUT/plugin.py" "$OUT/plugin.rs2"
+elif [ "${1:-}" = fallback ]; then
     Q=quickshell/dynamic-island/modules/services
     mapfile -d '' IDLE_QML < <(qml_command "$REPO/$Q/idle/Idle.qml" "/tmp/work/$Q/idle/idlehelper.py")
     mapfile -d '' AGENT_QML < <(qml_command "$REPO/$Q/bluetooth/BluetoothService.qml" "/tmp/work/$Q/bluetooth/agent.py")

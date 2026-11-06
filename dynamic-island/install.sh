@@ -379,7 +379,12 @@ check_notifications() {
 # ------------------------------------------------------------- 2. Links ---
 link_files() {
     step "Befehle und Completions verlinken"
-    link "$DI_DIR/bin/dynamic-island" "$BIN_DIR/dynamic-island"
+    # Der Symlink bleibt: Themes.qml findet ueber ihn die Farbschemata (bin/../src)
+    if [ -x "$DI_DIR/bin/dynamic-island-rs" ]; then
+        link "$DI_DIR/bin/dynamic-island-rs" "$BIN_DIR/dynamic-island"
+    else
+        link "$DI_DIR/bin/dynamic-island" "$BIN_DIR/dynamic-island"
+    fi
     link "$DI_DIR/scripts/hypr-profile" "$BIN_DIR/hypr-profile"
     link "$DI_DIR/scripts/theme-set" "$BIN_DIR/theme-set"
     link "$DI_DIR/completions/dynamic-island.fish" "$CONFIG_DIR/fish/completions/dynamic-island.fish"
@@ -411,6 +416,9 @@ build_helpers() {
         run install -Dm755 "$DI_DIR/rust/target/release/$helper" "$BIN_DIR/$helper"
         ok "$(short "$BIN_DIR/$helper")"
     done
+    # Neben dem Python-Skript: Es uebernimmt alles, was Rust nicht selbst kann
+    run install -Dm755 "$DI_DIR/rust/target/release/dynamic-island-rs" "$DI_DIR/bin/dynamic-island-rs"
+    link "$DI_DIR/bin/dynamic-island-rs" "$BIN_DIR/dynamic-island"
 }
 
 check_helpers() {

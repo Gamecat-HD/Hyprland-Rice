@@ -76,3 +76,4 @@ __pycache__/
 
 # Rust-Build der Helfer
 /dynamic-island/rust/target/
+/dynamic-island/bin/dynamic-island-rs
