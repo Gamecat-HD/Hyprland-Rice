@@ -278,17 +278,6 @@ fn backups_dir() -> PathBuf {
     paths::c_cache_dir().join("plugin-backups")
 }
 
-/// `Path(x).expanduser()` for `~` and `~/...`, see `Action::uses_tilde_user`.
-fn expand_user(path: &str) -> PathBuf {
-    if path == "~" {
-        paths::home()
-    } else if let Some(rest) = path.strip_prefix("~/") {
-        paths::home().join(rest.trim_start_matches('/'))
-    } else {
-        PathBuf::from(path)
-    }
-}
-
 struct State {
     enabled: Map<String, Value>,
     settings: Map<String, Value>,
@@ -407,10 +396,9 @@ fn check_manifest(manifest: &Value, folder: Option<&str>) -> String {
     {
         return format!("id \"{pid}\" passt nicht zum Ordnernamen \"{folder}\"");
     }
-    if !m
-        .get("name")
+    if m.get("name")
         .and_then(Value::as_str)
-        .is_some_and(|n| !n.is_empty())
+        .is_none_or(str::is_empty)
     {
         return "name fehlt".to_owned();
     }
@@ -504,10 +492,10 @@ fn check_keybind(id: &str, bind: &Value) -> String {
     else {
         return format!("keybinds.{id}: id ungueltig");
     };
-    if !bind
+    if bind
         .get("keys")
         .and_then(Value::as_str)
-        .is_some_and(|k| !k.trim().is_empty())
+        .is_none_or(|k| k.trim().is_empty())
     {
         return format!("keybinds.{id}: keys fehlt");
     }
@@ -826,7 +814,7 @@ fn set_enabled(id: &str, on: bool) -> Outcome {
 }
 
 fn validate(path: &str) -> Outcome {
-    let path = expand_user(path);
+    let path = paths::expand_user(path);
     if path.is_dir() {
         let m = load_manifest(&path).map_err(PluginError)?;
         let mut parts = vec![m.get("main").cloned().unwrap_or(Value::Null)];
@@ -883,7 +871,7 @@ fn skipped_name(rel: &Path) -> bool {
 fn export_target(args: &ExportArgs, default_name: &str) -> PathBuf {
     match &args.output {
         Some(output) => {
-            let out = expand_user(output);
+            let out = paths::expand_user(output);
             if out.is_dir() || output.ends_with('/') {
                 out.join(default_name)
             } else {
@@ -1311,7 +1299,7 @@ fn pax_mtime<R: Read>(entry: &mut tar::Entry<'_, R>) -> Option<Duration> {
 }
 
 fn import(args: &ImportArgs) -> Outcome {
-    let path = expand_user(&args.file);
+    let path = paths::expand_user(&args.file);
     if path.extension() == Some(OsStr::new("json")) {
         return import_settings(args, &path);
     }

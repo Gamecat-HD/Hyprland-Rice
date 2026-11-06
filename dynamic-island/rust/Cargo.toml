@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["idle-helper", "bluetooth-agent", "common", "cli"]
+members = ["idle-helper", "bluetooth-agent", "common", "cli", "looks"]
 
 [workspace.package]
 edition = "2024"

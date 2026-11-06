@@ -52,10 +52,25 @@ fn component_name(component: Component<'_>) -> Option<std::ffi::OsString> {
     }
 }
 
+/// Text mode of Python: `\\r\\n` and `\\r` turn into `\\n`.
+#[must_use]
+pub fn universal_newlines(text: &str) -> String {
+    if text.contains('\r') {
+        text.replace("\r\n", "\n").replace('\r', "\n")
+    } else {
+        text.to_owned()
+    }
+}
+
+/// `Path.read_text()`
+pub fn read_text(path: &Path) -> io::Result<String> {
+    Ok(universal_newlines(&fs::read_to_string(path)?))
+}
+
 /// `atomic_write` of `paths.py`: writes only when the content changes, so watchers
 /// stay asleep. True if written. The file ends up with mode 0600, like before.
 pub fn atomic_write(path: &Path, content: &str) -> io::Result<bool> {
-    if fs::read_to_string(path).is_ok_and(|old| old == content) {
+    if read_text(path).is_ok_and(|old| old == content) {
         return Ok(false);
     }
     let parent = path.parent().unwrap_or(Path::new("."));

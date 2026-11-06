@@ -399,7 +399,7 @@ link_files() {
 # ------------------------------------------------------- Rust-Helfer ---
 # Fehlt ein Binary, nimmt die Shell die Python-Fassung. Darum ist ein
 # gescheiterter Build hier nur eine Warnung.
-RUST_HELPERS=(dynamic-island-idle dynamic-island-bluetooth-agent)
+RUST_HELPERS=(dynamic-island-idle dynamic-island-bluetooth-agent dynamic-island-looks)
 
 build_helpers() {
     step "Rust-Helfer bauen"

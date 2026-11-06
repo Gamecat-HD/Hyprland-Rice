@@ -6,6 +6,7 @@
 #   compare/run.sh            Python gegen Rust (vorher: cargo build --release)
 #   compare/run.sh fallback   Die echten QML-Befehle, mit und ohne Binary im PATH
 #   compare/run.sh plugin     `dynamic-island plugin`, Python gegen Rust
+#   compare/run.sh looks      Terminal-Looks, Python gegen Rust
 set -euo pipefail
 
 RUST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -21,6 +22,7 @@ sandbox() {
         --unsetenv WAYLAND_DISPLAY --unsetenv DISPLAY --unsetenv DBUS_SESSION_BUS_ADDRESS \
         --unsetenv HYPRLAND_INSTANCE_SIGNATURE --unsetenv XDG_SESSION_ID \
         --setenv COMPARE_STDERR /tmp/out/stderr.log \
+        --ro-bind-try "$HOME/.config/fastfetch" /tmp/ff-echt \
         "$@"
 }
 
@@ -49,8 +51,18 @@ qml_command() { # qml-datei python-skript
 CLI_PY=/tmp/work/dynamic-island/bin/dynamic-island
 CLI_RS=/tmp/work/dynamic-island/rust/target/release/dynamic-island-rs
 
+LOOKS_PY=(python3 -I /tmp/work/quickshell/dynamic-island/plugins/terminal/looks.py)
+LOOKS_RS=(/tmp/work/dynamic-island/rust/target/release/dynamic-island-looks)
+
 STATUS=0
-if [ "${1:-}" = plugin ]; then
+if [ "${1:-}" = looks ]; then
+    sandbox python3 -I "$C/looks_scenarios.py" /tmp/out/looks.py "${LOOKS_PY[@]}" &
+    sandbox python3 -I "$C/looks_scenarios.py" /tmp/out/looks.py2 "${LOOKS_PY[@]}" &
+    sandbox python3 -I "$C/looks_scenarios.py" /tmp/out/looks.rs "${LOOKS_RS[@]}" &
+    wait
+    compare looks-baseline "$OUT/looks.py" "$OUT/looks.py2"
+    compare looks "$OUT/looks.py" "$OUT/looks.rs"
+elif [ "${1:-}" = plugin ]; then
     sandbox python3 -I "$C/plugin_scenarios.py" /tmp/out/plugin.py "$CLI_PY" "$CLI_PY" &
     sandbox python3 -I "$C/plugin_scenarios.py" /tmp/out/plugin.py2 "$CLI_PY" "$CLI_PY" &
     wait
@@ -77,6 +89,15 @@ elif [ "${1:-}" = fallback ]; then
     sandbox python3 -I "$C/idle_scenarios.py" /tmp/out/idle.py "${IDLE_PY[@]}" &
     sandbox python3 -I "$C/agent_scenarios.py" /tmp/out/agent.py "${AGENT_PY[@]}" &
     wait
+    T=quickshell/dynamic-island/plugins/terminal
+    mapfile -d '' LOOKS_QML < <(qml_command "$REPO/$T/Main.qml" "/tmp/work/$T/looks.py")
+    W=(--setenv COMPARE_ONLY get_save)
+    sandbox "${W[@]}" "${WITH[@]}" python3 -I "$C/looks_scenarios.py" /tmp/out/looks.with "${LOOKS_QML[@]}" &
+    sandbox "${W[@]}" "${WITHOUT[@]}" python3 -I "$C/looks_scenarios.py" /tmp/out/looks.without "${LOOKS_QML[@]}" &
+    sandbox "${W[@]}" python3 -I "$C/looks_scenarios.py" /tmp/out/looks.only "${LOOKS_PY[@]}" &
+    wait
+    compare looks-qml-mit-binary "$OUT/looks.only" "$OUT/looks.with"
+    compare looks-qml-ohne-binary "$OUT/looks.only" "$OUT/looks.without"
     compare idle-qml-mit-binary "$OUT/idle.py" "$OUT/idle.with"
     compare agent-qml-mit-binary "$OUT/agent.py" "$OUT/agent.with"
     compare idle-qml-ohne-binary "$OUT/idle.py" "$OUT/idle.without"
