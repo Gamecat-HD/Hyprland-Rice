@@ -149,7 +149,8 @@ QtObject {
         const job = root.queue[0];
         root.queue = root.queue.slice(1);
         proc.job = job;
-        proc.command = ["python3", "-I", root.script, job.op].concat(job.args);
+        // Rust-Fassung, wenn install.sh sie gebaut hat, sonst das Python-Skript
+        proc.command = ["sh", "-c", "command -v dynamic-island-looks >/dev/null || { s=\"$1\"; shift; exec python3 -I \"$s\" \"$@\"; }; shift; exec dynamic-island-looks \"$@\"", "sh", root.script, job.op].concat(job.args);
         root.busy = true;
         proc.running = true;
     }
