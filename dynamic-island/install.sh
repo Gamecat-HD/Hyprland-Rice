@@ -105,6 +105,7 @@ ki_warnung() {
       wandert vorher nach ~/backups/
     - Symlinks in ~/.local/bin (dynamic-island, hypr-profile, theme-set)
       und in ~/.config/fish/completions
+    - baut die Rust-Helfer und legt sie nach ~/.local/bin (nur mit cargo)
     - legt Verzeichnisse an (~/.local/state/$SHELL_NAME, ~/.cache/$SHELL_NAME,
       ~/Pictures/{Wallpapers,Screenshots})
     - kopiert die Wallpaper aus dem Repo nach ~/Pictures/Wallpapers
@@ -264,6 +265,8 @@ declare -A OPTIONAL=(
     # Die VPN-Kachel kann zwischen NordVPN und Cloudflare WARP wechseln
     [nordvpn]=nordvpn-bin
     [warp-cli]=cloudflare-warp-bin
+    # Baut die Rust-Helfer (dynamic-island/rust), ohne cargo laufen die Python-Fassungen
+    [cargo]=rust
 )
 
 # Systemdienste, an denen die Shell ueber DBus haengt
@@ -386,6 +389,40 @@ link_files() {
         *) warn "~/.local/bin fehlt im PATH — fish: fish_add_path ~/.local/bin"
            warn "                                bash/zsh: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
     esac
+}
+
+# ------------------------------------------------------- Rust-Helfer ---
+# Fehlt ein Binary, nimmt die Shell die Python-Fassung. Darum ist ein
+# gescheiterter Build hier nur eine Warnung.
+RUST_HELPERS=(dynamic-island-idle dynamic-island-bluetooth-agent)
+
+build_helpers() {
+    step "Rust-Helfer bauen"
+    if ! command -v cargo >/dev/null 2>&1; then
+        warn "cargo fehlt, die Shell nimmt die Python-Helfer"
+        return 0
+    fi
+    if ! run cargo build --release --quiet --manifest-path "$DI_DIR/rust/Cargo.toml"; then
+        warn "Build gescheitert, die Shell nimmt die Python-Helfer"
+        return 0
+    fi
+    local helper
+    for helper in "${RUST_HELPERS[@]}"; do
+        run install -Dm755 "$DI_DIR/rust/target/release/$helper" "$BIN_DIR/$helper"
+        ok "$(short "$BIN_DIR/$helper")"
+    done
+}
+
+check_helpers() {
+    step "Rust-Helfer"
+    local helper
+    for helper in "${RUST_HELPERS[@]}"; do
+        if [ -x "$BIN_DIR/$helper" ]; then
+            ok "$(short "$BIN_DIR/$helper")"
+        else
+            skip "$helper fehlt, die Shell nimmt die Python-Fassung"
+        fi
+    done
 }
 
 # ----------------------------------------------------- 3. Verzeichnisse ---
@@ -568,6 +605,7 @@ check_services
 check_notifications
 if [ "$CHECK_ONLY" = 1 ]; then check_deploy; else deploy; fi
 if [ "$CHECK_ONLY" = 1 ]; then check_links; else link_files; fi
+if [ "$CHECK_ONLY" = 1 ]; then check_helpers; else build_helpers; fi
 make_dirs
 seed_wallpapers
 seed_scheme

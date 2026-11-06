@@ -73,3 +73,6 @@ __pycache__/
 !/caelestia/
 /caelestia/*
 !/caelestia/cli.json
+
+# Rust-Build der Helfer
+/dynamic-island/rust/target/
