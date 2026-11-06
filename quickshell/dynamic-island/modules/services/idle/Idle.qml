@@ -145,7 +145,9 @@ Singleton {
     // ---- Helfer ----
     Process {
         id: helperProc
-        command: ["python3", "-I", root.helper]
+        // Rust-Fassung, wenn install.sh sie gebaut hat, sonst das Python-Skript. Beide
+        // sprechen dasselbe Protokoll; das Binary zu loeschen ist also der Rueckweg.
+        command: ["sh", "-c", "command -v dynamic-island-idle >/dev/null && exec dynamic-island-idle; exec python3 -I \"$1\"", "sh", root.helper]
         stdinEnabled: true
         stdout: SplitParser {
             onRead: line => {

@@ -725,7 +725,9 @@ Singleton {
     Process {
         id: agent
 
-        command: ["python3", "-I", Quickshell.shellPath("modules/services/bluetooth/agent.py")]
+        // Rust-Fassung, wenn install.sh sie gebaut hat, sonst das Python-Skript. Beide
+        // sprechen dasselbe Protokoll; das Binary zu loeschen ist also der Rueckweg.
+        command: ["sh", "-c", "command -v dynamic-island-bluetooth-agent >/dev/null && exec dynamic-island-bluetooth-agent; exec python3 -I \"$1\"", "sh", Quickshell.shellPath("modules/services/bluetooth/agent.py")]
         stdinEnabled: true
         running: root.anyEnabled && !root.agentBackoff
 
