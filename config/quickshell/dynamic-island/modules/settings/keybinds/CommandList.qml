@@ -132,9 +132,9 @@ Item {
             bottom: parent.bottom
         }
         radius: 12
-        color: Colors.alpha(Colors.fgSurface, 0.03)
+        color: Colors.surfaceContainer
         border.width: 1
-        border.color: Colors.alpha(Colors.outline, 0.16)
+        border.color: Colors.alpha(Colors.fgSurface, 0.06)
         clip: true
 
         ListView {
@@ -142,7 +142,10 @@ Item {
 
             anchors {
                 fill: parent
-                margins: 4
+                leftMargin: 6
+                rightMargin: 6
+                topMargin: 8
+                bottomMargin: 8
             }
             model: list.rows
             clip: true
@@ -309,6 +312,39 @@ Item {
                         onTapped: list.selected(row.command.id)
                     }
                 }
+            }
+        }
+
+        // Weiche Kanten oben und unten, damit angeschnittene Zeilen nicht hart enden
+        Rectangle {
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                margins: 1
+            }
+            height: 14
+            radius: 11
+            visible: view.contentY > 0
+            gradient: Gradient {
+                GradientStop { position: 0; color: Colors.surfaceContainer }
+                GradientStop { position: 1; color: Colors.alpha(Colors.surfaceContainer, 0) }
+            }
+        }
+
+        Rectangle {
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+                margins: 1
+            }
+            height: 14
+            radius: 11
+            visible: view.contentY < view.contentHeight - view.height - 1
+            gradient: Gradient {
+                GradientStop { position: 0; color: Colors.alpha(Colors.surfaceContainer, 0) }
+                GradientStop { position: 1; color: Colors.surfaceContainer }
             }
         }
 

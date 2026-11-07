@@ -38,18 +38,20 @@ Item {
     readonly property var selected: HyprBinds.commands.find(c => c.id === editor.selectedId) ?? null
     // Waehrend der Aufnahme folgt die Ebene den gehaltenen Modifiern
     readonly property int shownMask: capture.active ? capture.heldMask : editor.mask
-    readonly property bool narrow: editor.width < 680
-    readonly property real paneHeight: 420
+    readonly property bool narrow: editor.width < 760
+    readonly property real paneHeight: 480
+    // Fuer Tests: die Tastatur
+    readonly property alias keyboard: board
 
     // Canon "64:q" -> Belegung, einmal fuer alle Ebenen
     readonly property var index: {
         const out = {};
         for (const c of HyprBinds.commands)
             for (const combo of c.combos)
-                out[combo.canon] = { id: c.id, title: c.title, group: c.group, disabled: combo.disabled, changed: combo.changed, source: combo.source, unnamed: false };
+                out[combo.canon] = { id: c.id, title: c.title, group: c.group, disabled: combo.disabled, changed: combo.changed, source: combo.source, unnamed: false, keys: combo.keys };
         for (const u of HyprBinds.unnamed)
             if (!out[u.canon])
-                out[u.canon] = { id: "", title: "", group: "", disabled: false, changed: false, source: "config", unnamed: true };
+                out[u.canon] = { id: "", title: "", group: "", disabled: false, changed: false, source: "config", unnamed: true, keys: [] };
         return out;
     }
 
@@ -353,100 +355,6 @@ Item {
             }
         }
 
-        // ---- Ebene + Legende ----
-        Item {
-            width: parent.width
-            height: 26
-
-            Row {
-                anchors {
-                    left: parent.left
-                    verticalCenter: parent.verticalCenter
-                }
-                spacing: 6
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: I18n.tr("Ebene")
-                    color: Colors.fgSurfaceVariant
-                    font.family: Config.font
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                    rightPadding: 2
-                }
-
-                Repeater {
-                    model: Layout.modLabels(editor.shownMask)
-
-                    Keycap {
-                        required property string modelData
-
-                        anchors.verticalCenter: parent?.verticalCenter
-                        text: I18n.tr(modelData)
-                        size: 20
-                        accent: true
-                    }
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: editor.shownMask === 0
-                    text: I18n.tr("ohne Modifier")
-                    color: Colors.fgSurfaceVariant
-                    font.family: Config.font
-                    font.pixelSize: 11
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "+ …"
-                    color: Colors.alpha(Colors.fgSurfaceVariant, 0.6)
-                    font.family: Config.font
-                    font.pixelSize: 11
-                }
-            }
-
-            Row {
-                anchors {
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                }
-                spacing: 12
-
-                Repeater {
-                    model: [
-                        { color: Colors.primary, label: "Geändert" },
-                        { color: Colors.secondary, label: "Plugin" },
-                        { color: Colors.tertiary, label: "Eigenes" }
-                    ]
-
-                    Row {
-                        id: legend
-
-                        required property var modelData
-
-                        spacing: 5
-
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 6
-                            height: 6
-                            radius: 3
-                            color: legend.modelData.color
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: I18n.tr(legend.modelData.label)
-                            color: Colors.fgSurfaceVariant
-                            font.family: Config.font
-                            font.pixelSize: 10
-                        }
-                    }
-                }
-            }
-        }
-
         // ---- Tastatur ----
         VirtualKeyboard {
             id: board
@@ -457,8 +365,50 @@ Item {
             litKeys: editor.litKeys
             pick: editor.pick !== null
             interactive: !capture.active
+            statusTitle: editor.selected ? `${I18n.tr(editor.selected.group)} › ${I18n.tr(editor.selected.title)}` : ""
+            statusKeys: editor.selected?.combos[0]?.keys ?? []
             onKeyClicked: id => editor.keyClicked(id)
             onModifierToggled: bit => editor.mask = editor.mask ^ bit
+        }
+
+        // Legende der Lichtfarben
+        Row {
+            anchors.right: parent.right
+            spacing: 14
+
+            Repeater {
+                model: [
+                    { color: Colors.primary, label: "Config" },
+                    { color: Colors.secondary, label: "Plugin" },
+                    { color: Colors.tertiary, label: "Eigenes" },
+                    { color: Colors.fgSurface, label: "Geändert" },
+                    { color: Colors.error, label: "Aus" }
+                ]
+
+                Row {
+                    id: legend
+
+                    required property var modelData
+
+                    spacing: 5
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 7
+                        height: 7
+                        radius: 3.5
+                        color: legend.modelData.color
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: I18n.tr(legend.modelData.label)
+                        color: Colors.fgSurfaceVariant
+                        font.family: Config.font
+                        font.pixelSize: 10
+                    }
+                }
+            }
         }
 
         // ---- Eigenes Kuerzel ----
@@ -552,7 +502,7 @@ Item {
                     left: parent.left
                     top: parent.top
                 }
-                width: editor.narrow ? parent.width : Math.max(300, Math.round(parent.width * 0.45))
+                width: editor.narrow ? parent.width : Math.max(320, Math.round(parent.width * 0.4))
                 height: editor.paneHeight
                 selectedId: editor.selectedId
                 searchIndex: editor.searchIndex
@@ -570,7 +520,7 @@ Item {
                     left: editor.narrow ? parent.left : list.right
                     right: parent.right
                     top: editor.narrow ? list.bottom : parent.top
-                    leftMargin: editor.narrow ? 0 : 12
+                    leftMargin: editor.narrow ? 0 : 16
                     topMargin: editor.narrow ? 12 : 0
                 }
                 height: editor.paneHeight

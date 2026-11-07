@@ -313,6 +313,9 @@ Surface {
     // als Sequenz an, nicht als Array). Ein breiter Editor macht die Karte
     // breit – die anderen (Sperrbildschirm, Desktop) sind nur ein Knopf.
     readonly property var wideEditors: ["quick", "battery", "keybinds"]
+    // Diese nehmen die ganze Breite des Fensters statt hoechstens 820 px
+    // (die Tastatur der Tastenkuerzel braucht Platz)
+    readonly property var fullEditors: ["keybinds"]
     readonly property var groupCards: {
         const out = [];
         card.entries.forEach((e, i) => {
@@ -320,8 +323,9 @@ Surface {
             if (last && last.page === (e.page ?? e.section) && last.group === e.group) {
                 last.rows.push(i);
                 last.wide = last.wide || card.wideEditors.includes(e.editor);
+                last.full = last.full || card.fullEditors.includes(e.editor);
             } else {
-                out.push({ section: e.section, page: e.page ?? e.section, group: e.group, rows: [i], wide: card.wideEditors.includes(e.editor) });
+                out.push({ section: e.section, page: e.page ?? e.section, group: e.group, rows: [i], wide: card.wideEditors.includes(e.editor), full: card.fullEditors.includes(e.editor) });
             }
         });
         return out;
@@ -353,7 +357,7 @@ Surface {
             const c = card.groupCards[i];
             const last = runs[runs.length - 1];
             if (c.wide)
-                runs.push({ wide: true, cards: [i] });
+                runs.push({ wide: true, full: !!c.full, cards: [i] });
             else if (last && !last.wide)
                 last.cards.push(i);
             else
@@ -375,7 +379,7 @@ Surface {
 
         const bands = runs.map(r => {
             if (r.wide)
-                return { wide: true, columns: [r.cards] };
+                return { wide: true, full: r.full, columns: [r.cards] };
             const n = Math.min(cols, r.cards.length);
             const columns = Array.from({ length: n }, () => []);
             const heights = new Array(n).fill(0);
@@ -386,7 +390,7 @@ Surface {
             }
             return { wide: false, columns };
         });
-        return { bands, colWidth, wideWidth };
+        return { bands, colWidth, wideWidth, fullWidth: room };
     }
 
     // Modell der Baender, nur neu gesetzt, wenn sich die Aufteilung oder die
@@ -1307,7 +1311,7 @@ Surface {
 
                                 required property var modelData
 
-                                width: band.modelData.wide ? card.layoutShape.wideWidth : card.layoutShape.colWidth
+                                width: band.modelData.full ? card.layoutShape.fullWidth : band.modelData.wide ? card.layoutShape.wideWidth : card.layoutShape.colWidth
                                 spacing: list.gap
 
                                 Repeater {

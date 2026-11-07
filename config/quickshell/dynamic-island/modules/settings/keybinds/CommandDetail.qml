@@ -76,9 +76,9 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 12
-        color: Colors.alpha(Colors.fgSurface, 0.03)
+        color: Colors.surfaceContainer
         border.width: 1
-        border.color: Colors.alpha(Colors.outline, 0.16)
+        border.color: Colors.alpha(Colors.fgSurface, 0.06)
         clip: true
 
         // ---- Leer ----
@@ -243,9 +243,9 @@ Item {
                     visible: detail.action !== null && !detail.isCustom
                     height: actionCol.implicitHeight + 20
                     radius: 10
-                    color: Colors.alpha(Colors.background, 0.35)
+                    color: Qt.darker(Colors.surface, 1.2)
                     border.width: 1
-                    border.color: Colors.alpha(Colors.outline, 0.2)
+                    border.color: Colors.alpha(Colors.background, 0.6)
 
                     Column {
                         id: actionCol
@@ -349,9 +349,9 @@ Item {
                         width: column.width
                         height: 44
                         radius: 10
-                        color: Colors.alpha(Colors.fgSurface, 0.04)
+                        color: Colors.alpha(Colors.fgSurface, 0.05)
                         border.width: 1
-                        border.color: Colors.alpha(Colors.outline, comboRow.combo.disabled ? 0.1 : 0.2)
+                        border.color: Colors.alpha(Colors.fgSurface, comboRow.combo.disabled ? 0.04 : 0.08)
 
                         Row {
                             anchors {
