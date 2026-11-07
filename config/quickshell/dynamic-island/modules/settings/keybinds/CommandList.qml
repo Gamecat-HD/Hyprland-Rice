@@ -22,6 +22,9 @@ Item {
 
     signal selected(string id)
     signal addToggled
+    // Rechtsklick auf eine Zeile (Position in Listenkoordinaten)
+    signal contextRequested(string id, real x, real y)
+    readonly property alias addButton: addBtn
 
     readonly property string query: search.text.trim().toLowerCase()
 
@@ -121,6 +124,8 @@ Item {
         }
 
         KbIconButton {
+            id: addBtn
+
             size: 24
             icon: "add"
             hint: I18n.tr("Eigenes Kürzel anlegen")
@@ -317,7 +322,14 @@ Item {
                     }
 
                     TapHandler {
-                        onTapped: list.selected(row.command.id)
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onTapped: (point, button) => {
+                            if (button === Qt.RightButton) {
+                                const p = row.mapToItem(list, point.position.x, point.position.y);
+                                list.contextRequested(row.command.id, p.x, p.y);
+                            } else
+                                list.selected(row.command.id);
+                        }
                     }
                 }
             }

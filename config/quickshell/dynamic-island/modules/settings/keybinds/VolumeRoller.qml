@@ -19,6 +19,7 @@ Item {
     property bool interactive: true
 
     signal clicked(string id)
+    signal contextClicked(string id)
 
     // Gehoverte Haelfte fuer den Tooltip der Tastatur: -1 keine, 0 leiser, 1 lauter
     readonly property int hoverSide: leftHalf.hovered ? 0 : rightHalf.hovered ? 1 : -1
@@ -147,7 +148,8 @@ Item {
 
         TapHandler {
             enabled: roller.interactive && (roller.infos[0] !== null || roller.pick)
-            onTapped: roller.clicked(roller.ids[0])
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onTapped: (point, button) => button === Qt.RightButton ? roller.contextClicked(roller.ids[0]) : roller.clicked(roller.ids[0])
         }
     }
 
@@ -168,7 +170,8 @@ Item {
 
         TapHandler {
             enabled: roller.interactive && (roller.infos[1] !== null || roller.pick)
-            onTapped: roller.clicked(roller.ids[1])
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onTapped: (point, button) => button === Qt.RightButton ? roller.contextClicked(roller.ids[1]) : roller.clicked(roller.ids[1])
         }
     }
 }

@@ -19,6 +19,7 @@ Item {
     property bool interactive: true
 
     signal clicked
+    signal contextClicked
 
     readonly property bool occupied: btn.info !== null
     readonly property bool target: btn.pick && !btn.occupied && btn.interactive
@@ -89,6 +90,12 @@ Item {
 
     TapHandler {
         enabled: btn.interactive && (btn.occupied || btn.target)
-        onTapped: btn.clicked()
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onTapped: (point, button) => {
+            if (button === Qt.RightButton)
+                btn.contextClicked();
+            else
+                btn.clicked();
+        }
     }
 }

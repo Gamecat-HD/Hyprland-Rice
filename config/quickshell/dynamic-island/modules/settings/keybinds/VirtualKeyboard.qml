@@ -37,6 +37,10 @@ Item {
 
     signal keyClicked(string id)
     signal modifierToggled(int bit)
+    // Rechtsklick auf eine belegte Taste/Knopf (Kontextmenue des Editors)
+    signal keyContext(string id, Item item)
+    // Ebene fuer den Tooltip (Overlay des Editors), sonst die Tastatur selbst
+    property Item tipLayer: null
 
     // ---- Masse ----
     readonly property real bezelSide: 0.45
@@ -125,8 +129,8 @@ Item {
     function hoverAt(on: bool, item: Item, info: var, title: string): void {
         if (on) {
             board.tipItem = item;
-            board.hoverInfo = info;
-            board.tipTitle = title;
+            board.hoverInfo = info ?? null;
+            board.tipTitle = title ?? "";
         } else if (board.tipItem === item) {
             board.tipItem = null;
             board.hoverInfo = null;
@@ -351,6 +355,7 @@ Item {
                     pick: board.pick
                     interactive: board.interactive
                     onClicked: board.keyClicked(mb.spec.id)
+                    onContextClicked: board.keyContext(mb.spec.id, mb)
                     onHoveredChanged: board.hoverAt(mb.hovered, mb, mb.info, I18n.tr(mb.spec.title))
                 }
             }
@@ -371,6 +376,7 @@ Item {
                 pick: board.pick
                 interactive: board.interactive
                 onClicked: id => board.keyClicked(id)
+                onContextClicked: id => board.keyContext(id, roller)
                 onHoverSideChanged: board.hoverAt(hoverSide >= 0, roller, hoverSide >= 0 ? board.rollerInfos[hoverSide] : null,
                                                   I18n.tr(hoverSide === 0 ? "Leiser" : "Lauter"))
             }
@@ -403,6 +409,7 @@ Item {
                     pick: board.pick
                     interactive: board.interactive
                     onHoveredChanged: board.hoverAt(k.hovered, k, k.info, k.target ? I18n.tr("Hier ablegen") : "")
+                    onContextClicked: board.keyContext(k.spec.id, k)
                     // Modifier schalten immer die Ebene – auch wenn auf ihnen
                     // etwas liegt (Super allein = App-Menue); den Befehl dazu
                     // erreicht man ueber die Liste
@@ -441,6 +448,7 @@ Item {
             lits: board.mouseLits
             interactive: board.interactive
             onClicked: id => board.keyClicked(id)
+            onContextClicked: id => board.keyContext(id, mouseView)
             onHoverIdChanged: board.hoverAt(hoverId !== "", mouseView, hoverId !== "" ? (board.mouseInfos[hoverId] ?? null) : null,
                                             I18n.tr(Layout.MOUSE_NAMES[hoverId] ?? ""))
         }
@@ -500,12 +508,14 @@ Item {
         readonly property bool shown: board.tipItem !== null && board.interactive && (board.hoverInfo !== null || board.tipTitle !== "")
         // Position aus der Lage der Taste: ueber ihr, in den oberen Reihen
         // darunter; seitlich innerhalb der Tastatur
-        readonly property rect at: board.tipItem ? board.tipItem.mapToItem(board, 0, 0, board.tipItem.width, board.tipItem.height) : Qt.rect(0, 0, 0, 0)
+        readonly property Item host: board.tipLayer ? board.tipLayer : board
+        readonly property rect at: board.tipItem ? board.tipItem.mapToItem(tip.host, 0, 0, board.tipItem.width, board.tipItem.height) : Qt.rect(0, 0, 0, 0)
         readonly property bool below: tip.at.y < tip.height + 10
 
+        parent: tip.host
         z: 100
         visible: tip.shown
-        x: Math.round(Math.max(0, Math.min(board.width - width, tip.at.x + tip.at.width / 2 - width / 2)))
+        x: Math.round(Math.max(0, Math.min(tip.host.width - width, tip.at.x + tip.at.width / 2 - width / 2)))
         y: Math.round(tip.below ? tip.at.y + tip.at.height + 6 : tip.at.y - height - 6)
         title: board.hoverInfo ? board.titleOf(board.hoverInfo) : board.tipTitle
         keys: board.hoverInfo?.keys ?? []

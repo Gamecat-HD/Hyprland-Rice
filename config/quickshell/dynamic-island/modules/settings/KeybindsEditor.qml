@@ -48,9 +48,13 @@ Item {
     readonly property int shownMask: capture.active ? capture.heldMask : editor.mask
     readonly property bool narrow: editor.width < 760
     readonly property real paneHeight: 480
-    // Fuer Tests: Tastatur und Aufnahme
+    // Fuer Tests: Tastatur, Aufnahme, Liste
     readonly property alias keyboard: board
     readonly property alias captureItem: capture
+    readonly property alias listItem: list
+    // Oberste Ebene fuer Hinweise/Tooltips/Kontextmenue – KbIconButton findet
+    // sie ueber die Elternkette (kbOverlay)
+    readonly property Item kbOverlay: overlay
 
     // Canon "64:q" -> Belegung, einmal fuer alle Ebenen
     readonly property var index: {
@@ -198,6 +202,75 @@ Item {
         }
         if (info && !info.unnamed)
             editor.select(info.id, true);
+    }
+
+    // ---- Kontextmenue ----
+    function copyText(text: string): void {
+        if (Quickshell.clipboardText !== undefined)
+            Quickshell.clipboardText = text;
+        else
+            Quickshell.execDetached(["wl-copy", text]);
+    }
+
+    // Zeilen fuer einen Befehl und (optional) eine seiner Kombinationen
+    function menuRows(command: var, combo: var): var {
+        const rows = [];
+        const title = I18n.tr(command.title);
+        if (command.runnable)
+            rows.push({ title: I18n.tr("Ausführen"), icon: "play_arrow", action: () => HyprBinds.runCommand(command) });
+        if (combo && combo.editable) {
+            rows.push({ title: I18n.tr("Neu aufnehmen"), icon: "radio_button_checked", action: () => capture.start("set", combo.ref, title, null) });
+            rows.push({ title: I18n.tr("Auf Tastatur wählen"), icon: "ads_click", action: () => editor.startPick("set", combo.ref, title, null) });
+        }
+        const config = command.combos.find(c => c.source === "config") ?? null;
+        if (config && config.editable)
+            rows.push({ title: I18n.tr("Weitere Taste aufnehmen"), icon: "add", action: () => capture.start("extra", config.ref, title, null) });
+        if (combo && combo.editable)
+            rows.push({
+                title: combo.disabled ? I18n.tr("Einschalten") : I18n.tr("Ausschalten"),
+                icon: combo.disabled ? "visibility" : "visibility_off",
+                action: () => {
+                    if (combo.disabled)
+                        detail.actionError = HyprBinds.enableChecked(combo.ref);
+                    else
+                        Keybinds.setDisabled(combo.ref, true);
+                }
+            });
+        if (combo && (combo.changed || combo.disabled) && (combo.source === "config" || combo.source === "plugin"))
+            rows.push({ title: I18n.tr("Zurücksetzen"), icon: "undo", action: () => detail.actionError = HyprBinds.resetChecked(combo.ref) });
+        if (command.source === "custom") {
+            const ref = command.combos.find(c => c.source === "custom")?.ref ?? "";
+            if (ref !== "")
+                rows.push({ title: I18n.tr("Kürzel löschen"), icon: "delete", danger: true, confirm: true, action: () => Keybinds.removeCustom(ref) });
+        }
+        if (combo && combo.source === "extra")
+            rows.push({ title: I18n.tr("Zusatztaste löschen"), icon: "delete", danger: true, confirm: true, action: () => Keybinds.removeCustom(combo.ref) });
+        const origin = config ? HyprBinds.originOf(config.ref) : null;
+        if (origin)
+            rows.push({ title: I18n.tr("In Config öffnen"), icon: "open_in_new", action: () => Quickshell.execDetached(["kitty", "-e", "nvim", "+" + origin.line, origin.file]) });
+        const action = HyprBinds.actionOf(command);
+        if (action && action.text)
+            rows.push({ title: I18n.tr("Befehl kopieren"), icon: "content_copy", action: () => editor.copyText(action.text) });
+        return rows;
+    }
+
+    // Menue an einer Stelle des Overlays oeffnen; waehlt den Befehl mit aus
+    function openContextMenu(command: var, combo: var, x: real, y: real): void {
+        if (capture.active || !command)
+            return;
+        editor.select(command.id, true);
+        const rows = editor.menuRows(command, combo);
+        if (rows.length === 0)
+            return;
+        menu.rows = rows;
+        const h = rows.length * 31 + menu.pad * 2;
+        menu.x = Math.round(Math.max(0, Math.min(overlay.width - menu.width, x)));
+        menu.y = Math.round(Math.max(0, Math.min(overlay.height - h, y)));
+        menu.open = true;
+    }
+
+    function closeMenu(): void {
+        menu.close();
     }
 
     function closeForm(): void {
@@ -441,8 +514,20 @@ Item {
             interactive: !capture.active
             statusTitle: editor.selected ? `${I18n.tr(editor.selected.group)} › ${I18n.tr(editor.selected.title)}` : ""
             statusKeys: editor.selected?.combos[0]?.keys ?? []
+            tipLayer: overlay
             onKeyClicked: id => editor.keyClicked(id)
             onModifierToggled: bit => editor.mask = editor.mask ^ bit
+            onKeyContext: (id, item) => {
+                const info = board.infoFor(id);
+                if (!info || info.unnamed)
+                    return;
+                const c = HyprBinds.commands.find(x => x.id === info.id);
+                if (!c)
+                    return;
+                const combo = c.combos.find(x => x.ref === info.ref) ?? c.combos[0];
+                const p = overlay.mapFromItem(item, item.width / 2, item.height + 4);
+                editor.openContextMenu(c, combo, p.x, p.y);
+            }
         }
 
         // Legende der Lichtfarben
@@ -592,6 +677,14 @@ Item {
                 searchIndex: editor.searchIndex
                 adding: editor.adding
                 onSelected: id => editor.select(id)
+                onContextRequested: (id, x, y) => {
+                    const c = HyprBinds.commands.find(k => k.id === id);
+                    if (!c)
+                        return;
+                    const combo = c.combos.find(k => k.editable) ?? c.combos[0] ?? null;
+                    const p = overlay.mapFromItem(list, x, y);
+                    editor.openContextMenu(c, combo, p.x, p.y);
+                }
                 onAddToggled: {
                     editor.adding = !editor.adding;
                     if (editor.adding)
@@ -600,6 +693,8 @@ Item {
             }
 
             CommandDetail {
+                id: detail
+
                 anchors {
                     left: editor.narrow ? parent.left : list.right
                     right: parent.right
@@ -612,6 +707,74 @@ Item {
                 capture: capture
                 onPickRequested: (mode, ref, title, payload) => editor.startPick(mode, ref, title, payload)
             }
+        }
+    }
+
+    // ================= Overlay: Hinweise, Tasten-Tooltip, Kontextmenue =================
+    Item {
+        id: overlay
+
+        anchors.fill: parent
+        z: 100
+
+        property Item hintItem: null
+        property string hintText: ""
+
+        function showHint(item: Item, text: string): void {
+            overlay.hintItem = item;
+            overlay.hintText = text;
+        }
+
+        function hideHint(item: Item): void {
+            if (overlay.hintItem === item)
+                overlay.hintItem = null;
+        }
+
+        // Klick daneben schliesst das Menue (Rad geht durch)
+        MouseArea {
+            anchors.fill: parent
+            visible: menu.open
+            acceptedButtons: Qt.AllButtons
+            onPressed: mouse => {
+                menu.close();
+                mouse.accepted = true;
+            }
+            onWheel: wheel => {
+                menu.close();
+                wheel.accepted = false;
+            }
+        }
+
+        // Hinweis eines KbIconButton
+        Rectangle {
+            id: hintBox
+
+            readonly property rect at: overlay.hintItem ? overlay.hintItem.mapToItem(overlay, 0, 0, overlay.hintItem.width, overlay.hintItem.height) : Qt.rect(0, 0, 0, 0)
+            readonly property bool below: hintBox.at.y + hintBox.at.height + 4 + height <= overlay.height
+
+            visible: overlay.hintItem !== null && overlay.hintText !== ""
+            x: Math.round(Math.max(0, Math.min(overlay.width - width, hintBox.at.x + hintBox.at.width / 2 - width / 2)))
+            y: Math.round(hintBox.below ? hintBox.at.y + hintBox.at.height + 4 : hintBox.at.y - height - 4)
+            width: hintLabel.implicitWidth + 14
+            height: 22
+            radius: 6
+            color: Colors.surfaceBright
+            border.width: 1
+            border.color: Colors.alpha(Colors.outline, 0.4)
+
+            Text {
+                id: hintLabel
+
+                anchors.centerIn: parent
+                text: overlay.hintText
+                color: Colors.fgSurface
+                font.family: Config.font
+                font.pixelSize: 11
+            }
+        }
+
+        KbMenu {
+            id: menu
         }
     }
 }

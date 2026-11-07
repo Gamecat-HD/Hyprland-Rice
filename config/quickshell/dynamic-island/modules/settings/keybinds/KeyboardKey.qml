@@ -35,6 +35,8 @@ Item {
     property bool interactive: true
 
     signal clicked
+    // Rechtsklick (Kontextmenue)
+    signal contextClicked
 
     readonly property bool occupied: key.info !== null
     readonly property bool free: key.info === null && key.spec.mod === 0 && key.spec.noPick !== true
@@ -269,6 +271,12 @@ Item {
 
     TapHandler {
         enabled: key.clickable
-        onTapped: key.clicked()
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onTapped: (point, button) => {
+            if (button === Qt.RightButton)
+                key.contextClicked();
+            else
+                key.clicked();
+        }
     }
 }

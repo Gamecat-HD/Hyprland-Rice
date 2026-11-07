@@ -18,6 +18,7 @@ Item {
     property bool interactive: true
 
     signal clicked(string id)
+    signal contextClicked(string id)
 
     readonly property color rockBase: Qt.darker(Colors.surfaceBright, 1.5)
     readonly property color shell: Colors.surfaceBright
@@ -111,7 +112,8 @@ Item {
 
         TapHandler {
             enabled: mouse.interactive && !!mouse.infos["mouse:272"]
-            onTapped: mouse.clicked("mouse:272")
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onTapped: (point, button) => button === Qt.RightButton ? mouse.contextClicked("mouse:272") : mouse.clicked("mouse:272")
         }
     }
 
@@ -141,7 +143,8 @@ Item {
 
         TapHandler {
             enabled: mouse.interactive && !!mouse.infos["mouse:273"]
-            onTapped: mouse.clicked("mouse:273")
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onTapped: (point, button) => button === Qt.RightButton ? mouse.contextClicked("mouse:273") : mouse.clicked("mouse:273")
         }
     }
 
@@ -192,7 +195,8 @@ Item {
 
                 TapHandler {
                     enabled: mouse.interactive && !!mouse.infos[zone.modelData.id]
-                    onTapped: mouse.clicked(zone.modelData.id)
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onTapped: (point, button) => button === Qt.RightButton ? mouse.contextClicked(zone.modelData.id) : mouse.clicked(zone.modelData.id)
                 }
             }
         }
