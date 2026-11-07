@@ -76,8 +76,12 @@ Scope {
     // qs -c dynamic-island ipc call plugins call wallhaven open _
     function ipc(cmd: string, arg: string): string {
         if (cmd === "open") {
-            // Genau so schon offen -> zu
-            LauncherState.toggleWallpaperSection(LauncherState.focusedScreen(), root.plugin.id);
+            // Genau so schon offen -> zu; aufmachen nur ohne Vollbild-Fenster
+            // vorne (LauncherState-Vollbild-Sperre)
+            if (LauncherState.open && LauncherState.mode === "wallpaper" && LauncherState.wallpaperSection === root.plugin.id)
+                LauncherState.close();
+            else
+                LauncherState.whenAllowed(() => LauncherState.showWallpaperSection(LauncherState.focusedScreen(), root.plugin.id), null);
             return "ok";
         }
         if (cmd === "status")

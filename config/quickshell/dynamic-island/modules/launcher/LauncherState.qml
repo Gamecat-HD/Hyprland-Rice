@@ -99,6 +99,12 @@ Singleton {
     }
 
     function showMode(target: ShellScreen, mode: string): void {
+        // Vollbild-Sperre (siehe unten): auf einem Monitor mit Vollbild-
+        // Fenster vorne geht nichts auf, egal woher der Wunsch kommt
+        if (root.fullscreenOn(target)) {
+            console.log("Launcher:", mode, "nicht geöffnet –", target?.name ?? "", "zeigt ein Vollbild-Fenster");
+            return;
+        }
         root.mode = mode;
         root.screen = target;
         root.open = true;
@@ -187,76 +193,169 @@ Singleton {
         }
     }
 
-    // ---- Fullscreen-Sperre ----------------------------------------------
-    // simple.lua bindet SUPER allein (beim Loslassen) auf
-    // `ipc call launcher toggle`. Ein Fullscreen-Fenster – typisch ein Spiel –
-    // greift sich die Tastatur; die SUPER-Freigabe erreicht Hyprland dann
-    // erst, wenn das Fenster schon steht, und der Bind feuert, ohne dass in
-    // dem Moment jemand etwas gedrückt hat. Der Launcher ging so über dem
-    // Spiel von selbst auf.
+    // ---- Vollbild-Sperre ------------------------------------------------
+    // Liegt auf einem Monitor ein Fenster im Vollbild vorne (typisch ein
+    // Spiel), geht dort kein Menü der Shell auf: weder Launcher noch
+    // Untermenüs, Power, Tastenkürzel, Zwischenablage, Plugin-Ansichten oder
+    // die Workspace-Übersicht. Scratchpads bleiben frei – sie laufen über
+    // Hyprland (`dynamic-island toggle specialws`), nicht über die Shell. Ist
+    // ein Scratchpad über dem Vollbild offen, zählt dessen Inhalt: dann
+    // darf auf dem Monitor wieder etwas auf.
     //
-    // Deshalb fragt jede Anfrage von außen erst nach, ob gerade ein Fenster
-    // im Vollbild den Fokus hat, und wird dann fallen gelassen. Betroffen
-    // sind nur IPC und Tastenkürzel für das App-Menü; der Zug an der Notch
-    // und die gezielten Wege (Wallpaper, Theme, Power) laufen direkt durch –
-    // die löst niemand versehentlich aus.
+    // Ursprung: simple.lua bindet SUPER allein (beim Loslassen) auf
+    // `ipc call launcher toggle`. Ein Spiel greift sich die Tastatur; die
+    // SUPER-Freigabe erreicht Hyprland erst, wenn das Fenster schon steht,
+    // und der Bind feuert, ohne dass jemand etwas gedrückt hat.
+    //
+    // Zwei Wege:
+    //  - `whenAllowed()` fragt hyprctl frisch (Tastenkürzel, IPC, Global
+    //    Shortcuts von Plugins) – da zählt der Zustand genau jetzt.
+    //  - `showMode()` prüft synchron gegen `fullscreenScreens`, den Stand der
+    //    letzten Abfrage. Der wird bei Vollbild-Ereignissen erneuert und,
+    //    solange irgendwo Vollbild läuft, auch bei Workspace-Wechseln.
+    // Die Notch selbst liegt auf dem Top-Layer und damit unter einem
+    // Vollbild-Fenster; per Maus kommt man dort ohnehin nicht hin.
     property bool blockOnFullscreen: true
 
-    // Modus, der auf die Antwort von hyprctl wartet ("" = keine Anfrage offen)
-    property string pendingMode: ""
+    // Namen der Monitore, auf denen gerade ein Vollbild-Fenster vorne liegt
+    property var fullscreenScreens: []
+
+    function fullscreenOn(target: ShellScreen): bool {
+        return root.blockOnFullscreen && !!target && root.fullscreenScreens.includes(target.name);
+    }
+
+    // Wartende Wünsche: { screen: Monitorname, run: Funktion }
+    property var pendingRuns: []
+
+    // `run` ausführen, sofern auf `target` (Vorgabe: fokussierter Monitor)
+    // kein Vollbild-Fenster vorne liegt – nach frischer Abfrage
+    function whenAllowed(run: var, target: ShellScreen): void {
+        const screen = target ?? root.focusedScreen();
+        if (!root.blockOnFullscreen) {
+            run();
+            return;
+        }
+        root.pendingRuns.push({ screen: screen?.name ?? "", run: run });
+        root.probe();
+    }
 
     function request(mode: string, asToggle: bool): void {
         // Zumachen darf immer, das kostet keine Prüfung
-        if (asToggle && root.open) {
+        if (asToggle && root.open && (mode === "apps" || root.mode === mode)) {
             root.close();
             return;
         }
+        root.whenAllowed(() => root.showMode(root.focusedScreen(), mode), null);
+    }
 
-        if (!root.blockOnFullscreen) {
-            root.showMode(root.focusedScreen(), mode);
-            return;
-        }
-
-        root.pendingMode = mode;
-        if (!fullscreenProbe.running)
+    function probe(): void {
+        if (fullscreenProbe.running)
+            fullscreenProbe.again = true;
+        else
             fullscreenProbe.running = true;
+    }
+
+    // Aus `hyprctl -j monitors` und `-j clients`: welche Monitore zeigen vorne
+    // ein Vollbild-Fenster? Vorne ist das offene Scratchpad, sonst der aktive
+    // Workspace. Hyprlands Modus: 0 normal, 1 maximiert, 2 Vollbild (3 beides);
+    // maximierte Fenster sind Alltag und sperren nicht. fullscreenClient
+    // zählt mit (Fake-Fullscreen: das Spiel glaubt sich im Vollbild).
+    function blockedFrom(monitors: var, clients: var): var {
+        const out = [];
+        for (const m of monitors) {
+            const special = m.specialWorkspace?.id ?? 0;
+            const ws = special !== 0 ? special : (m.activeWorkspace?.id ?? 0);
+            const hit = clients.some(c => c.workspace?.id === ws && c.mapped !== false && !c.hidden
+                && Math.max(c.fullscreen ?? 0, c.fullscreenClient ?? 0) >= 2);
+            if (hit)
+                out.push(m.name);
+        }
+        return out;
     }
 
     Process {
         id: fullscreenProbe
 
-        command: ["hyprctl", "activewindow", "-j"]
+        // Noch eine Runde, weil während der laufenden etwas passiert ist
+        property bool again: false
+
+        command: ["sh", "-c", "hyprctl -j monitors; printf '\\036'; hyprctl -j clients"]
 
         stdout: StdioCollector {
             id: probeCollector
 
             onStreamFinished: {
-                const mode = root.pendingMode;
-                root.pendingMode = "";
-                if (!mode)
-                    return;
-
-                let win = null;
+                let blocked = [];
                 try {
-                    win = JSON.parse(probeCollector.text);
+                    const parts = probeCollector.text.split("\u001e");
+                    blocked = root.blockedFrom(JSON.parse(parts[0]), JSON.parse(parts[1]));
                 } catch (e) {
-                    // Ohne fokussiertes Fenster liefert hyprctl nichts
-                    // Brauchbares – im Zweifel aufmachen.
+                    // hyprctl nicht greifbar – im Zweifel nichts sperren
+                    console.log("Launcher: Vollbild-Abfrage gescheitert:", e);
+                }
+                if (JSON.stringify(blocked) !== JSON.stringify(root.fullscreenScreens))
+                    root.fullscreenScreens = blocked;
+
+                const runs = root.pendingRuns;
+                root.pendingRuns = [];
+                for (const r of runs) {
+                    if (root.blockOnFullscreen && blocked.includes(r.screen))
+                        console.log("Launcher: Anfrage verworfen –", r.screen, "zeigt ein Vollbild-Fenster");
+                    else
+                        r.run();
                 }
 
-                // Hyprlands Modus: 0 = normal, 1 = maximiert, 2 = Vollbild.
-                // Maximierte Fenster sind Alltag und sollen nicht sperren.
-                const fs = Math.max(win?.fullscreen ?? 0, win?.fullscreenClient ?? 0);
-                if (fs >= 2) {
-                    console.log("Launcher: Anfrage verworfen –",
-                                win?.title ?? "ein Fenster", "läuft im Vollbild");
-                    return;
+                // Der Prozess ist hier evtl. noch nicht beendet – die
+                // Nachrunde deshalb ueber den Timer
+                if (fullscreenProbe.again) {
+                    fullscreenProbe.again = false;
+                    refreshDelay.restart();
                 }
-
-                root.showMode(root.focusedScreen(), mode);
             }
         }
     }
+
+    // Geht ein Fenster unter einem offenen Menü ins Vollbild (Spiel startet
+    // gerade), macht das Menü zu – es läge sonst unsichtbar unter dem Spiel
+    // und hielte womöglich die Tastatur fest.
+    onFullscreenScreensChanged: {
+        if (root.open && root.fullscreenOn(root.screen))
+            root.close();
+    }
+
+    // Stand nachziehen. Vollbild-Ereignisse immer; Workspace- und
+    // Fenster-Ereignisse nur, solange irgendwo Vollbild läuft oder läufen
+    // könnte – sonst kostet die Sperre im Alltag keinen einzigen Prozess.
+    Connections {
+        target: Hyprland
+
+        function onRawEvent(event: HyprlandEvent): void {
+            switch (event.name) {
+            case "fullscreen":
+                refreshDelay.restart();
+                break;
+            case "workspacev2":
+            case "activespecialv2":
+            case "focusedmonv2":
+            case "closewindow":
+            case "movewindowv2":
+                if (root.fullscreenScreens.length > 0
+                        || Hyprland.monitors.values.some(m => m.activeWorkspace?.hasFullscreen))
+                    refreshDelay.restart();
+                break;
+            }
+        }
+    }
+
+    Timer {
+        id: refreshDelay
+
+        interval: 60
+        onTriggered: root.probe()
+    }
+
+    // Einmal beim Start: läuft schon ein Spiel, wenn die Shell neu lädt
+    Component.onCompleted: root.probe()
 
     // Erreichbar über:  qs -c dynamic-island ipc call launcher toggle
     IpcHandler {
@@ -274,43 +373,49 @@ Singleton {
             root.close();
         }
 
+        // Alles Weitere laeuft durch die Vollbild-Sperre (request/whenAllowed)
         function wallpaper(): void {
-            root.showWallpapers(root.focusedScreen());
+            root.request("wallpaper", false);
         }
 
         function theme(): void {
-            root.showThemes(root.focusedScreen());
+            root.request("theme", false);
         }
 
         function power(): void {
-            root.toggleMode(root.focusedScreen(), "power");
+            root.request("power", true);
         }
 
         // Tastenkuerzel-Uebersicht (SUPER+K)
         function keys(): void {
-            root.toggleMode(root.focusedScreen(), "keys");
+            root.request("keys", true);
         }
 
         // Zwischenablage-Verlauf (SUPER+V)
         function clipboard(): void {
-            root.toggleMode(root.focusedScreen(), "clipboard");
+            root.request("clipboard", true);
         }
 
         // Untermenues der Notch (Tastenkuerzel in hypr/profiles/simple.lua)
         function media(): void {
-            root.toggleMode(root.focusedScreen(), "media");
+            root.request("media", true);
         }
 
         function control(): void {
-            root.toggleMode(root.focusedScreen(), "control");
+            root.request("control", true);
         }
 
         function notifications(): void {
-            root.toggleMode(root.focusedScreen(), "notifications");
+            root.request("notifications", true);
         }
 
         function system(): void {
-            root.toggleMode(root.focusedScreen(), "system");
+            root.request("system", true);
+        }
+
+        // Fuer Skripte/Tests: welche Monitore gerade sperren
+        function fullscreen(): string {
+            return JSON.stringify(root.fullscreenScreens);
         }
     }
 }
