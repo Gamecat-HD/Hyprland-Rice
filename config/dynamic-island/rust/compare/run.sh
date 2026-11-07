@@ -11,6 +11,8 @@
 set -euo pipefail
 
 RUST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# config/ im Repo (Spiegel von ~/.config): dort liegen quickshell/ und
+# dynamic-island/ so, wie die Szenarien sie unter /tmp/work erwarten
 REPO="$(cd "$RUST_DIR/../.." && pwd)"
 OUT="${COMPARE_OUT:-$RUST_DIR/target/compare}"
 mkdir -p "$OUT"

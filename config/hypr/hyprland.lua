@@ -7,9 +7,11 @@
 -- Umschalten im laufenden Betrieb:  CTRL + SUPER + SHIFT + P (schaltet durch)
 -- oder im Terminal:                 hypr-profile [<name>|toggle|status]
 --
--- caelestia = volle Config + Caelestia-Quickshell-Shell (Bar, Notifications, Wallpaper)
--- simple    = eine schlanke Datei mit den wichtigsten Einstellungen, Shell dynamic-island
+-- simple    = diese Rice: eine schlanke Datei mit den wichtigsten Einstellungen,
+--             Shell dynamic-island (die Notch). Standard.
 -- shell2    = dieselbe schlanke Basis, aber mit der neuen Shell shell2
+-- caelestia = volle Config + Caelestia-Quickshell-Shell (Bar, Notifications, Wallpaper).
+--             Unabhaengig von simple; dient nur noch als Notnagel, wenn simple kaputt ist.
 --
 -- Ein weiteres Profil braucht nur profiles/<name>.lua und einen Eintrag in
 -- hypr-profile (PROFILE_SHELL + PROFILE_ORDER) — hier ist nichts zu aendern.
@@ -17,7 +19,10 @@
 local home            = os.getenv("HOME")
 local hypr            = home .. "/.config/hypr"
 local profileFile     = hypr .. "/profile"
-local defaultProfile  = "caelestia"
+local defaultProfile  = "simple"
+-- Notnagel, falls auch das Standardprofil nicht laedt: die volle Config, deren
+-- Fenster und Tastenkuerzel auch ohne laufende Shell funktionieren.
+local rescueProfile   = "caelestia"
 local switchBind      = "CTRL + SUPER + SHIFT + P"
 
 --------------------------------------------------------------------------------
@@ -249,9 +254,20 @@ if not ok then
     -- Zurueck auf das Standardprofil, damit der naechste Start wieder hochkommt
     if profile ~= defaultProfile then
         write_profile(defaultProfile)
-        local okFallback, errFallback = load_profile(defaultProfile)
-        if not okFallback then
-            io.stderr:write("Fallback-Profil ebenfalls fehlerhaft: " .. tostring(errFallback) .. "\n")
+        profile = defaultProfile
+        ok, err = load_profile(defaultProfile)
+        if not ok then
+            io.stderr:write("Standardprofil ebenfalls fehlerhaft: " .. tostring(err) .. "\n")
+        end
+    end
+
+    -- Ist auch das Standardprofil kaputt: fuer diese Sitzung den Notnagel laden.
+    -- Bewusst NICHT in die Profil-Datei schreiben – nach dem Fix reicht
+    -- `hyprctl reload` und es laeuft wieder das Standardprofil.
+    if not ok and profile ~= rescueProfile then
+        local okRescue, errRescue = load_profile(rescueProfile)
+        if not okRescue then
+            io.stderr:write("Notnagel-Profil ebenfalls fehlerhaft: " .. tostring(errRescue) .. "\n")
         end
     end
 end

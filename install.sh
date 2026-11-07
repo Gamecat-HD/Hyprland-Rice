@@ -5,12 +5,12 @@
 #
 #     git clone https://github.com/Gamecat-HD/Hyprland-Rice.git
 #     cd Hyprland-Rice
-#     ./dynamic-island/install.sh
+#     ./install.sh
 #
-# Es verteilt hypr/, quickshell/dynamic-island/ und dynamic-island/ nach
-# ~/.config (standardmaessig als Symlinks, damit ein `git pull` im Klon
-# durchschlaegt) und richtet danach alles Weitere ein. Liegt das Repo selbst
-# unter ~/.config, faellt das Verteilen weg.
+# config/ im Repo spiegelt ~/.config. Das Skript verteilt daraus hypr/,
+# quickshell/dynamic-island/ und dynamic-island/ nach ~/.config
+# (standardmaessig als Symlinks, damit ein `git pull` im Klon durchschlaegt),
+# mit --extras auch die optionalen Configs, und richtet danach alles Weitere ein.
 #
 # Idempotent: mehrfach ausfuehren schadet nicht.
 #
@@ -18,15 +18,18 @@
 #
 #   ./install.sh                 einrichten (fragt vorher nach)
 #   ./install.sh --copy          Dateien kopieren statt verlinken
+#   ./install.sh --extras        auch hyprlock, nvim, spicetify, spotify-launcher
 #   ./install.sh --install-deps  fehlende Pakete gleich mitinstallieren
 #   ./install.sh --check         nur pruefen, nichts aendern
 #   ./install.sh --dry-run       zeigen was passieren wuerde
 #   ./install.sh -y              ohne Rueckfrage durchlaufen
 set -uo pipefail
 
-DI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Das Repo ist der Ordner darueber – egal wohin geklont wurde
-REPO_DIR="$(cd "$DI_DIR/.." && pwd)"
+# Das Repo ist der Ordner dieses Skripts – egal wohin geklont wurde
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# config/ spiegelt ~/.config
+SRC_DIR="$REPO_DIR/config"
+DI_DIR="$SRC_DIR/dynamic-island"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}"
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}"
@@ -39,10 +42,15 @@ DRY_RUN=0
 INSTALL_DEPS=0
 ASSUME_YES=0
 COPY=0
+EXTRAS=0
 FAILED=0
 
-# Was aus dem Repo nach ~/.config gehoert
+# Was aus config/ nach ~/.config gehoert (Pfade relativ zu beiden)
 DEPLOY_PATHS=(hypr quickshell/dynamic-island dynamic-island)
+# Optional (--extras): eigene Configs, die die Notch nicht braucht. Auf einem
+# fremden Rechner ersetzen sie dessen nvim/spicetify, darum nicht standardmaessig.
+# caelestia/cli.json gehoert nur zum Profil "caelestia".
+EXTRA_PATHS=(hyprlock nvim spicetify spotify-launcher.conf caelestia/cli.json)
 
 # ---------------------------------------------------------------- Ausgabe ---
 c_reset=$'\033[0m'; c_blue=$'\033[1;34m'; c_green=$'\033[1;32m'
@@ -68,6 +76,7 @@ install.sh — richtet den Dynamic-Island-Rice auf diesem Rechner ein.
 
   ./install.sh                 einrichten (fragt vorher nach)
   ./install.sh --copy          Dateien kopieren statt verlinken
+  ./install.sh --extras        auch hyprlock, nvim, spicetify, spotify-launcher
   ./install.sh --install-deps  fehlende Pakete gleich mitinstallieren
   ./install.sh --check         nur pruefen, nichts aendern
   ./install.sh --dry-run       zeigen was passieren wuerde
@@ -81,6 +90,7 @@ while [ $# -gt 0 ]; do
         --dry-run) DRY_RUN=1 ;;
         --install-deps) INSTALL_DEPS=1 ;;
         --copy) COPY=1 ;;
+        --extras) EXTRAS=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unbekannte Option: $1" >&2; usage; exit 1 ;;
@@ -100,9 +110,12 @@ ki_warnung() {
     cat <<EOF
 
   Was es aendert:
-    - verlinkt hypr/, quickshell/dynamic-island/ und dynamic-island/ nach
-      ~/.config (mit --copy stattdessen kopieren); was dort im Weg liegt,
-      wandert vorher nach ~/backups/
+    - verlinkt hypr/, quickshell/dynamic-island/ und dynamic-island/ aus
+      config/ nach ~/.config (mit --copy stattdessen kopieren); was dort im
+      Weg liegt, wandert vorher nach ~/backups/
+EOF
+    [ "$EXTRAS" = 1 ] && printf '    - dazu (--extras): %s\n' "${EXTRA_PATHS[*]}"
+    cat <<EOF
     - Symlinks in ~/.local/bin (dynamic-island, hypr-profile, theme-set)
       und in ~/.config/fish/completions
     - baut die Rust-Helfer und legt sie nach ~/.local/bin (nur mit cargo)
@@ -174,14 +187,12 @@ link() {  # link <ziel> <linkname>
 deploy() {
     step "Konfiguration nach ~/.config bringen"
 
-    if same_path "$REPO_DIR" "$CONFIG_DIR"; then
-        skip "Das Repo IST ~/.config — nichts zu verteilen"
-        return 0
-    fi
+    local paths=("${DEPLOY_PATHS[@]}")
+    [ "$EXTRAS" = 1 ] && paths+=("${EXTRA_PATHS[@]}")
 
     local rel src dst
-    for rel in "${DEPLOY_PATHS[@]}"; do
-        src="$REPO_DIR/$rel"
+    for rel in "${paths[@]}"; do
+        src="$SRC_DIR/$rel"
         dst="$CONFIG_DIR/$rel"
 
         if [ ! -e "$src" ]; then
@@ -212,20 +223,25 @@ deploy() {
 check_deploy() {
     step "Konfiguration unter ~/.config"
 
-    if same_path "$REPO_DIR" "$CONFIG_DIR"; then
-        skip "Das Repo IST ~/.config"
-        return 0
-    fi
-
     local rel dst
     for rel in "${DEPLOY_PATHS[@]}"; do
         dst="$CONFIG_DIR/$rel"
-        if same_path "$dst" "$REPO_DIR/$rel"; then
+        if same_path "$dst" "$SRC_DIR/$rel"; then
             ok "~${dst#$HOME} zeigt auf das Repo"
         elif [ -e "$dst" ]; then
             warn "~${dst#$HOME} existiert, kommt aber nicht aus diesem Repo"
         else
             fail "~${dst#$HOME} fehlt"
+        fi
+    done
+
+    # Optional: nur melden, nie als Fehler werten
+    for rel in "${EXTRA_PATHS[@]}"; do
+        dst="$CONFIG_DIR/$rel"
+        if same_path "$dst" "$SRC_DIR/$rel"; then
+            ok "~${dst#$HOME} zeigt auf das Repo (Extra)"
+        else
+            skip "~${dst#$HOME} nicht aus dem Repo (Extra, --extras)"
         fi
     done
 }
@@ -541,7 +557,7 @@ hypr_profile() {
     step "Hyprland-Profil"
     local pf="$CONFIG_DIR/hypr/profile"
     if [ ! -d "$CONFIG_DIR/hypr" ]; then
-        fail "~/.config/hypr fehlt — liegt das Repo wirklich unter ~/.config?"
+        fail "~/.config/hypr fehlt — install.sh ohne --check laufen lassen"
         return 0
     fi
     if [ -f "$pf" ]; then
@@ -598,7 +614,7 @@ summary() {
   Bus-Nummern stehen fest in modules/services/brightness/Brightness.qml.
   Welche dieser Rechner hat, sagt "ddcutil detect".
 EOF
-    if [ "$COPY" = 1 ] && ! same_path "$REPO_DIR" "$CONFIG_DIR"; then
+    if [ "$COPY" = 1 ]; then
         printf '\n  %sKopiert statt verlinkt: nach einem `git pull` dieses Skript erneut laufen lassen.%s\n' \
             "$c_yellow" "$c_reset"
     fi

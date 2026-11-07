@@ -4,13 +4,13 @@
 # verwaltet dabei die zum Profil gehoerende Quickshell-Shell.
 #
 # Keybind zum Umschalten: CTRL + SUPER + SHIFT + P — geht der Reihe nach durch
-# PROFILE_ORDER unten, aktuell caelestia -> simple -> shell2 -> caelestia.
+# PROFILE_ORDER unten, aktuell simple -> shell2 -> caelestia -> simple.
 
 set -uo pipefail
 
 HYPR_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
 PROFILE_FILE="$HYPR_DIR/profile"
-DEFAULT_PROFILE="caelestia"
+DEFAULT_PROFILE="simple"
 
 ################################################################################
 # Welche Quickshell-Config gehoert zu welchem Profil?
@@ -21,16 +21,16 @@ DEFAULT_PROFILE="caelestia"
 # Shell-Keybinds in profiles/*.lua rufen nur dieses Script auf.
 ################################################################################
 declare -A PROFILE_SHELL=(
-    [caelestia]="caelestia"
     [simple]="dynamic-island"
     [shell2]="shell2"
+    [caelestia]="caelestia"
 )
 
 # Reihenfolge, in der `hypr-profile toggle` durchschaltet. Ein assoziatives
 # Array hat keine feste Reihenfolge, darum hier noch einmal als Liste — und
 # sie entscheidet zugleich, welche Namen als Argument gelten. Ein neues Profil
 # braucht drei Dinge: profiles/<name>.lua, einen Eintrag oben und einen hier.
-PROFILE_ORDER=(caelestia simple shell2)
+PROFILE_ORDER=(simple shell2 caelestia)
 
 # Startbefehl je Shell (Schluessel = Shell-Name aus PROFILE_SHELL, nicht der
 # Profilname). Ohne Eintrag wird `qs -c <name> -n -d` benutzt — shell2 laeuft
@@ -58,9 +58,9 @@ usage() {
 hypr-profile — Hyprland-Profil umschalten (Keybind: CTRL + SUPER + SHIFT + P)
 
   hypr-profile                zum naechsten Profil weiterschalten (toggle)
-  hypr-profile caelestia      volle Config + Caelestia-Shell
-  hypr-profile simple         schlanke Config + Shell dynamic-island
+  hypr-profile simple         schlanke Config + Shell dynamic-island (Standard)
   hypr-profile shell2         schlanke Config + Shell shell2 (im Aufbau)
+  hypr-profile caelestia      volle Config + Caelestia-Shell
   hypr-profile status         Profil und Shell-Zustand anzeigen
 
   hypr-profile shell-sync     Shell an das aktive Profil angleichen (Autostart)

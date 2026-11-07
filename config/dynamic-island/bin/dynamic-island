@@ -2,8 +2,8 @@
 """Startskript der dynamic-island-CLI.
 
 Liegt bewusst neben dem Paket statt in site-packages: so ist die CLI Teil des
-Dotfiles-Repos (~/.config ist das Repo) und Aenderungen wirken sofort, ohne
-Installation. Verlinkt nach ~/.local/bin/dynamic-island.
+Dotfiles-Repos (config/dynamic-island, nach ~/.config verlinkt) und
+Aenderungen wirken sofort, ohne Installation. Verlinkt nach ~/.local/bin/dynamic-island.
 """
 
 import sys

@@ -8,6 +8,8 @@ and no dependency on someone else's shell.
 
 ## Setup
 
+From the repo root (the installer sits there, not in this folder):
+
 ```bash
 ./install.sh --install-deps    # packages, symlinks, directories, color scheme
 ./install.sh --check           # only check
