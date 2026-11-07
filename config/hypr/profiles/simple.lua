@@ -366,7 +366,9 @@ end
 --------------------------------------------------------------------------------
 -- Beschreibungen fuer die Tastenkuerzel-Uebersicht der Shell (SUPER + K).
 -- Die Shell liest sie live aus `hyprctl binds -j`, Format "Gruppe|Text",
--- optional "|Anzeige" statt der echten Taste (z.B. "1 … 0" fuer zehn Binds).
+-- optional "|Anzeige" statt der echten Taste (z.B. "1 … 0" fuer zehn Binds)
+-- und "|Anzeige|Einzeln": der Name dieses einen Binds in den Einstellungen
+-- (Seite Tastenkürzel), wo jeder Bind eine eigene Zeile hat.
 -- Ein Klick auf die Zeile fuehrt den Bind aus. Binds ohne Beschreibung
 -- tauchen dort nicht auf; gleicher Text in derselben
 -- Gruppe wird zu einer Zeile mit mehreren Kuerzeln zusammengefasst.
@@ -380,9 +382,9 @@ keybinds_from_shell = true
 idle_from_shell = true
 local bind = bind_described
 local group = ""
-local function desc(text, opts, label)
+local function desc(text, opts, label, part)
 	opts = opts or {}
-	opts.description = group .. "|" .. text .. (label and "|" .. label or "")
+	opts.description = group .. "|" .. text .. ((label or part) and "|" .. (label or "") or "") .. (part and "|" .. part or "")
 	return opts
 end
 
@@ -430,14 +432,14 @@ bind("SUPER + mouse:273", hl.dsp.window.resize(), desc("Größe ändern", { mous
 
 -- Fokus / verschieben
 group = "Fokus"
-bind("SUPER + left", hl.dsp.focus({ direction = "left" }), desc("Fokus wechseln", nil, "Pfeile"))
-bind("SUPER + right", hl.dsp.focus({ direction = "right" }))
-bind("SUPER + up", hl.dsp.focus({ direction = "up" }))
-bind("SUPER + down", hl.dsp.focus({ direction = "down" }))
-bind("SUPER + SHIFT + left", hl.dsp.window.move({ direction = "left" }), desc("Fenster verschieben", nil, "Pfeile"))
-bind("SUPER + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
-bind("SUPER + SHIFT + up", hl.dsp.window.move({ direction = "up" }))
-bind("SUPER + SHIFT + down", hl.dsp.window.move({ direction = "down" }))
+bind("SUPER + left", hl.dsp.focus({ direction = "left" }), desc("Fokus wechseln", nil, "Pfeile", "Fokus nach links"))
+bind("SUPER + right", hl.dsp.focus({ direction = "right" }), desc("Fokus wechseln", nil, "Pfeile", "Fokus nach rechts"))
+bind("SUPER + up", hl.dsp.focus({ direction = "up" }), desc("Fokus wechseln", nil, "Pfeile", "Fokus nach oben"))
+bind("SUPER + down", hl.dsp.focus({ direction = "down" }), desc("Fokus wechseln", nil, "Pfeile", "Fokus nach unten"))
+bind("SUPER + SHIFT + left", hl.dsp.window.move({ direction = "left" }), desc("Fenster verschieben", nil, "Pfeile", "Fenster nach links"))
+bind("SUPER + SHIFT + right", hl.dsp.window.move({ direction = "right" }), desc("Fenster verschieben", nil, "Pfeile", "Fenster nach rechts"))
+bind("SUPER + SHIFT + up", hl.dsp.window.move({ direction = "up" }), desc("Fenster verschieben", nil, "Pfeile", "Fenster nach oben"))
+bind("SUPER + SHIFT + down", hl.dsp.window.move({ direction = "down" }), desc("Fenster verschieben", nil, "Pfeile", "Fenster nach unten"))
 
 -- Fenstergruppen (Tabs)
 group = "Fokus"
@@ -450,14 +452,14 @@ bind("SHIFT + ALT + TAB", hl.dsp.window.cycle_next({ next = false }), desc("Vorh
 group = "Workspaces"
 for i = 1, 10 do
 	local key = i % 10 -- 10 liegt auf der Taste 0
-	-- in der Uebersicht eine Zeile fuer alle zehn
-	bind("SUPER + " .. key, wsaction("focus", i), i == 1 and desc("Workspace 1–10", nil, "1 … 0") or {})
-	bind("SUPER + ALT + " .. key, wsaction("move", i), i == 1 and desc("Fenster auf Workspace 1–10", nil, "1 … 0") or {})
+	-- in der Uebersicht eine Zeile fuer alle zehn, in den Einstellungen je eine
+	bind("SUPER + " .. key, wsaction("focus", i), desc("Workspace 1–10", nil, "1 … 0", "Workspace " .. i))
+	bind("SUPER + ALT + " .. key, wsaction("move", i), desc("Fenster auf Workspace 1–10", nil, "1 … 0", "Fenster auf Workspace " .. i))
 end
 bind("CTRL + SUPER + Left", hl.dsp.focus({ workspace = "m-1" }), desc("Vorheriger Workspace", { repeating = true }))
 bind("CTRL + SUPER + Right", hl.dsp.focus({ workspace = "m+1" }), desc("Nächster Workspace", { repeating = true }))
-bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "m-1" }), desc("Workspace blättern", nil, "Mausrad"))
-bind("SUPER + mouse_up", hl.dsp.focus({ workspace = "m+1" }))
+bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "m-1" }), desc("Workspace blättern", nil, "Mausrad", "Workspace zurück (Mausrad)"))
+bind("SUPER + mouse_up", hl.dsp.focus({ workspace = "m+1" }), desc("Workspace blättern", nil, "Mausrad", "Workspace weiter (Mausrad)"))
 bind("CTRL + SUPER + SHIFT + Left", hl.dsp.window.move({ workspace = "m-1" }), desc("Fenster zurückschieben", { repeating = true }))
 bind("CTRL + SUPER + SHIFT + Right", hl.dsp.window.move({ workspace = "m+1" }), desc("Fenster weiterschieben", { repeating = true }))
 

@@ -204,6 +204,9 @@ Singleton {
         "sounds.bluetooth": { title: "Bluetooth verbunden/getrennt", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.library": { title: "Eigene Klänge", group: "Eigene Klänge", editor: "sounds" },
         "battery.history": { title: "Akkuverlauf", editor: "battery" },
+        // Tastenkuerzel (KeybindsEditor): Daten in keybinds.json, siehe
+        // services/hypr/Keybinds.qml – hier nur der Anker der Seite
+        "keybinds.editor": { title: "Tastenkürzel", editor: "keybinds" },
         "battery.warnLow": { title: "Warnung bei schwachem Akku", group: "Meldungen", min: 0, max: 50, step: 5, unit: "%", desc: "0 = aus" },
         "battery.warnCritical": { title: "Warnung bei fast leerem Akku", group: "Meldungen", min: 0, max: 20, step: 1, unit: "%", desc: "0 = aus" },
         "battery.notifyFull": { title: "Meldung bei vollem Akku", group: "Meldungen" },
@@ -316,7 +319,7 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "battery", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "battery", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "keybinds", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "battery": "battery_horiz_075",
@@ -328,6 +331,7 @@ Singleton {
         "lock": "lock",
         "idle": "bedtime",
         "sounds": "notifications_active",
+        "keybinds": "keyboard",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
         "notifications": "notifications",
@@ -348,7 +352,8 @@ Singleton {
         "media": "Medien",
         "lock": "Sperrbildschirm",
         "idle": "Inaktivität",
-        "sounds": "Klänge"
+        "sounds": "Klänge",
+        "keybinds": "Tastenkürzel"
     })
 
     // Die Datei als einfaches Objekt – daraus baut das Einstellungs-Fenster
@@ -672,6 +677,11 @@ Singleton {
                 // Nur Anker fuer den Editor (SoundsEditor); die Dateien liegen
                 // in ~/.config/dynamic-island/sounds
                 property string library: ""
+            }
+
+            // Seite "Tastenkürzel": nur Anker fuer den Editor (KeybindsEditor)
+            property JsonObject keybinds: JsonObject {
+                property string editor: ""
             }
 
             // Seite "Akku": nur Anker fuer den Verlauf (BatteryHistoryEditor);

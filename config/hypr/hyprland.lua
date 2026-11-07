@@ -120,7 +120,8 @@ end)
 -- Bei jedem Reload neu angelegt, damit keine Aktionen alter Binds bleiben.
 keybind_actions = {}
 
--- Aenderungen aus der Uebersicht (Taste neu belegt, abgeschaltet) und Binds,
+-- Aenderungen aus den Einstellungen (Taste neu belegt, abgeschaltet,
+-- Zusatztasten) und Binds,
 -- die die Shell selbst mitbringt (Plugins, eigene Kuerzel), schreibt die
 -- Shell nach keybindFile (modules/services/hypr/Keybinds.qml). sync_keybinds()
 -- wendet die Datei an – beim Laden der Config und live per
@@ -129,11 +130,15 @@ keybind_actions = {}
 local keybindFile = home .. "/.local/state/dynamic-island/keybinds.lua"
 keybinds_from_shell = nil
 idle_from_shell = nil
--- Beschriebene Binds der Config: { ref, keys, action, opts, handle, current }
--- ref = "Gruppe|Text@<modmask>:<taste>" der urspruenglichen Belegung
+-- Beschriebene Binds der Config: { ref, keys, action, opts, handle, current,
+-- src, line } – ref = "Gruppe|Text@<modmask>:<taste>" der urspruenglichen
+-- Belegung, src/line = wo der Bind in der Config steht
 described_binds = {}
 -- Was sync_keybinds() selbst gebunden hat (wird bei jedem Sync ersetzt)
 shell_binds = {}
+-- Woher die Einstellungen der Shell wissen, was ein Bind tut: je Zeile
+-- "<ref>\t<datei>\t<zeile>" (die Shell liest dort den Aufruf nach)
+local keybindInfoFile = home .. "/.local/state/dynamic-island/keybinds-origin.tsv"
 
 local function bind_ref(description, handle)
     if handle.key == "" then
@@ -142,19 +147,47 @@ local function bind_ref(description, handle)
     return description .. "@" .. handle.modmask .. ":" .. string.lower(handle.key)
 end
 
+-- Datei und Zeile des Aufrufers von bind_described (Ebene 3: bind_origin ->
+-- bind_described -> Config)
+local function bind_origin()
+    local info = debug and debug.getinfo and debug.getinfo(3, "Sl")
+    if info and type(info.source) == "string" and info.source:sub(1, 1) == "@" then
+        return info.source:sub(2), info.currentline
+    end
+    return "", 0
+end
+
 function bind_described(keys, action, opts)
     local handle = hl.bind(keys, action, opts)
     if opts and opts.description then
         keybind_actions[opts.description] = action
         if handle then
+            local src, line = bind_origin()
             described_binds[#described_binds + 1] = {
                 ref = bind_ref(opts.description, handle),
                 keys = keys, action = action, opts = opts,
                 handle = handle, current = keys,
+                src = src, line = line,
             }
         end
     end
     return handle
+end
+
+local function write_keybind_origins()
+    if not keybinds_from_shell then
+        return
+    end
+    local tmp = keybindInfoFile .. ".tmp"
+    local f = io.open(tmp, "w")
+    if not f then
+        return
+    end
+    for _, b in ipairs(described_binds) do
+        f:write(b.ref, "\t", b.src or "", "\t", tostring(b.line or 0), "\n")
+    end
+    f:close()
+    os.rename(tmp, keybindInfoFile)
 end
 
 function sync_keybinds()
@@ -187,9 +220,32 @@ function sync_keybinds()
     -- Binds der Shell: alle weg, dann neu aus der Datei
     for _, s in ipairs(shell_binds) do
         pcall(s.handle.remove, s.handle)
-        keybind_actions[s.description] = nil
+        -- Zusatztasten teilen die Aktion mit dem Config-Bind: die bleibt
+        if not s.extra then
+            keybind_actions[s.description] = nil
+        end
     end
     shell_binds = {}
+
+    -- Zusatztasten fuer Binds der Config: dieselbe Aktion und dieselben
+    -- Optionen (auch die Beschreibung, so landen sie in derselben Zeile der
+    -- Uebersicht) auf einer weiteren Kombination
+    local byRef = {}
+    for _, b in ipairs(described_binds) do
+        byRef[b.ref] = b
+    end
+    for _, e in ipairs(data.extra or {}) do
+        local b = byRef[e.of]
+        if b and type(e.keys) == "string" then
+            local okBind, handle = pcall(hl.bind, e.keys, b.action, b.opts)
+            if okBind and handle then
+                if e.disabled then
+                    handle:set_enabled(false)
+                end
+                shell_binds[#shell_binds + 1] = { handle = handle, description = b.opts.description, extra = true }
+            end
+        end
+    end
     for _, s in ipairs(data.binds or {}) do
         local action = hl.dsp.exec_cmd(s.exec)
         local opts = {
@@ -209,7 +265,7 @@ function sync_keybinds()
     end
 end
 
--- Taste aufnehmen: solange die Uebersicht eine neue Kombination abfragt,
+-- Taste aufnehmen: solange die Shell eine neue Kombination abfragt,
 -- steht Hyprland in einer Submap ohne eigene Binds – sonst loeste SUPER+Q
 -- das Terminal aus, statt bei der Shell anzukommen. Notbremse falls die
 -- Shell haengt: CTRL+SUPER+ALT+Escape oder nach 20 s von selbst zurueck.
@@ -279,9 +335,10 @@ end
 bind_described(switchBind, hl.dsp.exec_cmd(home .. "/.local/bin/hypr-profile toggle"),
     { release = true, description = "Shell|Hypr-Profil wechseln" })
 
--- Aenderungen aus der Tastenkuerzel-Uebersicht + Plugin-Binds (nach allen
+-- Aenderungen aus den Einstellungen + Plugin-Binds (nach allen
 -- Binds, damit auch der Profil-Umschalter neu belegt werden kann)
 sync_keybinds()
+write_keybind_origins()
 
 -- Idle-Management per hypridle, nur einmal beim Sessionstart. Profile mit
 -- `idle_from_shell = true` (simple) lassen die Shell sperren; den Wechsel

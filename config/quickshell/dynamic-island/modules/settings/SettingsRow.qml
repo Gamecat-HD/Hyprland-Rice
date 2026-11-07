@@ -485,6 +485,7 @@ Item {
                            : row.entry?.editor === "lock" ? lockEditor
                            : row.entry?.editor === "sounds" ? soundsEditor
                            : row.entry?.editor === "battery" ? batteryEditor
+                           : row.entry?.editor === "keybinds" ? keybindsEditor
                            : null
         }
 
@@ -510,6 +511,12 @@ Item {
             id: batteryEditor
 
             BatteryHistoryEditor {}
+        }
+
+        Component {
+            id: keybindsEditor
+
+            KeybindsEditor {}
         }
 
         Component {

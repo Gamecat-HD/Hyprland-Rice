@@ -4,18 +4,24 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Tastenkuerzel setzen: was in der Uebersicht (KeybindsPanel) geaendert wird
-// und welche Binds die Shell selbst mitbringt.
+// Tastenkuerzel setzen: was in den Einstellungen (Seite Tastenkürzel,
+// KeybindsEditor) geaendert wird und welche Binds die Shell selbst mitbringt.
+// Die Uebersicht (KeybindsPanel, SUPER+K) sucht und fuehrt nur aus.
 //
 //   ~/.config/dynamic-island/keybinds.json   (pro Rechner, wie shell.json)
 //     { format: 1,
 //       overrides: { <ref>: { keys, canon } | { disabled: true } },
-//       custom: [{ id, title, group, exec, keys, disabled }] }
+//       custom: [{ id, title, group, exec, keys, disabled }],
+//       extra: [{ id, of, keys, disabled }] }
+//
+// `extra` legt auf einen Bind der Config (of = seine Ref) eine weitere
+// Kombination mit derselben Aktion (Einstellungen > Tastenkürzel).
 //
 // <ref> eines Binds:
 //   aus der Hypr-Config   "Gruppe|Text@<modmask>:<taste>"  (Belegung laut Config)
 //   aus einem Plugin      "plugin:<id>.<bind>"             (Manifest `keybinds`)
 //   eigenes Kuerzel       "custom:<id>"
+//   Zusatztaste           "extra:<id>"
 //
 // Daraus entsteht ~/.local/state/dynamic-island/keybinds.lua, die
 // hypr/hyprland.lua beim Laden liest; nach jeder Aenderung wendet
@@ -39,7 +45,7 @@ Singleton {
     readonly property bool writesHypr: !!Quickshell.env("DYNAMIC_ISLAND_KEYBINDS_LUA")
                                        || Quickshell.shellPath("shell.qml") === Quickshell.env("HOME") + "/.config/quickshell/dynamic-island/shell.qml"
 
-    property var data: ({ format: 1, overrides: {}, custom: [] })
+    property var data: ({ format: 1, overrides: {}, custom: [], extra: [] })
     property bool loaded: false
 
     // Von Plugins.qml: [{ ref, pluginId, pluginName, group, title, keys,
@@ -54,10 +60,12 @@ Singleton {
 
     // ---- was die Shell bindet -----------------------------------------------
 
-    // Plugin- und eigene Binds mit eingerechneten Aenderungen:
-    // [{ ref, source: "plugin"|"custom", description, group, title, keys,
-    //    defaultKeys, canon, exec, disabled, changed, release, repeating,
-    //    locked, pluginId, pluginName }]
+    // Plugin- und eigene Binds und Zusatztasten mit eingerechneten
+    // Aenderungen:
+    // [{ ref, source: "plugin"|"custom"|"extra", description, group, title,
+    //    keys, defaultKeys, canon, exec, disabled, changed, release,
+    //    repeating, locked, pluginId, pluginName, of }]
+    // Zusatztasten haben kein exec: sie leihen sich die Aktion von `of`
     readonly property var managed: {
         const out = [];
         const overrides = root.data.overrides ?? {};
@@ -106,7 +114,38 @@ Singleton {
                 pluginName: ""
             });
         }
+        for (const e of root.data.extra ?? []) {
+            if (!e?.keys || !e?.of)
+                continue;
+            const description = root.descriptionOf(e.of);
+            const [group, title] = description.split("|");
+            out.push({
+                ref: `extra:${e.id}`,
+                source: "extra",
+                group: group ?? "",
+                title: title ?? "",
+                description,
+                keys: e.keys,
+                defaultKeys: e.keys,
+                canon: root.canonOf(e.keys),
+                exec: "",
+                disabled: e.disabled === true,
+                changed: false,
+                release: false,
+                repeating: false,
+                locked: false,
+                pluginId: "",
+                pluginName: "",
+                of: e.of
+            });
+        }
         return out;
+    }
+
+    // "Gruppe|Text@64:q" -> "Gruppe|Text"
+    function descriptionOf(ref: string): string {
+        const at = ref.lastIndexOf("@");
+        return at < 0 ? ref : ref.slice(0, at);
     }
 
     // "<beschreibung>@<canon>" -> Eintrag aus `managed`
@@ -156,6 +195,11 @@ Singleton {
             root.commit(next);
             return;
         }
+        if (ref.startsWith("extra:")) {
+            next.extra = next.extra.map(e => `extra:${e.id}` === ref ? Object.assign({}, e, { keys }) : e);
+            root.commit(next);
+            return;
+        }
         const canon = root.canonOf(keys);
         const o = Object.assign({}, next.overrides[ref] ?? {});
         // Zurueck auf die Vorgabe = keine Aenderung mehr
@@ -174,6 +218,11 @@ Singleton {
         const next = root.copyData();
         if (ref.startsWith("custom:")) {
             next.custom = next.custom.map(c => `custom:${c.id}` === ref ? Object.assign({}, c, { disabled }) : c);
+            root.commit(next);
+            return;
+        }
+        if (ref.startsWith("extra:")) {
+            next.extra = next.extra.map(e => `extra:${e.id}` === ref ? Object.assign({}, e, { disabled }) : e);
             root.commit(next);
             return;
         }
@@ -205,6 +254,25 @@ Singleton {
     function removeCustom(ref: string): void {
         const next = root.copyData();
         next.custom = next.custom.filter(c => `custom:${c.id}` !== ref);
+        next.extra = next.extra.filter(e => `extra:${e.id}` !== ref);
+        root.commit(next);
+    }
+
+    // Weitere Kombination fuer einen Bind der Config (ref "Gruppe|Text@…")
+    function addExtra(of: string, keys: string): void {
+        const next = root.copyData();
+        let n = next.extra.length + 1;
+        while (next.extra.some(e => e.id === `x${n}`))
+            n++;
+        next.extra.push({ id: `x${n}`, of, keys, disabled: false });
+        root.commit(next);
+    }
+
+    // Eigenes Kuerzel: Name/Befehl aendern
+    function editCustom(ref: string, title: string, exec: string): void {
+        const next = root.copyData();
+        next.custom = next.custom.map(c => `custom:${c.id}` === ref
+            ? Object.assign({}, c, { title: title.replace(/\|/g, "/"), exec }) : c);
         root.commit(next);
     }
 
@@ -320,16 +388,19 @@ Singleton {
     // SUPER-Kombinationen nie bei der Shell an
     property bool capturing: false
 
+    // Testkopien (writesHypr = false) lassen Hyprland in Ruhe
     function startCapture(): void {
         root.capturing = true;
-        Quickshell.execDetached(["hyprctl", "eval", "keybind_capture(true)"]);
+        if (root.writesHypr)
+            Quickshell.execDetached(["hyprctl", "eval", "keybind_capture(true)"]);
     }
 
     function stopCapture(): void {
         if (!root.capturing)
             return;
         root.capturing = false;
-        Quickshell.execDetached(["hyprctl", "eval", "keybind_capture(false)"]);
+        if (root.writesHypr)
+            Quickshell.execDetached(["hyprctl", "eval", "keybind_capture(false)"]);
     }
 
     // ---- Lua-Datei --------------------------------------------------------------
@@ -359,11 +430,19 @@ Singleton {
         }
         lines.push("\t},", "\tbinds = {");
         for (const m of root.managed) {
+            if (m.source === "extra")
+                continue;
             const fields = [`keys = ${L(m.keys)}`, `exec = ${L(m.exec)}`, `description = ${L(m.description)}`];
             for (const flag of ["disabled", "release", "repeating", "locked"])
                 if (m[flag])
                     fields.push(`${flag} = true`);
             lines.push(`\t\t{ ${fields.join(", ")} },`);
+        }
+        lines.push("\t},", "\textra = {");
+        for (const m of root.managed) {
+            if (m.source !== "extra")
+                continue;
+            lines.push(`\t\t{ of = ${L(m.of)}, keys = ${L(m.keys)}${m.disabled ? ", disabled = true" : ""} },`);
         }
         lines.push("\t},", "}", "");
         return lines.join("\n");
@@ -413,7 +492,8 @@ Singleton {
         return {
             format: 1,
             overrides: Object.assign({}, root.data.overrides ?? {}),
-            custom: (root.data.custom ?? []).slice()
+            custom: (root.data.custom ?? []).slice(),
+            extra: (root.data.extra ?? []).slice()
         };
     }
 
@@ -433,7 +513,8 @@ Singleton {
         root.data = {
             format: 1,
             overrides: parsed.overrides ?? {},
-            custom: Array.isArray(parsed.custom) ? parsed.custom : []
+            custom: Array.isArray(parsed.custom) ? parsed.custom : [],
+            extra: Array.isArray(parsed.extra) ? parsed.extra : []
         };
         root.loaded = true;
     }
@@ -470,6 +551,7 @@ Singleton {
         function enable(ref: string): void { root.setDisabled(ref, false); }
         function reset(ref: string): void { root.reset(ref); }
         function add(title: string, exec: string, keys: string): void { root.addCustom(title, exec, keys); }
+        function addExtra(of: string, keys: string): void { root.addExtra(of, keys); }
         function remove(ref: string): void { root.removeCustom(ref); }
     }
 

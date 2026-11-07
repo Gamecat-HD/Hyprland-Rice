@@ -6,14 +6,23 @@ import Quickshell.Hyprland
 import Quickshell.Io
 
 import qs
+import "keysource.js" as KeySource
 
-// Tastenkuerzel aus Hyprland fuer die Uebersicht (KeybindsPanel).
+// Tastenkuerzel aus Hyprland fuer die Uebersicht (KeybindsPanel) und die
+// Einstellungsseite Tastenkürzel (KeybindsEditor).
 //
 // Quelle ist `hyprctl binds -j`, nicht eine eigene Liste: die Binds tragen in
 // hypr/profiles/simple.lua eine Beschreibung "Gruppe|Text" (optional
-// "|Anzeige" statt der echten Taste, z.B. "1 … 0"). Nur beschriebene Binds
-// erscheinen. Gleicher Text in derselben Gruppe wird eine Zeile mit mehreren
-// Kuerzeln (Medientaste + Ersatzkuerzel).
+// "|Anzeige" statt der echten Taste, z.B. "1 … 0", und "|Anzeige|Einzeln"
+// = Name dieses einen Binds). Nur beschriebene Binds erscheinen. Gleicher
+// Text in derselben Gruppe wird in der Uebersicht eine Zeile mit mehreren
+// Kuerzeln (Medientaste + Ersatzkuerzel); Binds mit derselben Anzeige
+// ("Pfeile") dort nur einmal.
+//
+// Fuer die Einstellungen: `commands` = jeder Befehl (gleiche Beschreibung)
+// einzeln mit all seinen Tasten, dazu `unnamed` (Binds ohne Beschreibung,
+// nur fuer die Tastatur-Vorschau) und `origins` (wo der Bind in der Config
+// steht und was er tut, siehe keysource.js).
 //
 // Gelesen wird beim Oeffnen der Uebersicht (refresh) und nach jedem
 // `hyprctl reload`, solange schon einmal gelesen wurde.
@@ -37,6 +46,15 @@ Singleton {
     property var groups: []
     property bool loaded: false
 
+    // [{ id, group, text, part, title, label, source, pluginName, runnable,
+    //    custom: { title, exec } | null,
+    //    combos: [{ keys: ["Super", "Q"], keysText: "SUPER + Q", ref, canon,
+    //               modmask, key, editable, disabled, changed, source, mouse }] }]
+    // id = Beschreibung (zum Ausfuehren), title = Einzelname oder Text
+    property var commands: []
+    // Binds ohne Beschreibung: [{ canon, modmask, key, mouse }]
+    property var unnamed: []
+
     // Alle Binds der Grundebene (auch unbeschriebene) fuer die
     // Konfliktpruefung: [{ canon, text, ref }]
     property var all: []
@@ -45,6 +63,8 @@ Singleton {
     property bool stale: false
 
     function refresh(): void {
+        if (Object.keys(root.origins.refs).length === 0)
+            root.refreshOrigins();
         if (proc.running)
             root.stale = true;
         else
@@ -54,9 +74,63 @@ Singleton {
     function run(entry: var): void {
         if (!entry?.clickable)
             return;
+        root.runId(entry.id);
+    }
+
+    // Befehl aus `commands` ausfuehren (Maus-Binds wie Ziehen gehen nicht)
+    function runCommand(command: var): void {
+        if (command?.runnable)
+            root.runId(command.id);
+    }
+
+    function runId(id: string): void {
         // Lange Lua-Klammern: die Beschreibung darf so jedes Zeichen enthalten
         // ausser der schliessenden Folge selbst
-        Quickshell.execDetached(["hyprctl", "eval", `run_keybind([==[${entry.id}]==])`]);
+        Quickshell.execDetached(["hyprctl", "eval", `run_keybind([==[${id}]==])`]);
+    }
+
+    // ---- Herkunft (Einstellungen) -------------------------------------------
+
+    readonly property string originPath: Quickshell.env("HOME") + "/.local/state/dynamic-island/keybinds-origin.tsv"
+    // { refs: { <ref>: { file, line } }, files: { <pfad>: <inhalt> } }
+    property var origins: ({ refs: {}, files: {} })
+
+    // Wo ein Bind der Config steht und was er tut:
+    // { file, line, keys, action: { kind, text, source } } | null
+    function originOf(ref: string): var {
+        const o = root.origins.refs[ref];
+        if (!o)
+            return null;
+        const found = KeySource.actionAt(root.origins.files[o.file] ?? "", o.line);
+        return { file: o.file, line: o.line, keys: found?.keys ?? "", action: found?.action ?? null };
+    }
+
+    // Was ein Befehl tut, fuer jede Quelle: { kind, text } | null
+    function actionOf(command: var): var {
+        if (!command)
+            return null;
+        if (command.custom)
+            return { kind: "exec", text: command.custom.exec };
+        const plugin = command.combos.find(c => c.source === "plugin");
+        if (plugin)
+            return { kind: "exec", text: Keybinds.stateOf(plugin.ref).exec ?? "" };
+        const config = command.combos.find(c => c.source === "config");
+        return config ? root.originOf(config.ref)?.action ?? null : null;
+    }
+
+    function refreshOrigins(): void {
+        originProc.running = false;
+        originProc.running = true;
+    }
+
+    Process {
+        id: originProc
+
+        // TSV, danach jede genannte Datei einmal ("\x1e<pfad>\n<inhalt>")
+        command: ["sh", "-c", "[ -r \"$1\" ] || exit 0; cat \"$1\"; cut -f2 \"$1\" | sort -u | while IFS= read -r f; do [ -r \"$f\" ] && printf '\\036%s\\n' \"$f\" && cat \"$f\"; done", "sh", root.originPath]
+        stdout: StdioCollector {
+            onStreamFinished: root.origins = KeySource.parseOrigins(this.text)
+        }
     }
 
     // Reihenfolge wie auf der Tastatur ueblich
@@ -104,6 +178,14 @@ Singleton {
         return "";
     }
 
+    // Wie in der Config: "SUPER + ALT + W" (fuer Keybinds.setKeys)
+    function keysText(bind: var): string {
+        const names = { 64: "SUPER", 4: "CTRL", 8: "ALT", 1: "SHIFT" };
+        const keys = root.modBits.filter(m => bind.modmask & m.bit).map(m => names[m.bit]);
+        keys.push(bind.key === "" ? `code:${bind.keycode}` : bind.key);
+        return keys.join(" + ");
+    }
+
     function combo(bind: var, label: string): var {
         const keys = root.modBits.filter(m => bind.modmask & m.bit).map(m => I18n.tr(m.name));
         const key = label ? I18n.tr(label) : root.keyLabel(bind.key);
@@ -118,7 +200,8 @@ Singleton {
     property string lastText: ""
 
     function parse(text: string): void {
-        const key = I18n.language + "\n" + text;
+        // Mit Keybinds.revision: an/aus aendert `hyprctl binds -j` nicht
+        const key = I18n.language + "\n" + Keybinds.revision + "\n" + text;
         if (root.loaded && key === root.lastText)
             return;
         root.lastText = key;
@@ -134,19 +217,64 @@ Singleton {
         const order = [];
         const byName = {};
         const all = [];
+        const commands = [];
+        const byId = {};
+        const unnamed = [];
         for (const bind of binds) {
             if (bind.submap !== "")
                 continue;
             const canon = root.canonOf(bind);
             const parts = (bind.description ?? "").split("|");
+            const key = bind.key === "" ? `code:${bind.keycode}` : bind.key.toLowerCase();
+            // Ziehen/Groesse (mouse:272 …): hyprctl meldet bei Lua-Binds
+            // `mouse: false`, deshalb auch an der Taste erkennen. Das Mausrad
+            // (mouse_up/down) ist ein normaler Bind.
+            const drag = bind.mouse || key.startsWith("mouse:");
             if (parts.length < 2) {
                 all.push({ canon, text: I18n.tr("einem Bind ohne Beschreibung"), ref: "" });
+                unnamed.push({ canon, modmask: bind.modmask, key, mouse: drag });
                 continue;
             }
-            const [groupName, text, label] = parts;
+            const groupName = parts[0];
+            const text = parts[1];
+            const label = parts[2] ?? "";
+            const part = parts[3] ?? "";
             const ref = Keybinds.refFor(bind.description, canon);
             const state = Keybinds.stateOf(ref);
-            all.push({ canon, text: `${I18n.tr(groupName)} › ${I18n.tr(text)}`, ref });
+            all.push({ canon, text: `${I18n.tr(groupName)} › ${I18n.tr(part || text)}`, ref });
+
+            // Einstellungen: jeder Befehl einzeln, mit seinen echten Tasten
+            let command = byId[bind.description];
+            if (!command) {
+                command = byId[bind.description] = {
+                    id: bind.description,
+                    group: groupName,
+                    text,
+                    part: part ?? "",
+                    title: part || text,
+                    label: label ?? "",
+                    source: "config",
+                    pluginName: "",
+                    runnable: !drag,
+                    custom: null,
+                    combos: []
+                };
+                commands.push(command);
+            }
+            const realKeys = root.combo(bind, "");
+            command.combos.push({
+                keys: realKeys,
+                keysText: root.keysText(bind),
+                ref,
+                canon,
+                modmask: bind.modmask,
+                key,
+                editable: !drag,
+                disabled: state.disabled,
+                changed: state.changed,
+                source: state.source,
+                mouse: drag
+            });
 
             let group = byName[groupName];
             if (!group) {
@@ -158,21 +286,31 @@ Singleton {
             // traegt die Beschreibung – neu belegen wuerde nur ihn treffen
             const combo = {
                 keys: root.combo(bind, label ?? ""),
+                label: label ?? "",
+                modmask: bind.modmask,
                 ref,
                 canon,
-                editable: !label && !bind.mouse,
+                editable: !label && !drag,
                 disabled: state.disabled,
                 changed: state.changed,
                 source: state.source
             };
             const entry = group.entries.find(e => e.text === text);
-            if (entry)
-                entry.combos.push(combo);
-            else
+            if (entry) {
+                // Sammelzeile: "Super + Pfeile" nur einmal, auch wenn jede
+                // Richtung ein eigener Bind ist
+                const same = label && entry.combos.find(c => c.label === label && c.modmask === bind.modmask);
+                if (same) {
+                    same.disabled = same.disabled && combo.disabled;
+                    same.changed = same.changed || combo.changed;
+                } else {
+                    entry.combos.push(combo);
+                }
+            } else
                 group.entries.push({
                     text,
                     id: bind.description,
-                    clickable: !label && !bind.mouse,
+                    clickable: !label && !drag,
                     source: state.source,
                     pluginName: state.pluginName ?? "",
                     combos: [combo]
@@ -186,8 +324,24 @@ Singleton {
                 entry.changed = entry.combos.some(c => c.changed || c.disabled);
             }
 
+        // Quelle eines Befehls = die seiner eigentlichen Taste (nicht die
+        // einer Zusatztaste)
+        for (const command of commands) {
+            const main = command.combos.find(x => x.source !== "extra") ?? command.combos[0];
+            const state = Keybinds.stateOf(main.ref);
+            command.source = main.source === "extra" ? "config" : main.source;
+            command.pluginName = state.pluginName ?? "";
+            if (main.source === "custom") {
+                const id = main.ref.slice("custom:".length);
+                const custom = (Keybinds.data.custom ?? []).find(x => x.id === id);
+                command.custom = { title: custom?.title ?? command.text, exec: custom?.exec ?? "" };
+            }
+        }
+
         root.all = all;
         root.groups = order;
+        root.commands = commands;
+        root.unnamed = unnamed;
         root.loaded = true;
     }
 
@@ -220,8 +374,10 @@ Singleton {
         target: Hyprland
 
         function onRawEvent(event: HyprlandEvent): void {
-            if (event.name === "configreloaded" && root.loaded)
+            if (event.name === "configreloaded" && root.loaded) {
                 root.refresh();
+                root.refreshOrigins();
+            }
         }
     }
 }
