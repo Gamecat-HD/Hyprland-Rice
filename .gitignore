@@ -43,7 +43,7 @@ __pycache__/
 # Zustand, keine Konfiguration: welches Profil und welches Theme gerade laufen.
 # Beides schreiben hypr-profile bzw. theme-set bei jedem Umschalten neu und es
 # ist pro Rechner verschieden. Ohne die Dateien geht nichts kaputt: hyprland.lua
-# faellt auf "caelestia" zurueck (install.sh -> hypr_profile legt "simple" an),
+# faellt auf "simple" zurueck (install.sh -> hypr_profile legt es auch an),
 # Colors.qml auf das Theme "ink".
 /hypr/profile
 /quickshell/dynamic-island/themes/current
@@ -70,6 +70,7 @@ __pycache__/
 # Software-Rendering). Gilt fuer spotify-launcher bzw. den caelestia-Musik-Toggle
 # (startet ueber `spicetify watch -s`, darum dort `env WAYLAND_DISPLAY=`).
 !/spotify-launcher.conf
-!/caelestia/
-/caelestia/*
-!/caelestia/cli.json
+# Gehoert NUR zum Profil "caelestia", nicht zur Notch-Rice: Config des
+# caelestia-CLI (Aufnahme, Musik-Toggle). ~/.config/caelestia/cli.json ist ein
+# Symlink darauf (caelestia sucht sie dort).
+!/caelestia-profile/

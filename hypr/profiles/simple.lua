@@ -14,7 +14,7 @@
 -- Notifications, OSDs fuer Lautstaerke/Helligkeit, Sidebar, Launcher-Overlay.
 -- Launcher = fuzzel, Lockscreen = hyprlock.
 --
--- Umschalten: hypr-profile caelestia   (oder CTRL + SUPER + SHIFT + P)
+-- Umschalten: hypr-profile <name>   (oder CTRL + SUPER + SHIFT + P)
 
 local home = os.getenv("HOME")
 local hyprProfile = home .. "/.local/bin/hypr-profile"
@@ -336,7 +336,7 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("trash-empty -f 30")
 
 	-- Shell dieses Profils starten (Zuordnung steht in hypr-profile):
-	-- beendet eine noch laufende Caelestia-Shell und faehrt dynamic-island hoch.
+	-- beendet die Shell eines anderen Profils und faehrt dynamic-island hoch.
 	hl.exec_cmd(hyprProfile .. " shell-sync")
 end)
 

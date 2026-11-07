@@ -234,12 +234,12 @@ own changes on GitHub: click **Fork** at the top right, then clone your fork.
   Usually `hypr-profile simple` or `CTRL + SUPER + ALT + R` helps. Error
   messages: `qs -c dynamic-island log`.
 * **Profile switcher:** `CTRL + SUPER + SHIFT + P` cycles through
-  `caelestia`, `simple` and `shell2`. The other two are my tinkering profiles
+  `simple`, `shell2` and `caelestia`. The other two are my tinkering profiles
   and need shells that aren't in this repo — only `simple` makes sense for
   you. Switched by accident? `hypr-profile simple`.
-* **Error in `simple.lua`:** Hyprland then falls back to the `caelestia`
-  profile automatically (windows work, the bar is missing). Fix the error,
-  then run `hypr-profile simple`.
+* **Error in `simple.lua`:** for that session Hyprland falls back to the
+  full config of the `caelestia` profile (windows and keybinds work, the bar
+  is missing). Fix the error, then `hyprctl reload`.
 * **Empty boxes instead of icons:** the Material Symbols font is missing
   (`ttf-material-symbols-variable-git` from the AUR).
 * **Notifications don't arrive:** another daemon (mako, dunst, swaync) owns
@@ -283,9 +283,11 @@ feature is missing.
 
 `~/.config/hypr/profile` decides which profile Hyprland loads:
 
-* `simple` — this rice with the dynamic-island shell
-* `caelestia` — the full config with the Caelestia shell (not in this repo)
-* `shell2` — test profile for a new shell (not in here either)
+* `simple` — this rice with the dynamic-island shell (default)
+* `shell2` — test profile for a new shell (not in this repo)
+* `caelestia` — the full config with the Caelestia shell (not in here
+  either). Separate from this rice; its caelestia-cli config lives in
+  `caelestia-profile/cli.json`.
 
 Switch: `hypr-profile toggle` or `CTRL + SUPER + SHIFT + P`.
 

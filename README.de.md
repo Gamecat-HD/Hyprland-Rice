@@ -233,12 +233,12 @@ deinen Fork klonen.
   Meistens hilft `hypr-profile simple` oder `CTRL + SUPER + ALT + R`.
   Fehlermeldungen: `qs -c dynamic-island log`.
 * **Profil-Umschalter:** `CTRL + SUPER + SHIFT + P` schaltet zwischen
-  `caelestia`, `simple` und `shell2` durch. Die anderen beiden sind meine
+  `simple`, `shell2` und `caelestia` durch. Die anderen beiden sind meine
   Bastel-Profile und brauchen Shells, die nicht im Repo sind — fuer dich ist
   nur `simple` sinnvoll. Aus Versehen gewechselt? `hypr-profile simple`.
-* **Fehler in `simple.lua`:** Dann springt Hyprland automatisch auf das
-  Profil `caelestia` zurueck (Fenster gehen, Leiste fehlt). Fehler beheben,
-  danach `hypr-profile simple`.
+* **Fehler in `simple.lua`:** Dann laedt Hyprland fuer diese Sitzung die
+  volle Config des Profils `caelestia` (Fenster und Tastenkuerzel gehen,
+  Leiste fehlt). Fehler beheben, danach `hyprctl reload`.
 * **Leere Kaestchen statt Icons:** die Schrift Material Symbols fehlt
   (`ttf-material-symbols-variable-git` aus dem AUR).
 * **Benachrichtigungen kommen nicht an:** ein anderer Daemon (mako, dunst,
@@ -282,10 +282,11 @@ Einzelheit aus.
 
 `~/.config/hypr/profile` entscheidet, welches Profil Hyprland laedt:
 
-* `simple` — diese Rice mit der dynamic-island-Shell
-* `caelestia` — die volle Config mit der Caelestia-Shell (die liegt nicht in
-  diesem Repo)
-* `shell2` — Testprofil fuer eine neue Shell (liegt ebenfalls nicht hier)
+* `simple` — diese Rice mit der dynamic-island-Shell (Standard)
+* `shell2` — Testprofil fuer eine neue Shell (die liegt nicht in diesem Repo)
+* `caelestia` — die volle Config mit der Caelestia-Shell (liegt ebenfalls
+  nicht hier). Getrennt von dieser Rice; ihre caelestia-cli-Config liegt in
+  `caelestia-profile/cli.json`.
 
 Umschalten: `hypr-profile toggle` oder `CTRL + SUPER + SHIFT + P`.
 
