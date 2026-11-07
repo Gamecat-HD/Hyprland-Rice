@@ -4,7 +4,8 @@ import QtQuick
 import qs
 
 // Lautstaerke-Walze im Gehaeuse: linke Haelfte leiser, rechte lauter.
-// Jede Haelfte leuchtet fuer sich (Belegung aus der Ebene).
+// Jede Haelfte leuchtet fuer sich (Belegung aus der Ebene). Tooltips zeichnet
+// die Tastatur (Overlay, hoverSide).
 Item {
     id: roller
 
@@ -19,30 +20,32 @@ Item {
 
     signal clicked(string id)
 
-    readonly property color rockBase: Qt.darker(Colors.surfaceBright, 1.6)
+    // Gehoverte Haelfte fuer den Tooltip der Tastatur: -1 keine, 0 leiser, 1 lauter
+    readonly property int hoverSide: leftHalf.hovered ? 0 : rightHalf.hovered ? 1 : -1
 
     width: roller.unit * 1.7
     height: roller.unit * 0.5
     z: leftHalf.hovered || rightHalf.hovered ? 2 : 0
 
-    // Rock
+    // Unterkante
     Rectangle {
-        anchors.fill: parent
+        y: Math.max(1, Math.round(roller.unit * 0.04))
+        width: parent.width
+        height: parent.height - y
         radius: height / 2
-        color: roller.rockBase
+        color: Qt.darker(Colors.surfaceBright, 1.5)
     }
 
     // Walze mit Rillen
     Rectangle {
         id: drum
 
-        x: roller.unit * 0.04
-        y: roller.unit * 0.02
-        width: parent.width - roller.unit * 0.08
-        height: parent.height - roller.unit * 0.08
+        width: parent.width
+        height: parent.height - Math.max(1, Math.round(roller.unit * 0.04))
         radius: height / 2
-        color: Qt.lighter(Colors.surfaceBright, 1.05)
-        clip: true
+        color: Colors.surfaceBright
+        border.width: 1
+        border.color: Colors.alpha(Colors.outline, 0.35)
 
         Row {
             anchors.centerIn: parent
@@ -59,11 +62,14 @@ Item {
             }
         }
 
-        // Licht je Haelfte
+        // Licht je Haelfte (aussen rund wie die Walze)
         Rectangle {
-            x: 0
-            width: parent.width / 2
-            height: parent.height
+            x: 1
+            y: 1
+            width: parent.width / 2 - 1
+            height: parent.height - 2
+            topLeftRadius: height / 2
+            bottomLeftRadius: height / 2
             color: Colors.alpha(roller.lights[0], (roller.lits[0] ? 0.5 : roller.infos[0] ? 0.3 : 0) * (roller.infos[0]?.disabled ? 0.5 : 1))
 
             Behavior on color {
@@ -73,8 +79,11 @@ Item {
 
         Rectangle {
             x: parent.width / 2
-            width: parent.width / 2
-            height: parent.height
+            y: 1
+            width: parent.width / 2 - 1
+            height: parent.height - 2
+            topRightRadius: height / 2
+            bottomRightRadius: height / 2
             color: Colors.alpha(roller.lights[1], (roller.lits[1] ? 0.5 : roller.infos[1] ? 0.3 : 0) * (roller.infos[1]?.disabled ? 0.5 : 1))
 
             Behavior on color {
@@ -84,9 +93,14 @@ Item {
 
         // Hover-Aufhellung
         Rectangle {
-            x: leftHalf.hovered ? 0 : parent.width / 2
-            width: parent.width / 2
-            height: parent.height
+            x: leftHalf.hovered ? 1 : parent.width / 2
+            y: 1
+            width: parent.width / 2 - 1
+            height: parent.height - 2
+            topLeftRadius: leftHalf.hovered ? height / 2 : 0
+            bottomLeftRadius: leftHalf.hovered ? height / 2 : 0
+            topRightRadius: leftHalf.hovered ? 0 : height / 2
+            bottomRightRadius: leftHalf.hovered ? 0 : height / 2
             visible: roller.interactive && (leftHalf.hovered || rightHalf.hovered)
             color: Colors.alpha(Colors.fgSurface, 0.08)
         }
@@ -156,21 +170,5 @@ Item {
             enabled: roller.interactive && (roller.infos[1] !== null || roller.pick)
             onTapped: roller.clicked(roller.ids[1])
         }
-    }
-
-    KeyTooltip {
-        readonly property int side: leftHalf.hovered ? 0 : 1
-        readonly property var info: roller.infos[side]
-
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            top: parent.bottom
-            topMargin: 6
-        }
-        z: 10
-        visible: leftHalf.hovered || rightHalf.hovered
-        title: info ? `${I18n.tr(info.group)} › ${I18n.tr(info.title)}` : I18n.tr(side === 0 ? "Leiser" : "Lauter")
-        keys: info?.keys ?? []
-        hint: info?.disabled ? I18n.tr("aus") : ""
     }
 }

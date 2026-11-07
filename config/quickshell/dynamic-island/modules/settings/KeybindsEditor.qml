@@ -28,6 +28,11 @@ Item {
 
     // ---- Zustand ----
     property string selectedId: ""
+    // Ref der ersten Kombination des gewaehlten Befehls: ueberlebt eine
+    // Umbenennung (die id ist die Beschreibung) und findet ein frisch
+    // angelegtes Kuerzel nach dem naechsten Refresh (pendingRef)
+    property string selectedRef: ""
+    property string pendingRef: ""
     property int mask: 64
     // Laufendes "Auf Tastatur wählen": { mode, ref, title, payload } | null
     property var pick: null
@@ -35,23 +40,32 @@ Item {
     property bool adding: false
     property alias listQuery: list.queryText
 
-    readonly property var selected: HyprBinds.commands.find(c => c.id === editor.selectedId) ?? null
+    readonly property var selected: {
+        const byRef = editor.selectedRef !== "" ? HyprBinds.commands.find(c => c.combos.some(x => x.ref === editor.selectedRef)) : null;
+        return byRef ?? HyprBinds.commands.find(c => c.id === editor.selectedId) ?? null;
+    }
     // Waehrend der Aufnahme folgt die Ebene den gehaltenen Modifiern
     readonly property int shownMask: capture.active ? capture.heldMask : editor.mask
     readonly property bool narrow: editor.width < 760
     readonly property real paneHeight: 480
-    // Fuer Tests: die Tastatur
+    // Fuer Tests: Tastatur und Aufnahme
     readonly property alias keyboard: board
+    readonly property alias captureItem: capture
 
     // Canon "64:q" -> Belegung, einmal fuer alle Ebenen
     readonly property var index: {
         const out = {};
         for (const c of HyprBinds.commands)
-            for (const combo of c.combos)
-                out[combo.canon] = { id: c.id, title: c.title, group: c.group, disabled: combo.disabled, changed: combo.changed, source: combo.source, unnamed: false, keys: combo.keys };
+            for (const combo of c.combos) {
+                // Ein aktiver Bind hat Vorrang vor einem abgeschalteten auf derselben Taste
+                const prev = out[combo.canon];
+                if (prev && !prev.disabled && combo.disabled)
+                    continue;
+                out[combo.canon] = { id: c.id, ref: combo.ref, title: c.title, group: c.group, disabled: combo.disabled, changed: combo.changed, source: combo.source, unnamed: false, keys: combo.keys };
+            }
         for (const u of HyprBinds.unnamed)
             if (!out[u.canon])
-                out[u.canon] = { id: "", title: "", group: "", disabled: false, changed: false, source: "config", unnamed: true, keys: [] };
+                out[u.canon] = { id: "", ref: "", title: "", group: "", disabled: false, changed: false, source: "config", unnamed: true, keys: [] };
         return out;
     }
 
@@ -71,12 +85,15 @@ Item {
         return out;
     }
 
-    // Tasten des gewaehlten Befehls (Modifier links + Taste jeder Kombination)
+    // Tasten des gewaehlten Befehls auf der gezeigten Ebene (Modifier links +
+    // Taste); Kombinationen anderer Ebenen stehen im Display/Detail
     readonly property var litKeys: {
         const out = {};
         if (!editor.selected)
             return out;
         for (const combo of editor.selected.combos) {
+            if (combo.modmask !== editor.shownMask)
+                continue;
             out[combo.key] = true;
             if (combo.modmask & 64)
                 out.super_l = true;
@@ -90,12 +107,48 @@ Item {
         return out;
     }
 
-    function select(id: string): void {
+    // keepMask: Ebene nicht wechseln (Klick auf eine Taste der Vorschau)
+    function select(id: string, keepMask: bool): void {
+        editor.pendingRef = "";
         editor.selectedId = id;
         const c = HyprBinds.commands.find(x => x.id === id);
-        if (c && c.combos.length > 0)
+        editor.selectedRef = c?.combos[0]?.ref ?? "";
+        if (c && c.combos.length > 0 && !keepMask)
             editor.mask = c.combos[0].modmask;
         list.scrollTo(id);
+    }
+
+    // Auswahl ueber eine Ref (neues Kuerzel / Zusatztaste nach dem Speichern):
+    // der Befehl erscheint erst mit dem naechsten Refresh
+    function selectRef(ref: string): void {
+        if (ref === "")
+            return;
+        editor.selectedRef = ref;
+        editor.pendingRef = ref;
+        editor.resolvePending();
+    }
+
+    function resolvePending(): void {
+        if (editor.pendingRef === "")
+            return;
+        for (const c of HyprBinds.commands) {
+            const combo = c.combos.find(x => x.ref === editor.pendingRef);
+            if (combo) {
+                editor.pendingRef = "";
+                editor.selectedId = c.id;
+                editor.mask = combo.modmask;
+                list.scrollTo(c.id);
+                return;
+            }
+        }
+    }
+
+    Connections {
+        target: HyprBinds
+
+        function onCommandsChanged(): void {
+            editor.resolvePending();
+        }
     }
 
     function startPick(mode: string, ref: string, title: string, payload: var): void {
@@ -111,13 +164,17 @@ Item {
 
     // Klick auf eine Taste der Vorschau
     function keyClicked(id: string): void {
-        const canon = `${editor.mask}:${id}`;
-        const info = editor.index[canon] ?? null;
+        // Dieselbe Aufloesung wie die Vorschau (Zweitnamen: ß fuer backslash, kp_7 fuer kp_home)
+        const info = board.infoFor(id);
         if (editor.pick) {
-            // Die eigene Taste noch einmal waehlen ist kein Konflikt
-            const own = editor.pick.mode === "set" && info && !info.unnamed
-                && HyprBinds.commands.some(c => c.combos.some(x => x.canon === canon && x.ref === editor.pick.ref));
-            if (info && !own) {
+            if (!Layout.pickable(id)) {
+                editor.pickError = I18n.tr("Diese Taste lässt sich nicht belegen");
+                return;
+            }
+            // Die eigene Taste noch einmal waehlen ist kein Konflikt; abgeschaltete
+            // Binds blockieren nicht (wie HyprBinds.conflict)
+            const own = editor.pick.mode === "set" && info && info.ref === editor.pick.ref;
+            if (info && !info.disabled && !own) {
                 editor.pickError = I18n.tr("Schon belegt: %1").arg(info.unnamed ? I18n.tr("einem Bind ohne Beschreibung") : `${I18n.tr(info.group)} › ${I18n.tr(info.title)}`);
                 return;
             }
@@ -133,12 +190,14 @@ Item {
             }
             if (editor.pick.mode === "new")
                 editor.closeForm();
+            if (editor.pick.mode !== "set")
+                editor.selectRef(capture.savedRef);
             editor.pick = null;
             editor.pickError = "";
             return;
         }
         if (info && !info.unnamed)
-            editor.select(info.id);
+            editor.select(info.id, true);
     }
 
     function closeForm(): void {
@@ -159,7 +218,9 @@ Item {
 
         onFinished: {
             editor.closeForm();
-            if (editor.selected && editor.selected.combos.length > 0)
+            if (capture.savedRef.startsWith("custom:") || capture.savedRef.startsWith("extra:"))
+                editor.selectRef(capture.savedRef);
+            else if (editor.selected && editor.selected.combos.length > 0)
                 editor.mask = editor.selected.combos[0].modmask;
         }
     }
@@ -182,6 +243,16 @@ Item {
         focus: capture.active
         Keys.onPressed: e => capture.press(e)
         Keys.onReleased: e => capture.release(e)
+
+        // Klick ins Fenster oder Fensterwechsel: Fokus zurueck, sonst kaeme
+        // Esc nicht mehr an und Hyprland bliebe bis zum Timeout in der Submap
+        onActiveFocusChanged: {
+            if (!activeFocus && capture.active)
+                Qt.callLater(() => {
+                    if (capture.active)
+                        catcher.forceActiveFocus();
+                });
+        }
     }
 
     // Hyprland-Profil: Aenderungen wirken nur unter "simple"
@@ -276,30 +347,17 @@ Item {
                 font.pixelSize: 18
             }
 
+            // Gehaltene / gespeicherte Tasten
             Row {
+                id: bannerCaps
+
                 anchors {
                     left: bannerIcon.right
                     leftMargin: 10
-                    right: bannerCancel.left
-                    rightMargin: 10
                     verticalCenter: parent.verticalCenter
                 }
-                spacing: 8
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: {
-                        if (capture.active)
-                            return capture.done !== "" ? I18n.tr("„%1“ liegt jetzt auf").arg(capture.title)
-                                 : I18n.tr("Drücke die neue Kombination für „%1“ – Esc bricht ab").arg(capture.title);
-                        if (editor.pick)
-                            return I18n.tr("Klicke eine freie Taste für „%1“ – Super, Strg, Alt und Shift wechseln die Ebene").arg(editor.pick.title);
-                        return "";
-                    }
-                    color: Colors.fgSurface
-                    font.family: Config.font
-                    font.pixelSize: 12
-                }
+                visible: capture.active && (capture.done !== "" || capture.held.length > 0)
+                spacing: 4
 
                 Repeater {
                     model: capture.active ? (capture.done !== "" ? capture.done.split("+").map(p => {
@@ -325,16 +383,32 @@ Item {
                     font.family: Config.font
                     font.pixelSize: 12
                 }
+            }
 
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: banner.error !== ""
-                    text: banner.error
-                    color: Colors.error
-                    font.family: Config.font
-                    font.pixelSize: 12
-                    font.weight: Font.Medium
+            // Anleitung – oder der Fehler an ihrer Stelle; laeuft nie unter den Knopf
+            Text {
+                anchors {
+                    left: bannerCaps.visible ? bannerCaps.right : bannerIcon.right
+                    leftMargin: 10
+                    right: bannerCancel.left
+                    rightMargin: 10
+                    verticalCenter: parent.verticalCenter
                 }
+                text: {
+                    if (banner.error !== "")
+                        return banner.error;
+                    if (capture.active)
+                        return capture.done !== "" ? I18n.tr("„%1“ liegt jetzt auf").arg(capture.title)
+                             : I18n.tr("Drücke die neue Kombination für „%1“ – Esc bricht ab").arg(capture.title);
+                    if (editor.pick)
+                        return I18n.tr("Klicke eine freie Taste für „%1“ – Super, Strg, Alt und Shift wechseln die Ebene").arg(editor.pick.title);
+                    return "";
+                }
+                color: banner.error !== "" ? Colors.error : Colors.fgSurface
+                font.family: Config.font
+                font.pixelSize: 12
+                font.weight: banner.error !== "" ? Font.Medium : Font.Normal
+                elide: Text.ElideRight
             }
 
             KbChip {
@@ -379,9 +453,10 @@ Item {
             Repeater {
                 model: [
                     { color: Colors.primary, label: "Config" },
-                    { color: Colors.secondary, label: "Plugin" },
-                    { color: Colors.tertiary, label: "Eigenes" },
-                    { color: Colors.fgSurface, label: "Geändert" },
+                    { color: board.pluginLight, label: "Plugin" },
+                    { color: board.customLight, label: "Eigenes" },
+                    { color: board.changedLight, label: "Geändert" },
+                    { color: board.unnamedLight, label: "Ohne Beschreibung" },
                     { color: Colors.error, label: "Aus" }
                 ]
 
@@ -416,6 +491,7 @@ Item {
             width: parent.width
             height: editor.adding ? 48 : 0
             visible: height > 0
+            enabled: !capture.active
             clip: true
             radius: 10
             color: Colors.alpha(Colors.fgSurface, 0.04)
@@ -491,9 +567,17 @@ Item {
         }
 
         // ---- Liste + Details ----
+        // Waehrend der Aufnahme gesperrt: ein Klick ins Suchfeld naehme dem
+        // Faenger den Fokus (Esc braeche nicht mehr ab)
         Item {
             width: parent.width
             height: editor.narrow ? editor.paneHeight * 2 + 12 : editor.paneHeight
+            enabled: !capture.active
+            opacity: capture.active ? 0.5 : 1
+
+            Behavior on opacity {
+                NumberAnimation { duration: Appearance.fadeDuration }
+            }
 
             CommandList {
                 id: list
@@ -504,7 +588,7 @@ Item {
                 }
                 width: editor.narrow ? parent.width : Math.max(320, Math.round(parent.width * 0.4))
                 height: editor.paneHeight
-                selectedId: editor.selectedId
+                selectedId: editor.selected?.id ?? ""
                 searchIndex: editor.searchIndex
                 adding: editor.adding
                 onSelected: id => editor.select(id)

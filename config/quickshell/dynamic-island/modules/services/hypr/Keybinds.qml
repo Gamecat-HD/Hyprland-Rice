@@ -242,13 +242,28 @@ Singleton {
         root.commit(next);
     }
 
-    function addCustom(title: string, exec: string, keys: string): void {
+    // Gibt die Ref des neuen Kuerzels zurueck ("custom:k3")
+    function addCustom(title: string, exec: string, keys: string): string {
         const next = root.copyData();
         let n = next.custom.length + 1;
         while (next.custom.some(c => c.id === `k${n}`))
             n++;
-        next.custom.push({ id: `k${n}`, title: title.replace(/\|/g, "/"), group: "Eigene", exec, keys, disabled: false });
+        const id = `k${n}`;
+        next.custom.push({ id, title: root.uniqueTitle(next.custom, title, id), group: "Eigene", exec, keys, disabled: false });
         root.commit(next);
+        return `custom:${id}`;
+    }
+
+    // Die Beschreibung "Eigene|<Titel>" ist zugleich der Schluessel der
+    // Aktion in Hyprland (run_keybind) – zwei gleiche Titel wuerden zu einem
+    // Befehl verschmelzen. Darum "Titel (2)" usw.
+    function uniqueTitle(custom: var, title: string, ownId: string): string {
+        const base = title.replace(/\|/g, "/").trim() || "Kürzel";
+        const taken = t => custom.some(c => c.id !== ownId && c.title === t);
+        let out = base;
+        for (let i = 2; taken(out); i++)
+            out = `${base} (${i})`;
+        return out;
     }
 
     function removeCustom(ref: string): void {
@@ -259,20 +274,22 @@ Singleton {
     }
 
     // Weitere Kombination fuer einen Bind der Config (ref "Gruppe|Text@…")
-    function addExtra(of: string, keys: string): void {
+    // Gibt die Ref der Zusatztaste zurueck ("extra:x2")
+    function addExtra(of: string, keys: string): string {
         const next = root.copyData();
         let n = next.extra.length + 1;
         while (next.extra.some(e => e.id === `x${n}`))
             n++;
         next.extra.push({ id: `x${n}`, of, keys, disabled: false });
         root.commit(next);
+        return `extra:x${n}`;
     }
 
     // Eigenes Kuerzel: Name/Befehl aendern
     function editCustom(ref: string, title: string, exec: string): void {
         const next = root.copyData();
         next.custom = next.custom.map(c => `custom:${c.id}` === ref
-            ? Object.assign({}, c, { title: title.replace(/\|/g, "/"), exec }) : c);
+            ? Object.assign({}, c, { title: root.uniqueTitle(next.custom, title, c.id), exec }) : c);
         root.commit(next);
     }
 
@@ -346,6 +363,36 @@ Singleton {
         Qt.Key_Alt, Qt.Key_AltGr, Qt.Key_CapsLock, Qt.Key_NumLock, Qt.Key_Hyper_L, Qt.Key_Hyper_R
     ]
 
+    // Ziffernblock: Qt meldet dieselben Tasten wie im Hauptblock und setzt
+    // nur KeypadModifier – Hyprland unterscheidet aber KP_7 von 7
+    readonly property var keypadKeys: ({
+        [Qt.Key_0]: "KP_0", [Qt.Key_1]: "KP_1", [Qt.Key_2]: "KP_2", [Qt.Key_3]: "KP_3",
+        [Qt.Key_4]: "KP_4", [Qt.Key_5]: "KP_5", [Qt.Key_6]: "KP_6", [Qt.Key_7]: "KP_7",
+        [Qt.Key_8]: "KP_8", [Qt.Key_9]: "KP_9",
+        [Qt.Key_Slash]: "KP_Divide", [Qt.Key_Asterisk]: "KP_Multiply", [Qt.Key_Minus]: "KP_Subtract",
+        [Qt.Key_Plus]: "KP_Add", [Qt.Key_Enter]: "KP_Enter", [Qt.Key_Return]: "KP_Enter",
+        [Qt.Key_Comma]: "KP_Decimal", [Qt.Key_Period]: "KP_Decimal",
+        [Qt.Key_Home]: "KP_Home", [Qt.Key_End]: "KP_End", [Qt.Key_Up]: "KP_Up", [Qt.Key_Down]: "KP_Down",
+        [Qt.Key_Left]: "KP_Left", [Qt.Key_Right]: "KP_Right", [Qt.Key_PageUp]: "KP_Prior",
+        [Qt.Key_PageDown]: "KP_Next", [Qt.Key_Insert]: "KP_Insert", [Qt.Key_Delete]: "KP_Delete",
+        [Qt.Key_Clear]: "KP_Begin"
+    })
+
+    // Was Qt sonst noch liefert: Dead Keys (^ ´ `), AltGr-Zeichen, Menue,
+    // Rollen. AltGr-Zeichen bindet Hyprland unter ihrem eigenen Namen
+    // (CTRL + SUPER + backslash in simple.lua)
+    readonly property var otherKeys: ({
+        [Qt.Key_Dead_Circumflex]: "dead_circumflex", [Qt.Key_AsciiCircum]: "dead_circumflex",
+        [Qt.Key_Dead_Acute]: "dead_acute", [Qt.Key_Dead_Grave]: "dead_acute", [Qt.Key_acute]: "dead_acute",
+        [Qt.Key_QuoteLeft]: "dead_acute",
+        [Qt.Key_Backslash]: "backslash", [Qt.Key_At]: "at", [Qt.Key_BraceLeft]: "braceleft",
+        [Qt.Key_BraceRight]: "braceright", [Qt.Key_BracketLeft]: "bracketleft",
+        [Qt.Key_BracketRight]: "bracketright", [Qt.Key_AsciiTilde]: "asciitilde", [Qt.Key_Bar]: "bar",
+        [Qt.Key_mu]: "mu", [Qt.Key_twosuperior]: "twosuperior", [Qt.Key_threesuperior]: "threesuperior",
+        [Qt.Key_degree]: "dead_circumflex",
+        [Qt.Key_Menu]: "Menu", [Qt.Key_ScrollLock]: "Scroll_Lock"
+    })
+
     // Tastendruck -> { keys: "SUPER + ALT + W" } | { wait: true } (nur
     // Modifier gedrueckt) | { error }
     function fromEvent(event: var): var {
@@ -361,7 +408,9 @@ Singleton {
         if (event.modifiers & Qt.ShiftModifier)
             mods.push("SHIFT");
 
-        let key = root.qtKeys[event.key];
+        let key = (event.modifiers & Qt.KeypadModifier) ? root.keypadKeys[event.key] : undefined;
+        if (!key)
+            key = root.qtKeys[event.key] ?? root.otherKeys[event.key];
         if (!key && event.key >= Qt.Key_A && event.key <= Qt.Key_Z)
             key = String.fromCharCode(event.key);
         else if (!key && event.key >= Qt.Key_0 && event.key <= Qt.Key_9)
@@ -475,6 +524,9 @@ Singleton {
 
         path: root.luaPath
         blockLoading: true
+        // Erst fertig schreiben, dann sync_keybinds() – sonst las Lua
+        // womoeglich noch den alten Stand
+        blockWrites: true
         printErrors: false
         atomicWrites: true
     }

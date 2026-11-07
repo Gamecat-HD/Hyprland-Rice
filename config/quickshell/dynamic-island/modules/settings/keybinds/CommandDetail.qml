@@ -30,13 +30,14 @@ Item {
     readonly property var configCombo: detail.has ? (detail.command.combos.find(c => c.source === "config") ?? null) : null
     readonly property var origin: detail.configCombo ? HyprBinds.originOf(detail.configCombo.ref) : null
     readonly property bool isCustom: detail.has && detail.command.source === "custom"
-    // Maus-Binds (Ziehen, Groesse, Rad) lassen sich nicht neu belegen –
-    // Hyprland meldet `mouse` nicht zuverlaessig, darum auch an der Taste erkennen
+    // Maus-Taste/-Rad (nur fuer die Anzeige "Maus"; ob sich eine Kombination
+    // aendern laesst, sagt combo.editable)
     function isMouse(combo: var): bool {
         return combo !== null && (combo.mouse === true || String(combo.key).startsWith("mouse"));
     }
-    readonly property bool allMouse: detail.has && detail.command.combos.length > 0 && detail.command.combos.every(c => detail.isMouse(c))
     readonly property string customRef: detail.isCustom ? (detail.command.combos.find(c => c.source === "custom")?.ref ?? "") : ""
+    // Fehler von Einschalten/Zuruecksetzen (Kombination inzwischen belegt)
+    property string actionError: ""
 
     readonly property string sourceLabel: !detail.has ? ""
         : detail.command.source === "plugin" ? I18n.tr("Plugin „%1“").arg(detail.command.pluginName || "?")
@@ -58,9 +59,20 @@ Item {
             Quickshell.execDetached(["kitty", "-e", "nvim", "+" + detail.origin.line, detail.origin.file]);
     }
 
-    // Eigene Kuerzel: Felder folgen dem Befehl, bis man tippt
+    // Eigene Kuerzel: Felder folgen dem Befehl – aber nur, wenn ein anderes
+    // Kuerzel gewaehlt wird. Der Handler feuert bei jedem HyprBinds-Refresh,
+    // getippter Text bliebe sonst nicht stehen. (isCustom ist im Handler noch
+    // der alte Wert, darum direkt am Befehl pruefen.)
+    property string shownCustomRef: ""
+
     onCommandChanged: {
-        if (detail.isCustom) {
+        detail.actionError = "";
+        const custom = detail.command?.source === "custom";
+        const ref = custom ? (detail.command.combos.find(c => c.source === "custom")?.ref ?? "") : "";
+        if (ref === detail.shownCustomRef)
+            return;
+        detail.shownCustomRef = ref;
+        if (ref !== "") {
             nameField.text = detail.command.custom?.title ?? "";
             execField.text = detail.command.custom?.exec ?? "";
         }
@@ -184,7 +196,7 @@ Item {
                             right: parent.right
                             verticalCenter: parent.verticalCenter
                         }
-                        visible: detail.has && detail.command.runnable && !detail.allMouse
+                        visible: detail.has && detail.command.runnable
                         icon: "play_arrow"
                         label: I18n.tr("Ausführen")
                         primary: true
@@ -329,7 +341,7 @@ Item {
                         required property var modelData
 
                         readonly property var combo: comboRow.modelData
-                        readonly property bool readOnly: !comboRow.combo.editable || detail.isMouse(comboRow.combo)
+                        readonly property bool readOnly: !comboRow.combo.editable
                         readonly property bool resettable: (comboRow.combo.changed || comboRow.combo.disabled)
                             && (comboRow.combo.source === "config" || comboRow.combo.source === "plugin")
                         readonly property bool removable: comboRow.combo.source === "extra"
@@ -412,14 +424,21 @@ Item {
                                 icon: comboRow.combo.disabled ? "visibility_off" : "visibility"
                                 hint: comboRow.combo.disabled ? I18n.tr("Einschalten") : I18n.tr("Ausschalten")
                                 checked: comboRow.combo.disabled
-                                onClicked: Keybinds.setDisabled(comboRow.combo.ref, !comboRow.combo.disabled)
+                                onClicked: {
+                                    if (comboRow.combo.disabled)
+                                        detail.actionError = HyprBinds.enableChecked(comboRow.combo.ref);
+                                    else {
+                                        Keybinds.setDisabled(comboRow.combo.ref, true);
+                                        detail.actionError = "";
+                                    }
+                                }
                             }
 
                             KbIconButton {
                                 visible: comboRow.resettable
                                 icon: "undo"
                                 hint: I18n.tr("Zurücksetzen")
-                                onClicked: Keybinds.reset(comboRow.combo.ref)
+                                onClicked: detail.actionError = HyprBinds.resetChecked(comboRow.combo.ref)
                             }
 
                             KbIconButton {
@@ -443,9 +462,21 @@ Item {
                     }
                 }
 
+                // Einschalten/Zuruecksetzen ging nicht: die Kombination hat ein anderer
+                Text {
+                    width: parent.width
+                    visible: detail.actionError !== ""
+                    text: detail.actionError
+                    color: Colors.error
+                    font.family: Config.font
+                    font.pixelSize: 11
+                    font.weight: Font.Medium
+                    wrapMode: Text.Wrap
+                }
+
                 // Weitere Taste (nur Befehle der Config)
                 Row {
-                    visible: detail.configCombo !== null && !detail.isMouse(detail.configCombo)
+                    visible: detail.configCombo !== null && detail.configCombo.editable
                     spacing: 6
 
                     KbChip {

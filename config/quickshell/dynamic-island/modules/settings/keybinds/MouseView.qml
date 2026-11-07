@@ -19,7 +19,7 @@ Item {
 
     signal clicked(string id)
 
-    readonly property color rockBase: Qt.darker(Colors.surfaceBright, 1.6)
+    readonly property color rockBase: Qt.darker(Colors.surfaceBright, 1.5)
     readonly property color shell: Colors.surfaceBright
     readonly property real r: mouse.unit * 0.85
 
@@ -154,7 +154,7 @@ Item {
         width: mouse.unit * 0.3
         height: mouse.unit * 0.85
         radius: width / 2
-        color: Qt.darker(mouse.rockBase, 1.2)
+        color: Qt.darker(Colors.surfaceBright, 1.35)
         clip: true
 
         Repeater {
@@ -212,24 +212,5 @@ Item {
                 }
             }
         }
-    }
-
-    KeyTooltip {
-        readonly property var info: mouse.hoverId !== "" ? (mouse.infos[mouse.hoverId] ?? null) : null
-        readonly property var names: ({
-            "mouse:272": "Linksklick", "mouse:273": "Rechtsklick", "mouse:274": "Mittelklick",
-            mouse_up: "Rad ↑", mouse_down: "Rad ↓"
-        })
-
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            bottom: parent.top
-            bottomMargin: 6
-        }
-        z: 10
-        visible: mouse.hoverId !== "" && mouse.interactive
-        title: info ? `${I18n.tr(info.group)} › ${I18n.tr(info.title)}` : I18n.tr(names[mouse.hoverId] ?? "")
-        keys: info?.keys ?? []
-        hint: info?.disabled ? I18n.tr("aus") : ""
     }
 }

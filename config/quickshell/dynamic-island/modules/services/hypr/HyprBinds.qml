@@ -146,6 +146,20 @@ Singleton {
         comma: ",", period: ".", backslash: "\\", minus: "-", plus: "+",
         space: "Leertaste", tab: "Tab", escape: "Esc", return: "Enter",
         print: "Druck", delete: "Entf",
+        backspace: "Rück", insert: "Einfg", home: "Pos1", end: "Ende", prior: "Bild↑", next: "Bild↓",
+        page_up: "Bild↑", page_down: "Bild↓", scroll_lock: "Rollen", pause: "Pause", menu: "Menü",
+        caps_lock: "Feststell", num_lock: "Num",
+        ssharp: "ß", dead_circumflex: "^", asciicircum: "^", dead_acute: "´", dead_grave: "`",
+        less: "<", numbersign: "#", adiaeresis: "Ä", odiaeresis: "Ö", udiaeresis: "Ü",
+        at: "@", bar: "|", asciitilde: "~", braceleft: "{", braceright: "}",
+        bracketleft: "[", bracketright: "]", eurosign: "€", mu: "µ", twosuperior: "²", threesuperior: "³",
+        kp_divide: "Num /", kp_multiply: "Num *", kp_subtract: "Num -", kp_add: "Num +",
+        kp_enter: "Num Enter", kp_decimal: "Num ,", kp_separator: "Num ,",
+        kp_0: "Num 0", kp_1: "Num 1", kp_2: "Num 2", kp_3: "Num 3", kp_4: "Num 4",
+        kp_5: "Num 5", kp_6: "Num 6", kp_7: "Num 7", kp_8: "Num 8", kp_9: "Num 9",
+        kp_insert: "Num 0", kp_end: "Num 1", kp_down: "Num 2", kp_next: "Num 3", kp_left: "Num 4",
+        kp_begin: "Num 5", kp_right: "Num 6", kp_home: "Num 7", kp_up: "Num 8", kp_prior: "Num 9",
+        kp_delete: "Num ,",
         "mouse:272": "Linksklick", "mouse:273": "Rechtsklick", "mouse:274": "Mittelklick",
         mouse_down: "Rad ↓", mouse_up: "Rad ↑",
         xf86audiomute: "Stumm-Taste", xf86audiomicmute: "Mikro-Taste",
@@ -175,6 +189,26 @@ Singleton {
         for (const b of root.all)
             if (b.canon === canon && b.ref !== exceptRef && !Keybinds.stateOf(b.ref).disabled)
                 return b.text;
+        return "";
+    }
+
+    // Einschalten/Zuruecksetzen mit Konfliktpruefung: "" = erledigt, sonst
+    // Fehlermeldung (die Kombination hat inzwischen ein anderer Bind)
+    function enableChecked(ref: string): string {
+        const own = root.all.find(b => b.ref === ref);
+        const clash = own ? root.conflict(own.canon, ref) : "";
+        if (clash !== "")
+            return I18n.tr("Schon belegt: %1").arg(clash);
+        Keybinds.setDisabled(ref, false);
+        return "";
+    }
+
+    function resetChecked(ref: string): string {
+        const canon = Keybinds.defaultCanonOf(ref);
+        const clash = canon ? root.conflict(canon, ref) : "";
+        if (clash !== "")
+            return I18n.tr("Schon belegt: %1").arg(clash);
+        Keybinds.reset(ref);
         return "";
     }
 
@@ -284,8 +318,10 @@ Singleton {
 
             // Sammelzeilen ("1 … 0") stehen fuer mehrere Binds, nur einer
             // traegt die Beschreibung – neu belegen wuerde nur ihn treffen
+            // Zusatztasten zu Sammelzeilen ("1 … 0") zeigen ihre echte Taste
+            const extra = state.source === "extra";
             const combo = {
-                keys: root.combo(bind, label ?? ""),
+                keys: root.combo(bind, extra ? "" : (label ?? "")),
                 label: label ?? "",
                 modmask: bind.modmask,
                 ref,
@@ -299,7 +335,7 @@ Singleton {
             if (entry) {
                 // Sammelzeile: "Super + Pfeile" nur einmal, auch wenn jede
                 // Richtung ein eigener Bind ist
-                const same = label && entry.combos.find(c => c.label === label && c.modmask === bind.modmask);
+                const same = label && !extra && entry.combos.find(c => c.label === label && c.modmask === bind.modmask && c.source !== "extra");
                 if (same) {
                     same.disabled = same.disabled && combo.disabled;
                     same.changed = same.changed || combo.changed;

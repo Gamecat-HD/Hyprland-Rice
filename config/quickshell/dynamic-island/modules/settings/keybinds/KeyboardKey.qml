@@ -5,13 +5,15 @@ import QtQuick.Shapes
 import qs
 import qs.modules.services.config
 
-// Eine Taste der Tastatur-Vorschau (VirtualKeyboard): Kappe mit Profil
-// (dunkler Rock, hellere Oberseite, die bei gedrueckten Modifiern nach unten
-// rutscht) und Beleuchtung je Taste wie Per-Key-RGB: belegte Tasten leuchten
-// in `light` (Legende, Oberseite, Schein um den Rock), der gewaehlte Befehl
-// (`lit`) heller, freie Tasten bleiben dunkel mit gedimmter Legende.
-// Beschriftung wie deutsche Kappen: Shift-Zeichen oben, Hauptlegende
-// darunter, AltGr-Zeichen unten rechts. ISO-Enter (spec.iso) als Kontur.
+// Eine Taste der Tastatur-Vorschau (VirtualKeyboard): flache, abgerundete
+// Kappe mit feiner Kontur und einer 2-px-Unterkante als Tiefe; gedrueckte
+// Modifier rutschen auf die Unterkante. Beleuchtung je Taste: belegte Tasten
+// bekommen Legende, leicht getoente Flaeche und Kontur in `light`, der
+// gewaehlte Befehl (`lit`) kraeftiger plus schmalem Schein; freie Tasten
+// bleiben neutral grau. Beschriftung wie deutsche Kappen: Shift-Zeichen
+// oben, Hauptlegende darunter, AltGr-Zeichen unten rechts – bei kleinen
+// Einheiten fallen die Nebenzeichen weg statt ueberzulaufen.
+// ISO-Enter (spec.iso) als Kontur. Tooltips zeichnet die Tastatur (Overlay).
 Item {
     id: key
 
@@ -31,41 +33,43 @@ Item {
     // "Auf Tastatur waehlen": freie Tasten sind Ziel
     property bool pick: false
     property bool interactive: true
-    // Tooltip nach oben statt nach unten (untere Reihen)
-    property bool tipAbove: false
 
     signal clicked
 
     readonly property bool occupied: key.info !== null
-    readonly property bool free: key.info === null && key.spec.mod === 0
+    readonly property bool free: key.info === null && key.spec.mod === 0 && key.spec.noPick !== true
     readonly property bool target: key.pick && key.free && key.interactive
     readonly property bool hovered: hover.hovered && key.interactive
     readonly property bool clickable: key.interactive && (key.spec.mod !== 0 || key.occupied || key.target)
     readonly property bool disabled: key.occupied && key.info.disabled === true
 
-    // Lichtstaerke 0..1
-    readonly property real glow: key.lit ? 1 : key.occupied ? (key.disabled ? 0.3 : 0.6) : key.pressed ? 0.45 : 0
-    // Unbelegte Tasten leuchten (gedrueckt / Teil des gewaehlten Befehls) in Primaer
+    // Lichtfarbe: Belegung, sonst Primaer (gedrueckt / Teil des gewaehlten Befehls)
     readonly property color beam: key.occupied ? key.light : Colors.primary
+    readonly property bool glowing: key.lit || key.occupied || key.pressed
+    // Staerke der Toenung 0..1
+    readonly property real strength: key.lit ? 1 : key.occupied ? (key.disabled ? 0.4 : 0.55) : key.pressed ? 0.5 : 0
 
-    readonly property color rockBase: Qt.darker(Colors.surfaceBright, 1.6)
-    readonly property color topBase: key.hovered && key.clickable ? Qt.lighter(Colors.surfaceBright, 1.18) : Colors.surfaceBright
-    readonly property color rockColor: key.glow > 0 ? Qt.tint(key.rockBase, Colors.alpha(key.beam, 0.38 * key.glow)) : key.rockBase
-    readonly property color topColor: key.glow > 0 ? Qt.tint(key.topBase, Colors.alpha(key.beam, 0.26 * key.glow)) : key.topBase
-    readonly property color legend: key.glow > 0 ? (key.lit ? Qt.lighter(key.beam, 1.2) : key.beam)
-                                  : Colors.alpha(Colors.fgSurfaceVariant, 0.55)
-    readonly property color legendDim: key.glow > 0 ? Colors.alpha(key.beam, 0.6) : Colors.alpha(Colors.fgSurfaceVariant, 0.32)
+    readonly property color capBase: key.hovered && key.clickable ? Qt.lighter(Colors.surfaceBright, 1.1) : Colors.surfaceBright
+    readonly property color capColor: key.glowing ? Qt.tint(key.capBase, Colors.alpha(key.beam, 0.28 * key.strength)) : key.capBase
+    readonly property color edgeColor: key.target ? Colors.alpha(Colors.primary, key.hovered ? 0.9 : 0.5)
+                                     : key.glowing ? Colors.alpha(key.beam, 0.35 + 0.55 * key.strength)
+                                     : Colors.alpha(Colors.outline, 0.35)
+    readonly property color legend: key.glowing ? (key.lit ? Qt.lighter(key.beam, 1.1) : key.beam)
+                                  : Colors.alpha(Colors.fgSurfaceVariant, 0.8)
+    readonly property color legendDim: key.glowing ? Colors.alpha(key.beam, 0.65) : Colors.alpha(Colors.fgSurfaceVariant, 0.45)
 
-    // Geometrie der Kappe
-    readonly property real inset: key.unit * 0.07
-    readonly property real travel: key.unit * 0.1
-    readonly property real topY: key.pressed ? key.inset * 0.5 + key.travel : key.inset * 0.5
-    readonly property real topH: key.height - key.inset * 2 - key.travel
-    readonly property real capRadius: Math.max(3, key.unit * 0.13)
+    // Geometrie
+    readonly property real depth: Math.max(1, Math.round(key.unit * 0.04))
+    readonly property real capY: key.pressed ? key.depth : 0
+    readonly property real capH: key.height - key.depth
+    readonly property real capRadius: Math.max(3, key.unit * 0.14)
     readonly property real pad: Math.max(3, key.unit * 0.1)
+    // Nebenzeichen nur, wenn sie Platz haben
+    readonly property bool showMinor: key.unit >= 34
     readonly property bool iso: key.spec.iso === true
     readonly property real lowerX: key.iso ? (key.spec.lowerX - key.spec.x) * key.unit : 0
     readonly property real lowerW: key.iso ? key.spec.lowerW * key.unit - key.gap : key.width
+    readonly property bool centered: /^[←→↑↓⌫]$/.test(key.spec.label)
 
     x: key.spec.x * key.unit
     y: key.spec.y * key.unit
@@ -73,56 +77,41 @@ Item {
     height: key.spec.h * key.unit - key.gap
     z: key.hovered ? 2 : 0
 
-    // ---- Schein (zwei weiche Stufen statt Blur) ----
+    // Schmaler Schein um den gewaehlten Befehl
     Rectangle {
         anchors.fill: parent
-        anchors.margins: -key.unit * 0.16
-        radius: key.capRadius * 2.2
-        color: Colors.alpha(key.beam, 0.07 * key.glow)
-        visible: key.glow > 0
+        anchors.margins: -3
+        radius: key.capRadius + 3
+        color: Colors.alpha(key.beam, key.lit ? 0.22 : 0)
+        visible: key.lit
 
         Behavior on color {
             ColorAnimation { duration: Appearance.fadeDuration }
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: -key.unit * 0.07
-        radius: key.capRadius * 1.6
-        color: Colors.alpha(key.beam, 0.2 * key.glow)
-        visible: key.glow > 0
+    // Unterkante (Tiefe) – in hell wie dunkel eine Stufe dunkler als die Kappe
+    readonly property color edgeBase: Qt.darker(Colors.surfaceBright, 1.5)
 
-        Behavior on color {
-            ColorAnimation { duration: Appearance.fadeDuration }
-        }
-    }
-
-    // ---- Rock (Seite) ----
     Rectangle {
         visible: !key.iso
-        anchors.fill: parent
-        radius: key.capRadius + 1
-        color: key.rockColor
-
-        Behavior on color {
-            ColorAnimation { duration: Appearance.fadeDuration }
-        }
-    }
-
-    // ---- Oberseite ----
-    Rectangle {
-        id: top
-
-        visible: !key.iso
-        x: key.inset
-        y: key.topY
-        width: key.width - key.inset * 2
-        height: key.topH
+        y: key.depth
+        width: parent.width
+        height: key.capH
         radius: key.capRadius
-        color: key.topColor
-        border.width: key.target ? 1 : 0
-        border.color: Colors.alpha(Colors.primary, key.hovered ? 0.9 : 0.45)
+        color: key.edgeBase
+    }
+
+    // Kappe
+    Rectangle {
+        visible: !key.iso
+        y: key.capY
+        width: parent.width
+        height: key.capH
+        radius: key.capRadius
+        color: key.capColor
+        border.width: 1
+        border.color: key.edgeColor
 
         Behavior on y {
             NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
@@ -130,66 +119,61 @@ Item {
         Behavior on color {
             ColorAnimation { duration: Appearance.fadeDuration }
         }
-
-        // Highlight an der Oberkante
-        Rectangle {
-            anchors {
-                left: parent.left
-                right: parent.right
-                top: parent.top
-                leftMargin: parent.radius
-                rightMargin: parent.radius
-            }
-            height: 1
-            color: Colors.alpha(Colors.fgSurface, 0.08)
+        Behavior on border.color {
+            ColorAnimation { duration: Appearance.fadeDuration }
         }
     }
 
-    // ISO-Enter: Rock und Oberseite als Konturen
+    // ISO-Enter: Unterkante und Kappe als Konturen
     Shape {
         visible: key.iso
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
 
         IsoEnterPath {
-            fillColor: key.rockColor
+            fillColor: key.edgeBase
+            oy: key.depth
             w: key.width
-            h: key.height
+            h: key.capH
             topH: key.unit - key.gap
             lowerX: key.lowerX
             lowerW: key.lowerW
-            r: key.capRadius + 1
-
-            Behavior on fillColor {
-                ColorAnimation { duration: Appearance.fadeDuration }
-            }
+            r: key.capRadius
         }
 
         IsoEnterPath {
-            fillColor: key.topColor
-            ox: key.inset
-            oy: key.topY
-            w: key.width - key.inset * 2
-            h: key.topH
-            topH: key.unit - key.gap - key.inset - key.travel * 0.5
+            fillColor: key.capColor
+            strokeColor: key.edgeColor
+            strokeWidth: 1
+            ox: 0.5
+            oy: key.capY + 0.5
+            w: key.width - 1
+            h: key.capH - 1
+            topH: key.unit - key.gap
             lowerX: key.lowerX
-            lowerW: key.lowerW - key.inset * 2
+            lowerW: key.lowerW - 1
             r: key.capRadius
 
             Behavior on fillColor {
                 ColorAnimation { duration: Appearance.fadeDuration }
             }
+            Behavior on strokeColor {
+                ColorAnimation { duration: Appearance.fadeDuration }
+            }
         }
     }
 
-    // Flaeche fuer die Legenden (bei ISO-Enter der untere Teil)
+    // Flaeche fuer die Legenden; clip haelt
+    // alles in der Kappe
     Item {
         id: face
 
-        x: (key.iso ? key.lowerX : 0) + key.inset
-        y: key.topY + (key.iso ? key.unit - key.gap - key.inset : 0)
-        width: (key.iso ? key.lowerW : key.width) - key.inset * 2
-        height: key.topH - (key.iso ? key.unit - key.gap - key.inset : 0)
+        // ISO-Enter: Beschriftung im oberen, breiten Teil wie auf echten Kappen
+        x: 1
+        y: key.capY + 1
+        width: key.width - 2
+        height: (key.iso ? key.unit - key.gap : key.capH) - 2
+        clip: true
 
         Behavior on y {
             NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
@@ -203,26 +187,25 @@ Item {
                 left: parent.left
                 top: parent.top
                 leftMargin: key.pad
-                topMargin: key.pad * 0.7
+                topMargin: key.pad * 0.5
             }
-            visible: (key.spec.sub ?? "") !== ""
+            visible: key.showMinor && (key.spec.sub ?? "") !== ""
             text: key.spec.sub ?? ""
             color: key.legendDim
             font.family: Config.font
-            font.pixelSize: Math.max(8, Math.round(key.unit * 0.2))
+            font.pixelSize: Math.max(8, Math.round(key.unit * 0.19))
             font.weight: Font.Medium
         }
 
-        // Hauptlegende: mit Shift-Zeichen unten links, sonst oben links;
-        // Symbol (Pfeile, Rueck) mittig
+        // Hauptlegende: mit Shift-Zeichen unten links, sonst oben links
         Text {
             anchors {
                 left: parent.left
                 leftMargin: key.pad
                 top: subText.visible ? undefined : parent.top
-                topMargin: key.pad * 0.7
+                topMargin: key.pad * 0.6
                 bottom: subText.visible ? parent.bottom : undefined
-                bottomMargin: key.pad * 0.7
+                bottomMargin: key.pad * 0.6
             }
             visible: !key.spec.icon && !key.centered
             width: parent.width - key.pad - 2
@@ -232,7 +215,7 @@ Item {
             font.family: Config.font
             // F10–F12 wie F1–F9, nicht wie Esc/Druck
             font.pixelSize: key.spec.label.length > 2 && !/^F\d+$/.test(key.spec.label) ? Math.max(8, Math.round(key.unit * 0.19))
-                          : Math.max(10, Math.round(key.unit * 0.3))
+                          : Math.max(10, Math.round(key.unit * 0.29))
             font.weight: Font.Medium
             font.strikeout: key.disabled
             elide: Text.ElideRight
@@ -258,24 +241,22 @@ Item {
             }
         }
 
-        // AltGr-Zeichen unten rechts
+        // AltGr-Zeichen / Zweitfunktion unten rechts
         Text {
             anchors {
                 right: parent.right
                 bottom: parent.bottom
-                rightMargin: key.pad
-                bottomMargin: key.pad * 0.6
+                rightMargin: key.pad * 0.8
+                bottomMargin: key.pad * 0.5
             }
-            visible: (key.spec.alt ?? "") !== ""
+            visible: key.showMinor && (key.spec.alt ?? "") !== ""
             text: key.spec.alt ?? ""
-            // Belegung ueber AltGr: dieses Zeichen leuchtet
+            // Belegung ueber den Zweitnamen: dieses Zeichen leuchtet
             color: key.info?.via ? key.legend : key.legendDim
             font.family: Config.font
-            font.pixelSize: Math.max(8, Math.round(key.unit * 0.19))
+            font.pixelSize: Math.max(8, Math.round(key.unit * (key.spec.alt.length > 1 ? 0.15 : 0.19)))
         }
     }
-
-    readonly property bool centered: /^[←→↑↓⌫]$/.test(key.spec.label)
 
     HoverHandler {
         id: hover
@@ -289,26 +270,5 @@ Item {
     TapHandler {
         enabled: key.clickable
         onTapped: key.clicked()
-    }
-
-    KeyTooltip {
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            top: key.tipAbove ? undefined : parent.bottom
-            bottom: key.tipAbove ? parent.top : undefined
-            topMargin: 6
-            bottomMargin: 6
-        }
-        z: 10
-        visible: key.hovered && (key.occupied || key.target)
-        title: {
-            if (!key.info)
-                return I18n.tr("Hier ablegen");
-            if (key.info.unnamed)
-                return I18n.tr("Belegt (ohne Beschreibung)");
-            return `${I18n.tr(key.info.group)} › ${I18n.tr(key.info.title)}`;
-        }
-        keys: key.info?.keys ?? []
-        hint: key.disabled ? I18n.tr("aus") : ""
     }
 }

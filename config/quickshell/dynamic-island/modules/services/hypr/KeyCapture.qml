@@ -41,13 +41,20 @@ Item {
     // Gespeichert ("SUPER + T"), wartet nur noch aufs Loslassen
     property string done: ""
     readonly property bool active: root.mode !== ""
+    // Ref, die das letzte Speichern angelegt/geaendert hat (bei "new" das
+    // neue eigene Kuerzel, bei "extra" die Zusatztaste) – zum Auswaehlen
+    property string savedRef: ""
 
     signal finished(string keys)
     signal cancelled
 
     function start(mode: string, ref: string, title: string, payload: var): void {
-        if (root.active)
-            root.cancel();
+        // Laeuft schon eine Aufnahme: nur das Ziel tauschen. Ein
+        // stopCapture()+startCapture() waeren zwei unabhaengige hyprctl-
+        // Aufrufe in unbestimmter Reihenfolge – kaeme "an" vor "aus", liefe
+        // die Aufnahme ohne Submap und SUPER+Q startete das Terminal.
+        const running = root.active;
+        releaseWait.stop();
         root.mode = mode;
         root.ref = ref;
         root.title = title;
@@ -56,7 +63,8 @@ Item {
         root.held = [];
         root.heldMask = 0;
         root.done = "";
-        Keybinds.startCapture();
+        if (!running)
+            Keybinds.startCapture();
     }
 
     function cancel(): void {
@@ -84,14 +92,16 @@ Item {
         const conflict = HyprBinds.conflict(Keybinds.canonOf(keys), mode === "set" ? ref : "");
         if (conflict !== "")
             return I18n.tr("Schon belegt: %1").arg(conflict);
-        if (mode === "set")
+        if (mode === "set") {
             Keybinds.setKeys(ref, keys);
-        else if (mode === "extra")
-            Keybinds.addExtra(ref, keys);
-        else if (mode === "new")
-            Keybinds.addCustom(payload?.title ?? "", payload?.exec ?? "", keys);
-        else
+            root.savedRef = ref;
+        } else if (mode === "extra") {
+            root.savedRef = Keybinds.addExtra(ref, keys);
+        } else if (mode === "new") {
+            root.savedRef = Keybinds.addCustom(payload?.title ?? "", payload?.exec ?? "", keys);
+        } else {
             return I18n.tr("Nichts ausgewählt");
+        }
         return "";
     }
 

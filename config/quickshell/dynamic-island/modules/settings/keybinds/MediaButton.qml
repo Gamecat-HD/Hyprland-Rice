@@ -3,8 +3,9 @@ import QtQuick
 
 import qs
 
-// Runder Medienknopf im Gehaeuse (oben rechts): gleiche Beleuchtung wie
-// die Tasten, Symbol statt Legende.
+// Runder Medienknopf im Gehaeuse (oben rechts): flache Kappe mit Kontur und
+// Unterkante, gleiche Beleuchtung wie die Tasten, Symbol statt Legende.
+// Tooltips zeichnet die Tastatur (Overlay).
 Item {
     id: btn
 
@@ -23,9 +24,10 @@ Item {
     readonly property bool target: btn.pick && !btn.occupied && btn.interactive
     readonly property bool hovered: hover.hovered && btn.interactive
     readonly property bool disabled: btn.occupied && btn.info.disabled === true
-    readonly property real glow: btn.lit ? 1 : btn.occupied ? (btn.disabled ? 0.3 : 0.6) : 0
-    readonly property color rockBase: Qt.darker(Colors.surfaceBright, 1.6)
-    readonly property color topBase: btn.hovered ? Qt.lighter(Colors.surfaceBright, 1.18) : Colors.surfaceBright
+    readonly property bool glowing: btn.lit || btn.occupied
+    readonly property real strength: btn.lit ? 1 : btn.occupied ? (btn.disabled ? 0.4 : 0.55) : 0
+    readonly property real depth: Math.max(1, Math.round(btn.unit * 0.04))
+    readonly property color capBase: btn.hovered ? Qt.lighter(Colors.surfaceBright, 1.1) : Colors.surfaceBright
 
     width: btn.unit * 0.56
     height: width
@@ -33,44 +35,41 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        anchors.margins: -btn.unit * 0.12
+        anchors.margins: -3
         radius: width / 2
-        color: Colors.alpha(btn.light, 0.16 * btn.glow)
-        visible: btn.glow > 0
+        color: Colors.alpha(btn.light, 0.22)
+        visible: btn.lit
+    }
+
+    Rectangle {
+        y: btn.depth
+        width: parent.width
+        height: parent.height - btn.depth
+        radius: width / 2
+        color: Qt.darker(Colors.surfaceBright, 1.5)
+    }
+
+    Rectangle {
+        width: parent.width
+        height: parent.height - btn.depth
+        radius: width / 2
+        color: btn.glowing ? Qt.tint(btn.capBase, Colors.alpha(btn.light, 0.28 * btn.strength)) : btn.capBase
+        border.width: 1
+        border.color: btn.target ? Colors.alpha(Colors.primary, btn.hovered ? 0.9 : 0.5)
+                    : btn.glowing ? Colors.alpha(btn.light, 0.35 + 0.55 * btn.strength)
+                    : Colors.alpha(Colors.outline, 0.35)
 
         Behavior on color {
             ColorAnimation { duration: Appearance.fadeDuration }
         }
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        radius: width / 2
-        color: btn.glow > 0 ? Qt.tint(btn.rockBase, Colors.alpha(btn.light, 0.38 * btn.glow)) : btn.rockBase
-
-        Behavior on color {
-            ColorAnimation { duration: Appearance.fadeDuration }
-        }
-    }
-
-    Rectangle {
-        x: btn.unit * 0.04
-        y: btn.unit * 0.02
-        width: parent.width - btn.unit * 0.08
-        height: width
-        radius: width / 2
-        color: btn.glow > 0 ? Qt.tint(btn.topBase, Colors.alpha(btn.light, 0.26 * btn.glow)) : btn.topBase
-        border.width: btn.target ? 1 : 0
-        border.color: Colors.alpha(Colors.primary, btn.hovered ? 0.9 : 0.45)
-
-        Behavior on color {
+        Behavior on border.color {
             ColorAnimation { duration: Appearance.fadeDuration }
         }
 
         Text {
             anchors.centerIn: parent
             text: btn.spec.icon
-            color: btn.glow > 0 ? (btn.lit ? Qt.lighter(btn.light, 1.2) : btn.light) : Colors.alpha(Colors.fgSurfaceVariant, 0.55)
+            color: btn.glowing ? (btn.lit ? Qt.lighter(btn.light, 1.1) : btn.light) : Colors.alpha(Colors.fgSurfaceVariant, 0.75)
             opacity: btn.disabled ? 0.7 : 1
             font.family: "Material Symbols Outlined"
             font.pixelSize: Math.max(10, Math.round(btn.unit * 0.3))
@@ -91,18 +90,5 @@ Item {
     TapHandler {
         enabled: btn.interactive && (btn.occupied || btn.target)
         onTapped: btn.clicked()
-    }
-
-    KeyTooltip {
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            top: parent.bottom
-            topMargin: 6
-        }
-        z: 10
-        visible: btn.hovered
-        title: btn.info ? `${I18n.tr(btn.info.group)} › ${I18n.tr(btn.info.title)}` : I18n.tr(btn.spec.title)
-        keys: btn.info?.keys ?? []
-        hint: btn.disabled ? I18n.tr("aus") : ""
     }
 }

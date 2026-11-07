@@ -47,21 +47,29 @@ Item {
         return true;
     }
 
-    // Flach: Gruppenkopf, dann seine Befehle
+    // Flach: Gruppenkopf, dann seine Befehle. Nach Gruppe gesammelt (in der
+    // Reihenfolge ihres ersten Auftretens) – Binds derselben Gruppe stehen in
+    // der Config nicht immer beieinander
     readonly property var rows: {
-        const out = [];
         const q = list.query;
-        let group = "";
+        const order = [];
+        const byGroup = {};
         for (const c of HyprBinds.commands) {
             if (!list.passes(c))
                 continue;
             if (q !== "" && !(list.searchIndex[c.id] ?? "").includes(q))
                 continue;
-            if (c.group !== group) {
-                group = c.group;
-                out.push({ header: true, name: group, id: "#" + group });
+            if (!byGroup[c.group]) {
+                byGroup[c.group] = [];
+                order.push(c.group);
             }
-            out.push({ header: false, command: c, id: c.id });
+            byGroup[c.group].push(c);
+        }
+        const out = [];
+        for (const group of order) {
+            out.push({ header: true, name: group, id: "#" + group });
+            for (const c of byGroup[group])
+                out.push({ header: false, command: c, id: c.id });
         }
         return out;
     }
