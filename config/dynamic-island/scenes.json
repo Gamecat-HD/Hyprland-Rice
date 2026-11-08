@@ -135,22 +135,22 @@
           "align": "rechts",
           "color": "#ffffff",
           "accent": "#fcee0a"
-        }
+        },
+        "hidden": false
       },
       {
-        "id": "wnp571",
+        "id": "wmvl6cuf3bq",
         "type": "nowplaying",
-        "x": 0.87,
-        "y": 0.6,
-        "size": 0.8,
+        "x": 0.86,
+        "y": 0.0957,
+        "size": 0.896,
         "monitor": "*",
         "opts": {
           "style": "vinyl",
           "progress": true,
           "tint": true,
           "idle": "ausblenden",
-          "color": "#ffffff",
-          "accent": "#fcee0a"
+          "color": "hell"
         }
       }
     ],
@@ -1160,8 +1160,8 @@
       {
         "id": "wclo137p",
         "type": "clock",
-        "x": 0.17,
-        "y": 0.72,
+        "x": 0.1664,
+        "y": 0.8299,
         "size": 1.1,
         "monitor": "*",
         "opts": {
@@ -2671,6 +2671,66 @@
           "align": "rechts",
           "color": "#ffffff",
           "accent": "#3ce8ff"
+        }
+      }
+    ],
+    "Konosuba/konosuba-megumin-1320252.jpg": [
+      {
+        "id": "wclo200k",
+        "type": "clock",
+        "x": 0.075,
+        "y": 0.2,
+        "size": 1.15,
+        "monitor": "*",
+        "opts": {
+          "style": "gestapelt",
+          "date": true,
+          "color": "#ffffff",
+          "accent": "#ff5a2e"
+        }
+      },
+      {
+        "id": "wwea201k",
+        "type": "weather",
+        "x": 0.075,
+        "y": 0.335,
+        "size": 0.85,
+        "monitor": "*",
+        "opts": {
+          "style": "kompakt",
+          "details": true,
+          "place": true,
+          "color": "#ffffff",
+          "accent": "#ff5a2e"
+        }
+      },
+      {
+        "id": "wvis202k",
+        "type": "visualizer",
+        "x": 0.1,
+        "y": 0.78,
+        "size": 0.75,
+        "monitor": "*",
+        "opts": {
+          "style": "kapseln",
+          "bars": 24,
+          "idle": "ausblenden",
+          "color": "#ffffff",
+          "accent": "#ff5a2e"
+        }
+      },
+      {
+        "id": "wlyr203k",
+        "type": "lyrics",
+        "x": 0.1,
+        "y": 0.855,
+        "size": 0.75,
+        "monitor": "*",
+        "opts": {
+          "lines": 3,
+          "align": "links",
+          "color": "#ffffff",
+          "accent": "#ff5a2e"
         }
       }
     ]
