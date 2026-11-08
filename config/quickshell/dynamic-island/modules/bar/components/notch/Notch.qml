@@ -4,6 +4,7 @@ import QtQuick.Effects
 import Quickshell
 
 import qs.modules.services.config
+import qs.modules.services.plugins
 import qs.modules.services.auth
 import qs.modules.services.record
 import qs.modules.services.system
@@ -207,6 +208,8 @@ Item {
     readonly property bool powerOpen: launcherOpen && LauncherState.mode === "power"
     readonly property bool keysOpen: launcherOpen && LauncherState.mode === "keys"
     readonly property bool clipboardOpen: launcherOpen && LauncherState.mode === "clipboard"
+    // Ansicht eines Plugins (Manifest `panels.notch`, LauncherState.pluginView)
+    readonly property bool pluginViewOpen: launcherOpen && LauncherState.mode === "plugin"
     // Untermenues (siehe oben)
     readonly property bool mediaOpen: launcherOpen && LauncherState.mode === "media"
     readonly property bool controlOpen: launcherOpen && LauncherState.mode === "control"
@@ -268,6 +271,7 @@ Item {
                                         : powerOpen ? powerMenu.outerWidth
                                         : keysOpen ? keysView.outerWidth
                                         : clipboardOpen ? clipboardView.outerWidth
+                                        : pluginViewOpen ? pluginView.outerWidth
                                         : mediaOpen ? mediaView.outerWidth
                                         : controlOpen ? controlLoader.outerWidth
                                         : notificationsOpen ? notificationsView.outerWidth
@@ -278,6 +282,7 @@ Item {
                                          : powerOpen ? powerMenu.outerHeight
                                          : keysOpen ? keysView.outerHeight
                                          : clipboardOpen ? clipboardView.outerHeight
+                                         : pluginViewOpen ? pluginView.outerHeight
                                          : mediaOpen ? mediaView.outerHeight
                                          : controlOpen ? controlLoader.outerHeight
                                          : notificationsOpen ? notificationsView.outerHeight
@@ -1362,6 +1367,85 @@ Item {
                 topOffset: notch.launcherTop
                 cardRadius: notch.cardRadius
                 active: true
+            }
+        }
+
+        // Ansicht eines Plugins: dieselbe Huelle wie die eigenen Ansichten
+        // (topOffset, inset, outerWidth/-Height), der Inhalt kommt per URL aus
+        // dem Plugin-Ordner – dessen Dateien sind keine Typen hier (README,
+        // "Imports"). Vertrag: plugins/README.md, "Notch-Ansichten".
+        LazyPanel {
+            id: pluginView
+
+            open: notch.pluginViewOpen
+
+            sourceComponent: Item {
+                id: pluginPanel
+
+                property real topOffset: notch.launcherTop
+                property real inset: 2
+                property bool active: true
+
+                readonly property real outerWidth: implicitWidth + inset * 2
+                readonly property real outerHeight: implicitHeight + inset
+
+                // Eintrag aus Plugins.panels.notch; Plugin aus -> weg
+                readonly property var entry: (Plugins.panels.notch ?? []).find(p => p.pluginId === LauncherState.pluginView) ?? null
+                readonly property string url: pluginPanel.entry?.url ?? ""
+
+                implicitWidth: pluginLoader.item?.implicitWidth ?? 400
+                implicitHeight: pluginLoader.item?.implicitHeight ?? 0
+
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    leftMargin: pluginPanel.inset
+                    rightMargin: pluginPanel.inset
+                }
+                y: pluginPanel.topOffset
+
+                // Was die Ansicht von der Notch sieht
+                readonly property QtObject host: QtObject {
+                    readonly property var screen: notch.hostScreen
+                    readonly property real cardRadius: notch.cardRadius
+                    function close(): void {
+                        LauncherState.close();
+                    }
+                }
+
+                Loader {
+                    id: pluginLoader
+
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
+                    focus: true
+
+                    function rebuild(): void {
+                        if (pluginPanel.url === "")
+                            pluginLoader.source = "";
+                        else
+                            pluginLoader.setSource(pluginPanel.url, { plugin: pluginPanel.entry.plugin, host: pluginPanel.host });
+                    }
+
+                    Component.onCompleted: pluginLoader.rebuild()
+                    onStatusChanged: {
+                        if (pluginLoader.status === Loader.Error)
+                            console.warn(`Notch-Ansicht ${LauncherState.pluginView}: ${pluginPanel.url} laedt nicht`);
+                    }
+                }
+
+                Connections {
+                    target: pluginPanel
+
+                    function onUrlChanged(): void {
+                        pluginLoader.rebuild();
+                    }
+                }
+
+                // Plugin weg (ausgeschaltet) -> Notch zu statt leerer Karte
+                onEntryChanged: if (pluginPanel.entry === null) LauncherState.close()
             }
         }
 

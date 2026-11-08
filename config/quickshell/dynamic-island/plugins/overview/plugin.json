@@ -1,0 +1,57 @@
+{
+    "$schema": "../plugin.schema.json",
+    "id": "overview",
+    "name": "Workspace-Übersicht",
+    "version": "1.0.0",
+    "api": 1,
+    "author": "gamecat",
+    "icon": "grid_view",
+    "description": "Alle Workspaces gekachelt, je Bildschirm ein Tab (SUPER+Tab) – als Vollbild oder in der Notch: springen, Fenster fokussieren oder per Ziehen verschieben, neuen Workspace aufmachen.",
+    "defaultEnabled": true,
+    "main": "Main.qml",
+    "keybinds": {
+        "toggle": {
+            "keys": "SUPER + Tab",
+            "title": "Workspace-Übersicht",
+            "group": "Workspaces",
+            "exec": "hyprctl dispatch 'hl.dsp.global(\"dynamic-island:overview\")'"
+        }
+    },
+    "settings": {
+        "style": {
+            "default": "vollbild",
+            "title": "Ansicht",
+            "desc": "Vollbild: eigenes Overlay mit großen Kacheln. Notch: kompakt als Ansicht in der Notch (dort wechselt F ins Vollbild)",
+            "options": [
+                "vollbild",
+                "notch"
+            ]
+        },
+        "preview": {
+            "default": "auswahl",
+            "title": "Vorschau",
+            "desc": "auswahl: nur die gewählte Kachel live, die anderen einmal pro Sekunde. alle: alle live (kostet bei Videos spürbar CPU/GPU). aus: ein Standbild beim Öffnen",
+            "options": [
+                "auswahl",
+                "alle",
+                "aus"
+            ]
+        },
+        "allScreens": {
+            "default": true,
+            "title": "Auf allen Bildschirmen",
+            "desc": "Die Übersicht auf jedem Bildschirm zeigen, sonst nur auf dem fokussierten"
+        },
+        "empty": {
+            "default": false,
+            "title": "Leere Workspaces zeigen",
+            "desc": "Alle Workspaces der Gruppe als Kachel, nicht nur die mit Fenstern"
+        }
+    },
+    "panels": {
+        "notch": {
+            "component": "NotchView.qml",
+            "icon": "grid_view"
+        }
+    }
+}

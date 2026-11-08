@@ -26,7 +26,10 @@ Singleton {
     //   "control"    Steuerung: Kacheln, WLAN/BT/Audio, Tray
     //   "notifications"  Benachrichtigungsliste
     //   "system"     Auslastung und Temperaturen
+    //   "plugin"     Notch-Ansicht eines Plugins (Manifest `panels.notch`),
+    //                welches sagt `pluginView` (Plugin-id)
     property string mode: "apps"
+    property string pluginView: ""
 
     // App-Liste fuer den Launcher als gesammelter Schnappschuss. DesktopEntries
     // scannt erst beim ersten Zugriff und meldet dann Eintrag fuer Eintrag;
@@ -160,6 +163,23 @@ Singleton {
             root.showWallpaperSection(target, section);
     }
 
+    // ---- Notch-Ansichten von Plugins ----
+    // Ein Plugin kann eine eigene Ansicht in die Notch bringen (Manifest
+    // `panels.notch`, Vertrag in plugins/README.md). Die Notch laedt sie wie
+    // ihre eigenen Ansichten erst beim Oeffnen.
+    function showPluginView(target: ShellScreen, id: string): void {
+        root.pluginView = id;
+        root.showMode(target, "plugin");
+    }
+
+    // Genau diese schon offen -> zu
+    function togglePluginView(target: ShellScreen, id: string): void {
+        if (root.open && root.mode === "plugin" && root.pluginView === id)
+            root.close();
+        else
+            root.showPluginView(target, id);
+    }
+
     // Farbschema-Auswahl. Anders als die Wallpaper hat sie keinen Knopf in der
     // Leiste – nur den Launcher-Befehl und diesen Weg hier.
     function showThemes(target: ShellScreen): void {
@@ -188,7 +208,7 @@ Singleton {
 
         function onFocusedMonitorChanged(): void {
             const name = Hyprland.focusedMonitor?.name ?? "";
-            if (root.open && (root.mode === "power" || root.mode === "keys" || root.mode === "clipboard") && name && name !== root.screen?.name)
+            if (root.open && (root.mode === "power" || root.mode === "keys" || root.mode === "clipboard" || root.mode === "plugin") && name && name !== root.screen?.name)
                 root.close();
         }
     }

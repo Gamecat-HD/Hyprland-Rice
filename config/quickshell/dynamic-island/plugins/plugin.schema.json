@@ -90,7 +90,7 @@
         },
         "panels": {
             "type": "object",
-            "description": "Sektionen in Ansichten der Shell, je Ansicht eine (bisher nur \"wallpaper\")",
+            "description": "Sektionen in Ansichten der Shell, je Ansicht eine (\"wallpaper\": Sektion der Wallpaper-Auswahl, \"notch\": eigene Ansicht in der Notch)",
             "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
             "additionalProperties": {
                 "type": "object",
