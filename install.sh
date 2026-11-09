@@ -21,6 +21,7 @@
 #   ./install.sh --extras        auch hyprlock, nvim, spicetify, spotify-launcher
 #   ./install.sh --install-deps  fehlende Pakete gleich mitinstallieren
 #   ./install.sh --check         nur pruefen, nichts aendern
+#   ./install.sh --monitors      nur ~/.config/hypr/monitors.lua neu erzeugen
 #   ./install.sh --dry-run       zeigen was passieren wuerde
 #   ./install.sh -y              ohne Rueckfrage durchlaufen
 set -uo pipefail
@@ -45,6 +46,7 @@ INSTALL_DEPS=0
 ASSUME_YES=0
 COPY=0
 EXTRAS=0
+MONITORS_ONLY=0
 FAILED=0
 PATH_HINT=0
 
@@ -82,6 +84,7 @@ install.sh — richtet den Dynamic-Island-Rice auf diesem Rechner ein.
   ./install.sh --extras        auch hyprlock, nvim, spicetify, spotify-launcher
   ./install.sh --install-deps  fehlende Pakete gleich mitinstallieren
   ./install.sh --check         nur pruefen, nichts aendern
+  ./install.sh --monitors      nur ~/.config/hypr/monitors.lua neu erzeugen
   ./install.sh --dry-run       zeigen was passieren wuerde
   ./install.sh -y              ohne Rueckfrage durchlaufen
 EOF
@@ -94,6 +97,7 @@ while [ $# -gt 0 ]; do
         --install-deps) INSTALL_DEPS=1 ;;
         --copy) COPY=1 ;;
         --extras) EXTRAS=1 ;;
+        --monitors) MONITORS_ONLY=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unbekannte Option: $1" >&2; usage; exit 1 ;;
@@ -129,6 +133,8 @@ EOF
     - erzeugt ein Farbschema, falls keines da ist — das schreibt auch
       Farben nach Hyprland, GTK, Qt, btop, cava und Discord
     - legt ~/.config/hypr/profile an, falls es fehlt
+    - schreibt die angeschlossenen Monitore nach ~/.config/hypr/monitors.lua,
+      falls es die Datei nicht gibt (nur wenn Hyprland laeuft)
 EOF
     [ "$INSTALL_DEPS" = 1 ] && printf '    - installiert fehlende Pakete per paru/yay (fragt selbst nochmal)\n'
     printf '\n  Echte Dateien werden vorher nach ~/backups/ gesichert.\n'
@@ -776,6 +782,79 @@ hypr_profile() {
         || fail "Shell-Config ~/.config/quickshell/$SHELL_NAME fehlt"
 }
 
+# ------------------------------------------------------- 6b. Monitore ---
+# Welche Bildschirme ein Rechner hat, steht in hypr/monitors.lua (git-ignoriert,
+# Vorlage monitors.example.lua). Laeuft Hyprland gerade, wird sie aus den
+# angeschlossenen Monitoren erzeugt: Aufloesung, Position und Skalierung wie
+# jetzt, Workspace-Gruppen (1-10, 11-20, ...) von links nach rechts. Ohne die
+# Datei laeuft Hyprland mit bevorzugter Aufloesung und Auto-Gruppen weiter.
+MONITORS_GEN='
+import json, sys
+mons = [m for m in json.load(sys.stdin) if m.get("mirrorOf", "none") == "none"]
+mons.sort(key=lambda m: (m["x"], m["y"]))
+def num(v):
+    return str(int(v)) if float(v).is_integer() else ("%.2f" % v).rstrip("0").rstrip(".")
+out = ["-- monitors.lua - Bildschirme dieses Rechners (git-ignoriert).",
+       "-- Erzeugt von install.sh aus hyprctl monitors; neu: ./install.sh --monitors",
+       "-- Felder und Erklaerung: monitors.example.lua", "", "return {"]
+for i, m in enumerate(mons):
+    r = m["refreshRate"]
+    rate = str(round(r)) if abs(r - round(r)) < 0.01 else "%.2f" % r
+    out += ["    {",
+            "        output     = %s," % json.dumps(m["name"]),
+            "        mode       = \"%dx%d@%s\"," % (m["width"], m["height"], rate),
+            "        position   = \"%dx%d\"," % (m["x"], m["y"]),
+            "        scale      = %s," % num(m["scale"])]
+    if m.get("transform"):
+        out.append("        transform  = %d," % m["transform"])
+    if m.get("vrr"):
+        out.append("        vrr        = true,")
+    out += ["        workspaces = %d,  -- %d-%d" % (i * 10, i * 10 + 1, i * 10 + 10), "    },"]
+out.append("}")
+print("\n".join(out))
+'
+
+setup_monitors() {  # setup_monitors [force]
+    step "Monitore"
+    local mf="$CONFIG_DIR/hypr/monitors.lua"
+
+    if [ -f "$mf" ] && [ "${1:-}" != force ]; then
+        skip "$(short "$mf") vorhanden (neu erzeugen: ./install.sh --monitors)"
+        return 0
+    fi
+    if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || ! command -v hyprctl >/dev/null 2>&1; then
+        skip "Hyprland laeuft nicht — bevorzugte Aufloesung, Workspaces je Monitor automatisch"
+        skip "   eigene Datei spaeter, in Hyprland: ./install.sh --monitors"
+        return 0
+    fi
+
+    local gen
+    if ! gen="$(hyprctl monitors -j 2>/dev/null | python -c "$MONITORS_GEN" 2>/dev/null)" \
+       || [ -z "$gen" ]; then
+        warn "Monitore liessen sich nicht auslesen — Vorlage: config/hypr/monitors.example.lua"
+        return 0
+    fi
+
+    # Kurzuebersicht: "HDMI-A-1 2560x1440@60 -> Workspaces 1-10"
+    local summary
+    summary="$(printf '%s\n' "$gen" | sed -nE \
+        -e 's/.*output += "([^"]+)".*/\1/p' \
+        -e 's/.*mode += "([^"]+)".*/\1/p' \
+        -e 's/.*-- ([0-9]+-[0-9]+)$/-> Workspaces \1/p' | paste -d' ' - - -)"
+
+    if [ "$DRY_RUN" = 1 ]; then
+        printf '  %s[dry-run]%s %s schreiben:\n' "$c_dim" "$c_reset" "$(short "$mf")"
+        printf '%s\n' "$summary" | sed 's/^/      /'
+        return 0
+    fi
+    [ -f "$mf" ] && backup_copy "$mf"
+    mkdir -p "$(dirname "$mf")"
+    printf '%s\n' "$gen" > "$mf.tmp" && mv "$mf.tmp" "$mf"
+    local line
+    while IFS= read -r line; do ok "$line"; done <<<"$summary"
+    ok "$(short "$mf") geschrieben — wirkt nach: hyprctl reload"
+}
+
 # --------------------------------------------------- 7. Fish-Sequenzen ---
 fish_hook() {
     step "Terminalfarben"
@@ -846,6 +925,11 @@ check_links() {
     done
 }
 
+if [ "$MONITORS_ONLY" = 1 ]; then
+    setup_monitors force
+    exit $FAILED
+fi
+
 ki_warnung
 
 check_deps
@@ -859,6 +943,7 @@ make_dirs
 seed_wallpapers
 seed_scheme
 hypr_profile
+setup_monitors
 fish_hook
 summary
 exit $FAILED

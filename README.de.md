@@ -18,8 +18,7 @@ jedes Wallpaper kann eigene Desktop-Widgets haben. Dazu kommt die CLI
 `dynamic-island` fuer Farbschemata, Wallpaper, Screenshots und Aufnahmen.
 
 Das ist die Config genau so, wie sie auf meinen Rechnern laeuft — inklusive
-meiner Monitornamen und zwei Profilen, die Shells brauchen, die hier nicht
-drin sind (siehe [Profile](#profile)).
+zwei Profilen, die Shells brauchen, die hier nicht drin sind (siehe [Profile](#profile)).
 
 Die Oberflaeche spricht **Englisch** (Vorgabe) und **Deutsch** — umschalten
 unter Einstellungen > Darstellung > Sprache.
@@ -77,6 +76,7 @@ Wo der Klon liegt, ist egal.
 | `--copy` | kopieren statt verlinken (nach `git pull` erneut ausfuehren) |
 | `--extras` | auch meine hyprlock-Layouts, nvim-, spicetify- und spotify-launcher-Configs verlinken (ersetzt deine, Sicherung in `~/backups/`) |
 | `--check` | nur pruefen, nichts aendern |
+| `--monitors` | nur `~/.config/hypr/monitors.lua` aus den angeschlossenen Monitoren (neu) schreiben |
 | `--dry-run` | zeigen, was passieren wuerde |
 | `-y` | ohne Rueckfrage durchlaufen |
 
@@ -88,36 +88,44 @@ wie `config/hypr/` im Klon — egal wo du bearbeitest, es ist dieselbe Datei.
 Nach jeder Aenderung: `hyprctl reload`. Tippfehler meldet Hyprland oben als
 rote Leiste.
 
-### 1. Monitore (wichtigster Punkt)
+### 1. Monitore
 
-Erst nachschauen, wie deine Bildschirme heissen:
+Die Monitore stehen in `~/.config/hypr/monitors.lua` — eine Datei pro Rechner,
+die nicht zum Repo gehoert (steht in `.gitignore`, `git pull` fasst sie also nie
+an). `install.sh` schreibt sie aus den gerade angeschlossenen Monitoren, wenn
+Hyprland laeuft. Aus einem TTY installiert? Dann einmal in Hyprland:
 
 ```sh
-hyprctl monitors    # Namen wie HDMI-A-1, DP-1, eDP-1 + moegliche Aufloesungen
+./install.sh --monitors   # schreibt monitors.lua aus `hyprctl monitors`
+hyprctl reload
 ```
 
-In `config/hypr/hyprland.lua` stehen oben meine drei (`HDMI-A-1` links, `DP-2`
-rechts, `eDP-1` = Laptop). Trag dort deine Namen, Aufloesung, Hz-Zahl und
-Position ein, ueberzaehlige Bloecke loeschen. Beispiel fuer einen Monitor:
+Ohne die Datei geht trotzdem alles: jeder Monitor bekommt seine bevorzugte
+Aufloesung, die Workspace-Gruppen werden von links nach rechts vergeben.
+
+So sieht die Datei aus (Vorlage mit allen Optionen:
+`config/hypr/monitors.example.lua`):
 
 ```lua
-hl.monitor({
-    output   = "DP-1",            -- Name aus `hyprctl monitors`
-    mode     = "1920x1080@144",   -- oder "preferred"
-    position = "0x0",
-    scale    = 1,
-})
+return {
+    {
+        output     = "DP-1",            -- Name aus `hyprctl monitors`
+        mode       = "1920x1080@144",   -- oder "preferred"
+        position   = "0x0",
+        scale      = 1,
+        workspaces = 0,                 -- dieser Monitor hat Workspaces 1-10
+    },
+    {
+        output     = "HDMI-A-1",
+        mode       = "preferred",
+        position   = "1920x0",
+        scale      = 1,
+        workspaces = 10,                -- 11-20 (SUPER+1 springt hier nach 11)
+    },
+}
 ```
 
-Dann in `config/hypr/profiles/simple.lua` bei `wsMonitorOffset` dieselben Namen
-eintragen. Jeder Monitor bekommt seine eigenen Workspaces 1–10; der erste
-hat Offset `0`, ein zweiter `10`. Bei nur einem Monitor:
-
-```lua
-wsMonitorOffset = {
-    ["DP-1"] = 0,
-},
-```
+Jeder Monitor bekommt seine eigenen Workspaces 1–10 (in der Leiste als 1–10).
 
 ### 2. Tastatur
 
@@ -216,7 +224,7 @@ git pull
 hyprctl reload
 ```
 
-Hast du selbst Dateien geaendert (z. B. die Monitore), kann `git pull`
+Hast du selbst Dateien geaendert (z. B. das Tastaturlayout), kann `git pull`
 meckern. Dann so:
 
 ```sh

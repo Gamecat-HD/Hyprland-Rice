@@ -17,8 +17,7 @@ The colors follow the wallpaper (Material You), and every wallpaper can have
 its own desktop widgets. On top of that, the `dynamic-island` CLI handles
 color schemes, wallpapers, screenshots and screen recording.
 
-This is the config exactly as it runs on my machines — including my monitor
-names and two profiles that need shells not included here (see
+This is the config exactly as it runs on my machines — including two profiles that need shells not included here (see
 [Profiles](#profiles)).
 
 The interface speaks **English** (default) and **German** — switch it under
@@ -79,6 +78,7 @@ It doesn't matter where the clone lives.
 | `--copy` | copy instead of symlink (run again after `git pull`) |
 | `--extras` | also link my hyprlock layouts, nvim, spicetify and spotify-launcher configs (replaces yours, backed up to `~/backups/`) |
 | `--check` | only check, change nothing |
+| `--monitors` | only (re)write `~/.config/hypr/monitors.lua` from the connected monitors |
 | `--dry-run` | show what would happen |
 | `-y` | run without asking |
 
@@ -89,36 +89,44 @@ a few things. Thanks to the symlinks, `~/.config/hypr` is the same folder as
 `config/hypr/` in the clone — wherever you edit, it's the same file. After every
 change: `hyprctl reload`. Hyprland reports typos as a red bar at the top.
 
-### 1. Monitors (most important)
+### 1. Monitors
 
-First check what your screens are called:
+Monitors live in `~/.config/hypr/monitors.lua` — a file per machine that is
+not part of the repo (it's in `.gitignore`, so `git pull` never touches it).
+`install.sh` writes it from the monitors that are connected right now, if
+Hyprland is running. Installed from a TTY? Then run this once inside Hyprland:
 
 ```sh
-hyprctl monitors    # names like HDMI-A-1, DP-1, eDP-1 + available resolutions
+./install.sh --monitors   # writes monitors.lua from `hyprctl monitors`
+hyprctl reload
 ```
 
-The top of `config/hypr/hyprland.lua` has my three (`HDMI-A-1` left, `DP-2` right,
-`eDP-1` = laptop). Enter your names, resolution, refresh rate and position
-there and delete the extra blocks. Example for one monitor:
+Without the file everything still works: every monitor gets its preferred
+resolution, and the workspace groups are handed out left to right.
+
+The file looks like this (template with all options:
+`config/hypr/monitors.example.lua`):
 
 ```lua
-hl.monitor({
-    output   = "DP-1",            -- name from `hyprctl monitors`
-    mode     = "1920x1080@144",   -- or "preferred"
-    position = "0x0",
-    scale    = 1,
-})
+return {
+    {
+        output     = "DP-1",            -- name from `hyprctl monitors`
+        mode       = "1920x1080@144",   -- or "preferred"
+        position   = "0x0",
+        scale      = 1,
+        workspaces = 0,                 -- this monitor has workspaces 1-10
+    },
+    {
+        output     = "HDMI-A-1",
+        mode       = "preferred",
+        position   = "1920x0",
+        scale      = 1,
+        workspaces = 10,                -- 11-20 (SUPER+1 here jumps to 11)
+    },
+}
 ```
 
-Then enter the same names under `wsMonitorOffset` in
-`config/hypr/profiles/simple.lua`. Every monitor gets its own workspaces 1–10; the
-first has offset `0`, a second one `10`. With a single monitor:
-
-```lua
-wsMonitorOffset = {
-    ["DP-1"] = 0,
-},
-```
+Every monitor gets its own workspaces 1–10 (shown as 1–10 in the bar).
 
 ### 2. Keyboard
 
@@ -218,7 +226,7 @@ git pull
 hyprctl reload
 ```
 
-If you changed files yourself (e.g. the monitors), `git pull` may complain.
+If you changed files yourself (e.g. the keyboard layout), `git pull` may complain.
 Then:
 
 ```sh

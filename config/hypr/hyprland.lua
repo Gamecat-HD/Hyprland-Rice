@@ -36,29 +36,19 @@ if not (":" .. path .. ":"):find(":" .. localBin .. ":", 1, true) then
 end
 
 --------------------------------------------------------------------------------
--- Monitore (gelten fuer beide Profile)
+-- Monitore (gelten fuer alle Profile)
 --------------------------------------------------------------------------------
-hl.monitor({
-    output   = "HDMI-A-1",
-    mode     = "2560x1440@60",
-    position = "0x0",
-    scale    = 1,
-    vrr      = false,
-})
-
-hl.monitor({
-    output   = "DP-2",
-    mode     = "2560x1440@180",
-    position = "2560x0",
-    scale    = 1,
-})
-
-hl.monitor({
-    output   = "eDP-1",
-    mode     = "preferred",
-    position = "auto",
-    scale    = 1.25,
-})
+-- Stehen pro Rechner in monitors.lua (git-ignoriert, Vorlage monitors.example.lua);
+-- ohne die Datei: bevorzugte Aufloesung, Workspace-Gruppen automatisch.
+package.loaded["monitor-setup"] = nil
+local monitors = require("monitor-setup")
+monitors.apply()
+if monitors.error then
+    hl.on("hyprland.start", function()
+        hl.exec_cmd("notify-send -u critical 'Hyprland: monitors.lua kaputt' "
+            .. "'Nehme die Standard-Monitore. ./install.sh --monitors legt sie neu an.'")
+    end)
+end
 
 --------------------------------------------------------------------------------
 -- Profil bestimmen

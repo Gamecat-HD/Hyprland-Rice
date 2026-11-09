@@ -59,11 +59,6 @@ return {
     ---- KEYBINDS ----
     ------------------
 
-    -- Workspaces: jeder Monitor hat seine eigene 10er-Gruppe (Anzeige jeweils 1-10)
-    wsMonitorOffset = {
-        ["HDMI-A-1"] = 0, -- links: Workspaces 1-10
-        ["DP-2"] = 10, -- rechts: Workspaces 11-20
-    },
     kbMoveWinToWs = "SUPER + ALT",
     kbMoveWinToWsGroup = "CTRL + SUPER + ALT",
     kbGoToWs = "SUPER",
