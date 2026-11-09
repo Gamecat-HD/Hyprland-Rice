@@ -170,10 +170,11 @@ hl.config({
 		enabled = true,
 	},
 
-	-- Content-Type im Vollbild nicht an den Monitor melden: DP-2 bekam dabei
-	-- jedes Mal ein Modeset und wurde kurz schwarz (Obsidian-Vollbild, 2026-11-09)
+	-- Kein automatisches HDR im Vollbild: Hyprland 0.57 schaltete DP-2 bei
+	-- jedem Vollbild (auch kitty/Obsidian, kein HDR-Inhalt) auf BT2020+PQ,
+	-- das Modeset machte den Monitor kurz schwarz (2026-11-09)
 	render = {
-		send_content_type = false,
+		cm_auto_hdr = 0,
 	},
 
 	input = {
