@@ -170,6 +170,12 @@ hl.config({
 		enabled = true,
 	},
 
+	-- Content-Type im Vollbild nicht an den Monitor melden: DP-2 bekam dabei
+	-- jedes Mal ein Modeset und wurde kurz schwarz (Obsidian-Vollbild, 2026-11-09)
+	render = {
+		send_content_type = false,
+	},
+
 	input = {
 		kb_layout = cfg.kbLayout,
 		numlock_by_default = true,

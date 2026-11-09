@@ -283,9 +283,10 @@ Singleton {
     function blockedFrom(monitors: var, clients: var): var {
         const out = [];
         for (const m of monitors) {
-            const special = m.specialWorkspace?.id ?? 0;
-            const ws = special !== 0 ? special : (m.activeWorkspace?.id ?? 0);
-            const hit = clients.some(c => c.workspace?.id === ws && c.mapped !== false && !c.hidden
+            // Über den Namen: seit Hyprland 0.57 fehlt "id" bei Spezial-Workspaces
+            const special = m.specialWorkspace?.name ?? "";
+            const ws = special !== "" ? special : (m.activeWorkspace?.name ?? "");
+            const hit = clients.some(c => (c.workspace?.name ?? "") === ws && c.mapped !== false && !c.hidden
                 && Math.max(c.fullscreen ?? 0, c.fullscreenClient ?? 0) >= 2);
             if (hit)
                 out.push(m.name);
