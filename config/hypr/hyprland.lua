@@ -25,6 +25,16 @@ local defaultProfile  = "simple"
 local rescueProfile   = "caelestia"
 local switchBind      = "CTRL + SUPER + SHIFT + P"
 
+-- ~/.local/bin (dynamic-island, hypr-profile, theme-set) fuer alles, was
+-- Hyprland startet. Arch/EndeavourOS nehmen den Ordner nicht von selbst in
+-- den PATH, und Hyprland bekommt beim Start aus dem Display-Manager keine
+-- Shell-rc zu sehen; ohne das finden Autostart und Keybinds die CLI nicht.
+local localBin = home .. "/.local/bin"
+local path     = os.getenv("PATH") or "/usr/local/bin:/usr/bin"
+if not (":" .. path .. ":"):find(":" .. localBin .. ":", 1, true) then
+    hl.env("PATH", localBin .. ":" .. path)
+end
+
 --------------------------------------------------------------------------------
 -- Monitore (gelten fuer beide Profile)
 --------------------------------------------------------------------------------

@@ -46,6 +46,7 @@ ASSUME_YES=0
 COPY=0
 EXTRAS=0
 FAILED=0
+PATH_HINT=0
 
 # Was aus config/ nach ~/.config gehoert (Pfade relativ zu beiden)
 DEPLOY_PATHS=(hypr quickshell/dynamic-island dynamic-island)
@@ -516,12 +517,87 @@ link_files() {
     fi
     link "$DI_DIR/scripts/hypr-profile" "$BIN_DIR/hypr-profile"
     link "$DI_DIR/scripts/theme-set" "$BIN_DIR/theme-set"
-    link "$DI_DIR/completions/dynamic-island.fish" "$CONFIG_DIR/fish/completions/dynamic-island.fish"
+    if command -v fish >/dev/null 2>&1; then
+        link "$DI_DIR/completions/dynamic-island.fish" "$CONFIG_DIR/fish/completions/dynamic-island.fish"
+    else
+        skip "kein fish installiert, keine Completions"
+    fi
+}
+
+# --------------------------------------------------------- 2b. PATH ---
+# Die Befehle liegen in ~/.local/bin. Arch und EndeavourOS nehmen den Ordner
+# nicht von selbst in den PATH (CachyOS' fish-Config schon) – ohne das gibt
+# es nach der Installation "dynamic-island: command not found". Darum einen
+# markierten Block in die rc-Datei jeder vorhandenen Shell; Hyprland selbst
+# ergaenzt den PATH in hyprland.lua.
+PATH_MARK="# >>> dynamic-island PATH >>>"
+
+path_block() {  # path_block <shell>
+    printf '\n%s\n' "$PATH_MARK"
+    if [ "$1" = fish ]; then
+        printf 'fish_add_path -g ~/.local/bin\n'
+    else
+        cat <<'EOF'
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+EOF
+    fi
+    printf '# <<< dynamic-island PATH <<<\n'
+}
+
+setup_path() {
+    step "PATH"
+
+    # Ziel-Dateien: bash/zsh-rc, wenn es sie gibt oder die Shell die
+    # Login-Shell ist (eine neue ~/.zshrc wuerde sonst zsh's Ersteinrichtung
+    # unterdruecken); fish ueber conf.d, damit config.fish unangetastet bleibt
+    local login="${SHELL##*/}" zshrc="${ZDOTDIR:-$HOME}/.zshrc"
+    local -a targets=()
+    { [ -f "$HOME/.bashrc" ] || [ "$login" = bash ]; } && targets+=("bash:$HOME/.bashrc")
+    { [ -f "$zshrc" ] || [ "$login" = zsh ]; } && targets+=("zsh:$zshrc")
+    command -v fish >/dev/null 2>&1 && targets+=("fish:$CONFIG_DIR/fish/conf.d/dynamic-island-path.fish")
+
+    local entry sh rc handled=0
+    for entry in "${targets[@]}"; do
+        sh="${entry%%:*}"; rc="${entry#*:}"
+        if [ -f "$rc" ] && grep -qF "$PATH_MARK" "$rc"; then
+            skip "$(short "$rc") setzt den PATH schon"
+            handled=1
+            continue
+        fi
+        # Steht ~/.local/bin schon in der rc (eigene Zeile), nichts doppeln
+        if [ -f "$rc" ] && grep -qE '(\$HOME|~|'"$HOME"')/\.local/bin' "$rc"; then
+            skip "$(short "$rc") nennt ~/.local/bin schon"
+            handled=1
+            continue
+        fi
+        if [ "$CHECK_ONLY" = 1 ]; then
+            case ":$PATH:" in
+                *":$BIN_DIR:"*) ;;
+                *) warn "$(short "$rc") nimmt ~/.local/bin nicht in den PATH" ;;
+            esac
+            continue
+        fi
+        if [ "$DRY_RUN" = 1 ]; then
+            printf '  %s[dry-run]%s ~/.local/bin in %s eintragen\n' "$c_dim" "$c_reset" "$(short "$rc")"
+            continue
+        fi
+        mkdir -p "$(dirname "$rc")"
+        path_block "$sh" >> "$rc"
+        ok "~/.local/bin in $(short "$rc") eingetragen ($sh)"
+        handled=1
+    done
 
     case ":$PATH:" in
         *":$BIN_DIR:"*) ok "~/.local/bin liegt im PATH" ;;
-        *) warn "~/.local/bin fehlt im PATH — fish: fish_add_path ~/.local/bin"
-           warn "                                bash/zsh: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
+        *) if [ "$handled" = 1 ]; then
+               PATH_HINT=1
+           elif [ "$DRY_RUN" = 0 ]; then
+               warn "~/.local/bin fehlt im PATH, und keine Shell-Config gefunden:"
+               warn "   export PATH=\"\$HOME/.local/bin:\$PATH\"  in die rc deiner Shell"
+           fi ;;
     esac
 }
 
@@ -702,14 +778,19 @@ hypr_profile() {
 
 # --------------------------------------------------- 7. Fish-Sequenzen ---
 fish_hook() {
-    local cf="$CONFIG_DIR/fish/config.fish"
-    step "Terminalfarben (fish)"
-    [ -f "$cf" ] || { skip "keine fish-Config"; return 0; }
-    if grep -q "state/$SHELL_NAME/sequences.txt" "$cf"; then
-        skip "sequences.txt wird schon eingelesen"
-    else
-        warn "In $cf ergaenzen:  cat ~/.local/state/$SHELL_NAME/sequences.txt 2> /dev/null"
-    fi
+    step "Terminalfarben"
+    local cf found=0
+    for cf in "$CONFIG_DIR/fish/config.fish" "$HOME/.bashrc" "${ZDOTDIR:-$HOME}/.zshrc"; do
+        [ -f "$cf" ] || continue
+        found=1
+        if grep -q "state/$SHELL_NAME/sequences.txt" "$cf"; then
+            skip "$(short "$cf") liest sequences.txt schon ein"
+        else
+            warn "Fuer Schema-Farben im Terminal in $(short "$cf") ergaenzen:"
+            warn "   cat ~/.local/state/$SHELL_NAME/sequences.txt 2> /dev/null"
+        fi
+    done
+    [ "$found" = 1 ] || skip "keine Shell-Config gefunden"
 }
 
 # ------------------------------------------------------------- Abschluss ---
@@ -721,6 +802,10 @@ summary() {
         printf '  %sAlles eingerichtet.%s\n' "$c_green" "$c_reset"
     fi
     [ "$CHECK_ONLY" = 1 ] && return 0
+    if [ "$PATH_HINT" = 1 ]; then
+        printf '\n  %sDer Befehl dynamic-island geht erst in einem NEUEN Terminal%s\n' "$c_yellow" "$c_reset"
+        printf '  %s(oder in diesem nach: source ~/.bashrc  bzw.  exec $SHELL).%s\n' "$c_yellow" "$c_reset"
+    fi
     cat <<EOF
 
   Weiter geht es mit:
@@ -753,8 +838,9 @@ EOF
 check_links() {
     step "Befehle und Completions"
     local f short
-    for f in "$BIN_DIR/dynamic-island" "$BIN_DIR/hypr-profile" "$BIN_DIR/theme-set" \
-             "$CONFIG_DIR/fish/completions/dynamic-island.fish"; do
+    local -a files=("$BIN_DIR/dynamic-island" "$BIN_DIR/hypr-profile" "$BIN_DIR/theme-set")
+    command -v fish >/dev/null 2>&1 && files+=("$CONFIG_DIR/fish/completions/dynamic-island.fish")
+    for f in "${files[@]}"; do
         short="~${f#$HOME}"
         if [ -e "$f" ]; then ok "$short"; else fail "$short fehlt"; fi
     done
@@ -767,6 +853,7 @@ check_services
 check_notifications
 if [ "$CHECK_ONLY" = 1 ]; then check_deploy; else deploy; fi
 if [ "$CHECK_ONLY" = 1 ]; then check_links; else link_files; fi
+setup_path
 if [ "$CHECK_ONLY" = 1 ]; then check_helpers; else build_helpers; fi
 make_dirs
 seed_wallpapers
