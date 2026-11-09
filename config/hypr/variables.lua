@@ -1,16 +1,17 @@
 local scheme = require("scheme.current")
+local pick = require("apps")
 
 return {
     ------------------
     ---- HYPRLAND ----
     ------------------
 
-    -- Apps
-    terminal = "kitty",
-    browser = "zen-browser",
-    editor = "codium",
-    fileExplorer = "dolphin",
-    audioSettings = "pavucontrol",
+    -- Apps: die erste installierte gewinnt (apps.lua), vorne steht meine Wahl
+    terminal = pick({ "kitty", "alacritty", "foot", "wezterm", "ghostty", "konsole", "gnome-terminal", "xfce4-terminal", "xterm" }),
+    browser = pick({ "zen-browser", "firefox", "librewolf", "brave", "chromium", "google-chrome-stable", "vivaldi-stable" }),
+    editor = pick({ "codium", "code", "zed", "kate", "gnome-text-editor", "mousepad" }),
+    fileExplorer = pick({ "dolphin", "nautilus", "thunar", "nemo", "pcmanfm-qt", "pcmanfm" }),
+    audioSettings = pick({ "pavucontrol", "pwvucontrol", "pavucontrol-qt" }),
 
     -- Touchpad
     touchpadDisableTyping = true,
@@ -53,7 +54,8 @@ return {
     volumeMax = 100,
     cursorTheme = "breeze_cursors",
     cursorSize = 24,
-    sleepGestureCmd = "systemctl suspend-then-hibernate",
+    -- ohne eingerichtete Hibernation scheitert suspend-then-hibernate -> nur Standby
+    sleepGestureCmd = "systemctl suspend-then-hibernate || systemctl suspend",
 
     ------------------
     ---- KEYBINDS ----

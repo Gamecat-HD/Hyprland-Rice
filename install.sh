@@ -358,7 +358,20 @@ declare -A OPTIONAL=(
     [warp-cli]=cloudflare-warp-bin
     # Baut die Rust-Helfer (dynamic-island/rust), ohne cargo laufen die Python-Fassungen
     [cargo]=rust
+    # Papierkorb beim Hyprland-Start aufraeumen (aelter als 30 Tage)
+    [trash-empty]=trash-cli
+    # Mein Terminal; fehlt es, nimmt SUPER + Q das erste andere (hypr/apps.lua)
+    [kitty]=kitty
 )
+
+# Nur melden, nie per --install-deps mitinstallieren: fremde Dienste mit
+# eigenem Konto, die niemand nebenbei auf dem Rechner haben will.
+NO_AUTO_INSTALL=(nordvpn warp-cli)
+
+sorted_keys() {  # sorted_keys <name des assoziativen Arrays> — stabile Ausgabe
+    local -n _arr="$1"
+    printf '%s\n' "${!_arr[@]}" | sort
+}
 
 # Systemdienste, an denen die Shell ueber DBus haengt
 declare -A SERVICES=(
@@ -375,7 +388,8 @@ declare -A SERVICE_PKG=(
 check_deps() {
     step "Abhaengigkeiten"
     local missing=()
-    for bin in "${!NEEDED[@]}"; do
+    local bin
+    for bin in $(sorted_keys NEEDED); do
         if command -v "$bin" >/dev/null 2>&1; then
             ok "$bin"
         else
@@ -394,9 +408,11 @@ check_deps() {
     done
 
     # Kuerbare Extras: melden, aber nicht als Fehler zaehlen
-    for bin in "${!OPTIONAL[@]}"; do
+    for bin in $(sorted_keys OPTIONAL); do
         if command -v "$bin" >/dev/null 2>&1; then
             ok "$bin"
+        elif [[ " ${NO_AUTO_INSTALL[*]} " == *" $bin "* ]]; then
+            skip "$bin fehlt (${OPTIONAL[$bin]}, nur fuer die VPN-Kachel, wird nie automatisch installiert)"
         else
             warn "$bin fehlt (Paket: ${OPTIONAL[$bin]}) — nur diese Einzelheit faellt aus"
             [ "$INSTALL_DEPS" = 1 ] && missing+=("${OPTIONAL[$bin]}")
@@ -408,6 +424,14 @@ check_deps() {
     else
         warn "Material Symbols nicht gefunden — die Bar zeigt sonst leere Kaestchen"
         missing+=(ttf-material-symbols-variable-git)
+    fi
+    # Voreingestellte Schrift der Shell; fehlt sie, nimmt Qt die Systemschrift.
+    # Kein Paket: apple-fonts (AUR) baut nicht zuverlaessig.
+    if fc-list : family 2>/dev/null | grep -i "SF Pro" >/dev/null; then  # kein -q: pipefail + SIGPIPE
+        ok "Schrift: SF Pro"
+    else
+        skip "SF Pro nicht installiert — die Shell nimmt die Systemschrift"
+        skip "   (andere waehlen: Einstellungen > Aussehen > Schrift, z. B. Inter oder Noto Sans)"
     fi
 
     if [ ${#missing[@]} -gt 0 ] && [ "$INSTALL_DEPS" = 1 ] && [ "$CHECK_ONLY" = 0 ]; then

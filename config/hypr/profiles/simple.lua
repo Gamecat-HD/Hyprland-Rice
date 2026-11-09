@@ -18,6 +18,7 @@
 
 local home = os.getenv("HOME")
 local monitors = require("monitor-setup")
+local pick = require("apps")
 local hyprProfile = home .. "/.local/bin/hypr-profile"
 
 --------------------------------------------------------------------------------
@@ -47,12 +48,12 @@ end
 -- Die wichtigsten Einstellungen
 --------------------------------------------------------------------------------
 local cfg = {
-	-- Apps
-	terminal = "kitty",
-	browser = "zen-browser",
-	editor = "codium",
-	fileExplorer = "dolphin",
-	audioSettings = "pavucontrol",
+	-- Apps: die erste installierte gewinnt (apps.lua), vorne steht meine Wahl
+	terminal = pick({ "kitty", "alacritty", "foot", "wezterm", "ghostty", "konsole", "gnome-terminal", "xfce4-terminal", "xterm" }),
+	browser = pick({ "zen-browser", "firefox", "librewolf", "brave", "chromium", "google-chrome-stable", "vivaldi-stable" }),
+	editor = pick({ "codium", "code", "zed", "kate", "gnome-text-editor", "mousepad" }),
+	fileExplorer = pick({ "dolphin", "nautilus", "thunar", "nemo", "pcmanfm-qt", "pcmanfm" }),
+	audioSettings = pick({ "pavucontrol", "pwvucontrol", "pavucontrol-qt" }),
 	launcher = "fuzzel",
 	-- Sperrbildschirm (SUPER + L): der Lockscreen der dynamic-island-Shell
 	-- (quickshell/dynamic-island/modules/lock); laeuft die Shell nicht, nimmt
@@ -96,7 +97,8 @@ local cfg = {
 	brightnessStep = 5,
 
 	-- Energie
-	sleepCmd = "systemctl suspend-then-hibernate",
+	-- ohne eingerichtete Hibernation scheitert suspend-then-hibernate -> nur Standby
+	sleepCmd = "systemctl suspend-then-hibernate || systemctl suspend",
 
 }
 
