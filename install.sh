@@ -37,6 +37,8 @@ BIN_DIR="$HOME/.local/bin"
 BACKUP_DIR="$HOME/backups/dynamic-island-install-$(date +%Y%m%d-%H%M%S)"
 
 SHELL_NAME="dynamic-island"
+# Welche Pfade unter ~/.config per --copy aus diesem Repo kamen (einer je Zeile)
+COPY_MARKER="$STATE_DIR/$SHELL_NAME/install-copied"
 CHECK_ONLY=0
 DRY_RUN=0
 INSTALL_DEPS=0
@@ -160,12 +162,41 @@ backup_move() {  # backup_move <pfad> — aus dem Weg raeumen, nicht loeschen
     warn "~${target#$HOME} liegt jetzt unter ~${BACKUP_DIR#$HOME}/$rel"
 }
 
+backup_copy() {  # backup_copy <pfad> — Stand sichern, das Original bleibt liegen
+    local target="$1" rel
+    rel="${target#$HOME/}"
+    run mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
+    run cp -a "$target" "$BACKUP_DIR/$rel"
+    warn "Stand von ~${target#$HOME} gesichert nach ~${BACKUP_DIR#$HOME}/$rel"
+}
+
 backup() {  # backup <datei> — echte Datei (kein Symlink) wegsichern
     local target="$1"
     [ -e "$target" ] && [ ! -L "$target" ] || return 0
     run mkdir -p "$BACKUP_DIR"
     run cp -a "$target" "$BACKUP_DIR/"
     warn "$(basename "$target") gesichert nach ~${BACKUP_DIR#$HOME}"
+}
+
+copy_tracked() {  # copy_tracked <rel> <ziel> — config/<rel> nach <ziel> kopieren
+    # Nur was Git versioniert: Im Klon koennen gitignorte Dateien liegen
+    # (eigene shell.json, Build-Ordner rust/target), die sonst die des Ziels
+    # ueberschreiben oder es aufblaehen. Ohne Git (z. B. Zip) alles kopieren.
+    local rel="$1" dst="$2" f n=0
+    if ! git -C "$REPO_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        run cp -a "$SRC_DIR/$rel/." "$dst/"
+        return
+    fi
+    while IFS= read -r -d '' f; do
+        f="${f#config/$rel/}"
+        n=$((n + 1))
+        [ "$DRY_RUN" = 1 ] && continue
+        mkdir -p "$dst/$(dirname "$f")"
+        cp -a "$SRC_DIR/$rel/$f" "$dst/$f"
+    done < <(git -C "$REPO_DIR" ls-files -z -- "config/$rel")
+    [ "$DRY_RUN" = 1 ] && printf '  %s[dry-run]%s %s Dateien aus config/%s nach %s\n' \
+        "$c_dim" "$c_reset" "$n" "$rel" "$(short "$dst")"
+    return 0
 }
 
 link() {  # link <ziel> <linkname>
@@ -204,6 +235,19 @@ deploy() {
             continue
         fi
 
+        # Erneuter Lauf mit --copy (z. B. nach einem `git pull`): die fruehere
+        # Kopie NICHT wegraeumen, sonst landen die gitignorten Dateien, die erst
+        # hier entstanden sind (shell.json, keybinds.json, scenes.json,
+        # hypr/profile, hypr/scheme/*), im Backup und die Einstellungen sind
+        # scheinbar weg. Stattdessen nur die Repo-Dateien drueberlegen.
+        if [ "$COPY" = 1 ] && [ -d "$src" ] && [ -d "$dst" ] && [ ! -L "$dst" ] \
+           && grep -qxF "$rel" "$COPY_MARKER" 2>/dev/null; then
+            backup_copy "$dst"
+            copy_tracked "$rel" "$dst"
+            ok "$(short "$dst") aktualisiert (eigene Dateien bleiben)"
+            continue
+        fi
+
         # Auch kaputte Symlinks muessen weg, deshalb -L dazu
         if [ -e "$dst" ] || [ -L "$dst" ]; then
             backup_move "$dst"
@@ -211,8 +255,20 @@ deploy() {
 
         run mkdir -p "$(dirname "$dst")"
         if [ "$COPY" = 1 ]; then
-            run cp -a "$src" "$dst"
+            if [ -d "$src" ]; then
+                run mkdir -p "$dst"
+                copy_tracked "$rel" "$dst"
+            else
+                run cp -a "$src" "$dst"
+            fi
             ok "$(short "$dst") kopiert"
+            # Merken, dass diese Kopie von uns stammt: Nur dann darf ein
+            # spaeterer Lauf sie zusammenfuehren statt sie wegzuraeumen. Eine
+            # fremde Config wuerde sonst mit dem Repo vermischt.
+            if [ "$DRY_RUN" = 0 ] && ! grep -qxF "$rel" "$COPY_MARKER" 2>/dev/null; then
+                mkdir -p "$(dirname "$COPY_MARKER")"
+                printf '%s\n' "$rel" >> "$COPY_MARKER"
+            fi
         else
             run ln -sfn "$src" "$dst"
             ok "$(short "$dst") -> $(short "$src")"
@@ -269,6 +325,12 @@ declare -A NEEDED=(
     # Cover-Bilder der Medien-Karte: laden und die Grundfarbe ziehen
     [curl]=curl
     [magick]=imagemagick
+    # Medien-Karte und Medientasten
+    [playerctl]=playerctl
+    # Lautstaerketasten (hypr/hyprland/keybinds.lua, Profile)
+    [wpctl]=wireplumber
+    # Lockscreen-Screenshot (Lock.qml) und hypr/scripts/session-exit.sh
+    [jq]=jq
 )
 
 # Ohne die laeuft alles weiter, nur eine Einzelheit fehlt.
@@ -278,6 +340,12 @@ declare -A OPTIONAL=(
     # Helligkeit ueber DDC/CI (Brightness.qml). Am Laptop meist unnoetig,
     # dort regelt brightnessctl die interne Anzeige.
     [ddcutil]=ddcutil
+    # Helligkeit des internen Laptop-Panels und die Helligkeitstasten
+    [brightnessctl]=brightnessctl
+    # Audio-Profile (A2DP/HFP) bei Bluetooth-Kopfhoerern
+    [pactl]=libpulse
+    # Screenshot -> Text erkennen (OCR), braucht dazu tesseract-data-deu/-eng
+    [tesseract]=tesseract
     # Die VPN-Kachel kann zwischen NordVPN und Cloudflare WARP wechseln
     [nordvpn]=nordvpn-bin
     [warp-cli]=cloudflare-warp-bin
@@ -340,14 +408,33 @@ check_deps() {
         for h in paru yay; do command -v "$h" >/dev/null 2>&1 && { helper="$h"; break; }; done
         if [ -n "$helper" ]; then
             step "Installiere: ${missing[*]}"
-            run "$helper" -S --needed "${missing[@]}"
-            FAILED=0
+            # Nur bei Erfolg gilt das Fehlende als erledigt – ein abgebrochenes
+            # paru darf nicht zu "Alles eingerichtet" fuehren
+            if run "$helper" -S --needed "${missing[@]}"; then
+                FAILED=0
+            else
+                fail "Paketinstallation gescheitert oder abgebrochen"
+            fi
         else
-            warn "Kein paru/yay gefunden — bitte von Hand: sudo pacman -S ${missing[*]}"
+            warn "Kein paru/yay gefunden — bitte von Hand:"
+            manual_install_hint "${missing[@]}"
         fi
     elif [ ${#missing[@]} -gt 0 ]; then
-        warn "Nachinstallieren mit: ./install.sh --install-deps   (oder pacman -S ${missing[*]})"
+        warn "Nachinstallieren mit: ./install.sh --install-deps   (braucht paru/yay), oder:"
+        manual_install_hint "${missing[@]}"
     fi
+}
+
+# Was pacman selbst kennt, geht per pacman; der Rest (AUR) braucht paru/yay.
+# pacman -Si liest nur die lokale Paketdatenbank, das geht auch offline.
+manual_install_hint() {
+    local repo=() aur=() p
+    for p in "$@"; do
+        if pacman -Si "$p" >/dev/null 2>&1; then repo+=("$p"); else aur+=("$p"); fi
+    done
+    [ ${#repo[@]} -gt 0 ] && warn "   sudo pacman -S --needed ${repo[*]}"
+    [ ${#aur[@]} -gt 0 ] && warn "   aus dem AUR (paru/yay): ${aur[*]}"
+    return 0
 }
 
 # ---------------------------------------------------------- 1b. Dienste ---
@@ -357,17 +444,30 @@ check_deps() {
 check_services() {
     step "Systemdienste"
 
-    local unit state
+    # is-active allein reicht nicht: fuer eine Unit, die es gar nicht gibt,
+    # meldet es ebenfalls "inactive". Ob sie installiert ist, sagt LoadState.
+    local unit load state
     for unit in "${!SERVICES[@]}"; do
+        load="$(systemctl show -p LoadState --value "$unit" 2>/dev/null)"
         state="$(systemctl is-active "$unit" 2>/dev/null)"
+        case "$load" in
+            loaded) ;;
+            masked)
+                warn "$unit ist maskiert — ${SERVICES[$unit]} bleibt leer"
+                warn "   sudo systemctl unmask $unit && sudo systemctl enable --now $unit"
+                continue ;;
+            *)
+                warn "$unit nicht installiert (Paket: ${SERVICE_PKG[$unit]}) — ${SERVICES[$unit]} entfaellt"
+                continue ;;
+        esac
         case "$state" in
             active)
                 ok "$unit (${SERVICES[$unit]})" ;;
-            inactive|failed)
+            activating|reloading)
+                ok "$unit startet gerade (${SERVICES[$unit]})" ;;
+            *)
                 warn "$unit laeuft nicht — ${SERVICES[$unit]} bleibt leer"
                 warn "   sudo systemctl enable --now $unit" ;;
-            *)
-                warn "$unit nicht installiert (Paket: ${SERVICE_PKG[$unit]}) — ${SERVICES[$unit]} entfaellt" ;;
         esac
     done
 }
@@ -379,12 +479,25 @@ check_services() {
 check_notifications() {
     step "Benachrichtigungen"
 
-    local other=""
+    local other="" d owner=""
     for d in mako dunst swaync fnott; do
         pgrep -x "$d" >/dev/null 2>&1 && other="$d"
     done
 
-    if [ -n "$other" ]; then
+    # Entscheidend ist, wer den DBus-Namen haelt – ein nebenher laufender
+    # Daemon stoert nicht, solange die Shell den Namen schon hat.
+    if command -v busctl >/dev/null 2>&1; then
+        owner="$(busctl --user status org.freedesktop.Notifications 2>/dev/null \
+                 | sed -n 's/^Comm=//p')"
+    fi
+
+    if [ "$owner" = qs ] || [ "$owner" = quickshell ]; then
+        ok "die Shell haelt org.freedesktop.Notifications"
+        [ -n "$other" ] && skip "$other laeuft nebenher, wird aber nicht gebraucht"
+    elif [ -n "$owner" ]; then
+        warn "$owner belegt org.freedesktop.Notifications"
+        warn "   Die Shell bringt einen eigenen Daemon mit – $owner beenden oder abschalten."
+    elif [ -n "$other" ]; then
         warn "$other laeuft und belegt org.freedesktop.Notifications"
         warn "   Die Shell bringt einen eigenen Daemon mit – $other beenden oder abschalten."
     else
@@ -545,9 +658,18 @@ seed_scheme() {
          \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
          2>/dev/null | sort | head -1)"
     if [ -n "$wp" ]; then
-        "$BIN_DIR/dynamic-island" wallpaper -f "$wp" && ok "Schema aus $(basename "$wp") erzeugt"
+        if "$BIN_DIR/dynamic-island" wallpaper -f "$wp"; then
+            ok "Schema aus $(basename "$wp") erzeugt"
+        else
+            warn "Schema aus $(basename "$wp") liess sich nicht erzeugen"
+            warn "  spaeter von Hand: dynamic-island wallpaper -f BILD"
+        fi
     else
-        "$BIN_DIR/dynamic-island" scheme set -n island -m dark && ok "Statisches Schema 'island' gesetzt"
+        if "$BIN_DIR/dynamic-island" scheme set -n island -m dark; then
+            ok "Statisches Schema 'island' gesetzt"
+        else
+            warn "Schema 'island' liess sich nicht setzen"
+        fi
         warn "Keine Wallpaper in ~/Pictures/Wallpapers — spaeter: dynamic-island wallpaper -f BILD"
     fi
 }
@@ -557,13 +679,20 @@ hypr_profile() {
     step "Hyprland-Profil"
     local pf="$CONFIG_DIR/hypr/profile"
     if [ ! -d "$CONFIG_DIR/hypr" ]; then
-        fail "~/.config/hypr fehlt — install.sh ohne --check laufen lassen"
+        # Bei --dry-run hat deploy() nur angekuendigt, nichts angelegt
+        if [ "$DRY_RUN" = 1 ] && [ "$CHECK_ONLY" = 0 ]; then
+            skip "wuerde nach dem Verteilen das Profil 'simple' setzen"
+        else
+            fail "~/.config/hypr fehlt — install.sh ohne --check laufen lassen"
+        fi
         return 0
     fi
     if [ -f "$pf" ]; then
         skip "aktives Profil: $(cat "$pf")"
+    elif [ "$DRY_RUN" = 1 ]; then
+        printf '  %s[dry-run]%s Profil simple nach %s\n' "$c_dim" "$c_reset" "$(short "$pf")"
     else
-        run sh -c "printf simple > '$pf'"
+        printf simple > "$pf"
         ok "Profil auf 'simple' gesetzt (= Dynamic Island)"
     fi
     [ -d "$CONFIG_DIR/quickshell/$SHELL_NAME" ] \
@@ -610,9 +739,10 @@ summary() {
 
   Profile wechseln:  CTRL + SUPER + SHIFT + P   (oder hypr-profile toggle)
 
-  Wenn die Helligkeit nicht reagiert: sie laeuft ueber DDC/CI, und die
-  Bus-Nummern stehen fest in modules/services/brightness/Brightness.qml.
-  Welche dieser Rechner hat, sagt "ddcutil detect".
+  Wenn die Helligkeit nicht reagiert: am Laptop laeuft sie ueber
+  brightnessctl, an externen Monitoren ueber DDC/CI (ddcutil). Ob deine
+  Monitore DDC/CI koennen, sagt "ddcutil detect" (ggf. im OSD einschalten
+  und das Modul i2c-dev laden).
 EOF
     if [ "$COPY" = 1 ]; then
         printf '\n  %sKopiert statt verlinkt: nach einem `git pull` dieses Skript erneut laufen lassen.%s\n' \
