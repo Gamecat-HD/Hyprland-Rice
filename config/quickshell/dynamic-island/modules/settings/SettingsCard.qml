@@ -13,19 +13,18 @@ import qs
 // Layer-Oberflaeche. Als eigenes Item, damit sie sich auch ohne Fenster
 // bauen laesst (Vorschau-Screenshots, Tests).
 //
-// Links eine Gruppenleiste (Leiste, Notch-Layout, Darstellung, …), rechts
-// die Zeilen der gewaehlten Gruppe. Die Liste baut sich aus
-// ~/.config/dynamic-island/shell.json: jeder Abschnitt wird eine Gruppe,
-// jeder Schluessel eine Zeile. Neue Schluessel im Adapter
-// (services/config/Config.qml) tauchen hier von selbst auf – Namen,
-// Beschreibungen und Bedienelemente kommen aus Config.meta, fehlt ein
-// Eintrag, steht der Schluessel selbst da.
+// Links eine Leiste mit wenigen Kategorien (card.categories, z. B. Aussehen =
+// appearance + wallpaper), rechts die Zeilen ihrer shell.json-Abschnitte,
+// je Abschnitt mit Ueberschrift. Die Liste baut sich aus
+// ~/.config/dynamic-island/shell.json: jeder Schluessel eine Zeile. Neue
+// Schluessel im Adapter (services/config/Config.qml) tauchen hier von selbst
+// auf – Namen, Beschreibungen und Bedienelemente kommen aus Config.meta.
+// Neue Abschnitte ohne Kategorie landen unter System.
 //
-// Unter einem Trenner "Plugins" folgen die Plugin-Verwaltung (eine eigene
-// Seite statt der Zeilenliste, PluginManager.qml) und je aktives Plugin mit
-// Einstellungen eine Gruppe "plugin:<id>". Gelesen und geschrieben wird
-// ueber die Plugins-Bruecke (Plugins.get/set/...), die normale Gruppen an
-// Config weiterreicht – fuer die Zeilen sind beide gleich.
+// Plugins: ein Eintrag fuer die Verwaltung (PluginManager.qml); deren
+// Zeilen oeffnen die Plugin-Gruppen ("plugin:<id>") und Komponenten.
+// Gelesen und geschrieben wird ueber die Plugins-Bruecke (Plugins.get/set/...),
+// die normale Gruppen an Config weiterreicht.
 //
 // Die Suche geht ueber alle Gruppen, die Gruppenleiste ist dann aus.
 //
@@ -40,8 +39,44 @@ Surface {
 
     // Suchtext; leert sich beim Oeffnen
     property string filter: ""
-    // Gewaehlte Gruppe in der Leiste; "" = alle, managerKey = Plugin-Verwaltung
-    property string section: Config.sectionOrder[0] ?? ""
+    // Gewaehlte Seite: eine Kategorie der Leiste (categories[].key), die
+    // Plugin-Verwaltung (managerKey), die Bibliothek (wallsKey), eine
+    // Plugin-Gruppe ("plugin:<id>") oder eine Plugin-Seite ("@page:…")
+    property string section: "look"
+
+    // Die Leiste: wenige Kategorien statt einer Zeile je shell.json-Abschnitt.
+    // Eine Kategorie zeigt ihre Abschnitte untereinander, je mit Ueberschrift.
+    readonly property var categories: [
+        { key: "look", title: "Aussehen", desc: "Farben, Schrift, Wallpaper", icon: "palette", sections: ["appearance", "wallpaper"] },
+        { key: "shell", title: "Leiste & Notch", desc: "Leiste, Notch, Kacheln, Medien", icon: "web_asset", sections: ["bar", "notch", "quick", "osd", "media"] },
+        { key: "alerts", title: "Benachrichtigungen", desc: "Mitteilungen, Klänge", icon: "notifications", sections: ["notifications", "sounds"] },
+        { key: "connect", title: "Verbindungen", desc: "Bluetooth, VPN", icon: "bluetooth", sections: ["bluetooth", "vpn"] },
+        { key: "power", title: "Energie", desc: "Akku, Inaktivität, Sperrbildschirm", icon: "battery_horiz_075", sections: ["battery", "idle", "lock"] },
+        { key: "monitors", title: "Monitore", desc: "Anordnung, Auflösung, Skalierung", icon: "desktop_windows", sections: ["monitors"] },
+        { key: "keybinds", title: "Tastenkürzel", desc: "Kürzel ansehen und ändern", icon: "keyboard", sections: ["keybinds"] },
+        { key: "system", title: "System", desc: "Updates, Shell", icon: "monitoring", sections: ["system"] }
+    ]
+    // Abschnitte aus shell.json, die keiner Kategorie gehoeren, landen unter System
+    readonly property var categorySections: {
+        const known = [].concat(...card.categories.map(c => c.sections));
+        const out = {};
+        for (const c of card.categories)
+            out[c.key] = c.key === "system" ? c.sections.concat(card.sections.filter(s => !known.includes(s))) : c.sections;
+        return out;
+    }
+    function categoryOf(s: string): string {
+        for (const key in card.categorySections)
+            if (card.categorySections[key].includes(s))
+                return key;
+        return "";
+    }
+    readonly property var category: card.categories.find(c => c.key === card.section) ?? null
+    // Abschnitte der gewaehlten Seite
+    readonly property var currentSections: card.category ? card.categorySections[card.category.key] : [card.section]
+    // Mehrere Abschnitte auf einer Seite: jeder bekommt eine Ueberschrift
+    readonly property bool multiSection: !card.searching && card.currentSections.length > 1
+    // Abschnitt, zu dem nach dem Aufbau gescrollt wird (openPage("vpn") u. a.)
+    property string scrollTarget: ""
     readonly property bool searching: card.filter.trim() !== ""
     // Sichtbar? Steuert das Heranwachsen beim Oeffnen
     property bool shown: true
@@ -63,11 +98,11 @@ Surface {
     // ---- Breite ----
     // Schmale Karte: Leiste nur mit Symbolen
     readonly property bool compact: card.width < 820
-    readonly property real sidebarWidth: card.compact ? 64 : 236
+    readonly property real sidebarWidth: card.compact ? 64 : 264
     // Platz der Liste rechts der Leiste (Zielwert, nicht der animierte).
     // Direkt aus der Breite: ueber sidebarWidth gelesen war der Wert beim
     // Entstehen des Fensters kurz veraltet und baute die Karten einmal extra.
-    readonly property real listRoom: card.width - (card.width < 820 ? 64 : 236) - 44
+    readonly property real listRoom: card.width - (card.width < 820 ? 64 : 264) - 44
 
     // Gruppen aus shell.json in Menue-Reihenfolge, unbekannte hinten dran
     readonly property var sections: {
@@ -148,6 +183,9 @@ Surface {
     }
 
     function sectionTitle(s: string): string {
+        const cat = card.categories.find(c => c.key === s);
+        if (cat)
+            return I18n.tr(cat.title);
         if (s === card.managerKey)
             return "Plugins";
         if (s === card.wallsKey)
@@ -161,15 +199,6 @@ Surface {
 
     function valuesOf(s: string): var {
         return Plugins.isPluginSection(s) ? Plugins.raw[s] : Config.raw[s];
-    }
-
-    // Anzahl Zeilen je Gruppe (fuer die Leiste), mit meta.page verschobene
-    // Zeilen dort gezaehlt, wo sie stehen
-    function countIn(s: string): int {
-        const values = card.valuesOf(s);
-        const own = typeof values === "object" && values !== null
-            ? Object.keys(values).filter(k => (Plugins.metaFor(`${s}.${k}`)?.page ?? s) === s).length : 0;
-        return own + card.movedInto(s).length;
     }
 
     // Zeilen anderer Gruppen, die per meta.page auf Seite `s` stehen:
@@ -190,15 +219,19 @@ Surface {
     }
 
     // keepArgs: die Argumente einer Seite stehen schon (applyRequest)
+    // Ein shell.json-Abschnitt ("vpn") oeffnet seine Kategorie und scrollt hin
     function select(s: string, keepArgs: bool): void {
         if (!keepArgs)
             card.pageArgs = {};
-        card.section = s;
+        const cat = card.categories.some(c => c.key === s) ? "" : card.categoryOf(s);
+        card.scrollTarget = cat !== "" ? s : "";
+        card.section = cat !== "" ? cat : s;
         if (card.searching) {
             search.text = "";
             card.filter = "";
         }
         list.contentY = 0;
+        Qt.callLater(card.scrollToTarget);
     }
 
     // Beim Oeffnen: Suche leeren, Suchfeld fokussieren
@@ -223,8 +256,17 @@ Surface {
         };
 
         for (const section of card.allSections) {
-            if (needle === "" && card.section !== "" && section !== card.section)
+            if (needle === "" && !card.currentSections.includes(section))
                 continue;
+
+            // Die Bibliothek als Zeile mit Pfeil oben im Wallpaper-Abschnitt
+            if (section === "wallpaper") {
+                const title = I18n.tr("Bibliothek");
+                if (needle === "" || title.toLowerCase().includes(needle))
+                    out.push({ id: "wallpaper.@library", section, key: "@library", group: "", value: null,
+                               title, desc: I18n.tr("%1 Bilder").arg(Wallpapers.list.length), options: null, labels: null,
+                               unit: "", requires: null, editor: "", preview: "", link: card.wallsKey });
+            }
 
             // Zeilen dieser Seite: die eigenen Schluessel ohne die, die per
             // meta.page woanders stehen, plus die von anderswo hierher
@@ -315,7 +357,7 @@ Surface {
     readonly property var wideEditors: ["quick", "battery", "keybinds", "vpn", "monitors", "system"]
     // Diese nehmen die ganze Breite des Fensters statt hoechstens 820 px
     // (die Tastatur der Tastenkuerzel braucht Platz)
-    readonly property var fullEditors: ["keybinds", "monitors"]
+    readonly property var fullEditors: ["keybinds"]
     readonly property var groupCards: {
         const out = [];
         card.entries.forEach((e, i) => {
@@ -349,16 +391,24 @@ Surface {
         // ("Alle", Suche) kommen die Editoren ans Ende, sonst reissen sie das
         // Raster in halbleere Baender
         const all = card.groupCards.map((c, i) => i);
-        const order = card.searching || card.section === ""
+        const order = card.searching
             ? all.filter(i => !card.groupCards[i].wide).concat(all.filter(i => card.groupCards[i].wide))
             : all;
         const runs = [];
+        let page = "";
         order.forEach(i => {
             const c = card.groupCards[i];
+            // Kategorie mit mehreren Abschnitten: Ueberschrift vor jedem
+            // (nicht, wenn er so heisst wie die Seite)
+            if (card.multiSection && c.page !== page) {
+                page = c.page;
+                if (card.sectionTitle(page) !== card.sectionTitle(card.section))
+                    runs.push({ heading: page });
+            }
             const last = runs[runs.length - 1];
             if (c.wide)
                 runs.push({ wide: true, full: !!c.full, cards: [i] });
-            else if (last && !last.wide)
+            else if (last && !last.wide && !last.heading)
                 last.cards.push(i);
             else
                 runs.push({ wide: false, cards: [i] });
@@ -366,7 +416,7 @@ Surface {
 
         // Spaltenzahl aus der Breite, aber nicht mehr als Karten da sind –
         // eine Seite mit drei Karten bekommt drei breitere Spalten statt vier
-        const most = runs.reduce((m, r) => r.wide ? m : Math.max(m, r.cards.length), 1);
+        const most = runs.reduce((m, r) => r.wide || r.heading ? m : Math.max(m, r.cards.length), 1);
         const fit = Math.max(1, Math.floor((room + gap) / (360 + gap)));
         const cols = Math.min(fit, most, 4);
         // Eine Spalte neben einem Editor: so breit wie er, damit die Kanten
@@ -378,6 +428,8 @@ Surface {
                                                : Math.min(560, (room - gap * (cols - 1)) / cols);
 
         const bands = runs.map(r => {
+            if (r.heading)
+                return { heading: r.heading, columns: [] };
             if (r.wide)
                 return { wide: true, full: r.full, columns: [r.cards] };
             const n = Math.min(cols, r.cards.length);
@@ -431,7 +483,23 @@ Surface {
         card.bandKey = key;
         card.builtRevision = card.cardsRevision;
         card.bandModel = card.layoutShape.bands;
+        Qt.callLater(card.scrollToTarget);
     }
+
+    function scrollToTarget(): void {
+        if (card.scrollTarget === "")
+            return;
+        for (const b of bands.children) {
+            if (b.heading === card.scrollTarget) {
+                list.contentY = Math.max(0, Math.min(b.y, list.contentHeight - list.height));
+                card.scrollTarget = "";
+                return;
+            }
+        }
+    }
+
+    // Rueckfrage "Alles zuruecksetzen" (Leiste unten) offen?
+    property bool resetAsk: false
 
     // Beim Zeigen auf die Symbolspalte: der Knopf, dessen Name daneben steht
     property Item railItem: null
@@ -506,19 +574,6 @@ Surface {
             visible: !card.compact
         }
 
-        Text {
-            font.family: Config.font
-            anchors {
-                left: title.left
-                top: title.bottom
-                topMargin: 2
-            }
-            text: Colors.name
-            color: Colors.alpha(Colors.fgSurfaceVariant, 0.8)
-            font.pixelSize: 10
-            visible: !card.compact
-        }
-
         // Schmal: statt des Titels das Symbol des Fensters
         Text {
             anchors {
@@ -532,7 +587,7 @@ Surface {
             visible: card.compact
         }
 
-        // Die Gruppen – scrollbar, falls viele Plugins ihre eigene haben
+        // Die Kategorien – scrollbar, falls das Fenster sehr niedrig ist
         Flickable {
             id: sidebarFlick
 
@@ -540,9 +595,9 @@ Surface {
                 left: parent.left
                 right: parent.right
                 top: title.bottom
-                bottom: footer.top
-                topMargin: 30
-                bottomMargin: 6
+                bottom: parent.bottom
+                topMargin: 18
+                bottomMargin: 12
             }
             clip: true
             contentHeight: sidebarColumn.implicitHeight + 8
@@ -566,218 +621,102 @@ Surface {
                 anchors {
                     left: parent.left
                     right: parent.right
-                    leftMargin: 12
-                    rightMargin: 12
+                    leftMargin: 10
+                    rightMargin: 10
                 }
-                topPadding: 4
                 spacing: 2
 
-                component SectionButton: Rectangle {
-                    id: button
+                Repeater {
+                    // Kategorien, dahinter die Plugin-Verwaltung
+                    model: card.categories.concat([{ key: card.managerKey, title: "Plugins", desc: "Erweiterungen verwalten", icon: "extension" }])
 
-                    required property string key
-                    required property string label
-                    required property string icon
-                    property int count: 0
-                    // Plugin-Gruppe: etwas kleiner und eingerueckt, unter der Verwaltung
-                    property bool sub: false
+                    Rectangle {
+                        id: button
 
-                    // In der Bibliothek sucht man Bilder – die Leiste bleibt scharf
-                    // Offene Plugin-Seite: ihre Plugin-Gruppe bleibt markiert
-                    readonly property bool current: (!card.searching || card.browsing)
-                        && (card.section === button.key
-                            || (card.paging && card.pageInfo !== null && button.key === Plugins.sectionPrefix + card.pageInfo.pluginId))
+                        required property var modelData
+                        readonly property string label: I18n.tr(button.modelData.title)
+                        // Unterseiten markieren ihre Kategorie: Bibliothek →
+                        // Darstellung, Plugin-Gruppen und -Seiten → Plugins
+                        readonly property string owner: card.browsing ? "look"
+                            : card.managing || Plugins.isPluginSection(card.section) || Plugins.isPageSection(card.section) ? card.managerKey
+                            : card.section
+                        readonly property bool current: (!card.searching || card.browsing) && button.owner === button.modelData.key
 
-                    // parent ist beim Abbau eines Plugin-Eintrags kurz null
-                    width: parent?.width ?? 0
-                    height: button.sub ? 32 : 38
-                    radius: 12
-                    color: button.current ? Colors.alpha(Colors.primary, 0.16)
-                         : buttonHover.hovered ? Colors.alpha(Colors.fgSurface, 0.07)
-                         : "transparent"
-                    opacity: card.searching && !card.browsing ? 0.5 : 1
-
-                    Behavior on color {
-                        ColorAnimation { duration: Appearance.fadeDuration }
-                    }
-                    Fade on opacity {}
-
-                    Text {
-                        id: buttonIcon
-
-                        // Schmal: mittig; sonst links, Plugin-Gruppen eingerueckt
-                        x: card.compact ? (parent.width - width) / 2 : (button.sub ? 22 : 12)
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: button.icon
-                        color: button.current ? Colors.primary : Colors.fgSurfaceVariant
-                        font.family: "Material Symbols Outlined"
-                        font.pixelSize: button.sub ? 15 : 17
-                        font.variableAxes: ({ FILL: button.current ? 1 : 0 })
+                        width: parent?.width ?? 0
+                        height: card.compact ? 44 : 50
+                        radius: 14
+                        color: button.current ? Colors.alpha(Colors.primary, 0.14)
+                             : buttonHover.hovered ? Colors.alpha(Colors.fgSurface, 0.06)
+                             : "transparent"
 
                         Behavior on color {
                             ColorAnimation { duration: Appearance.fadeDuration }
                         }
-                    }
 
-                    Text {
-                        font.family: Config.font
-                        anchors {
-                            left: buttonIcon.right
-                            leftMargin: 10
-                            right: countLabel.left
-                            rightMargin: 6
-                            verticalCenter: parent.verticalCenter
-                        }
-                        visible: !card.compact
-                        text: button.label
-                        color: button.current ? Colors.fgBackground : Colors.fgSurface
-                        font.pixelSize: button.sub ? 11 : 12
-                        font.weight: button.current ? Font.DemiBold : Font.Normal
-                        elide: Text.ElideRight
-                    }
+                        Text {
+                            id: buttonIcon
 
-                    Text {
-                        id: countLabel
-
-                        font.family: Config.font
-                        anchors {
-                            right: parent.right
-                            rightMargin: 12
-                            verticalCenter: parent.verticalCenter
-                        }
-                        visible: button.count > 0 && !card.compact
-                        text: button.count
-                        color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
-                        font.pixelSize: 10
-                    }
-
-                    HoverHandler {
-                        id: buttonHover
-
-                        cursorShape: Qt.PointingHandCursor
-                        onHoveredChanged: {
-                            if (hovered)
-                                card.railItem = button;
-                            else if (card.railItem === button)
-                                card.railItem = null;
-                        }
-                    }
-
-                    TapHandler {
-                        onTapped: card.select(button.key)
-                    }
-                }
-
-                SectionButton {
-                    key: ""
-                    label: I18n.tr("Alle")
-                    icon: "tune"
-                }
-
-                Repeater {
-                    model: card.sections
-
-                    // Unter "Wallpaper" haengt als Unterpunkt die Bibliothek
-                    Column {
-                        id: sectionEntry
-
-                        required property string modelData
-
-                        width: parent.width
-                        spacing: 2
-
-                        SectionButton {
-                            key: sectionEntry.modelData
-                            label: card.sectionTitle(sectionEntry.modelData)
-                            icon: Config.sectionIcons[sectionEntry.modelData] ?? "folder_open"
-                            count: card.countIn(sectionEntry.modelData)
+                            x: card.compact ? (parent.width - width) / 2 : 14
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: button.modelData.icon
+                            color: button.current ? Colors.primary : Colors.fgSurfaceVariant
+                            font.family: "Material Symbols Outlined"
+                            font.pixelSize: 20
+                            font.variableAxes: ({ FILL: button.current ? 1 : 0 })
                         }
 
-                        SectionButton {
-                            visible: sectionEntry.modelData === "wallpaper"
-                            key: card.wallsKey
-                            label: I18n.tr("Bibliothek")
-                            icon: "photo_library"
-                            count: Wallpapers.list.length
-                            sub: true
-                        }
-                    }
-                }
-
-                // ---- Trenner: Plugins ----
-                Item {
-                    width: parent.width
-                    height: card.compact ? 14 : 26
-
-                    Text {
-                        font.family: Config.font
-                        anchors.fill: parent
-                        leftPadding: 14
-                        verticalAlignment: Text.AlignBottom
-                        bottomPadding: 5
-                        visible: !card.compact
-                        text: I18n.tr("Plugins")
-                        color: Colors.fgSurfaceVariant
-                        font.pixelSize: 10
-                        font.weight: Font.DemiBold
-                    }
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: 20
-                        height: 1
-                        visible: card.compact
-                        color: Colors.alpha(Colors.outline, 0.4)
-                    }
-                }
-
-                SectionButton {
-                    key: card.managerKey
-                    label: I18n.tr("Plugins verwalten")
-                    icon: "extension"
-                    count: Plugins.plugins.length
-                }
-
-                Repeater {
-                    model: card.pluginMenu
-
-                    // Gruppe des Plugins, darunter seine Seiten (Manifest `pages`)
-                    Column {
-                        id: pluginEntry
-
-                        required property var modelData
-
-                        width: parent.width
-                        spacing: 2
-
-                        SectionButton {
-                            visible: pluginEntry.modelData.section !== ""
-                            key: pluginEntry.modelData.section
-                            label: I18n.tr(Plugins.sectionTitle(pluginEntry.modelData.section))
-                            icon: Plugins.sectionIcon(pluginEntry.modelData.section)
-                            count: card.countIn(pluginEntry.modelData.section)
-                            sub: true
-                        }
-
-                        // Mit eigener Gruppe stehen die Seiten dort als Zeilen
-                        Repeater {
-                            model: pluginEntry.modelData.section === "" ? pluginEntry.modelData.pages : []
-
-                            SectionButton {
-                                required property var modelData
-
-                                key: Plugins.pageSection(modelData.key)
-                                label: I18n.tr(modelData.title)
-                                icon: modelData.icon
-                                sub: true
+                        Column {
+                            anchors {
+                                left: buttonIcon.right
+                                leftMargin: 14
+                                right: parent.right
+                                rightMargin: 10
+                                verticalCenter: parent.verticalCenter
                             }
+                            visible: !card.compact
+                            spacing: 1
+
+                            Text {
+                                width: parent.width
+                                text: button.label
+                                color: button.current ? Colors.fgBackground : Colors.fgSurface
+                                font.family: Config.font
+                                font.pixelSize: 13
+                                font.weight: button.current ? Font.DemiBold : Font.Medium
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: I18n.tr(button.modelData.desc)
+                                color: Colors.fgSurfaceVariant
+                                font.family: Config.font
+                                font.pixelSize: 11
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        HoverHandler {
+                            id: buttonHover
+
+                            cursorShape: Qt.PointingHandCursor
+                            onHoveredChanged: {
+                                if (hovered)
+                                    card.railItem = button;
+                                else if (card.railItem === button)
+                                    card.railItem = null;
+                            }
+                        }
+
+                        TapHandler {
+                            onTapped: card.select(button.modelData.key, false)
                         }
                     }
                 }
             }
         }
 
-        // Weiche Kante unten, solange noch Gruppen folgen
+        // Weiche Kante unten, solange noch Eintraege folgen
         Rectangle {
             anchors {
                 left: parent.left
@@ -790,128 +729,6 @@ Surface {
             gradient: Gradient {
                 GradientStop { position: 0; color: Colors.alpha(Colors.background, 0) }
                 GradientStop { position: 1; color: Colors.mix(Colors.background, Colors.fgSurface, 0.035) }
-            }
-        }
-
-        // ---- Fuss: Datei und Zuruecksetzen ----
-        Column {
-            id: footer
-
-            anchors {
-                left: parent.left
-                right: parent.right
-                bottom: parent.bottom
-                leftMargin: 12
-                rightMargin: 12
-                bottomMargin: 14
-            }
-            spacing: 2
-
-            component FootButton: Rectangle {
-                id: foot
-
-                required property string icon
-                required property string label
-                property color tint: Colors.fgSurfaceVariant
-                signal clicked()
-
-                width: parent.width
-                height: 32
-                radius: 10
-                color: footHover.hovered ? Colors.alpha(Colors.fgSurface, 0.07) : "transparent"
-
-                Behavior on color {
-                    ColorAnimation { duration: Appearance.fadeDuration }
-                }
-
-                Text {
-                    id: footIcon
-
-                    x: card.compact ? (parent.width - width) / 2 : 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: foot.icon
-                    color: foot.tint
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 15
-
-                    Behavior on color {
-                        ColorAnimation { duration: Appearance.fadeDuration }
-                    }
-                }
-
-                Text {
-                    font.family: Config.font
-                    anchors {
-                        left: footIcon.right
-                        leftMargin: 10
-                        right: parent.right
-                        rightMargin: 10
-                        verticalCenter: parent.verticalCenter
-                    }
-                    visible: !card.compact
-                    text: foot.label
-                    color: foot.tint
-                    font.pixelSize: 11
-                    elide: Text.ElideRight
-
-                    Behavior on color {
-                        ColorAnimation { duration: Appearance.fadeDuration }
-                    }
-                }
-
-                HoverHandler {
-                    id: footHover
-
-                    cursorShape: Qt.PointingHandCursor
-                    onHoveredChanged: {
-                        if (hovered)
-                            card.railItem = foot;
-                        else if (card.railItem === foot)
-                            card.railItem = null;
-                    }
-                }
-
-                TapHandler {
-                    onTapped: foot.clicked()
-                }
-            }
-
-            FootButton {
-                icon: "open_in_new"
-                label: I18n.tr("shell.json öffnen")
-                onClicked: {
-                    Quickshell.execDetached(["xdg-open", Config.path]);
-                    SettingsState.close();
-                }
-            }
-
-            // Zweistufig: erst "Alles zuruecksetzen", dann 3 s lang
-            // "Wirklich?" – ein Fehlklick setzt sonst alles platt.
-            // Betrifft shell.json; Plugin-Werte setzt die Verwaltung je Plugin.
-            FootButton {
-                id: resetAll
-
-                property bool armed: false
-
-                icon: armed ? "check" : "settings_backup_restore"
-                label: armed ? I18n.tr("Wirklich alles zurücksetzen?") : I18n.tr("Alles zurücksetzen")
-                tint: armed ? Colors.error : Colors.fgSurfaceVariant
-                onClicked: {
-                    if (resetAll.armed) {
-                        Config.resetAll();
-                        resetAll.armed = false;
-                    } else {
-                        resetAll.armed = true;
-                        disarm.restart();
-                    }
-                }
-
-                Timer {
-                    id: disarm
-
-                    interval: 3000
-                    onTriggered: resetAll.armed = false
-                }
             }
         }
     }
@@ -931,9 +748,18 @@ Surface {
         // laesst dem Suchfeld aber mindestens 150 px; das Feld waechst mit
         // dem Fenster bis 520 px und bleibt vor dem Schliessen-Knopf stehen.
         // Plugin-Seite: zurueck zur Gruppe ihres Plugins
-        readonly property string backSection: card.paging && card.pageInfo !== null
-            && Plugins.sections.includes(Plugins.sectionPrefix + card.pageInfo.pluginId)
-            ? Plugins.sectionPrefix + card.pageInfo.pluginId : ""
+        // Unterseiten: zurueck zu ihrer Kategorie bzw. zur Plugin-Gruppe
+        readonly property string backSection: {
+            if (card.searching && !card.browsing)
+                return "";
+            if (card.browsing)
+                return "look";
+            if (card.paging && card.pageInfo !== null) {
+                const s = Plugins.sectionPrefix + card.pageInfo.pluginId;
+                return Plugins.sections.includes(s) ? s : card.managerKey;
+            }
+            return Plugins.isPluginSection(card.section) ? card.managerKey : "";
+        }
 
         Item {
             id: backButton
@@ -981,7 +807,7 @@ Surface {
                 leftMargin: backButton.visible ? 6 : 24
                 verticalCenter: searchBox.verticalCenter
             }
-            width: Math.max(0, Math.min(heading.implicitWidth, closeButton.x - 10 - heading.x - 12 - 150))
+            width: Math.max(0, Math.min(heading.implicitWidth, moreButton.x - 10 - heading.x - 12 - 150))
             // In der Bibliothek steht "Bibliothek › Ordner" in der Seite selbst
             text: card.browsing ? "Wallpaper"
                 : card.searching ? I18n.tr("Suche")
@@ -1002,7 +828,7 @@ Surface {
                 leftMargin: 12
                 topMargin: 22
             }
-            width: Math.max(0, Math.min(closeButton.x - 10 - (heading.x + heading.width + 12), 520))
+            width: Math.max(0, Math.min(moreButton.x - 10 - (heading.x + heading.width + 12), 520))
             height: 38
             radius: height / 2
             color: Colors.alpha(Colors.fgSurface, search.activeFocus ? 0.09 : 0.06)
@@ -1100,6 +926,25 @@ Surface {
                     onTapped: search.text = ""
                 }
             }
+        }
+
+        // Selten gebraucht: Datei oeffnen, alles zuruecksetzen (mit Rueckfrage)
+        SettingsMenuButton {
+            id: moreButton
+
+            anchors {
+                right: closeButton.left
+                rightMargin: 4
+                verticalCenter: searchBox.verticalCenter
+            }
+            entries: [
+                { text: I18n.tr("shell.json öffnen"), icon: "open_in_new", action: () => {
+                    Quickshell.execDetached(["xdg-open", Config.path]);
+                    SettingsState.close();
+                } },
+                { separator: true },
+                { text: I18n.tr("Alles zurücksetzen…"), icon: "settings_backup_restore", danger: true, action: () => card.resetAsk = true }
+            ]
         }
 
         Rectangle {
@@ -1300,8 +1145,21 @@ Surface {
                         id: band
 
                         required property var modelData
+                        // Ueberschrift eines Abschnitts (scrollToTarget sucht danach)
+                        readonly property string heading: band.modelData.heading ?? ""
 
                         spacing: list.gap
+
+                        Text {
+                            visible: band.heading !== ""
+                            leftPadding: 4
+                            topPadding: band.y > 0 ? 14 : 0
+                            text: band.heading !== "" ? card.sectionTitle(band.heading) : ""
+                            color: Colors.fgSurfaceVariant
+                            font.family: Config.font
+                            font.pixelSize: 13
+                            font.weight: Font.DemiBold
+                        }
 
                         Repeater {
                             model: band.modelData.columns
@@ -1325,8 +1183,9 @@ Surface {
                                         // und Liste kurz auseinander
                                         group: card.groupCards[modelData] ?? null
                                         entries: card.entries
-                                        sectionLabel: card.searching || card.section === ""
+                                        sectionLabel: card.searching
                                                       ? card.sectionTitle(group?.page ?? group?.section ?? "") : ""
+                                        pageTitle: card.searching ? "" : card.sectionTitle(card.section)
                                     }
                                 }
                             }
@@ -1370,6 +1229,84 @@ Surface {
                 text: I18n.tr("Nichts gefunden")
                 color: Colors.fgSurfaceVariant
                 font.pixelSize: 12
+            }
+        }
+
+        // Rueckfrage zu "Alles zuruecksetzen" – betrifft shell.json; Plugin-
+        // Werte setzt die Verwaltung je Plugin zurueck
+        Rectangle {
+            anchors {
+                horizontalCenter: list.horizontalCenter
+                bottom: parent.bottom
+                bottomMargin: 18
+            }
+            width: resetRow.implicitWidth + 28
+            height: 48
+            radius: 14
+            visible: card.resetAsk
+            color: Colors.surfaceContainer
+            border.width: 1
+            border.color: Colors.alpha(Colors.error, 0.4)
+
+            Row {
+                id: resetRow
+
+                anchors.centerIn: parent
+                spacing: 8
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    rightPadding: 8
+                    text: I18n.tr("Alle Einstellungen auf die Vorgaben zurücksetzen?")
+                    color: Colors.fgSurface
+                    font.family: Config.font
+                    font.pixelSize: 12
+                }
+
+                Repeater {
+                    model: [
+                        { text: I18n.tr("Abbrechen"), danger: false },
+                        { text: I18n.tr("Zurücksetzen"), danger: true }
+                    ]
+
+                    Rectangle {
+                        id: askButton
+
+                        required property var modelData
+
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: askLabel.implicitWidth + 24
+                        height: 30
+                        radius: 8
+                        color: askButton.modelData.danger ? Colors.alpha(Colors.error, askHover.hovered ? 0.3 : 0.2)
+                                                          : Colors.alpha(Colors.fgSurface, askHover.hovered ? 0.12 : 0.06)
+
+                        Text {
+                            id: askLabel
+
+                            anchors.centerIn: parent
+                            text: askButton.modelData.text
+                            color: askButton.modelData.danger ? Colors.error : Colors.fgSurface
+                            font.family: Config.font
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                        }
+
+                        HoverHandler {
+                            id: askHover
+
+                            cursorShape: Qt.PointingHandCursor
+                        }
+
+                        TapHandler {
+                            onTapped: {
+                                if (askButton.modelData.danger)
+                                    Config.resetAll();
+                                card.resetAsk = false;
+                            }
+                        }
+                    }
+                }
             }
         }
 

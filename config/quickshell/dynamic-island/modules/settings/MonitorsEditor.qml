@@ -11,11 +11,11 @@ import qs.modules.widgets
 // Oben die Anordnung: jeder Monitor als Kaertchen in seiner logischen
 // Groesse (Pixel / Skalierung, gedreht bei 90/270), ziehbar; beim Loslassen
 // rastet er an den Kanten der Nachbarn ein und liegt nie auf einem anderen.
-// Klick waehlt. Darunter die Werte des gewaehlten Monitors: Aktiv,
-// Aufloesung, Bildwiederholrate, Skalierung, Drehung, VRR, Spiegeln.
-// Unten die Leiste: ausstehende Aenderungen, Verwerfen, Uebernehmen – nach
-// dem Uebernehmen fragt sie 15 s lang "Einstellungen behalten?"
-// (Monitors.qml dreht sonst zurueck).
+// Klick waehlt. Darunter die Werte des gewaehlten Monitors als Zeilen:
+// Aktiv, Aufloesung, Bildwiederholrate, Skalierung, Drehung, VRR, Spiegeln.
+// Die Leiste darunter erscheint nur bei ausstehenden Aenderungen (Verwerfen,
+// Uebernehmen), einem Fehler oder der Rueckfrage "Einstellungen behalten?"
+// (15 s nach dem Uebernehmen, Monitors.qml dreht sonst zurueck).
 //
 // Aenderungen sammeln sich in `pending` je Portname und werden erst mit
 // Uebernehmen als Regeln (hl.monitor) an Hyprland gegeben.
@@ -37,16 +37,13 @@ Item {
     readonly property var current: editor.selected ? editor.effective(editor.selected) : null
     readonly property int changeCount: Object.keys(editor.pending).length
     readonly property bool dirty: editor.changeCount > 0
-    readonly property bool narrow: editor.width < 760
     readonly property bool locked: Monitors.confirming || Monitors.busy
 
     readonly property var scaleChoices: [1, 1.25, 1.5, 1.6, 2]
-    readonly property var transformChoices: [
-        { value: 0, label: "0°", icon: "crop_landscape" },
-        { value: 1, label: "90°", icon: "crop_portrait" },
-        { value: 2, label: "180°", icon: "crop_landscape" },
-        { value: 3, label: "270°", icon: "crop_portrait" }
-    ]
+    // Werte des gewaehlten Monitors bedienbar?
+    readonly property bool editable: !editor.locked && !(editor.current?.disabled ?? false)
+    // Ausgeschaltete Monitore fehlen in der Anordnung – dann braucht es den Waehler im Kopf
+    readonly property bool needsPicker: editor.monitors.some(m => editor.effective(m).disabled)
 
     // Nach dem Behalten/Zuruecksetzen ist alles im gemeldeten Stand
     Connections {
@@ -123,6 +120,10 @@ Item {
             }
         }
         return s;
+    }
+
+    function stepScale(d: real): void {
+        editor.set(editor.selected.name, { scale: Math.max(0.5, Math.min(4, Math.round((editor.current.scale + d) * 100) / 100)) });
     }
 
     function scaleLabel(s: real): string {
@@ -283,78 +284,18 @@ Item {
 
     // ---- Bausteine ----
 
-    component Chip: Rectangle {
-        id: chip
-
-        property string label: ""
-        property string icon: ""
-        property bool selected: false
-        property string hint: ""
-        signal clicked()
-
-        implicitWidth: chipRow.implicitWidth + (chip.icon !== "" ? 20 : 24)
-        implicitHeight: 28
-        radius: height / 2
-        opacity: enabled ? 1 : 0.4
-        color: chip.selected ? Colors.primary
-             : chipHover.hovered ? Colors.alpha(Colors.fgSurface, 0.12)
-             : Colors.alpha(Colors.fgSurface, 0.06)
-
-        Behavior on color {
-            ColorAnimation { duration: Appearance.fadeDuration }
-        }
-        Fade on opacity {}
-
-        Row {
-            id: chipRow
-
-            anchors.centerIn: parent
-            spacing: 5
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: chip.icon !== ""
-                text: chip.icon
-                color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 15
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: chip.label
-                color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
-                font.family: Config.font
-                font.pixelSize: 11
-                font.weight: chip.selected ? Font.DemiBold : Font.Normal
-            }
-        }
-
-        HoverHandler {
-            id: chipHover
-
-            cursorShape: chip.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-        }
-
-        TapHandler {
-            enabled: chip.enabled
-            onTapped: chip.clicked()
-        }
-    }
-
-    // Knopf im Chip-Stil (wie PluginManager.ActionButton)
+    // Knopf: Text oder ein einzelnes Symbol
     component ActionButton: Rectangle {
         id: button
 
-        required property string icon
-        required property string label
-        property color tint: Colors.fgSurface
+        property string icon: ""
+        property string label: ""
         property bool filled: false
         signal clicked()
 
-        implicitWidth: buttonRow.implicitWidth + 22
-        implicitHeight: 28
-        radius: height / 2
+        implicitWidth: button.icon !== "" ? 30 : buttonLabel.implicitWidth + 28
+        implicitHeight: 30
+        radius: 8
         opacity: enabled ? 1 : 0.4
         color: button.filled ? (buttonHover.hovered ? Colors.alpha(Colors.primary, 0.85) : Colors.primary)
              : buttonHover.hovered ? Colors.alpha(Colors.fgSurface, 0.12)
@@ -365,28 +306,15 @@ Item {
         }
         Fade on opacity {}
 
-        Row {
-            id: buttonRow
+        Text {
+            id: buttonLabel
 
             anchors.centerIn: parent
-            spacing: 5
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: button.icon
-                color: button.filled ? Colors.fgPrimary : button.tint
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 15
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: button.label
-                color: button.filled ? Colors.fgPrimary : button.tint
-                font.family: Config.font
-                font.pixelSize: 11
-                font.weight: button.filled ? Font.DemiBold : Font.Normal
-            }
+            text: button.icon !== "" ? button.icon : button.label
+            color: button.filled ? Colors.fgPrimary : Colors.fgSurface
+            font.family: button.icon !== "" ? "Material Symbols Outlined" : Config.font
+            font.pixelSize: button.icon !== "" ? 16 : 12
+            font.weight: button.filled ? Font.DemiBold : Font.Normal
         }
 
         HoverHandler {
@@ -439,97 +367,70 @@ Item {
         }
     }
 
-    // Karte wie GroupCard
-    component Card: Rectangle {
-        id: cardItem
+    // Eine Zeile der Liste: Titel (+ Hinweis) links, Bedienelement rechts
+    component Field: Item {
+        id: field
 
         property string title: ""
-        default property alias content: cardColumn.data
+        property string note: ""
+        default property alias content: fieldControls.data
 
-        implicitHeight: cardColumn.anchors.topMargin + cardColumn.implicitHeight + 12
-        radius: 16
-        color: Colors.alpha(Colors.fgSurface, 0.035)
-        border.width: 1
-        border.color: Colors.alpha(Colors.outline, 0.14)
+        width: parent.width
+        implicitHeight: field.note !== "" ? 52 : 44
 
-        Text {
-            id: cardTitle
-
-            anchors {
-                left: parent.left
-                top: parent.top
-                leftMargin: 14
-                topMargin: 10
-            }
-            text: cardItem.title
-            color: Colors.fgSurfaceVariant
-            font.family: Config.font
-            font.pixelSize: 11
-            font.weight: Font.DemiBold
-        }
-
-        Column {
-            id: cardColumn
-
+        Rectangle {
             anchors {
                 left: parent.left
                 right: parent.right
                 top: parent.top
                 leftMargin: 14
                 rightMargin: 14
-                topMargin: cardItem.title !== "" ? 30 : 12
             }
-            spacing: 12
-        }
-    }
-
-    // Eine Zeile der Karte: Titel links, Inhalt (Chips) darunter oder daneben
-    component Field: Item {
-        id: field
-
-        property string title: ""
-        property string note: ""
-        default property alias content: fieldFlow.data
-
-        width: parent.width
-        implicitHeight: fieldTitle.implicitHeight + 6 + fieldFlow.implicitHeight + (fieldNote.visible ? fieldNote.implicitHeight + 4 : 0)
-
-        Text {
-            id: fieldTitle
-
-            text: field.title
-            color: Colors.fgSurface
-            font.family: Config.font
-            font.pixelSize: 12
+            height: 1
+            color: Colors.alpha(Colors.outline, 0.14)
         }
 
-        Flow {
-            id: fieldFlow
-
+        Column {
             anchors {
                 left: parent.left
+                leftMargin: 14
+                right: fieldControls.left
+                rightMargin: 10
+                verticalCenter: parent.verticalCenter
+            }
+            spacing: 2
+            opacity: field.enabled ? 1 : 0.4
+
+            Text {
+                width: parent.width
+                text: field.title
+                color: Colors.fgBackground
+                font.family: Config.font
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+            }
+
+            Text {
+                width: parent.width
+                visible: field.note !== ""
+                text: field.note
+                color: Colors.fgSurfaceVariant
+                font.family: Config.font
+                font.pixelSize: 10
+                elide: Text.ElideRight
+            }
+        }
+
+        Row {
+            id: fieldControls
+
+            anchors {
                 right: parent.right
-                top: fieldTitle.bottom
-                topMargin: 6
+                rightMargin: 14
+                verticalCenter: parent.verticalCenter
             }
             spacing: 6
-        }
-
-        Text {
-            id: fieldNote
-
-            anchors {
-                left: parent.left
-                right: parent.right
-                top: fieldFlow.bottom
-                topMargin: 4
-            }
-            visible: field.note !== ""
-            text: field.note
-            color: Colors.fgSurfaceVariant
-            font.family: Config.font
-            font.pixelSize: 10
-            wrapMode: Text.WordWrap
         }
     }
 
@@ -538,7 +439,8 @@ Item {
     Column {
         id: content
 
-        width: parent.width
+        // Die Seite bekommt die volle Fensterbreite – Zeilen werden darueber zu lang
+        width: Math.min(parent.width, 820)
         spacing: 12
 
         // ---- Anordnung ----
@@ -546,39 +448,12 @@ Item {
             id: canvasCard
 
             width: parent.width
-            height: 270
+            height: 190
             radius: 16
             color: Colors.alpha(Colors.fgSurface, 0.035)
             border.width: 1
             border.color: Colors.alpha(Colors.outline, 0.14)
             clip: true
-
-            Text {
-                anchors {
-                    left: parent.left
-                    top: parent.top
-                    leftMargin: 14
-                    topMargin: 10
-                }
-                text: I18n.tr("Anordnung")
-                color: Colors.fgSurfaceVariant
-                font.family: Config.font
-                font.pixelSize: 11
-                font.weight: Font.DemiBold
-            }
-
-            Text {
-                anchors {
-                    right: parent.right
-                    top: parent.top
-                    rightMargin: 14
-                    topMargin: 10
-                }
-                text: editor.rects.length > 1 ? I18n.tr("Ziehen ordnet an, Klick wählt") : I18n.tr("Klick wählt")
-                color: Colors.fgSurfaceVariant
-                font.family: Config.font
-                font.pixelSize: 10
-            }
 
             // Leer: nichts gemeldet
             Text {
@@ -595,8 +470,8 @@ Item {
 
                 anchors {
                     fill: parent
-                    topMargin: 36
-                    bottomMargin: 16
+                    topMargin: 12
+                    bottomMargin: 12
                     leftMargin: 24
                     rightMargin: 24
                 }
@@ -785,68 +660,83 @@ Item {
             }
         }
 
-        // ---- Auswahl der Monitore ----
-        Flow {
-            width: parent.width
-            spacing: 6
-
-            Repeater {
-                model: editor.monitors
-
-                Chip {
-                    required property var modelData
-
-                    readonly property bool off: editor.effective(modelData).disabled
-
-                    label: modelData.name + (off ? " · " + I18n.tr("aus") : "")
-                    icon: modelData.focused ? "star" : /^(eDP|LVDS|DSI)-/.test(modelData.name) ? "laptop" : "desktop_windows"
-                    selected: editor.selected?.name === modelData.name
-                    opacity: off && !selected ? 0.6 : 1
-                    onClicked: editor.selectedName = modelData.name
-                }
-            }
-        }
-
         // ---- Details ----
-        Item {
-            id: details
-
+        Rectangle {
             width: parent.width
             visible: editor.selected !== null
-            implicitHeight: editor.narrow ? leftCard.implicitHeight + 12 + rightCard.implicitHeight
-                                          : Math.max(leftCard.implicitHeight, rightCard.implicitHeight)
+            implicitHeight: rows.implicitHeight
+            radius: 16
+            color: Colors.alpha(Colors.fgSurface, 0.035)
+            border.width: 1
+            border.color: Colors.alpha(Colors.outline, 0.14)
 
-            readonly property real colWidth: editor.narrow ? details.width : (details.width - 12) / 2
+            Column {
+                id: rows
 
-            Card {
-                id: leftCard
+                width: parent.width
 
-                width: details.colWidth
-                title: editor.selected ? editor.selected.name + (editor.selected.description !== "" ? " · " + editor.selected.description : "") : ""
-
-                // Kopf: Aktiv + Standard
+                // Kopf: Modell + Anschluss, rechts Menue und Aktiv
                 Item {
                     width: parent.width
-                    implicitHeight: 28
+                    implicitHeight: 56
 
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: I18n.tr("Aktiv")
-                        color: Colors.fgSurface
-                        font.family: Config.font
-                        font.pixelSize: 12
+                    Column {
+                        anchors {
+                            left: parent.left
+                            leftMargin: 14
+                            right: head.left
+                            rightMargin: 10
+                            verticalCenter: parent.verticalCenter
+                        }
+                        spacing: 2
+
+                        Text {
+                            width: parent.width
+                            text: editor.selected?.short ?? ""
+                            color: Colors.fgBackground
+                            font.family: Config.font
+                            font.pixelSize: 14
+                            font.weight: Font.DemiBold
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: text !== (editor.selected?.short ?? "")
+                            text: editor.selected?.name ?? ""
+                            color: Colors.fgSurfaceVariant
+                            font.family: Config.font
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                        }
                     }
 
                     Row {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
+                        id: head
+
+                        anchors {
+                            right: parent.right
+                            rightMargin: 14
+                            verticalCenter: parent.verticalCenter
+                        }
                         spacing: 8
 
-                        ActionButton {
-                            icon: "restart_alt"
-                            label: I18n.tr("Standard wiederherstellen")
-                            enabled: !editor.locked
-                            onClicked: editor.resetSelected()
+                        SettingsDropdown {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: editor.needsPicker
+                            width: implicitWidth
+                            maxWidth: 180
+                            options: editor.monitors.map(m => m.name)
+                            current: editor.selected?.name
+                            onPicked: v => editor.selectedName = v
+                        }
+
+                        SettingsMenuButton {
+                            anchors.verticalCenter: parent.verticalCenter
+                            entries: [
+                                { text: I18n.tr("Standard wiederherstellen"), icon: "restart_alt", enabled: !editor.locked, action: () => editor.resetSelected() },
+                                { text: I18n.tr("Neu lesen"), icon: "refresh", enabled: !Monitors.busy, action: () => Monitors.refresh() }
+                            ]
                         }
 
                         Toggle {
@@ -861,171 +751,134 @@ Item {
 
                 Field {
                     title: I18n.tr("Auflösung")
-                    enabled: !editor.locked && !(editor.current?.disabled ?? false)
-                    note: editor.current ? I18n.tr("Logisch %1 × %2").arg(editor.current.lw).arg(editor.current.lh) : ""
+                    enabled: editor.editable
 
-                    Repeater {
-                        model: editor.selected?.resolutions ?? []
-
-                        Chip {
-                            required property var modelData
-
-                            label: modelData.label
-                            selected: editor.current?.w === modelData.w && editor.current?.h === modelData.h
-                            onClicked: {
-                                // Rate behalten, wenn die Aufloesung sie bietet, sonst die hoechste
-                                const hz = modelData.rates.includes(editor.current.hz) ? editor.current.hz : modelData.rates[0];
-                                editor.set(editor.selected.name, { w: modelData.w, h: modelData.h, hz });
-                            }
+                    SettingsDropdown {
+                        width: implicitWidth
+                        options: (editor.selected?.resolutions ?? []).map(r => r.label)
+                        current: editor.current
+                                 ? (editor.selected.resolutions.find(r => r.w === editor.current.w && r.h === editor.current.h)?.label
+                                    ?? `${editor.current.w}x${editor.current.h}`)
+                                 : undefined
+                        onPicked: v => {
+                            const r = editor.selected.resolutions.find(x => x.label === v);
+                            if (!r)
+                                return;
+                            // Rate behalten, wenn die Aufloesung sie bietet, sonst die hoechste
+                            const hz = r.rates.includes(editor.current.hz) ? editor.current.hz : r.rates[0];
+                            editor.set(editor.selected.name, { w: r.w, h: r.h, hz });
                         }
                     }
                 }
 
                 Field {
+                    id: rateField
+
+                    readonly property var rates: {
+                        const r = editor.selected?.resolutions.find(x => x.w === editor.current?.w && x.h === editor.current?.h);
+                        return r ? r.rates : (editor.current ? [editor.current.hz] : []);
+                    }
+
                     title: I18n.tr("Bildwiederholrate")
-                    enabled: !editor.locked && !(editor.current?.disabled ?? false)
+                    enabled: editor.editable
 
-                    Repeater {
-                        model: {
-                            const r = editor.selected?.resolutions.find(x => x.w === editor.current?.w && x.h === editor.current?.h);
-                            return r ? r.rates : (editor.current ? [editor.current.hz] : []);
-                        }
-
-                        Chip {
-                            required property var modelData
-
-                            label: Monitors.hzLabel(modelData) + " Hz"
-                            selected: Math.abs((editor.current?.hz ?? 0) - modelData) < 0.5
-                            onClicked: editor.set(editor.selected.name, { hz: modelData })
-                        }
+                    SettingsDropdown {
+                        width: implicitWidth
+                        options: rateField.rates
+                        current: editor.current
+                                 ? (rateField.rates.find(r => Math.abs(r - editor.current.hz) < 0.5) ?? editor.current.hz)
+                                 : undefined
+                        labelOf: v => Monitors.hzLabel(v) + " Hz"
+                        onPicked: v => editor.set(editor.selected.name, { hz: v })
                     }
                 }
-            }
-
-            Card {
-                id: rightCard
-
-                x: editor.narrow ? 0 : details.colWidth + 12
-                y: editor.narrow ? leftCard.implicitHeight + 12 : 0
-                width: details.colWidth
-                title: I18n.tr("Darstellung")
 
                 Field {
-                    id: scaleField
-
-                    title: I18n.tr("Skalierung") + "  ·  " + (editor.current ? editor.scaleLabel(editor.current.scale) : "")
-                    enabled: !editor.locked && !(editor.current?.disabled ?? false)
-
-                    readonly property bool clean: editor.current ? editor.cleanScale(editor.current.w, editor.current.h, editor.current.scale) : true
-                    note: !scaleField.clean && editor.current
+                    title: I18n.tr("Skalierung")
+                    enabled: editor.editable
+                    note: editor.current && !editor.cleanScale(editor.current.w, editor.current.h, editor.current.scale)
                           ? I18n.tr("Ergibt keine ganzen Pixel – Hyprland nimmt %1").arg(editor.scaleLabel(editor.nearestScale(editor.current.w, editor.current.h, editor.current.scale)))
                           : ""
 
-                    Repeater {
-                        model: editor.scaleChoices
-
-                        Chip {
-                            required property real modelData
-
-                            label: editor.scaleLabel(modelData)
-                            selected: Math.abs((editor.current?.scale ?? 1) - modelData) < 0.001
-                            onClicked: editor.set(editor.selected.name, { scale: modelData })
-                        }
-                    }
-
-                    Chip {
+                    ActionButton {
                         icon: "remove"
-                        label: "0,05"
-                        onClicked: editor.set(editor.selected.name, { scale: Math.max(0.5, Math.round((editor.current.scale - 0.05) * 100) / 100) })
+                        onClicked: editor.stepScale(-0.05)
                     }
 
-                    Chip {
+                    SettingsDropdown {
+                        width: implicitWidth
+                        options: editor.scaleChoices
+                        current: editor.current?.scale
+                        labelOf: v => editor.scaleLabel(v)
+                        onPicked: v => editor.set(editor.selected.name, { scale: v })
+                    }
+
+                    ActionButton {
                         icon: "add"
-                        label: "0,05"
-                        onClicked: editor.set(editor.selected.name, { scale: Math.min(4, Math.round((editor.current.scale + 0.05) * 100) / 100) })
+                        onClicked: editor.stepScale(0.05)
                     }
                 }
 
                 Field {
                     title: I18n.tr("Drehung")
-                    enabled: !editor.locked && !(editor.current?.disabled ?? false)
+                    enabled: editor.editable
 
-                    Repeater {
-                        model: editor.transformChoices
-
-                        Chip {
-                            required property var modelData
-
-                            label: modelData.label
-                            icon: modelData.icon
-                            selected: ((editor.current?.transform ?? 0) % 4) === modelData.value
-                            onClicked: editor.set(editor.selected.name, { transform: modelData.value + (editor.current.transform >= 4 ? 4 : 0) })
-                        }
+                    SettingsDropdown {
+                        width: implicitWidth
+                        options: [0, 1, 2, 3]
+                        current: editor.current ? editor.current.transform % 4 : undefined
+                        labelOf: v => v * 90 + "°"
+                        onPicked: v => editor.set(editor.selected.name, { transform: v + (editor.current.transform >= 4 ? 4 : 0) })
                     }
+                }
 
-                    Chip {
-                        icon: "flip"
-                        label: I18n.tr("Gespiegelt")
-                        selected: (editor.current?.transform ?? 0) >= 4
-                        onClicked: editor.set(editor.selected.name, { transform: (editor.current.transform + 4) % 8 })
+                Field {
+                    title: I18n.tr("Gespiegelt")
+                    enabled: editor.editable
+
+                    Toggle {
+                        checked: (editor.current?.transform ?? 0) >= 4
+                        onToggled: editor.set(editor.selected.name, { transform: (editor.current.transform + 4) % 8 })
                     }
                 }
 
                 Field {
                     title: I18n.tr("Variable Bildrate (VRR)")
-                    enabled: !editor.locked && !(editor.current?.disabled ?? false)
+                    enabled: editor.editable
 
-                    Repeater {
-                        model: [
-                            { value: 0, label: I18n.tr("Aus") },
-                            { value: 1, label: I18n.tr("An") },
-                            { value: 2, label: I18n.tr("Nur Vollbild") }
-                        ]
-
-                        Chip {
-                            required property var modelData
-
-                            label: modelData.label
-                            selected: (editor.current?.vrr ?? 0) === modelData.value
-                            onClicked: editor.set(editor.selected.name, { vrr: modelData.value })
-                        }
+                    SettingsDropdown {
+                        width: implicitWidth
+                        options: [0, 1, 2]
+                        current: editor.current?.vrr
+                        labelOf: v => [I18n.tr("Aus"), I18n.tr("An"), I18n.tr("Nur Vollbild")][v] ?? String(v)
+                        onPicked: v => editor.set(editor.selected.name, { vrr: v })
                     }
                 }
 
                 Field {
                     title: I18n.tr("Spiegeln")
                     visible: editor.monitors.length > 1
-                    enabled: !editor.locked && !(editor.current?.disabled ?? false)
+                    enabled: editor.editable
 
-                    Chip {
-                        label: I18n.tr("Nein")
-                        selected: (editor.current?.mirror ?? "") === ""
-                        onClicked: editor.set(editor.selected.name, { mirror: "" })
-                    }
-
-                    Repeater {
-                        model: editor.monitors.filter(m => m.name !== editor.selected?.name)
-
-                        Chip {
-                            required property var modelData
-
-                            label: modelData.name
-                            icon: "splitscreen"
-                            selected: (editor.current?.mirror ?? "") === modelData.name
-                            onClicked: editor.set(editor.selected.name, { mirror: modelData.name })
-                        }
+                    SettingsDropdown {
+                        width: implicitWidth
+                        options: [""].concat(editor.monitors.filter(m => m.name !== editor.selected?.name).map(m => m.name))
+                        current: editor.current?.mirror ?? ""
+                        labelOf: v => v === "" ? I18n.tr("Nein") : v
+                        onPicked: v => editor.set(editor.selected.name, { mirror: v })
                     }
                 }
             }
         }
 
-        // ---- Leiste: Aenderungen / Behalten? ----
+        // ---- Leiste: Aenderungen / Fehler / Behalten? ----
         Rectangle {
             id: bar
 
             width: parent.width
             height: 48
             radius: 14
+            visible: editor.dirty || Monitors.confirming || Monitors.busy || Monitors.lastError !== ""
             color: Monitors.confirming ? Colors.alpha(Colors.primary, 0.12)
                  : Monitors.lastError !== "" ? Colors.alpha(Colors.error, 0.1)
                  : Colors.alpha(Colors.fgSurface, 0.035)
@@ -1034,45 +887,24 @@ Item {
                         : Monitors.lastError !== "" ? Colors.alpha(Colors.error, 0.4)
                         : Colors.alpha(Colors.outline, 0.14)
 
-            Behavior on color {
-                ColorAnimation { duration: Appearance.fadeDuration }
-            }
-            Behavior on border.color {
-                ColorAnimation { duration: Appearance.fadeDuration }
-            }
-
-            Row {
+            Text {
                 anchors {
                     left: parent.left
-                    verticalCenter: parent.verticalCenter
                     leftMargin: 14
+                    right: buttons.left
+                    rightMargin: 10
+                    verticalCenter: parent.verticalCenter
                 }
-                spacing: 8
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Monitors.confirming ? "schedule" : Monitors.lastError !== "" ? "error" : editor.dirty ? "pending" : "check_circle"
-                    color: Monitors.confirming ? Colors.primary : Monitors.lastError !== "" ? Colors.error : editor.dirty ? Colors.tertiary : Colors.fgSurfaceVariant
-                    font.family: "Material Symbols Outlined"
-                    font.pixelSize: 18
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Math.min(implicitWidth, bar.width - buttons.width - 60)
-                    elide: Text.ElideRight
-                    text: Monitors.confirming
-                        ? I18n.tr("Einstellungen behalten? Zurück in %1 s").arg(Monitors.countdown)
-                        : Monitors.lastError !== "" ? Monitors.lastError
-                        : Monitors.busy ? I18n.tr("Wird angewendet …")
-                        : editor.changeCount === 0 ? I18n.tr("Keine ausstehenden Änderungen")
-                        : editor.changeCount === 1 ? I18n.tr("1 Monitor geändert")
-                        : I18n.tr("%1 Monitore geändert").arg(editor.changeCount)
-                    color: Monitors.lastError !== "" && !Monitors.confirming ? Colors.error : Colors.fgSurface
-                    font.family: Config.font
-                    font.pixelSize: 12
-                    font.weight: Monitors.confirming ? Font.DemiBold : Font.Normal
-                }
+                elide: Text.ElideRight
+                text: Monitors.confirming
+                    ? I18n.tr("Einstellungen behalten? Zurück in %1 s").arg(Monitors.countdown)
+                    : Monitors.lastError !== "" ? Monitors.lastError
+                    : Monitors.busy ? I18n.tr("Wird angewendet …")
+                    : I18n.tr("Nicht übernommene Änderungen")
+                color: Monitors.lastError !== "" && !Monitors.confirming ? Colors.error : Colors.fgSurface
+                font.family: Config.font
+                font.pixelSize: 12
+                font.weight: Monitors.confirming ? Font.DemiBold : Font.Normal
             }
 
             Row {
@@ -1086,40 +918,28 @@ Item {
                 spacing: 8
 
                 ActionButton {
-                    visible: !Monitors.confirming
-                    icon: "refresh"
-                    label: I18n.tr("Neu lesen")
-                    enabled: !Monitors.busy
-                    onClicked: Monitors.refresh()
-                }
-
-                ActionButton {
-                    visible: !Monitors.confirming
-                    icon: "undo"
+                    visible: !Monitors.confirming && editor.dirty
                     label: I18n.tr("Verwerfen")
-                    enabled: editor.dirty && !Monitors.busy
+                    enabled: !Monitors.busy
                     onClicked: editor.discard()
                 }
 
                 ActionButton {
-                    visible: !Monitors.confirming
-                    icon: "check"
+                    visible: !Monitors.confirming && editor.dirty
                     label: I18n.tr("Übernehmen")
                     filled: true
-                    enabled: editor.dirty && !Monitors.busy
+                    enabled: !Monitors.busy
                     onClicked: editor.applyPending()
                 }
 
                 ActionButton {
                     visible: Monitors.confirming
-                    icon: "undo"
                     label: I18n.tr("Zurücksetzen")
                     onClicked: Monitors.revert()
                 }
 
                 ActionButton {
                     visible: Monitors.confirming
-                    icon: "check"
                     label: I18n.tr("Behalten")
                     filled: true
                     onClicked: Monitors.keep()
@@ -1144,15 +964,6 @@ Item {
                     NumberAnimation { duration: 900 }
                 }
             }
-        }
-
-        Text {
-            width: parent.width
-            text: I18n.tr("Gespeichert wird in ~/.config/hypr/monitors.lua (nur dieser Rechner, vorher gesichert als monitors.lua.bak) – dieselbe Datei, die install.sh anlegt. Workspace-Gruppen und andere Felder dort bleiben erhalten. Ein Monitor ohne Eintrag bekommt seinen bevorzugten Modus.")
-            color: Colors.fgSurfaceVariant
-            font.family: Config.font
-            font.pixelSize: 10
-            wrapMode: Text.WordWrap
         }
     }
 }

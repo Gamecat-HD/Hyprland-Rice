@@ -16,13 +16,16 @@ Rectangle {
     property var entries: []
     // Bereich vor dem Gruppentitel ("" = keiner)
     property string sectionLabel: ""
+    // Titel der Seite – eine Karte, die genauso heisst, braucht keinen eigenen
+    property string pageTitle: ""
 
     readonly property var rows: gcard.group?.rows ?? []
     // Eine einzelne Zeile, die schon so heisst wie ihre Gruppe, braucht
     // keinen Titel darueber
     readonly property string groupLabel: {
         const g = gcard.group?.group ?? "";
-        if (g === "" || (gcard.rows.length === 1 && gcard.entries[gcard.rows[0]]?.title === I18n.tr(g)))
+        if (g === "" || I18n.tr(g) === gcard.pageTitle
+            || (gcard.rows.length === 1 && gcard.entries[gcard.rows[0]]?.title === I18n.tr(g)))
             return "";
         return I18n.tr(g);
     }

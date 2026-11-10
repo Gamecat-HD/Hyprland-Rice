@@ -11,7 +11,7 @@ import qs
 // der Typ des Werts in der Datei plus die Angaben in Config.meta:
 //
 //   Wahrheitswert                 Schalter
-//   String mit `options`          aufklappbare Auswahl (Chips)
+//   String mit `options`          Auswahlknopf (SettingsDropdown)
 //   Zahl mit `min`/`max`          Schieberegler (Mausrad geht auch)
 //   alles andere                  steht nur da
 //
@@ -40,7 +40,7 @@ Item {
     // Schrift-Auswahl: jede Option in ihrer eigenen Schrift zeigen und nur
     // anbieten, was auch installiert ist
     readonly property bool isFont: row.isChoice && String(row.entry?.key ?? "").toLowerCase().includes("font")
-    readonly property bool interactive: row.isBool || row.isChoice || row.isNumber || row.isLink
+    readonly property bool interactive: row.isBool || row.isNumber || row.isLink
 
     // Voraussetzung erfuellt? Sonst ist die Zeile gedimmt und gesperrt.
     readonly property bool available: Plugins.satisfied(row.entry?.requires)
@@ -61,7 +61,11 @@ Item {
         const label = row.entry?.labels?.[v];
         if (label !== undefined)
             return label;
-        return row.isChoice && !row.isFont ? I18n.tr(v) : v;
+        if (!row.isChoice || row.isFont)
+            return v;
+        // Rohwerte wie "leicht" oder "notch" gross anfangen lassen
+        const shown = I18n.tr(v);
+        return shown.charAt(0).toUpperCase() + shown.slice(1);
     }
     readonly property bool changed: !row.isLink && !Plugins.isDefault(row.entry?.section ?? "", row.entry?.key ?? "")
 
@@ -76,7 +80,6 @@ Item {
             list.unshift(current);
         return list;
     }
-    property bool expanded: false
 
     // ---- Zahlen ----
     readonly property real min: Number(row.entry?.min ?? 0)
@@ -119,7 +122,6 @@ Item {
     readonly property real valueCap: Math.max(72, row.width - 28 - 160 - 10 - 26 - 24)
 
     implicitHeight: row.lineHeight
-                    + (row.expanded ? choiceFlow.implicitHeight + 12 : 0)
                     + (row.isEditor ? editorLoader.implicitHeight + 14 : 0)
 
     Behavior on implicitHeight {
@@ -151,7 +153,7 @@ Item {
             cursorShape: row.interactive && row.available ? Qt.PointingHandCursor : Qt.ArrowCursor
         }
 
-        // Die eigentliche Zeile; bei einer Auswahl haengt die Liste darunter
+        // Die eigentliche Zeile; ein Editor haengt darunter
         Item {
             id: line
 
@@ -163,14 +165,12 @@ Item {
             height: row.lineHeight
 
             TapHandler {
-                enabled: (row.isBool || row.isChoice || row.isLink) && row.available
+                enabled: (row.isBool || row.isLink) && row.available
                 onTapped: {
                     if (row.isLink)
                         SettingsState.openPage(row.entry.link, {});
-                    else if (row.isBool)
-                        Plugins.set(row.entry.section, row.entry.key, !row.entry.value);
                     else
-                        row.expanded = !row.expanded;
+                        Plugins.set(row.entry.section, row.entry.key, !row.entry.value);
                 }
             }
 
@@ -295,7 +295,7 @@ Item {
                     rightMargin: 14
                     verticalCenter: parent.verticalCenter
                 }
-                width: row.isBool ? 40 : row.isNumber ? numberControl.width : row.isEditor ? 0 : row.isLink ? 20 : valueRow.width
+                width: row.isBool ? 40 : row.isNumber ? numberControl.width : row.isEditor ? 0 : row.isLink ? 20 : row.isChoice ? choiceDrop.width : valueRow.width
                 height: 28
 
                 Text {
@@ -432,38 +432,36 @@ Item {
                     }
                 }
 
-                // Aktueller Wert (bei einer Auswahl mit Pfeil zum Aufklappen)
-                Row {
+                // Auswahl: Knopf mit dem aktuellen Wert, klappt die Liste auf
+                SettingsDropdown {
+                    id: choiceDrop
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: row.isChoice
+                    enabled: row.available
+                    width: implicitWidth
+                    // +20: der Knopf hat mehr Rand als der blosse Wert
+                    maxWidth: Math.min(240, row.valueCap + 20)
+                    options: row.choices
+                    current: row.entry?.value
+                    labelOf: row.optionLabel
+                    fontOf: row.isFont ? (v => String(v)) : null
+                    onPicked: v => Plugins.set(row.entry.section, row.entry.key, v)
+                }
+
+                // Sonstiger Wert: steht nur da
+                Text {
                     id: valueRow
 
                     anchors.verticalCenter: parent.verticalCenter
                     // Ein Editor zeigt den Rohwert nicht – der steht in ihm selbst
-                    visible: !row.isBool && !row.isNumber && !row.isEditor && !row.isLink
-                    spacing: 4
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Math.min(implicitWidth, row.valueCap)
-                        text: row.optionLabel(row.entry?.value)
-                        color: Colors.fgSurfaceVariant
-                        font.family: row.isFont ? String(row.entry?.value ?? "") : Config.font
-                        font.pixelSize: 11
-                        elide: Text.ElideRight
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: row.isChoice
-                        text: "expand_more"
-                        rotation: row.expanded ? 180 : 0
-                        color: Colors.fgSurfaceVariant
-                        font.family: "Material Symbols Outlined"
-                        font.pixelSize: 16
-
-                        Behavior on rotation {
-                            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
-                        }
-                    }
+                    visible: !row.isBool && !row.isNumber && !row.isEditor && !row.isLink && !row.isChoice
+                    width: Math.min(implicitWidth, row.valueCap)
+                    text: row.optionLabel(row.entry?.value)
+                    color: Colors.fgSurfaceVariant
+                    font.family: Config.font
+                    font.pixelSize: 11
+                    elide: Text.ElideRight
                 }
             }
         }
@@ -544,89 +542,6 @@ Item {
             id: systemEditor
 
             SystemEditor {}
-        }
-
-        // Die Optionen einer Auswahl als Chips
-        Flow {
-            id: choiceFlow
-
-            anchors {
-                left: parent.left
-                right: parent.right
-                top: line.bottom
-                leftMargin: 14
-                rightMargin: 14
-            }
-            visible: row.isChoice
-            opacity: row.expanded ? 1 : 0
-            spacing: 6
-
-            Behavior on opacity {
-                NumberAnimation { duration: 120 }
-            }
-
-            Repeater {
-                model: row.choices
-
-                Rectangle {
-                    id: chip
-
-                    required property string modelData
-                    readonly property bool selected: chip.modelData === String(row.entry?.value ?? "")
-
-                    readonly property bool previewed: (row.entry?.preview ?? "") !== ""
-
-                    width: chip.previewed ? Math.max(76, chipLabel.implicitWidth + 16) : chipLabel.implicitWidth + 24
-                    height: chip.previewed ? 58 : 28
-                    radius: chip.previewed ? 12 : height / 2
-                    color: chip.selected ? Colors.primary
-                         : chipHover.hovered ? Colors.alpha(Colors.fgSurface, 0.12)
-                         : Colors.alpha(Colors.fgSurface, 0.06)
-
-                    Behavior on color {
-                        ColorAnimation { duration: 120 }
-                    }
-
-                    // Vorschau der Variante (Uhr, Visualiser, Workspaces)
-                    Loader {
-                        active: chip.previewed
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: 6
-
-                        sourceComponent: StylePreview {
-                            kind: row.entry.preview
-                            style: chip.modelData
-                            color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
-                            accent: chip.selected ? Colors.fgPrimary : Colors.primary
-                        }
-                    }
-
-                    Text {
-                        id: chipLabel
-
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.verticalCenter: chip.previewed ? undefined : parent.verticalCenter
-                        anchors.bottom: chip.previewed ? parent.bottom : undefined
-                        anchors.bottomMargin: 5
-                        font.pixelSize: chip.previewed ? 9 : 11
-                        text: row.optionLabel(chip.modelData)
-                        color: chip.selected ? Colors.fgPrimary : Colors.fgSurface
-                        font.family: row.isFont ? chip.modelData : Config.font
-                    }
-
-                    HoverHandler {
-                        id: chipHover
-
-                        cursorShape: Qt.PointingHandCursor
-                    }
-
-                    TapHandler {
-                        enabled: row.available
-                        onTapped: Plugins.set(row.entry.section, row.entry.key, chip.modelData)
-                    }
-                }
-            }
         }
     }
 }

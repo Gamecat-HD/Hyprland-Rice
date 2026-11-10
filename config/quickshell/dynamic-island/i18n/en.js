@@ -1208,5 +1208,21 @@ var strings = {
     "Im Hintergrund nach Shell-Updates suchen alle": "Check for shell updates in the background every",
     "git fetch im Repo der Shell; 0 = nur bei offener Ansicht": "git fetch in the shell's repo; 0 = only while the page is open",
     "Shell-Version und Updates": "Shell version and updates",
-    "Update-Skript nicht gestartet: %1": "Update script did not start: %1"
+    "Update-Skript nicht gestartet: %1": "Update script did not start: %1",
+    "verbunden": "connected",
+    "Nicht übernommene Änderungen": "Unapplied changes",
+    "Einstellungswerte beim Export mitnehmen": "Include setting values in export",
+    "Alles zurücksetzen…": "Reset everything…",
+    "Alle Einstellungen auf die Vorgaben zurücksetzen?": "Reset all settings to their defaults?",
+    "Aussehen": "Appearance",
+    "Farben, Schrift, Wallpaper": "Colours, font, wallpaper",
+    "Leiste & Notch": "Bar & notch",
+    "Leiste, Notch, Kacheln, Medien": "Bar, notch, tiles, media",
+    "Mitteilungen, Klänge": "Notifications, sounds",
+    "Verbindungen": "Connections",
+    "Bluetooth, VPN": "Bluetooth, VPN",
+    "Akku, Inaktivität, Sperrbildschirm": "Battery, idle, lock screen",
+    "Kürzel ansehen und ändern": "View and change shortcuts",
+    "Updates, Shell": "Updates, shell",
+    "Erweiterungen verwalten": "Manage extensions"
 };
