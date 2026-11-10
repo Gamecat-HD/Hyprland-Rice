@@ -55,7 +55,6 @@ Item {
     readonly property bool showWorkspaces: docked && Config.notch.workspaces
     // Uhr eingeklappt (Config.notch.clock); aufgeklappt ist sie die Ueberschrift
     readonly property bool clockHidden: docked && !open && !Config.notch.clock
-    readonly property real clockSlot: clockHidden ? 0 : clock.implicitWidth
     readonly property real compactLeft: showMedia ? mediaArtSize - (compactEdge - mediaEdge)
                                       : showWorkspaces ? compactWorkspaces.implicitWidth
                                       : 0
@@ -272,8 +271,14 @@ Item {
     readonly property real ringGrowX: batteryRingShown ? 12 : 0
     readonly property real ringGrowY: batteryRingShown ? 3 : 0
     readonly property real collapsedHeight: docked ? parent.height - 8 + ringGrowY : parent.height - verticalMargin
+    // Ohne Uhr gibt es keine Mitte zu halten: so breit wie der Inhalt links
+    // plus rechts (die Elemente haengen ohnehin an den Kanten)
+    readonly property real sideLeft: showBattery && batteryLeft ? compactLeft + batteryAddLeft : compactLeft
+    readonly property real sideRight: showBattery && !batteryLeft ? compactRight.implicitWidth + batteryAddRight : compactRight.implicitWidth
+    readonly property real clocklessWidth: sideLeft + sideRight + (sideLeft > 0 && sideRight > 0 ? 2 * compactGap : 0) + 2 * compactEdge
     readonly property real collapsedWidth: docked
-        ? Math.max(clockHidden ? 0 : compactMinWidth, clockSlot + 2 * (compactSide + compactGap + compactEdge)) + ringGrowX
+        ? (clockHidden ? Math.max(2 * compactEdge + 24, clocklessWidth)
+                       : Math.max(compactMinWidth, clock.implicitWidth + 2 * (compactSide + compactGap + compactEdge))) + ringGrowX
         : clock.implicitWidth + 50 + recordReserve
     readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth
                                         : themeOpen ? themes.outerWidth

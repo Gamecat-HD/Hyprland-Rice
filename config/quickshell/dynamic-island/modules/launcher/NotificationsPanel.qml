@@ -6,7 +6,6 @@ import qs
 import qs.modules.services.config
 import qs.modules.services.notifications
 import qs.modules.bar.components.notifications
-import qs.modules.settings
 
 // Untermenue "Benachrichtigungen" der Notch: die gruppierte Liste der
 // Benachrichtigungs-Pille, dazu Nicht-stoeren und Alle-loeschen.
@@ -20,7 +19,7 @@ ViewPanel {
     // bis maxListHeight, danach scrollt sie. Hier geht das mit
     // list.contentHeight, weil die Hoehe der Liste ihre Inhaltshoehe nicht
     // beeinflusst (die Pille rechnet anders, siehe NotificationPill.qml).
-    // Leer keine Liste – die Werkzeugleiste sagt dann "Keine Nachrichten".
+    // Leer keine Liste – die Werkzeugleiste sagt schon "Keine Nachrichten".
     readonly property real listHeight: Notifications.count === 0 ? 0
         : Math.min(root.maxListHeight, Math.max(54, list.contentHeight))
 
@@ -30,38 +29,69 @@ ViewPanel {
     contentHeight: root.toolbarHeight + root.listHeight
     maxContentHeight: root.toolbarHeight + root.maxListHeight
 
-    // ---- Werkzeugleiste ----
-    // Links Nicht stoeren als Schalter, rechts Alle loeschen bzw. der Leerstand
-    Item {
-        width: parent.width
-        height: root.toolbarHeight
+    component ToolChip: Item {
+        id: chip
+
+        required property string icon
+        required property string label
+        property bool on: false
+        signal clicked()
+
+        implicitWidth: chipRow.implicitWidth + 18
+        implicitHeight: 24
+
+        Rectangle {
+            anchors.fill: parent
+            radius: height / 2
+            color: chip.on ? Colors.alpha(Colors.primary, 0.2)
+                 : chipHover.hovered ? Colors.alpha(Colors.fgBackground, 0.12)
+                 : Colors.alpha(Colors.fgBackground, 0.06)
+        }
 
         Row {
-            anchors.verticalCenter: parent.verticalCenter
-            x: 2
-            spacing: 10
+            id: chipRow
 
-            SettingsSwitch {
+            anchors.centerIn: parent
+            spacing: 5
+
+            Text {
                 anchors.verticalCenter: parent.verticalCenter
-                checked: Notifications.dnd
-                onToggled: Notifications.toggleDnd()
+                text: chip.icon
+                color: chip.on ? Colors.primary : Colors.fgSurfaceVariant
+                font.family: "Material Symbols Outlined"
+                font.pixelSize: 13
             }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: I18n.tr("Nicht stören")
-                color: Colors.fgSurface
+                text: chip.label
+                color: chip.on ? Colors.primary : Colors.fgSurfaceVariant
                 font.family: Config.font
-                font.pixelSize: 12
+                font.pixelSize: 11
+                font.weight: Font.Medium
             }
         }
 
+        HoverHandler {
+            id: chipHover
+
+            cursorShape: Qt.PointingHandCursor
+        }
+
+        TapHandler {
+            onTapped: chip.clicked()
+        }
+    }
+
+    // ---- Werkzeugleiste ----
+    Item {
+        width: parent.width
+        height: root.toolbarHeight
+
         Text {
-            anchors {
-                right: parent.right
-                rightMargin: 2
-                verticalCenter: parent.verticalCenter
-            }
+            anchors.verticalCenter: parent.verticalCenter
+            x: 2
+            // Kein Zaehler – die Liste darunter zeigt sie ja
             visible: Notifications.count === 0
             text: I18n.tr("Keine Nachrichten")
             color: Colors.fgSurfaceVariant
@@ -69,35 +99,25 @@ ViewPanel {
             font.pixelSize: 11
         }
 
-        Rectangle {
+        Row {
             anchors {
                 right: parent.right
                 verticalCenter: parent.verticalCenter
             }
-            visible: Notifications.count > 0
-            width: clearText.implicitWidth + 24
-            height: 26
-            radius: 8
-            color: Colors.alpha(Colors.fgSurface, clearHover.hovered ? 0.14 : 0.08)
+            spacing: 6
 
-            Text {
-                id: clearText
-
-                anchors.centerIn: parent
-                text: I18n.tr("Alle löschen")
-                color: Colors.fgSurface
-                font.family: Config.font
-                font.pixelSize: 11
+            ToolChip {
+                icon: Notifications.dnd ? "notifications_off" : "notifications_active"
+                label: I18n.tr("Nicht stören")
+                on: Notifications.dnd
+                onClicked: Notifications.toggleDnd()
             }
 
-            HoverHandler {
-                id: clearHover
-
-                cursorShape: Qt.PointingHandCursor
-            }
-
-            TapHandler {
-                onTapped: Notifications.clear()
+            ToolChip {
+                visible: Notifications.count > 0
+                icon: "clear_all"
+                label: I18n.tr("Alle löschen")
+                onClicked: Notifications.clear()
             }
         }
     }

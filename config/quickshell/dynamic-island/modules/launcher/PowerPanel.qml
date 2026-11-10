@@ -33,8 +33,8 @@ Item {
           command: [Quickshell.env("HOME") + "/.config/hypr/scripts/session-exit.sh", "poweroff"] }
     ]
 
-    // So breit wie die Blaetter-Seiten der Notch (Notch.pageWidth 548)
-    implicitWidth: 544
+    // Etwas breiter als die Blaetter-Seiten (548): Kacheln mit Luft
+    implicitWidth: 660
     implicitHeight: actionArea.height
 
     anchors {
@@ -93,7 +93,7 @@ Item {
             left: parent.left
             right: parent.right
         }
-        height: 112
+        height: 120
 
         Row {
             anchors.fill: parent
@@ -146,8 +146,9 @@ Item {
                                 color: action.hovered ? (action.modelData.danger ? Colors.fgError : Colors.fgPrimary)
                                                       : Colors.fgSurfaceVariant
                                 font.family: "Material Symbols Outlined"
+                                // Kein FILL-Umschalten: gefuellt rendern bedtime/lock
+                                // mit Loechern (Qt + variable Material Symbols)
                                 font.pixelSize: 20
-                                font.variableAxes: ({ FILL: action.hovered ? 1 : 0 })
                             }
                         }
 
