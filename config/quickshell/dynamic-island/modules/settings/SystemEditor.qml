@@ -11,9 +11,9 @@ import qs.modules.settings.system
 // Einstellungsseite System (Config.meta editor "system") – die "Über"-Seite
 // der Shell, nach dem Vorbild von Caelestias AboutPage.
 //
-// Oben der Kopf: Logo (die Notch als Pille), "Dynamic Island" und die
-// Versionszeile (git describe · Datum · Branch). Darunter die Karten:
-//   Update    – Stand gegenueber dem Upstream, neue Commits, eigene
+// Oben der Kopf: Logo (assets/logo.svg), "Dynamic Island" und die
+// Versionszeile (git describe · Datum · Branch). Darunter die Abschnitte:
+//   Updates   – Stand gegenueber dem Upstream, neue Commits, eigene
 //               Aenderungen, "Nach Updates suchen" / "Aktualisieren" /
 //               "Shell neu starten" (ShellUpdateCard, Dienst ShellUpdate)
 //   System    – Hostname, Geraet, Distribution, Kernel, Firmware, CPU, GPU,
@@ -23,15 +23,13 @@ import qs.modules.settings.system
 //
 // SystemInfo liest seine festen Daten und ShellUpdate den Git-Stand, sobald
 // die Seite offen ist (DemandRequest, Muster Bar.qml). Die Bausteine
-// (InfoLine, ActionChip, SectionCard, ShellUpdateCard) liegen in
+// (Logo, InfoLine, TextButton, Divider, SectionCard, ShellUpdateCard) liegen in
 // settings/system/ – eine Inline-`component` in einer schon geladenen Datei
 // loest erst nach einem Neustart der Shell auf.
 Item {
     id: editor
 
     implicitHeight: content.implicitHeight
-
-    readonly property int gap: 12
 
     readonly property string versionLine: {
         if (!ShellUpdate.loaded)
@@ -64,61 +62,38 @@ Item {
         id: content
 
         width: parent.width
-        spacing: editor.gap
+        spacing: 20
         bottomPadding: 4
 
         // ---- Kopf: Logo, Name, Version ----
-        Item {
+        Rectangle {
             width: parent.width
-            height: 64
-
-            Rectangle {
-                id: logo
-
-                anchors.verticalCenter: parent.verticalCenter
-                width: 56
-                height: 56
-                radius: 16
-                color: Colors.alpha(Colors.primary, 0.14)
-
-                // Die Notch: eine Pille mit Kamera-Punkt
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 32
-                    height: 13
-                    radius: height / 2
-                    color: Colors.primary
-
-                    Rectangle {
-                        anchors {
-                            right: parent.right
-                            rightMargin: 4
-                            verticalCenter: parent.verticalCenter
-                        }
-                        width: 5
-                        height: 5
-                        radius: 2.5
-                        color: Colors.alpha(Colors.fgPrimary, 0.8)
-                    }
-                }
-            }
+            height: 250
+            radius: 16
+            color: Colors.alpha(Colors.fgSurface, 0.04)
 
             Column {
-                anchors {
-                    left: logo.right
-                    leftMargin: 14
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
+                anchors.centerIn: parent
+                width: parent.width - 32
+                spacing: 4
+
+                Logo {
+                    anchors.horizontalCenter: parent.horizontalCenter
                 }
-                spacing: 3
+
+                Item {
+                    width: 1
+                    height: 8
+                }
 
                 Text {
                     width: parent.width
                     text: "Dynamic Island"
-                    color: Colors.fgBackground
+                    color: Colors.fgSurface
                     font.family: Config.font
-                    font.pixelSize: 17
-                    font.weight: Font.DemiBold
+                    font.pixelSize: 32
+                    font.weight: Font.Medium
+                    horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                 }
 
@@ -127,7 +102,8 @@ Item {
                     text: editor.versionLine
                     color: Colors.fgSurfaceVariant
                     font.family: Config.font
-                    font.pixelSize: 11
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                 }
             }
@@ -141,7 +117,6 @@ Item {
         SectionCard {
             width: parent.width
             title: I18n.tr("System")
-            spacing: 0
 
             InfoLine {
                 label: I18n.tr("Hostname")
@@ -211,7 +186,6 @@ Item {
         SectionCard {
             width: parent.width
             title: I18n.tr("Software")
-            spacing: 0
 
             InfoLine {
                 label: I18n.tr("Shell")
@@ -253,26 +227,25 @@ Item {
         SectionCard {
             width: parent.width
             title: I18n.tr("Plugins")
-            spacing: 0
 
             InfoLine {
                 label: I18n.tr("Geladene Plugins")
                 value: Plugins.plugins.length === 0
                     ? I18n.tr("keine")
                     : I18n.tr("%1 von %2").arg(editor.enabledPlugins.length).arg(Plugins.plugins.length)
-                accent: editor.enabledPlugins.length > 0
                 last: editor.enabledPlugins.length === 0
             }
 
             Text {
                 width: parent.width
                 visible: editor.enabledPlugins.length > 0
-                topPadding: 8
-                bottomPadding: 4
+                padding: 16
+                topPadding: 12
+                bottomPadding: 14
                 text: editor.enabledPlugins.map(p => p.name).join("  ·  ")
                 color: Colors.fgSurfaceVariant
                 font.family: Config.font
-                font.pixelSize: 11
+                font.pixelSize: 12
                 wrapMode: Text.Wrap
             }
         }

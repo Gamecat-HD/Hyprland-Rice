@@ -47,21 +47,27 @@ Surface {
     // Die Leiste: wenige Kategorien statt einer Zeile je shell.json-Abschnitt.
     // Eine Kategorie zeigt ihre Abschnitte untereinander, je mit Ueberschrift.
     readonly property var categories: [
-        { key: "look", title: "Aussehen", desc: "Farben, Schrift, Wallpaper", icon: "palette", sections: ["appearance", "wallpaper"] },
-        { key: "shell", title: "Leiste & Notch", desc: "Leiste, Notch, Kacheln, Medien", icon: "web_asset", sections: ["bar", "notch", "quick", "osd", "media"] },
+        { key: "look", title: "Aussehen", desc: "Wallpaper, Farben, Transparenz", icon: "palette", sections: ["wallpaper", "appearance"] },
+        { key: "notch", title: "Notch", desc: "Layout, Anzeigen, Medien", icon: "top_panel_open", sections: ["notch", "media"] },
+        { key: "bar", title: "Leiste", desc: "Workspaces, Module, Regler am Rand", icon: "web_asset", sections: ["bar", "osd"] },
+        { key: "quick", title: "Schnelleinstellungen", desc: "Kacheln und ihre Anordnung", icon: "dashboard_customize", sections: ["quick"] },
         { key: "alerts", title: "Benachrichtigungen", desc: "Mitteilungen, Klänge", icon: "notifications", sections: ["notifications", "sounds"] },
-        { key: "connect", title: "Verbindungen", desc: "Bluetooth, VPN", icon: "bluetooth", sections: ["bluetooth", "vpn"] },
-        { key: "power", title: "Energie", desc: "Akku, Inaktivität, Sperrbildschirm", icon: "battery_horiz_075", sections: ["battery", "idle", "lock"] },
-        { key: "monitors", title: "Monitore", desc: "Anordnung, Auflösung, Skalierung", icon: "desktop_windows", sections: ["monitors"] },
+        { key: "connect", title: "Bluetooth & VPN", desc: "Geräte, Meldungen, VPN-Anbieter", icon: "bluetooth", sections: ["bluetooth", "vpn"] },
+        { key: "battery", title: "Akku", desc: "Anzeige, Warnungen, Verlauf", icon: "battery_charging_full", sections: ["battery"] },
+        { key: "lock", title: "Sperren & Standby", desc: "Sperrbildschirm, Ruhezustand", icon: "lock_clock", sections: ["idle", "lock"] },
+        { key: "monitors", title: "Monitore", desc: "Anordnung, Auflösung, Skalierung", icon: "monitor", sections: ["monitors"] },
         { key: "keybinds", title: "Tastenkürzel", desc: "Kürzel ansehen und ändern", icon: "keyboard", sections: ["keybinds"] },
-        { key: "system", title: "System", desc: "Updates, Shell", icon: "monitoring", sections: ["system"] }
+        { key: "region", title: "Sprache & Region", desc: "Sprache, Uhrzeit", icon: "language", sections: ["region"] },
+        { key: "info", title: "Info", desc: "Version, Updates, System", icon: "info", sections: ["system"] }
     ]
-    // Abschnitte aus shell.json, die keiner Kategorie gehoeren, landen unter System
+    // Seiten ohne eigenen shell.json-Abschnitt (nur Zeilen mit meta.page)
+    readonly property var pageTitles: ({ "region": "Sprache & Region" })
+    // Abschnitte aus shell.json, die keiner Kategorie gehoeren, landen unter Info
     readonly property var categorySections: {
         const known = [].concat(...card.categories.map(c => c.sections));
         const out = {};
         for (const c of card.categories)
-            out[c.key] = c.key === "system" ? c.sections.concat(card.sections.filter(s => !known.includes(s))) : c.sections;
+            out[c.key] = c.key === "info" ? c.sections.concat(card.sections.filter(s => !known.includes(s))) : c.sections;
         return out;
     }
     function categoryOf(s: string): string {
@@ -98,11 +104,11 @@ Surface {
     // ---- Breite ----
     // Schmale Karte: Leiste nur mit Symbolen
     readonly property bool compact: card.width < 820
-    readonly property real sidebarWidth: card.compact ? 64 : 264
+    readonly property real sidebarWidth: card.compact ? 64 : 300
     // Platz der Liste rechts der Leiste (Zielwert, nicht der animierte).
     // Direkt aus der Breite: ueber sidebarWidth gelesen war der Wert beim
     // Entstehen des Fensters kurz veraltet und baute die Karten einmal extra.
-    readonly property real listRoom: card.width - (card.width < 820 ? 64 : 264) - 44
+    readonly property real listRoom: card.width - (card.width < 820 ? 64 : 300) - 44
 
     // Gruppen aus shell.json in Menue-Reihenfolge, unbekannte hinten dran
     readonly property var sections: {
@@ -186,6 +192,8 @@ Surface {
         const cat = card.categories.find(c => c.key === s);
         if (cat)
             return I18n.tr(cat.title);
+        if (card.pageTitles[s])
+            return I18n.tr(card.pageTitles[s]);
         if (s === card.managerKey)
             return "Plugins";
         if (s === card.wallsKey)
@@ -195,6 +203,14 @@ Surface {
         if (Plugins.isPluginSection(s))
             return I18n.tr(Plugins.sectionTitle(s));
         return I18n.tr(Config.sectionMeta[s] ?? s);
+    }
+
+    // Titel eines shell.json-Abschnitts (Ueberschriften) – Kategorien heissen
+    // teils wie Abschnitte ("lock"), hier zaehlt der Abschnitt
+    function partTitle(s: string): string {
+        if (Config.sectionMeta[s])
+            return I18n.tr(Config.sectionMeta[s]);
+        return card.sectionTitle(s);
     }
 
     function valuesOf(s: string): var {
@@ -255,18 +271,10 @@ Surface {
             return i < 0 ? order.length : i;
         };
 
-        for (const section of card.allSections) {
-            if (needle === "" && !card.currentSections.includes(section))
-                continue;
+        const pages = needle === "" ? card.currentSections
+                                    : card.allSections.concat(Object.keys(card.pageTitles));
+        for (const section of pages) {
 
-            // Die Bibliothek als Zeile mit Pfeil oben im Wallpaper-Abschnitt
-            if (section === "wallpaper") {
-                const title = I18n.tr("Bibliothek");
-                if (needle === "" || title.toLowerCase().includes(needle))
-                    out.push({ id: "wallpaper.@library", section, key: "@library", group: "", value: null,
-                               title, desc: I18n.tr("%1 Bilder").arg(Wallpapers.list.length), options: null, labels: null,
-                               unit: "", requires: null, editor: "", preview: "", link: card.wallsKey });
-            }
 
             // Zeilen dieser Seite: die eigenen Schluessel ohne die, die per
             // meta.page woanders stehen, plus die von anderswo hierher
@@ -349,149 +357,40 @@ Surface {
         }
     }
 
-    // Die Karten: aufeinanderfolgende Zeilen mit gleicher Gruppe und
+    // Die Gruppen: aufeinanderfolgende Zeilen mit gleicher Seite und
     // gleichem meta.group, rows als Indizes in card.entries (durch einen
     // Repeater gereichte Objekte verlieren ihre JS-Arrays – `options` kaeme
-    // als Sequenz an, nicht als Array). Ein breiter Editor macht die Karte
-    // breit – die anderen (Sperrbildschirm, Desktop) sind nur ein Knopf.
-    readonly property var wideEditors: ["quick", "battery", "keybinds", "vpn", "monitors", "system"]
-    // Diese nehmen die ganze Breite des Fensters statt hoechstens 820 px
-    // (die Tastatur der Tastenkuerzel braucht Platz)
+    // als Sequenz an, nicht als Array). Alles steht in einer Spalte wie bei
+    // Caelestia; nur die Tastatur der Tastenkuerzel nimmt die ganze Breite.
     readonly property var fullEditors: ["keybinds"]
+    // Editoren, die sich samt Containern selbst zeichnen (GroupCard.bare)
+    readonly property var bareEditors: ["system", "monitors", "keybinds", "wallpaperhero"]
+    readonly property real columnWidth: Math.min(card.listRoom, 760)
     readonly property var groupCards: {
         const out = [];
         card.entries.forEach((e, i) => {
             const last = out[out.length - 1];
-            if (last && last.page === (e.page ?? e.section) && last.group === e.group) {
+            const bare = card.bareEditors.includes(e.editor);
+            // Ein Editor, der sich selbst zeichnet, steht immer fuer sich
+            if (last && !bare && !last.bare && last.page === (e.page ?? e.section) && last.group === e.group) {
                 last.rows.push(i);
-                last.wide = last.wide || card.wideEditors.includes(e.editor);
-                last.full = last.full || card.fullEditors.includes(e.editor);
             } else {
-                out.push({ section: e.section, page: e.page ?? e.section, group: e.group, rows: [i], wide: card.wideEditors.includes(e.editor), full: card.fullEditors.includes(e.editor) });
+                out.push({ section: e.section, page: e.page ?? e.section, group: e.group, rows: [i], bare,
+                           full: card.fullEditors.includes(e.editor) });
             }
         });
         return out;
     }
 
-    // Die Karten auf Baender verteilt: ein Band ist entweder ein Raster aus
-    // Spalten (jede Karte in die bisher kuerzeste) oder eine breite Karte.
-    // Je Band { wide, columns: [[Kartenindex, …], …] }, die Breiten getrennt
-    // daneben (colWidth/wideWidth) – siehe bandModel.
-    readonly property var layoutShape: {
-        const gap = list.gap;
-        const room = Math.max(0, card.listRoom);
-        // Grobe Hoehe je Karte, um die kuerzeste Spalte zu finden
-        const rowWeight = i => {
-            const e = card.entries[i];
-            return card.wideEditors.includes(e.editor) ? 320 : e.editor !== "" ? 110 : e.desc !== "" ? 54 : 46;
-        };
-        const weight = c => c.rows.reduce((s, i) => s + rowWeight(i), 0) + 38;
-
-        // Raster und breite Karten in Lesereihenfolge. Ueber mehrere Gruppen
-        // ("Alle", Suche) kommen die Editoren ans Ende, sonst reissen sie das
-        // Raster in halbleere Baender
-        const all = card.groupCards.map((c, i) => i);
-        const order = card.searching
-            ? all.filter(i => !card.groupCards[i].wide).concat(all.filter(i => card.groupCards[i].wide))
-            : all;
-        const runs = [];
-        let page = "";
-        order.forEach(i => {
-            const c = card.groupCards[i];
-            // Kategorie mit mehreren Abschnitten: Ueberschrift vor jedem
-            // (nicht, wenn er so heisst wie die Seite)
-            if (card.multiSection && c.page !== page) {
-                page = c.page;
-                if (card.sectionTitle(page) !== card.sectionTitle(card.section))
-                    runs.push({ heading: page });
-            }
-            const last = runs[runs.length - 1];
-            if (c.wide)
-                runs.push({ wide: true, full: !!c.full, cards: [i] });
-            else if (last && !last.wide && !last.heading)
-                last.cards.push(i);
-            else
-                runs.push({ wide: false, cards: [i] });
-        });
-
-        // Spaltenzahl aus der Breite, aber nicht mehr als Karten da sind –
-        // eine Seite mit drei Karten bekommt drei breitere Spalten statt vier
-        const most = runs.reduce((m, r) => r.wide || r.heading ? m : Math.max(m, r.cards.length), 1);
-        const fit = Math.max(1, Math.floor((room + gap) / (360 + gap)));
-        const cols = Math.min(fit, most, 4);
-        // Eine Spalte neben einem Editor: so breit wie er, damit die Kanten
-        // stimmen; sonst hoechstens 560, damit Titel und Wert nah bleiben
-        const hasWide = runs.some(r => r.wide);
-        const wideWidth = cols === 1 ? Math.min(room, 820)
-                                     : Math.min(room, Math.max(820, Math.min(560, (room - gap * (cols - 1)) / cols) * 2 + gap));
-        const colWidth = cols === 1 && hasWide ? wideWidth
-                                               : Math.min(560, (room - gap * (cols - 1)) / cols);
-
-        const bands = runs.map(r => {
-            if (r.heading)
-                return { heading: r.heading, columns: [] };
-            if (r.wide)
-                return { wide: true, full: r.full, columns: [r.cards] };
-            const n = Math.min(cols, r.cards.length);
-            const columns = Array.from({ length: n }, () => []);
-            const heights = new Array(n).fill(0);
-            for (const i of r.cards) {
-                const k = heights.indexOf(Math.min(...heights));
-                columns[k].push(i);
-                heights[k] += weight(card.groupCards[i]);
-            }
-            return { wide: false, columns };
-        });
-        return { bands, colWidth, wideWidth, fullWidth: room };
-    }
-
-    // Modell der Baender, nur neu gesetzt, wenn sich die Aufteilung oder die
-    // Karten selbst aendern. Haengt die Breite mit drin, baute jede
-    // Breitenaenderung (Fenster entsteht, Hyprland setzt die Groesse, Ziehen
-    // am Rand) alle Karten neu – beim Oeffnen dreimal hintereinander.
-    // Reine Breitenaenderungen werden 40 ms gesammelt: beim Entstehen springt
-    // die Breite 0 → 1379 → 520 → 1379, beim Ziehen am Rand bei jedem Schritt.
-    property var bandModel: []
-    property string bandKey: ""
-    property int cardsRevision: 0
-    property int builtRevision: -1
-
-    onGroupCardsChanged: {
-        card.cardsRevision++;
-        Qt.callLater(card.syncBands);
-    }
-    onLayoutShapeChanged: {
-        if (card.bandModel.length === 0 || card.builtRevision !== card.cardsRevision)
-            Qt.callLater(card.syncBands);
-        else
-            bandSettle.restart();
-    }
-
-    Timer {
-        id: bandSettle
-
-        interval: 40
-        onTriggered: card.syncBands()
-    }
-
-    function syncBands(): void {
-        if (card.width <= 0)
-            return;
-        const key = card.cardsRevision + JSON.stringify(card.layoutShape.bands);
-        if (key === card.bandKey)
-            return;
-        card.bandKey = key;
-        card.builtRevision = card.cardsRevision;
-        card.bandModel = card.layoutShape.bands;
-        Qt.callLater(card.scrollToTarget);
-    }
+    // Nach openPage("vpn") zum Abschnitt scrollen, sobald die Gruppen stehen
+    onGroupCardsChanged: Qt.callLater(card.scrollToTarget)
 
     function scrollToTarget(): void {
         if (card.scrollTarget === "")
             return;
-        for (const b of bands.children) {
-            if (b.heading === card.scrollTarget) {
-                list.contentY = Math.max(0, Math.min(b.y, list.contentHeight - list.height));
+        for (const g of cardColumn.children) {
+            if (g.group?.page === card.scrollTarget) {
+                list.contentY = Math.max(0, Math.min(g.y, list.contentHeight - list.height));
                 card.scrollTarget = "";
                 return;
             }
@@ -505,6 +404,8 @@ Surface {
     property Item railItem: null
 
     maxRadius: 24
+    // Das Fenster hat keinen Blur dahinter – deckend, egal wie transparent die Pillen sind
+    baseColor: Colors.background
 
     // Kommt beim Oeffnen leicht herangewachsen
     scale: card.shown ? 1 : 0.96
@@ -518,7 +419,6 @@ Surface {
     // Zaehler der Bibliothek in der Leiste (die Liste ist sonst erst da,
     // wenn die Auswahl oder die Bibliothek einmal offen war)
     Component.onCompleted: {
-        card.syncBands();
         Wallpapers.ensureLoaded();
         card.applyRequest();
     }
@@ -557,33 +457,17 @@ Surface {
             color: Colors.alpha(Colors.outline, 0.25)
         }
 
-        Text {
-            id: title
-            font.family: Config.font
-
-            anchors {
-                left: parent.left
-                leftMargin: 22
-                top: parent.top
-                topMargin: 24
-            }
-            text: I18n.tr("Einstellungen")
-            color: Colors.fgBackground
-            font.pixelSize: 17
-            font.weight: Font.DemiBold
-            visible: !card.compact
-        }
-
-        // Schmal: statt des Titels das Symbol des Fensters
+        // Schmal: oben das Symbol des Fensters (die Suche steht dann im Kopf)
         Text {
             anchors {
                 horizontalCenter: parent.horizontalCenter
-                verticalCenter: title.verticalCenter
+                top: parent.top
+                topMargin: 30
             }
             text: "settings"
             color: Colors.fgBackground
             font.family: "Material Symbols Outlined"
-            font.pixelSize: 20
+            font.pixelSize: 22
             visible: card.compact
         }
 
@@ -594,9 +478,10 @@ Surface {
             anchors {
                 left: parent.left
                 right: parent.right
-                top: title.bottom
+                top: parent.top
                 bottom: parent.bottom
-                topMargin: 18
+                // Breit steht hier oben die Suche (searchBox liegt in content)
+                topMargin: 80
                 bottomMargin: 12
             }
             clip: true
@@ -643,32 +528,45 @@ Surface {
                         readonly property bool current: (!card.searching || card.browsing) && button.owner === button.modelData.key
 
                         width: parent?.width ?? 0
-                        height: card.compact ? 44 : 50
-                        radius: 14
-                        color: button.current ? Colors.alpha(Colors.primary, 0.14)
-                             : buttonHover.hovered ? Colors.alpha(Colors.fgSurface, 0.06)
+                        height: card.compact ? 48 : 58
+                        radius: 18
+                        color: button.current ? Colors.alpha(Colors.primary, 0.12)
+                             : buttonHover.hovered ? Colors.alpha(Colors.fgSurface, 0.05)
                              : "transparent"
 
                         Behavior on color {
                             ColorAnimation { duration: Appearance.fadeDuration }
                         }
 
-                        Text {
+                        // Symbol im Kreis; die gewaehlte Kategorie in der Akzentfarbe
+                        Rectangle {
                             id: buttonIcon
 
-                            x: card.compact ? (parent.width - width) / 2 : 14
+                            x: card.compact ? (parent.width - width) / 2 : 11
                             anchors.verticalCenter: parent.verticalCenter
-                            text: button.modelData.icon
-                            color: button.current ? Colors.primary : Colors.fgSurfaceVariant
-                            font.family: "Material Symbols Outlined"
-                            font.pixelSize: 20
-                            font.variableAxes: ({ FILL: button.current ? 1 : 0 })
+                            width: 38
+                            height: 38
+                            radius: 19
+                            color: button.current ? Colors.primary : Colors.alpha(Colors.fgSurface, 0.07)
+
+                            Behavior on color {
+                                ColorAnimation { duration: Appearance.fadeDuration }
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: button.modelData.icon
+                                color: button.current ? Colors.fgPrimary : Colors.fgSurface
+                                font.family: "Material Symbols Outlined"
+                                font.pixelSize: 20
+                                font.variableAxes: ({ FILL: button.current ? 1 : 0 })
+                            }
                         }
 
                         Column {
                             anchors {
                                 left: buttonIcon.right
-                                leftMargin: 14
+                                leftMargin: 13
                                 right: parent.right
                                 rightMargin: 10
                                 verticalCenter: parent.verticalCenter
@@ -761,13 +659,25 @@ Surface {
             return Plugins.isPluginSection(card.section) ? card.managerKey : "";
         }
 
+        // Kopfzeile: Zurueck, Seitentitel, (schmal: Suche), ⋮, Schliessen
+        Item {
+            id: header
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+            }
+            height: 82
+        }
+
         Item {
             id: backButton
 
             anchors {
                 left: parent.left
                 leftMargin: 16
-                verticalCenter: searchBox.verticalCenter
+                verticalCenter: header.verticalCenter
             }
             width: content.backSection !== "" ? 30 : 0
             height: 30
@@ -805,31 +715,29 @@ Surface {
             anchors {
                 left: backButton.visible ? backButton.right : parent.left
                 leftMargin: backButton.visible ? 6 : 24
-                verticalCenter: searchBox.verticalCenter
+                verticalCenter: header.verticalCenter
             }
-            width: Math.max(0, Math.min(heading.implicitWidth, moreButton.x - 10 - heading.x - 12 - 150))
+            width: Math.max(0, Math.min(heading.implicitWidth, moreButton.x - 10 - heading.x - (card.compact ? 12 + 150 : 0)))
             // In der Bibliothek steht "Bibliothek › Ordner" in der Seite selbst
             text: card.browsing ? "Wallpaper"
                 : card.searching ? I18n.tr("Suche")
                 : card.section === "" ? I18n.tr("Alle")
                 : card.sectionTitle(card.section)
             color: Colors.fgBackground
-            font.pixelSize: 15
-            font.weight: Font.DemiBold
+            font.pixelSize: 24
+            font.weight: Font.Medium
             elide: Text.ElideRight
         }
 
         Rectangle {
             id: searchBox
 
-            anchors {
-                left: heading.right
-                top: parent.top
-                leftMargin: 12
-                topMargin: 22
-            }
-            width: Math.max(0, Math.min(moreButton.x - 10 - (heading.x + heading.width + 12), 520))
-            height: 38
+            // Breit oben in der Leiste (links ausserhalb von content – content
+            // schneidet nicht ab), schmal im Kopf neben dem Titel
+            x: card.compact ? heading.x + heading.width + 12 : -card.sidebarWidth + 14
+            y: card.compact ? (header.height - height) / 2 : 18
+            width: card.compact ? Math.max(0, Math.min(moreButton.x - 10 - x, 520)) : card.sidebarWidth - 28
+            height: card.compact ? 38 : 46
             radius: height / 2
             color: Colors.alpha(Colors.fgSurface, search.activeFocus ? 0.09 : 0.06)
             border.width: 1
@@ -935,7 +843,7 @@ Surface {
             anchors {
                 right: closeButton.left
                 rightMargin: 4
-                verticalCenter: searchBox.verticalCenter
+                verticalCenter: header.verticalCenter
             }
             entries: [
                 { text: I18n.tr("shell.json öffnen"), icon: "open_in_new", action: () => {
@@ -953,7 +861,7 @@ Surface {
             anchors {
                 right: parent.right
                 rightMargin: 20
-                verticalCenter: searchBox.verticalCenter
+                verticalCenter: header.verticalCenter
             }
             width: 32
             height: 32
@@ -991,13 +899,13 @@ Surface {
 
             anchors {
                 left: parent.left
-                top: searchBox.bottom
+                top: header.bottom
                 bottom: parent.bottom
-                leftMargin: 22
+                leftMargin: Math.max(22, (parent.width - card.columnWidth) / 2)
                 topMargin: 12
                 bottomMargin: 16
             }
-            width: Math.min(parent.width - 46, 1400)
+            width: card.columnWidth
             active: card.managing
             visible: active
 
@@ -1013,7 +921,7 @@ Surface {
             anchors {
                 left: parent.left
                 right: parent.right
-                top: searchBox.bottom
+                top: header.bottom
                 bottom: parent.bottom
                 leftMargin: 24
                 rightMargin: 16
@@ -1044,7 +952,7 @@ Surface {
             anchors {
                 left: parent.left
                 right: parent.right
-                top: searchBox.bottom
+                top: header.bottom
                 bottom: parent.bottom
                 leftMargin: 24
                 rightMargin: 16
@@ -1089,33 +997,31 @@ Surface {
         }
 
         // ---- Die Liste ----
-        // Karten in Baendern (siehe layoutShape/bandModel), linksbuendig unter dem
-        // Titel, damit Kopf und Karten eine Kante haben
+        // Eine Spalte, mittig unter dem Kopf (Caelestia): je Gruppe eine
+        // Ueberschrift und ein Container (GroupCard)
         Flickable {
             id: list
-
-            readonly property real gap: 14
 
             anchors {
                 left: parent.left
                 right: parent.right
-                top: searchBox.bottom
+                top: header.bottom
                 bottom: parent.bottom
                 leftMargin: 24
                 rightMargin: 20
-                topMargin: 16
+                topMargin: 18
                 bottomMargin: 16
             }
             visible: !card.managing && !card.browsing && !card.paging
             clip: true
             contentWidth: width
-            contentHeight: bands.height + 8
+            contentHeight: cardColumn.height + 24
             boundsBehavior: Flickable.StopAtBounds
             // Nicht per Ziehen scrollen: sonst klaut die Liste den
             // Drag-and-Drop-Editoren ihre Geste. Das Mausrad reicht.
             interactive: false
 
-            // Inhalt kuerzer geworden (Filter, andere Spalten): nicht ins Leere zeigen
+            // Inhalt kuerzer geworden (Filter): nicht ins Leere zeigen
             onContentHeightChanged: list.contentY = Math.max(0, Math.min(list.contentY, list.contentHeight - list.height))
 
             WheelHandler {
@@ -1133,63 +1039,26 @@ Surface {
             }
 
             Column {
-                id: bands
+                id: cardColumn
 
                 width: list.width
-                spacing: list.gap
+                spacing: 22
 
                 Repeater {
-                    model: card.bandModel
+                    // Anzahl statt Liste: gleich viele Gruppen bauen nichts neu
+                    model: card.groupCards.length
 
-                    Row {
-                        id: band
+                    GroupCard {
+                        required property int index
 
-                        required property var modelData
-                        // Ueberschrift eines Abschnitts (scrollToTarget sucht danach)
-                        readonly property string heading: band.modelData.heading ?? ""
-
-                        spacing: list.gap
-
-                        Text {
-                            visible: band.heading !== ""
-                            leftPadding: 4
-                            topPadding: band.y > 0 ? 14 : 0
-                            text: band.heading !== "" ? card.sectionTitle(band.heading) : ""
-                            color: Colors.fgSurfaceVariant
-                            font.family: Config.font
-                            font.pixelSize: 13
-                            font.weight: Font.DemiBold
-                        }
-
-                        Repeater {
-                            model: band.modelData.columns
-
-                            Column {
-                                id: column
-
-                                required property var modelData
-
-                                width: band.modelData.full ? card.layoutShape.fullWidth : band.modelData.wide ? card.layoutShape.wideWidth : card.layoutShape.colWidth
-                                spacing: list.gap
-
-                                Repeater {
-                                    model: column.modelData
-
-                                    GroupCard {
-                                        required property int modelData
-
-                                        width: column.width
-                                        // Waehrend des Filterns sind Indizes
-                                        // und Liste kurz auseinander
-                                        group: card.groupCards[modelData] ?? null
-                                        entries: card.entries
-                                        sectionLabel: card.searching
-                                                      ? card.sectionTitle(group?.page ?? group?.section ?? "") : ""
-                                        pageTitle: card.searching ? "" : card.sectionTitle(card.section)
-                                    }
-                                }
-                            }
-                        }
+                        // Waehrend des Filterns sind Indizes und Liste kurz auseinander
+                        group: card.groupCards[index] ?? null
+                        width: group?.full ? list.width : card.columnWidth
+                        x: (list.width - width) / 2
+                        entries: card.entries
+                        titleOf: s => card.partTitle(s)
+                        sectionLabel: card.searching ? card.partTitle(group?.page ?? group?.section ?? "") : ""
+                        pageTitle: card.searching ? "" : card.sectionTitle(card.section)
                     }
                 }
             }

@@ -363,7 +363,7 @@ Item {
         maxRadius: notch.cardRadius
         // Angedockt: schwarz, flach und ohne Rand – sie soll wie ein Teil
         // des Displayrahmens wirken, die Schultern muessen nahtlos passen.
-        baseColor: notch.docked ? Appearance.notchColor : Colors.background
+        baseColor: notch.docked ? Appearance.notchColor : Colors.alpha(Colors.background, Appearance.surfaceAlpha)
         lift: notch.docked ? 0 : Appearance.lift
         // Kontur nur, wenn sie sich sonst nicht vom Wallpaper abhebt
         borderWidth: notch.docked ? (Appearance.notchBorder ? 1 : 0) : notch.borderWidth

@@ -160,7 +160,7 @@ Surface {
     maxRadius: cardRadius
     clipContent: false   // muss offen sein: das Dropdown haengt unten raus
     // Eingebettet: keine eigene Karte, die Notch ist die Flaeche
-    baseColor: settings.embedded ? "transparent" : Colors.background
+    baseColor: settings.embedded ? "transparent" : Colors.alpha(Colors.background, Appearance.surfaceAlpha)
     lift: settings.embedded ? 0 : Appearance.lift
     shadow: !settings.embedded && Appearance.shadow && !settings.nested
 

@@ -5,18 +5,17 @@ import qs
 import qs.modules.services.config
 import qs.modules.services.system
 
-// Update-Karte der Systemseite (SystemEditor) fuer die Shell selbst, also
-// das Git-Repo (ShellUpdate): Stand der Pruefung mit Symbol, darunter die
-// neuen Commits des Upstreams (einklappbar, scrollt ab listMax), der
+// Abschnitt "Updates" der Info-Seite (SystemEditor) fuer die Shell selbst,
+// also das Git-Repo (ShellUpdate). Zeilen im Behaelter: der Stand der
+// Pruefung mit "Nach Updates suchen" / "Aktualisieren" (shellupdate.sh,
+// abgekoppelt), die neuen Commits des Upstreams (scrollt ab listMax), der
 // Fehlertext von git, falls der Pull abgelehnt wurde, die eigenen
-// Aenderungen (zugeklappt) und die Knoepfe "Shell neu starten", "Nach
-// Updates suchen" und "Aktualisieren" (shellupdate.sh, abgekoppelt).
+// Aenderungen (zugeklappt) und "Shell neu starten".
 SectionCard {
     id: card
 
-    property bool listOpen: true
     property bool changesOpen: false
-    readonly property int listMax: 220
+    readonly property int listMax: 204
 
     readonly property bool checking: ShellUpdate.checking
     readonly property bool updating: ShellUpdate.updating
@@ -25,6 +24,7 @@ SectionCard {
                                  || (ShellUpdate.checkState === "error" && !card.updating && !ShellUpdate.updateDone)
     readonly property int behind: ShellUpdate.behind
     readonly property bool hasList: card.behind > 0 && ShellUpdate.incoming.length > 0
+    readonly property bool hasError: ShellUpdate.updateError !== "" && (ShellUpdate.updateFailed || ShellUpdate.buildWarned) && !card.updating
 
     readonly property string statusText: {
         if (card.updating) {
@@ -84,137 +84,84 @@ SectionCard {
         return parts.join("  ·  ");
     }
 
-    readonly property bool spinning: card.updating || card.checking
-    readonly property string statusIcon: card.spinning ? "progress_activity"
-                                       : card.failed ? "error"
-                                       : card.done ? "check_circle"
-                                       : card.behind > 0 ? "system_update"
-                                       : "check_circle"
-
     // git-Fehler, bei dem eigene Aenderungen oder Commits im Weg stehen
     readonly property bool conflictHint: /overwritten|local changes|fast-forward|diverg|stash|commit your changes|überschrieben|lokale Änderungen|Vorspulen/i.test(ShellUpdate.updateError)
 
-    title: I18n.tr("Update")
-    spacing: 8
+    title: I18n.tr("Updates")
 
-    // Statuszeile: Symbol, Text, Pfeil zum Auf- und Zuklappen der Liste
+    // Stand und Knoepfe; in schmalen Fenstern rutschen die Knoepfe unter den Text
     Item {
+        id: statusRow
+
+        readonly property bool narrow: width < 560
+
         width: parent.width
-        height: 36
-
-        Rectangle {
-            id: statusBadge
-
-            anchors {
-                left: parent.left
-                verticalCenter: parent.verticalCenter
-            }
-            width: 36
-            height: 36
-            radius: 12
-            color: Colors.alpha(card.failed ? Colors.error : Colors.primary, 0.14)
-
-            Text {
-                id: statusIconText
-
-                anchors.centerIn: parent
-                text: card.statusIcon
-                color: card.failed ? Colors.error : Colors.primary
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 20
-                font.variableAxes: ({ FILL: card.behind > 0 && !card.spinning && !card.failed ? 1 : 0 })
-
-                RotationAnimator {
-                    target: statusIconText
-                    from: 0
-                    to: 360
-                    duration: 900
-                    loops: Animation.Infinite
-                    running: card.spinning && statusIconText.visible
-                    onRunningChanged: if (!running)
-                        statusIconText.rotation = 0
-                }
-            }
-        }
+        height: (narrow ? statusColumn.implicitHeight + 10 + actions.height : Math.max(statusColumn.implicitHeight, actions.height)) + 26
 
         Column {
-            anchors {
-                left: statusBadge.right
-                leftMargin: 10
-                right: chevron.visible ? chevron.left : parent.right
-                rightMargin: 8
-                verticalCenter: parent.verticalCenter
-            }
-            spacing: 1
+            id: statusColumn
+
+            x: 16
+            y: statusRow.narrow ? 13 : (parent.height - implicitHeight) / 2
+            width: (statusRow.narrow ? parent.width : actions.x) - 32
+            spacing: 3
 
             Text {
                 width: parent.width
-                text: card.statusText
-                color: Colors.fgBackground
+                text: I18n.tr("Shell-Updates")
+                color: Colors.fgSurface
                 font.family: Config.font
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
+                font.pixelSize: 13
                 elide: Text.ElideRight
             }
 
             Text {
                 width: parent.width
-                visible: text !== ""
-                text: card.detailText
+                text: card.statusText + (card.detailText !== "" ? "  ·  " + card.detailText : "")
                 color: card.failed ? Colors.error : Colors.fgSurfaceVariant
                 font.family: Config.font
-                font.pixelSize: 10
-                elide: Text.ElideRight
+                font.pixelSize: 11
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
             }
         }
 
-        Text {
-            id: chevron
+        Row {
+            id: actions
 
-            anchors {
-                right: parent.right
-                verticalCenter: parent.verticalCenter
+            x: statusRow.narrow ? 16 : parent.width - width - 16
+            y: statusRow.narrow ? statusColumn.y + statusColumn.implicitHeight + 10 : (parent.height - height) / 2
+            spacing: 8
+
+            TextButton {
+                label: I18n.tr("Nach Updates suchen")
+                enabled: !card.checking && !card.updating
+                onClicked: ShellUpdate.check(true)
             }
-            visible: card.hasList
-            text: "expand_more"
-            color: Colors.fgSurfaceVariant
-            font.family: "Material Symbols Outlined"
-            font.pixelSize: 20
-            rotation: card.listOpen ? 180 : 0
 
-            Behavior on rotation {
-                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
+            TextButton {
+                visible: ShellUpdate.canUpdate || card.updating
+                label: card.updating ? I18n.tr("Läuft…") : I18n.tr("Aktualisieren")
+                filled: true
+                enabled: ShellUpdate.canUpdate
+                onClicked: ShellUpdate.update()
             }
         }
 
-        HoverHandler {
-            enabled: card.hasList
-            cursorShape: Qt.PointingHandCursor
-        }
-
-        TapHandler {
-            enabled: card.hasList
-            onTapped: card.listOpen = !card.listOpen
-        }
+        Divider {}
     }
 
-    // Neue Commits: Hash, Betreff, Alter
+    // Neue Commits: Betreff links, Hash und Alter rechts
     Item {
-        id: listBox
-
         width: parent.width
-        height: card.listOpen && card.hasList ? Math.min(card.listMax, list.contentHeight) : 0
+        visible: card.hasList
+        height: Math.min(card.listMax, list.contentHeight)
         clip: true
-
-        Behavior on height {
-            NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
-        }
 
         ListView {
             id: list
 
             anchors.fill: parent
-            spacing: 0
             cacheBuffer: 2000
             boundsBehavior: Flickable.StopAtBounds
             model: ShellUpdate.incoming
@@ -225,44 +172,22 @@ SectionCard {
                 required property var modelData
 
                 width: list.width
-                height: 24
-
-                Rectangle {
-                    id: hashTag
-
-                    anchors {
-                        left: parent.left
-                        verticalCenter: parent.verticalCenter
-                    }
-                    width: 60
-                    height: 16
-                    radius: height / 2
-                    color: Colors.alpha(Colors.primary, 0.14)
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: entry.modelData.hash
-                        color: Colors.primary
-                        font.family: Config.font
-                        font.pixelSize: 9
-                        font.weight: Font.DemiBold
-                    }
-                }
+                height: 34
 
                 Text {
                     anchors {
-                        left: hashTag.right
-                        leftMargin: 8
+                        left: parent.left
+                        leftMargin: 16
                         right: whenLabel.left
-                        rightMargin: 8
+                        rightMargin: 16
                         verticalCenter: parent.verticalCenter
                     }
                     text: entry.modelData.subject
-                    color: Colors.fgBackground
+                    color: Colors.fgSurface
                     font.family: Config.font
-                    font.pixelSize: 11
-                    font.weight: Font.Medium
+                    font.pixelSize: 12
                     elide: Text.ElideRight
+                    textFormat: Text.PlainText
                 }
 
                 Text {
@@ -270,27 +195,28 @@ SectionCard {
 
                     anchors {
                         right: parent.right
+                        rightMargin: 16
                         verticalCenter: parent.verticalCenter
                     }
-                    width: Math.min(implicitWidth, entry.width * 0.35)
-                    text: entry.modelData.when
+                    width: Math.min(implicitWidth, entry.width * 0.4)
+                    text: entry.modelData.hash + "  ·  " + entry.modelData.when
                     color: Colors.fgSurfaceVariant
                     font.family: Config.font
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     horizontalAlignment: Text.AlignRight
                     elide: Text.ElideRight
                 }
             }
         }
+
+        Divider {}
     }
 
     // Fehlertext von git/cargo (Pull abgelehnt, Build gescheitert)
-    Rectangle {
+    Item {
         width: parent.width
-        visible: ShellUpdate.updateError !== "" && (ShellUpdate.updateFailed || ShellUpdate.buildWarned) && !card.updating
-        height: visible ? errorColumn.implicitHeight + 20 : 0
-        radius: 12
-        color: Colors.alpha(Colors.error, 0.08)
+        visible: card.hasError
+        height: errorColumn.implicitHeight + 24
 
         Column {
             id: errorColumn
@@ -299,7 +225,9 @@ SectionCard {
                 left: parent.left
                 right: parent.right
                 top: parent.top
-                margins: 10
+                leftMargin: 16
+                rightMargin: 16
+                topMargin: 12
             }
             spacing: 6
 
@@ -307,9 +235,9 @@ SectionCard {
                 width: parent.width
                 visible: ShellUpdate.buildWarned && !ShellUpdate.updateFailed
                 text: I18n.tr("Die Rust-Helfer konnten nicht neu gebaut werden – die alten bleiben. Später ./install.sh ausführen.")
-                color: Colors.fgBackground
+                color: Colors.fgSurface
                 font.family: Config.font
-                font.pixelSize: 10
+                font.pixelSize: 11
                 wrapMode: Text.Wrap
             }
 
@@ -318,7 +246,7 @@ SectionCard {
                 text: ShellUpdate.updateError
                 color: Colors.error
                 font.family: Config.font
-                font.pixelSize: 10
+                font.pixelSize: 11
                 wrapMode: Text.Wrap
                 textFormat: Text.PlainText
             }
@@ -329,44 +257,53 @@ SectionCard {
                 text: I18n.tr("Eigene Änderungen an diesen Dateien zuerst sichern (git stash) – siehe README, Abschnitt „Updating“.")
                 color: Colors.fgSurfaceVariant
                 font.family: Config.font
-                font.pixelSize: 10
+                font.pixelSize: 11
                 wrapMode: Text.Wrap
             }
         }
+
+        Divider {}
     }
 
     // Eigene Aenderungen (git status), zugeklappt
     Item {
         width: parent.width
         visible: ShellUpdate.localCount > 0
-        height: visible ? 22 : 0
+        height: 46
 
-        Row {
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "expand_more"
-                color: Colors.fgSurfaceVariant
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 16
-                rotation: card.changesOpen ? 180 : 0
-
-                Behavior on rotation {
-                    NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
-                }
+        Text {
+            anchors {
+                left: parent.left
+                leftMargin: 16
+                right: changesChevron.left
+                rightMargin: 16
+                verticalCenter: parent.verticalCenter
             }
+            text: ShellUpdate.localCount === 1
+                ? I18n.tr("1 eigene Änderung im Repo")
+                : I18n.tr("%1 eigene Änderungen im Repo").arg(ShellUpdate.localCount)
+            color: Colors.fgSurface
+            font.family: Config.font
+            font.pixelSize: 13
+            elide: Text.ElideRight
+        }
 
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: ShellUpdate.localCount === 1
-                    ? I18n.tr("1 eigene Änderung im Repo")
-                    : I18n.tr("%1 eigene Änderungen im Repo").arg(ShellUpdate.localCount)
-                color: Colors.fgSurfaceVariant
-                font.family: Config.font
-                font.pixelSize: 10
-                font.weight: Font.Medium
+        Text {
+            id: changesChevron
+
+            anchors {
+                right: parent.right
+                rightMargin: 14
+                verticalCenter: parent.verticalCenter
+            }
+            text: "expand_more"
+            color: Colors.fgSurfaceVariant
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 20
+            rotation: card.changesOpen ? 180 : 0
+
+            Behavior on rotation {
+                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
             }
         }
 
@@ -377,22 +314,25 @@ SectionCard {
         TapHandler {
             onTapped: card.changesOpen = !card.changesOpen
         }
+
+        Divider {
+            visible: !card.changesOpen
+        }
     }
 
     Item {
         width: parent.width
-        height: card.changesOpen && ShellUpdate.localCount > 0 ? Math.min(160, changes.contentHeight) : 0
+        visible: card.changesOpen && ShellUpdate.localCount > 0
+        height: Math.min(160, changes.contentHeight) + 10
         clip: true
-
-        Behavior on height {
-            NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
-        }
 
         ListView {
             id: changes
 
-            anchors.fill: parent
-            spacing: 0
+            anchors {
+                fill: parent
+                bottomMargin: 10
+            }
             cacheBuffer: 2000
             boundsBehavior: Flickable.StopAtBounds
             model: ShellUpdate.localChanges
@@ -403,70 +343,72 @@ SectionCard {
                 required property var modelData
 
                 width: changes.width
-                height: 20
+                height: 22
 
                 Text {
                     id: statusLabel
 
                     anchors {
                         left: parent.left
+                        leftMargin: 16
                         verticalCenter: parent.verticalCenter
                     }
-                    width: 22
+                    width: 24
                     text: change.modelData.status
                     color: Colors.primary
                     font.family: Config.font
-                    font.pixelSize: 10
-                    font.weight: Font.DemiBold
+                    font.pixelSize: 11
                 }
 
                 Text {
                     anchors {
                         left: statusLabel.right
                         right: parent.right
+                        rightMargin: 16
                         verticalCenter: parent.verticalCenter
                     }
                     text: change.modelData.file
-                    color: Colors.fgBackground
+                    color: Colors.fgSurfaceVariant
                     font.family: Config.font
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     elide: Text.ElideLeft
                 }
             }
         }
+
+        Divider {}
     }
 
-    // Knoepfe
     Item {
         width: parent.width
-        height: 28
+        height: 56
 
-        ActionChip {
-            anchors.left: parent.left
-            icon: "restart_alt"
-            label: I18n.tr("Shell neu starten")
-            enabled: !card.updating
-            onClicked: ShellUpdate.restart()
+        Text {
+            anchors {
+                left: parent.left
+                leftMargin: 16
+                right: restartButton.left
+                rightMargin: 16
+                verticalCenter: parent.verticalCenter
+            }
+            text: I18n.tr("Shell neu starten")
+            color: Colors.fgSurface
+            font.family: Config.font
+            font.pixelSize: 13
+            elide: Text.ElideRight
         }
 
-        Row {
-            anchors.right: parent.right
-            spacing: 6
+        TextButton {
+            id: restartButton
 
-            ActionChip {
-                icon: "refresh"
-                label: I18n.tr("Nach Updates suchen")
-                enabled: !card.checking && !card.updating
-                onClicked: ShellUpdate.check(true)
+            anchors {
+                right: parent.right
+                rightMargin: 16
+                verticalCenter: parent.verticalCenter
             }
-
-            ActionChip {
-                icon: "system_update_alt"
-                label: card.updating ? I18n.tr("Läuft…") : I18n.tr("Aktualisieren")
-                filled: true
-                enabled: ShellUpdate.canUpdate
-                onClicked: ShellUpdate.update()
-            }
+            label: I18n.tr("Neu starten")
+            enabled: !card.updating
+            onClicked: ShellUpdate.restart()
         }
     }
 }

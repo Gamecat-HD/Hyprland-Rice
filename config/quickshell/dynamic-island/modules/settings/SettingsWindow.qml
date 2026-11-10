@@ -145,10 +145,11 @@ LazyLoader {
                 height: win.corner
             }
 
-            // Verschieben am Kopf der Gruppenleiste ("Einstellungen")
+            // Verschieben am Seitentitel (in der Leiste oben steht die Suche);
+            // schmal steht die Suche neben dem Titel, dann nur ein Stueck
             MouseArea {
-                anchors { left: parent.left; top: parent.top; topMargin: win.grip; leftMargin: win.corner }
-                width: card.sidebarWidth - win.corner
+                anchors { left: parent.left; top: parent.top; topMargin: win.grip; leftMargin: card.sidebarWidth }
+                width: card.compact ? 120 : Math.max(0, card.width - card.sidebarWidth - 110)
                 height: 64
                 cursorShape: pressed ? Qt.ClosedHandCursor : Qt.ArrowCursor
                 onPressed: win.startSystemMove()

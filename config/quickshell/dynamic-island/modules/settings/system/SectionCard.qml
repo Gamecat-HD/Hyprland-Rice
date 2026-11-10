@@ -4,49 +4,37 @@ import QtQuick
 import qs
 import qs.modules.services.config
 
-// Karte innerhalb der Systemseite, im Stil von GroupCard (wie die Karten im
-// MonitorsEditor): Titel klein oben links, darunter der Inhalt als Spalte.
-// Die Hoehe darf von aussen groesser gesetzt werden (zwei Karten nebeneinander
-// gleich hoch), der Inhalt bleibt oben.
-Rectangle {
+// Abschnitt der Info-Seite: kleine Ueberschrift ausserhalb, darunter ein
+// gerundeter Behaelter ohne Rand mit den Zeilen als Spalte. Die Zeilen
+// bringen ihren Innenabstand selbst mit.
+Column {
     id: card
 
     property string title: ""
-    default property alias content: cardColumn.data
-    property alias spacing: cardColumn.spacing
+    default property alias content: rows.data
 
-    implicitHeight: cardColumn.anchors.topMargin + cardColumn.implicitHeight + 14
-    radius: 16
-    color: Colors.alpha(Colors.fgSurface, 0.035)
-    border.width: 1
-    border.color: Colors.alpha(Colors.outline, 0.14)
+    spacing: 8
 
     Text {
-        anchors {
-            left: parent.left
-            top: parent.top
-            leftMargin: 14
-            topMargin: 10
-        }
+        leftPadding: 4
         visible: card.title !== ""
         text: card.title
         color: Colors.fgSurfaceVariant
         font.family: Config.font
-        font.pixelSize: 11
+        font.pixelSize: 13
         font.weight: Font.DemiBold
     }
 
-    Column {
-        id: cardColumn
+    Rectangle {
+        width: parent.width
+        height: rows.implicitHeight
+        radius: 16
+        color: Colors.alpha(Colors.fgSurface, 0.04)
 
-        anchors {
-            left: parent.left
-            right: parent.right
-            top: parent.top
-            leftMargin: 14
-            rightMargin: 14
-            topMargin: card.title !== "" ? 34 : 14
+        Column {
+            id: rows
+
+            width: parent.width
         }
-        spacing: 10
     }
 }

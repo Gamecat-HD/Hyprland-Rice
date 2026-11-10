@@ -3,6 +3,7 @@ import QtQuick
 import qs.modules.services.config
 import qs.modules.services.plugins
 import qs.modules.widgets
+import qs.modules.settings.wallpaper
 
 import qs
 
@@ -27,6 +28,8 @@ Item {
 
     // { id, section, key, value, title, desc, options, min, max, step, unit, requires }
     required property var entry
+    // Editor, der sich selbst zeichnet (GroupCard.bare): ohne Titelzeile und Rand
+    property bool bare: false
 
     readonly property bool isBool: typeof row.entry?.value === "boolean"
     readonly property bool isNumber: typeof row.entry?.value === "number"
@@ -113,7 +116,7 @@ Item {
     readonly property string subtitle: !row.available && row.requirementLabel !== ""
                                        ? row.requirementLabel
                                        : (row.entry?.desc ?? "")
-    readonly property real lineHeight: row.subtitle !== "" ? 52 : 44
+    readonly property real lineHeight: row.bare ? 0 : row.subtitle !== "" ? 60 : 50
 
     // Breite des Bedienelements je nach Zeilenbreite: der Schieberegler
     // waechst von 110 auf 220 px mit, ein Auswahlwert wird abgeschnitten,
@@ -122,7 +125,7 @@ Item {
     readonly property real valueCap: Math.max(72, row.width - 28 - 160 - 10 - 26 - 24)
 
     implicitHeight: row.lineHeight
-                    + (row.isEditor ? editorLoader.implicitHeight + 14 : 0)
+                    + (row.isEditor ? editorLoader.implicitHeight + (row.bare ? 0 : 14) : 0)
 
     Behavior on implicitHeight {
         NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
@@ -135,8 +138,8 @@ Item {
             top: parent.top
             bottom: parent.bottom
         }
-        radius: 12
-        color: hover.hovered && row.available ? Colors.alpha(Colors.fgSurface, 0.05) : "transparent"
+        radius: 16
+        color: hover.hovered && row.available && !row.isEditor ? Colors.alpha(Colors.fgSurface, 0.04) : "transparent"
         opacity: row.available ? 1 : 0.45
         clip: true
 
@@ -163,6 +166,7 @@ Item {
                 top: parent.top
             }
             height: row.lineHeight
+            visible: !row.bare
 
             TapHandler {
                 enabled: (row.isBool || row.isLink) && row.available
@@ -194,7 +198,7 @@ Item {
             Column {
                 anchors {
                     left: parent.left
-                    leftMargin: 14
+                    leftMargin: 16
                     right: resetButton.left
                     rightMargin: 10
                     verticalCenter: parent.verticalCenter
@@ -210,7 +214,7 @@ Item {
                         width: Math.min(implicitWidth, parent.width - (row.changed ? 11 : 0))
                         text: row.entry?.title ?? ""
                         color: Colors.fgBackground
-                        font.pixelSize: 12
+                        font.pixelSize: 13
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
                     }
@@ -232,7 +236,7 @@ Item {
                     visible: text !== ""
                     text: row.subtitle
                     color: !row.available ? Colors.secondary : Colors.fgSurfaceVariant
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     elide: Text.ElideRight
                 }
             }
@@ -474,8 +478,8 @@ Item {
                 left: parent.left
                 right: parent.right
                 top: line.bottom
-                leftMargin: 14
-                rightMargin: 14
+                leftMargin: row.bare ? 0 : 16
+                rightMargin: row.bare ? 0 : 16
             }
             active: row.isEditor
             sourceComponent: row.entry?.editor === "quick" ? quickEditor
@@ -487,6 +491,7 @@ Item {
                            : row.entry?.editor === "monitors" ? monitorsEditor
                            : row.entry?.editor === "vpn" ? vpnEditor
                            : row.entry?.editor === "system" ? systemEditor
+                           : row.entry?.editor === "wallpaperhero" ? heroEditor
                            : null
         }
 
@@ -542,6 +547,14 @@ Item {
             id: systemEditor
 
             SystemEditor {}
+        }
+
+        Component {
+            id: heroEditor
+
+            WallpaperHero {
+                inLibrary: false
+            }
         }
     }
 }

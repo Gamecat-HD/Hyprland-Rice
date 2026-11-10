@@ -79,6 +79,15 @@ Singleton {
             title: "Akku von", group: "Anzeige", page: "battery", source: "batteries", requires: "bar.battery",
             desc: "Automatisch = Systemakku, sonst der schwächste Geräte-Akku"
         },
+        // Welche Elemente die Leiste zeigt. "insel": alle Pillen. "notch": nur
+        // die Notch, angedockt an der Oberkante (Bar.qml und Notch.qml lesen das).
+        // Steht auf der Seite der Notch (page), gespeichert unter appearance.
+        "appearance.layout": {
+            page: "notch",
+            title: "Layout",
+            desc: "Insel: alle Pillen. Notch: nur die angedockte Notch oben in der Mitte",
+            options: ["insel", "notch"]
+        },
         // Anzeigen in der eingeklappten Notch (nur Notch-Layout)
         "notch.workspaces": {
             group: "Anzeigen",
@@ -123,7 +132,7 @@ Singleton {
         },
         "notch.messages": {
             group: "Anzeigen",
-            title: "Nachrichten-Zaehler",
+            title: "Nachrichten-Zähler",
             requires: { "appearance.layout": "notch" }
         },
         // Stil-Varianten der Notch-Anzeigen. `preview` zeigt im Menue statt
@@ -138,12 +147,14 @@ Singleton {
             group: "Stile",
             title: "Workspace-Stil",
             options: ["staebchen", "punkte", "zahlen"], preview: "workspaces",
+            labels: { "staebchen": "Stäbchen" },
             requires: "notch.workspaces"
         },
         "notch.visualizerStyle": {
             group: "Stile",
             title: "Visualiser-Stil",
             options: ["spiegel", "saeulen", "punkte", "welle"], preview: "visualizer",
+            labels: { "saeulen": "Säulen" },
             requires: "notch.visualizer"
         },
         // Medienansicht (MediaPanel)
@@ -166,7 +177,7 @@ Singleton {
         // Sichtbarkeit von Uhr/Karte steht im Anordnungs-Editor (lock.layout
         // hidden); der alte Schalter gilt nur noch als Vorgabe dafuer
         "lock.media": { title: "Medien-Karte", hidden: true },
-        "lock.notifications": { title: "Nachrichten-Zaehler" },
+        "lock.notifications": { title: "Nachrichten-Zähler" },
         "lock.layout": { title: "Anordnung", editor: "lock" },
         // Inaktivitaet (services/idle), ersetzt hypridle
         "idle.enabled": { title: "Automatisch sperren", group: "Sperren" },
@@ -208,7 +219,7 @@ Singleton {
         // aus services/system/SystemInfo.qml – `info` ist nur der Anker
         "system.info": { title: "System", desc: "Shell-Version, Updates und Rechner", editor: "system" },
         "system.updateCheckHours": {
-            title: "Im Hintergrund nach Shell-Updates suchen alle", group: "Updates", desc: "git fetch im Repo der Shell; 0 = nur bei offener Ansicht",
+            title: "Im Hintergrund nach Shell-Updates suchen alle", group: "Update-Suche", desc: "git fetch im Repo der Shell; 0 = nur bei offener Ansicht",
             min: 0, max: 24, step: 1, unit: "h"
         },
         "battery.history": { title: "Akkuverlauf", editor: "battery" },
@@ -242,7 +253,7 @@ Singleton {
         // Sprache der Oberflaeche (I18n.qml). `labels` zeigt statt des Werts
         // einen Namen – Sprachnamen stehen immer in ihrer eigenen Sprache
         "appearance.language": {
-            group: "Sprache und Schrift",
+            page: "region",
             title: "Sprache",
             options: ["en", "de"],
             labels: { "en": "English", "de": "Deutsch" }
@@ -250,49 +261,45 @@ Singleton {
         // `options` macht aus der Zeile eine Auswahl. Nicht installierte
         // Schriften blendet das Menue aus.
         "appearance.font": {
-            group: "Sprache und Schrift",
+            group: "Oberfläche",
             title: "Schriftart",
             options: ["SF Pro", "SF Pro Rounded", "Inter", "Noto Sans", "Adwaita Sans", "Fira Sans", "Cantarell"]
         },
-        // Welche Elemente die Leiste zeigt. "insel": alle Pillen. "notch": nur
-        // die Notch, angedockt an der Oberkante (Bar.qml und Notch.qml lesen das).
-        "appearance.layout": {
-            group: "Form",
-            title: "Layout",
-            desc: "Insel: alle Pillen. Notch: nur die angedockte Notch oben in der Mitte",
-            options: ["insel", "notch"]
-        },
         // Nachschwingen der Pillen beim Aufklappen (siehe Appearance.qml)
         "appearance.bounce": {
-            group: "Animation",
+            group: "Bewegung",
             title: "Nachschwingen",
             options: ["aus", "leicht", "mittel", "stark"]
         },
         "appearance.speed": {
-            group: "Animation",
+            group: "Bewegung",
             title: "Animationstempo",
             min: 0.5, max: 2, step: 0.1, unit: "x"
         },
+        // Deckkraft der Karten und Pillen (Surface.qml); die Notch bleibt schwarz
+        "appearance.transparency": {
+            group: "Oberfläche",
+            title: "Transparenz",
+            min: 0, max: 60, step: 5, unit: "%"
+        },
         "appearance.radius": {
-            group: "Form",
+            group: "Oberfläche",
             title: "Eckenrundung",
             min: 8, max: 28, step: 1, unit: "px"
         },
-        "appearance.shadow": { title: "Schatten", group: "Form" },
-        "appearance.clock": { title: "Uhrzeit", group: "Sprache und Schrift", options: ["24h", "12h"] },
-        // Kopf der Seite (modules/settings/wallpaper/WallpaperHero.qml): das
-        // gesetzte Bild gross mit Zufall, Ordner, Bibliothek – nur Anker,
-        // steht als erste Zeile vor Animation und Zufall
-        // Anker des frueheren Seitenkopfs; der Kopf lebt jetzt in der Bibliothek
-        "wallpaper.hero": { hidden: true },
+        "appearance.shadow": { title: "Schatten", group: "Oberfläche" },
+        "appearance.clock": { title: "Uhrzeit", page: "region", options: ["24h", "12h"], labels: { "24h": "24 Stunden", "12h": "12 Stunden" } },
+        // Kopf der Seite Aussehen (modules/settings/wallpaper/WallpaperHero.qml):
+        // das gesetzte Bild gross, Knoepfe Wallpaper/Farben – nur Anker
+        "wallpaper.hero": { title: "Wallpaper", editor: "wallpaperhero" },
         // Uebergang beim Wallpaperwechsel (modules/window/WallpaperStage.qml)
         "wallpaper.transition": {
-            group: "Animation",
+            group: "Wechsel",
             title: "Übergang",
             options: ["blende", "wischen", "schieben", "kreis", "zoom", "aus", "zufall"]
         },
         "wallpaper.duration": {
-            group: "Animation",
+            group: "Wechsel",
             title: "Dauer",
             min: 200, max: 2000, step: 100, unit: "ms"
         },
@@ -598,6 +605,8 @@ Singleton {
                 property real speed: 1.0
                 property int radius: 20
                 property bool shadow: true
+                // 0 = deckend, 60 = stark durchscheinend (Prozent)
+                property int transparency: 0
                 property string clock: "24h"
             }
 

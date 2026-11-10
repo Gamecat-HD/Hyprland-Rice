@@ -436,13 +436,6 @@ Item {
                 }
             }
 
-            ActionButton {
-                visible: pcard.hasSettings && !pcard.removeArmed
-                enabled: pcard.info.enabled
-                icon: "tune"
-                onClicked: page.openSection(pcard.section)
-            }
-
             Toggle {
                 Layout.leftMargin: 4
                 Layout.rightMargin: 2
@@ -456,6 +449,16 @@ Item {
                 visible: !pcard.removeArmed
                 enabled: pcard.menu.length > 0
                 entries: pcard.menu
+            }
+
+            // Zu den Einstellungen des Plugins; ohne Einstellungen bleibt der
+            // Platz frei, damit die Schalter untereinander stehen
+            ActionButton {
+                visible: !pcard.removeArmed
+                enabled: pcard.hasSettings && pcard.info.enabled
+                opacity: pcard.hasSettings ? (enabled ? 1 : 0.4) : 0
+                icon: "chevron_right"
+                onClicked: page.openSection(pcard.section)
             }
         }
     }

@@ -28,7 +28,7 @@ import qs.modules.services.config
 //
 // Das Repo wird ueber den eigenen Pfad gefunden: ~/.config/quickshell/
 // dynamic-island ist ein Symlink ins Repo, `readlink -f` plus
-// `git rev-parse --show-toplevel`; Rueckfall ~/Hyprland-Rice.
+// `git rev-parse --show-toplevel`; Rueckfall ~/hyprland-rice.
 //
 // Benutzung:  import qs.modules.services.system
 Singleton {
@@ -39,7 +39,7 @@ Singleton {
 
     readonly property string home: Quickshell.env("HOME")
     readonly property string shellFile: Quickshell.shellPath("shell.qml")
-    readonly property string fallbackRepo: root.home + "/Hyprland-Rice"
+    readonly property string fallbackRepo: root.home + "/hyprland-rice"
     readonly property string script: Quickshell.shellPath("modules/services/system/shellupdate.sh")
     readonly property string logPath: root.home + "/.local/state/dynamic-island/shell-update.log"
     readonly property string cli: root.home + "/.local/bin/dynamic-island"
