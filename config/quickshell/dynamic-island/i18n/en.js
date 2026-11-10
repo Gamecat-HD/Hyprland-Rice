@@ -792,6 +792,7 @@ var strings = {
     "Text erkennen": "Recognize text",
     "Text vom Bildschirm kopieren": "Copy text from screen",
     "Theme": "Theme",
+    "Theme suchen…": "Search themes…",
     "Theme suchen…   %1 Schemata": "Search themes…   %1 schemes",
     "timer": "timer",
     "Titel": "Title",

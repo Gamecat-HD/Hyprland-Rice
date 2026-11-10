@@ -5,6 +5,7 @@ import qs
 import qs.modules.services.config
 import qs.modules.services.hypr
 import qs.modules.settings
+import qs.modules.launcher.clipboard
 
 // Tastenkuerzel-Uebersicht der Notch. Gleiche Schnittstelle wie PowerPanel
 // (topOffset, cardRadius, inset, active -> outerWidth/outerHeight).
@@ -230,7 +231,8 @@ Item {
             }
         }
 
-        Row {
+        // Bearbeiten (Strg+E): oeffnet die Einstellungsseite
+        ClipIconButton {
             id: tools
 
             anchors {
@@ -238,25 +240,8 @@ Item {
                 rightMargin: 14
                 verticalCenter: parent.verticalCenter
             }
-            spacing: 6
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: {
-                    const n = panel.filtered.reduce((sum, g) => sum + g.entries.length, 0);
-                    return n === 1 ? I18n.tr("1 Kürzel") : I18n.tr("%1 Kürzel").arg(n);
-                }
-                color: Colors.fgSurfaceVariant
-                font.family: Config.font
-                font.pixelSize: 12
-                rightPadding: 6
-            }
-
-            ToolButton {
-                icon: "edit"
-                label: I18n.tr("Bearbeiten")
-                onClicked: panel.openEditor()
-            }
+            icon: "edit"
+            onClicked: panel.openEditor()
         }
     }
 
@@ -531,60 +516,6 @@ Item {
             font.family: Config.font
             font.pixelSize: 11
             font.weight: Font.Medium
-        }
-    }
-
-    // Knopf in der Suchzeile (Chip mit Symbol und Text)
-    component ToolButton: Rectangle {
-        id: tb
-
-        property string icon
-        property string label
-        property bool checked: false
-
-        signal clicked
-
-        anchors.verticalCenter: parent?.verticalCenter
-        width: tbRow.implicitWidth + 20
-        height: 28
-        radius: 14
-        opacity: tb.enabled ? 1 : 0.45
-        color: tb.checked ? Colors.alpha(Colors.primary, tbArea.containsMouse ? 0.28 : 0.18)
-                          : Colors.alpha(Colors.fgSurface, tbArea.containsMouse ? 0.12 : 0.06)
-        border.width: 1
-        border.color: tb.checked ? Colors.alpha(Colors.primary, 0.5) : Colors.alpha(Colors.outline, 0.35)
-
-        Row {
-            id: tbRow
-
-            anchors.centerIn: parent
-            spacing: 5
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: tb.icon
-                color: tb.checked ? Colors.primary : Colors.fgSurfaceVariant
-                font.family: "Material Symbols Outlined"
-                font.pixelSize: 15
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: tb.label
-                color: tb.checked ? Colors.primary : Colors.fgSurface
-                font.family: Config.font
-                font.pixelSize: 12
-            }
-        }
-
-        MouseArea {
-            id: tbArea
-
-            anchors.fill: parent
-            enabled: tb.enabled
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: tb.clicked()
         }
     }
 }

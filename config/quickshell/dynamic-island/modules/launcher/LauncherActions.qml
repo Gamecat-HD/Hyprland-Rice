@@ -116,7 +116,7 @@ Singleton {
             run: () => SettingsState.openPage("monitors", {})
         },
         {
-            name: "Zufaelliges Wallpaper",
+            name: "Zufälliges Wallpaper",
             icon: "shuffle",
             run: () => Wallpapers.random()
         }
