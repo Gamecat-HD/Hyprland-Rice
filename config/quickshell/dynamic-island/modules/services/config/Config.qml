@@ -37,6 +37,7 @@ Singleton {
     readonly property alias sounds: adapter.sounds
     readonly property alias bluetooth: adapter.bluetooth
     readonly property alias battery: adapter.battery
+    readonly property alias system: adapter.system
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -203,10 +204,20 @@ Singleton {
         "sounds.lock": { title: "Sperren und Entsperren", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.bluetooth": { title: "Bluetooth verbunden/getrennt", group: "Anlässe", requires: "sounds.enabled" },
         "sounds.library": { title: "Eigene Klänge", group: "Eigene Klänge", editor: "sounds" },
+        // Seite System (SystemEditor): Rechnerdaten, Auslastung und Updates
+        // aus services/system/SystemInfo.qml – `info` ist nur der Anker
+        "system.info": { title: "System", desc: "Shell-Version, Updates und Rechner", editor: "system" },
+        "system.updateCheckHours": {
+            title: "Im Hintergrund nach Shell-Updates suchen alle", group: "Updates", desc: "git fetch im Repo der Shell; 0 = nur bei offener Ansicht",
+            min: 0, max: 24, step: 1, unit: "h"
+        },
         "battery.history": { title: "Akkuverlauf", editor: "battery" },
         // Tastenkuerzel (KeybindsEditor): Daten in keybinds.json, siehe
         // services/hypr/Keybinds.qml – hier nur der Anker der Seite
         "keybinds.editor": { title: "Tastenkürzel", editor: "keybinds" },
+        // Monitore (MonitorsEditor): Regeln in monitors.json/.lua, siehe
+        // services/hypr/Monitors.qml – hier nur der Anker der Seite
+        "monitors.editor": { title: "Monitore", editor: "monitors" },
         "battery.warnLow": { title: "Warnung bei schwachem Akku", group: "Meldungen", min: 0, max: 50, step: 5, unit: "%", desc: "0 = aus" },
         "battery.warnCritical": { title: "Warnung bei fast leerem Akku", group: "Meldungen", min: 0, max: 20, step: 1, unit: "%", desc: "0 = aus" },
         "battery.notifyFull": { title: "Meldung bei vollem Akku", group: "Meldungen" },
@@ -217,10 +228,13 @@ Singleton {
         },
         "bar.batteryPulse": { title: "Akku-Ladeimpuls", group: "Anzeige", page: "battery", requires: "bar.battery" },
         "notifications.dnd": { title: "Nicht stören" },
+        // Anbieter-Register (VpnEditor): eingebaute plus eigene aus vpn.custom
         "vpn.provider": {
             title: "VPN-Anbieter",
-            options: ["nordvpn", "cloudflare"]
+            desc: "Eingebaute Anbieter oder eigene Befehle",
+            editor: "vpn"
         },
+        "vpn.custom": { hidden: true },
         "notifications.peekSeconds": {
             title: "Anzeigedauer",
             min: 2, max: 15, step: 1, unit: "s", requires: "bar.notifications"
@@ -266,6 +280,11 @@ Singleton {
         },
         "appearance.shadow": { title: "Schatten", group: "Form" },
         "appearance.clock": { title: "Uhrzeit", group: "Sprache und Schrift", options: ["24h", "12h"] },
+        // Kopf der Seite (modules/settings/wallpaper/WallpaperHero.qml): das
+        // gesetzte Bild gross mit Zufall, Ordner, Bibliothek – nur Anker,
+        // steht als erste Zeile vor Animation und Zufall
+        // Anker des frueheren Seitenkopfs; der Kopf lebt jetzt in der Bibliothek
+        "wallpaper.hero": { hidden: true },
         // Uebergang beim Wallpaperwechsel (modules/window/WallpaperStage.qml)
         "wallpaper.transition": {
             group: "Animation",
@@ -319,7 +338,7 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "battery", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "keybinds", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "battery", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "keybinds", "monitors", "system", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "battery": "battery_horiz_075",
@@ -332,6 +351,8 @@ Singleton {
         "idle": "bedtime",
         "sounds": "notifications_active",
         "keybinds": "keyboard",
+        "monitors": "desktop_windows",
+        "system": "monitoring",
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
         "notifications": "notifications",
@@ -353,7 +374,9 @@ Singleton {
         "lock": "Sperrbildschirm",
         "idle": "Inaktivität",
         "sounds": "Klänge",
-        "keybinds": "Tastenkürzel"
+        "keybinds": "Tastenkürzel",
+        "monitors": "Monitore",
+        "system": "System"
     })
 
     // Die Datei als einfaches Objekt – daraus baut das Einstellungs-Fenster
@@ -580,11 +603,16 @@ Singleton {
 
             property JsonObject vpn: JsonObject {
                 property string provider: "nordvpn"
+                // Eigene Anbieter (services/vpn/Vpn.qml), je Eintrag
+                // { id, name, icon, connect, disconnect, status, connectedRegex }
+                property var custom: []
             }
 
             // Wallpaperwechsel: Animation und ihre Dauer in ms, dazu der
             // Zufallsmodus (aus | start | timer) samt Abstand und Auswahl
             property JsonObject wallpaper: JsonObject {
+                // Nur Anker fuer den Kopf der Seite (WallpaperHero)
+                property string hero: ""
                 property string transition: "kreis"
                 property int duration: 800
                 property string random: "aus"
@@ -684,6 +712,12 @@ Singleton {
                 property string editor: ""
             }
 
+            // Seite "Monitore": nur Anker fuer den Editor (MonitorsEditor);
+            // die Regeln liegen in ~/.local/state/dynamic-island/monitors.json
+            property JsonObject monitors: JsonObject {
+                property string editor: ""
+            }
+
             // Seite "Akku": nur Anker fuer den Verlauf (BatteryHistoryEditor);
             // die Daten schreibt upowerd nach /var/lib/upower
             property JsonObject battery: JsonObject {
@@ -700,6 +734,14 @@ Singleton {
             // Aufbau der Schnelleinstellungen (Settings-Karte): je Eintrag eine
             // Reihe, Kachel-IDs mit Komma getrennt (siehe QuickLayout.qml).
             // Was hier fehlt, ist ausgeblendet.
+            // Seite "System": Anker fuer den Editor (SystemEditor) und die
+            // Update-Pruefung der Shell selbst (services/system/ShellUpdate.qml)
+            property JsonObject system: JsonObject {
+                property string info: ""
+                // Stunden zwischen Hintergrund-Pruefungen (git fetch), 0 = aus
+                property int updateCheckHours: 2
+            }
+
             // Regler am rechten Bildschirmrand (modules/osd/Osd.qml)
             property JsonObject osd: JsonObject {
                 property bool enabled: true

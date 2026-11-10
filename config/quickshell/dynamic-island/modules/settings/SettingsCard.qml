@@ -312,10 +312,10 @@ Surface {
     // Repeater gereichte Objekte verlieren ihre JS-Arrays – `options` kaeme
     // als Sequenz an, nicht als Array). Ein breiter Editor macht die Karte
     // breit – die anderen (Sperrbildschirm, Desktop) sind nur ein Knopf.
-    readonly property var wideEditors: ["quick", "battery", "keybinds"]
+    readonly property var wideEditors: ["quick", "battery", "keybinds", "vpn", "monitors", "system"]
     // Diese nehmen die ganze Breite des Fensters statt hoechstens 820 px
     // (die Tastatur der Tastenkuerzel braucht Platz)
-    readonly property var fullEditors: ["keybinds"]
+    readonly property var fullEditors: ["keybinds", "monitors"]
     readonly property var groupCards: {
         const out = [];
         card.entries.forEach((e, i) => {

@@ -486,6 +486,9 @@ Item {
                            : row.entry?.editor === "sounds" ? soundsEditor
                            : row.entry?.editor === "battery" ? batteryEditor
                            : row.entry?.editor === "keybinds" ? keybindsEditor
+                           : row.entry?.editor === "monitors" ? monitorsEditor
+                           : row.entry?.editor === "vpn" ? vpnEditor
+                           : row.entry?.editor === "system" ? systemEditor
                            : null
         }
 
@@ -520,9 +523,27 @@ Item {
         }
 
         Component {
+            id: monitorsEditor
+
+            MonitorsEditor {}
+        }
+
+        Component {
             id: desktopEditor
 
             DesktopSceneEditor {}
+        }
+
+        Component {
+            id: vpnEditor
+
+            VpnEditor {}
+        }
+
+        Component {
+            id: systemEditor
+
+            SystemEditor {}
         }
 
         // Die Optionen einer Auswahl als Chips

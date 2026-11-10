@@ -8,6 +8,7 @@ import qs.modules.services.plugins
 import qs.modules.services.theme
 import qs.modules.services.wallpaper
 import qs.modules.widgets
+import qs.modules.settings.wallpaper
 
 import qs
 
@@ -698,6 +699,46 @@ Item {
         }
     }
 
+    // ================= Aktuelles Wallpaper =================
+    // Nur in der Ordner-Uebersicht: das gesetzte Bild gross mit Zufall,
+    // Ordner oeffnen und Neu laden (settings/wallpaper/WallpaperHero.qml).
+    // Klick aufs Bild oeffnet seinen Ordner und waehlt es aus.
+    Item {
+        id: heroBox
+
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: errorRow.bottom
+            leftMargin: 4
+            rightMargin: 4
+        }
+        height: visible ? heroItem.implicitHeight + 18 : 0
+        visible: !page.showGrid
+
+        WallpaperHero {
+            id: heroItem
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                topMargin: 6
+            }
+            inLibrary: true
+            maxPreview: 380
+            onPreviewTapped: {
+                const path = Wallpapers.actualCurrent;
+                // Bild ausserhalb des Wallpaper-Ordners: kein Ordner der
+                // Bibliothek zeigt es ("Ohne Ordner" waere leer/falsch)
+                if (path === "" || WallManager.keyFor(path) === "")
+                    return;
+                page.pickFolder(WallManager.folderOf(path));
+                page.pickImage(path);
+            }
+        }
+    }
+
     // ================= Ordner-Karten =================
     GridView {
         id: cardGrid
@@ -710,7 +751,7 @@ Item {
         anchors {
             left: parent.left
             right: parent.right
-            top: errorRow.bottom
+            top: heroBox.bottom
             bottom: parent.bottom
             topMargin: 4
             rightMargin: -page.cardGap

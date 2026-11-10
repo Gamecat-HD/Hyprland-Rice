@@ -642,8 +642,8 @@ ColumnLayout {
                     left: parent.left
                     leftMargin: 10
                 }
-                width: 180
-                height: 72
+                width: 220
+                height: vpnMenuColumn.implicitHeight + 8
                 z: 200
                 radius: 16
                 color: Colors.shade(Colors.background, 0.08)
@@ -661,44 +661,59 @@ ColumnLayout {
                 }
 
                 ColumnLayout {
+                    id: vpnMenuColumn
+
                     anchors.fill: parent
                     anchors.margins: 4
                     spacing: 2
 
+                    // Das Register aus Vpn.qml (eingebaute + eigene Anbieter),
+                    // zuletzt der Weg zum Editor im Einstellungsfenster
                     Repeater {
-                        model: [
-                            { id: "nordvpn", label: "NordVPN" },
-                            { id: "cloudflare", label: "Cloudflare WARP" }
-                        ]
+                        model: Vpn.providers.concat([{ id: "", name: I18n.tr("Eigenen Anbieter hinzufügen…"), icon: "add", add: true }])
 
                         Rectangle {
                             id: providerOption
 
                             required property var modelData
+                            readonly property bool add: providerOption.modelData.add === true
+                            readonly property bool selected: !providerOption.add && Vpn.provider === providerOption.modelData.id
 
                             Layout.fillWidth: true
                             implicitHeight: 30
                             radius: 15
-                            color: Vpn.provider === providerOption.modelData.id ? Colors.primary : "transparent"
+                            color: providerOption.selected ? Colors.primary
+                                 : providerMouse.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08) : "transparent"
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 12
+                                anchors.leftMargin: 10
                                 anchors.rightMargin: 12
-                                spacing: 6
+                                spacing: 8
 
                                 Text {
+                                    text: providerOption.modelData.icon
+                                    font.family: "Material Symbols Outlined"
+                                    font.pixelSize: 16
+                                    color: providerOption.selected ? Colors.fgPrimary
+                                         : providerOption.add ? Colors.fgSurfaceVariant : Colors.fgBackground
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
                                     font.family: Config.font
-                                    text: providerOption.modelData.label
+                                    text: providerOption.modelData.name
                                     font.pixelSize: 12
-                                    color: Vpn.provider === providerOption.modelData.id ? Colors.fgPrimary : Colors.fgBackground
+                                    elide: Text.ElideRight
+                                    color: providerOption.selected ? Colors.fgPrimary
+                                         : providerOption.add ? Colors.fgSurfaceVariant : Colors.fgBackground
                                 }
 
                                 Text {
                                     text: "check"
                                     font.family: "Material Symbols Outlined"
                                     font.pixelSize: 16
-                                    visible: Vpn.provider === providerOption.modelData.id
+                                    visible: providerOption.selected
                                     color: Colors.fgPrimary
                                 }
                             }
@@ -710,7 +725,10 @@ ColumnLayout {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    Vpn.selectProvider(providerOption.modelData.id);
+                                    if (providerOption.add)
+                                        SettingsState.openPage("vpn", {});
+                                    else
+                                        Vpn.selectProvider(providerOption.modelData.id);
                                     root.vpnMenuOpen = false;
                                 }
                             }

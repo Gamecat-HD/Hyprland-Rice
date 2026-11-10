@@ -72,6 +72,13 @@ Singleton {
             keepOpen: true,
             run: () => LauncherState.mode = "system"
         },
+        // Systemseite der Einstellungen, auch ueber ">update" auffindbar
+        {
+            name: "Updates",
+            desc: "Shell-Version und Updates",
+            icon: "system_update",
+            run: () => SettingsState.openPage("system", {})
+        },
         {
             name: "Power",
             icon: "power_settings_new",
@@ -101,6 +108,12 @@ Singleton {
             name: "Einstellungen",
             icon: "tune",
             run: () => SettingsState.toggleOnFocused()
+        },
+        {
+            name: "Monitore",
+            desc: "Anordnung, Auflösung, Skalierung",
+            icon: "desktop_windows",
+            run: () => SettingsState.openPage("monitors", {})
         },
         {
             name: "Zufaelliges Wallpaper",

@@ -13,6 +13,7 @@ import "modules/settings"
 import "modules/window"
 import qs.modules.services.plugins
 import qs.modules.services.sounds
+import qs.modules.services.system
 // Die Desktop-Ebene startet das Plugin `desktop` (plugins/desktop/Main.qml).
 // Der Import bleibt hier, damit die Shell das Modul beim Start kennt –
 // Plugin-QML darf nur Module importieren, die schon statisch geladen sind.
@@ -32,6 +33,9 @@ ShellRoot {
     readonly property int pluginCount: Plugins.hosts.length
     // Singleton mit Signal-Verbindungen, wird sonst nie angefasst
     readonly property bool soundsOn: Sounds.dir !== ""
+    // Shell-Update-Pruefung im Hintergrund (system.updateCheckHours, git
+    // fetch) laeuft auch, bevor jemand die Notch aufklappt
+    readonly property int updateCheckHours: ShellUpdate.checkHours
 
     Wallpaper {}
     Bar {}
