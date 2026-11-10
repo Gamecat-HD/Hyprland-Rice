@@ -148,6 +148,13 @@ ColumnLayout {
     property bool powerMenuOpen: false
     property Item powerMenu: null
     property bool powerMenuHovered: false
+    // Zeiger ueber einem offenen Kachel-Menue: alle Kachel-Handler aus.
+    // Qt 6 reicht einen Druck auch an die Pointer-Handler der Items DARUNTER
+    // weiter (handlersOnly), selbst wenn das Menue ihn angenommen hat – sonst
+    // schaltet ein Klick in die Liste die Kachel darunter.
+    readonly property bool menuOver: root.sleepMenuOpen && root.sleepMenuHovered
+        || root.vpnMenuOpen && root.vpnMenuHovered
+        || root.powerMenuOpen && root.powerMenuHovered
 
 
     // Kachel-ID -> Component (siehe QuickLayout.tiles fuer die IDs)
@@ -226,6 +233,8 @@ ColumnLayout {
     // ---------- Kacheln ----------
     component Tile: Rectangle {
         id: tile
+        // Kachel-Menue darueber (root.menuOver, vom Loader bzw. Verwender gesetzt)
+        property bool blocked: false
 
         property string icon
         property string title
@@ -328,7 +337,7 @@ ColumnLayout {
         }
 
         TapHandler {
-            enabled: tile.tapEnabled
+            enabled: !tile.blocked && (tile.tapEnabled)
             onTapped: tile.toggled()
         }
 
@@ -344,6 +353,8 @@ ColumnLayout {
     // stehen und beide gleich aussehen sollen.
     component MiniButton: Rectangle {
         id: mini
+        // Kachel-Menue darueber (root.menuOver, vom Loader bzw. Verwender gesetzt)
+        property bool blocked: false
 
         property string icon
         // Farben der Kachel, auf der der Knopf sitzt (tile.controlColor usw.)
@@ -382,6 +393,7 @@ ColumnLayout {
         }
 
         TapHandler {
+            enabled: !mini.blocked
             gesturePolicy: TapHandler.ReleaseWithinBounds   // exklusiv: kein Kachel-Toggle
             onTapped: mini.tapped()
         }
@@ -389,6 +401,8 @@ ColumnLayout {
 
     component CircleToggle: Rectangle {
         id: circle
+        // Kachel-Menue darueber (root.menuOver, vom Loader bzw. Verwender gesetzt)
+        property bool blocked: false
 
         property string icon
         property bool active
@@ -417,6 +431,7 @@ ColumnLayout {
         }
 
         TapHandler {
+            enabled: !circle.blocked
             onTapped: circle.toggled()
         }
 
@@ -447,6 +462,7 @@ ColumnLayout {
             // Links schaltet den Funk, rechts fuehrt der Pfeil in die Liste
             // (dasselbe Muster wie bei der No-Sleep-Pille)
             TapHandler {
+                enabled: !root.menuOver
                 id: wifiTap
 
                 onTapped: {
@@ -509,6 +525,7 @@ ColumnLayout {
             onToggled: root.toggleBt()
 
             TapHandler {
+                enabled: !root.menuOver
                 id: bluetoothTap
 
                 onTapped: {
@@ -585,6 +602,7 @@ ColumnLayout {
             onToggled: Vpn.toggle()
 
             TapHandler {
+                enabled: !root.menuOver
                 id: vpnTap
 
                 onTapped: {
@@ -594,6 +612,8 @@ ColumnLayout {
             }
 
             MiniButton {
+
+                blocked: root.menuOver
                 anchors {
                     right: parent.right
                     rightMargin: 8
@@ -659,6 +679,7 @@ ColumnLayout {
             onToggled: root.toggleNoSleep()
 
             TapHandler {
+                enabled: !root.menuOver
                 id: pillTap
 
                 // Taps auf den Pfeil (rechts) gehoeren dem Menue
@@ -669,6 +690,8 @@ ColumnLayout {
             }
 
             MiniButton {
+
+                blocked: root.menuOver
                 anchors {
                     right: parent.right
                     rightMargin: 8
@@ -750,6 +773,7 @@ ColumnLayout {
 
             // Links schaltet die Aufnahme, rechts sitzen die beiden Schalter
             TapHandler {
+                enabled: !root.menuOver
                 id: recordTap
 
                 onTapped: {
@@ -771,6 +795,8 @@ ColumnLayout {
                 spacing: 6
 
                 MiniButton {
+
+                    blocked: root.menuOver
                     bg: recordTile.controlColor
                     bgHover: recordTile.controlHover
                     fg: recordTile.fg
@@ -781,6 +807,8 @@ ColumnLayout {
                 }
 
                 MiniButton {
+
+                    blocked: root.menuOver
                     bg: recordTile.controlColor
                     bgHover: recordTile.controlHover
                     fg: recordTile.fg
@@ -957,7 +985,7 @@ ColumnLayout {
 
         // Tippen neben die Kacheln hebt die Wahl auf
         TapHandler {
-            enabled: root.edit.editing
+            enabled: !root.menuOver && (root.edit.editing)
             onTapped: root.edit.selectedId = ""
         }
 
@@ -1068,6 +1096,8 @@ ColumnLayout {
                             onTileIdChanged: Qt.callLater(slot.rebuild)
                             onPluginUrlChanged: slot.rebuild()
                             onLoaded: {
+                                if (slot.item && "blocked" in slot.item)
+                                    slot.item.blocked = Qt.binding(() => root.menuOver);
                                 if (slot.pluginUrl !== "" && slot.item && "tileId" in slot.item)
                                     slot.item.tileId = slot.tileId.slice(slot.tileId.indexOf(".") + 1);
                             }

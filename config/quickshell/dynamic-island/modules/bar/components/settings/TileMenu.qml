@@ -101,12 +101,15 @@ Rectangle {
                     id: entryHover
 
                     enabled: !entry.separator
-                    cursorShape: Qt.PointingHandCursor
                 }
 
-                TapHandler {
+                // MouseArea statt TapHandler: nimmt den Druck exklusiv, ein
+                // TapHandler hier wurde von Handlern darunter abgebrochen
+                MouseArea {
+                    anchors.fill: parent
                     enabled: !entry.separator
-                    onTapped: {
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
                         // Erst zuklappen, dann handeln: die Aktion aendert meist
                         // `entries`, und der Repeater baut diesen Eintrag neu
                         const action = entry.modelData.action;
