@@ -200,6 +200,20 @@ function sync_keybinds()
     end
     local overrides = data.overrides or {}
 
+    -- Binds der Shell zuerst weg: liegen beim remove() zwei Binds auf
+    -- derselben Taste (Config-Bind zurueckgelegt, Shell-Bind noch da),
+    -- crasht Hyprland 0.56 beim naechsten hl.bind auf diese Taste (SEGV in
+    -- CLuaKeybind::push, 02.11.2026: Farbschema weg von CTRL+SUPER+SHIFT+T,
+    -- OCR drauf, zurueck, wieder drauf)
+    for _, s in ipairs(shell_binds) do
+        pcall(s.handle.remove, s.handle)
+        -- Zusatztasten teilen die Aktion mit dem Config-Bind: die bleibt
+        if not s.extra then
+            keybind_actions[s.description] = nil
+        end
+    end
+    shell_binds = {}
+
     -- Binds der Config: neu belegen bzw. an/aus
     for _, b in ipairs(described_binds) do
         local o = overrides[b.ref] or {}
@@ -216,16 +230,6 @@ function sync_keybinds()
         end
         b.handle:set_enabled(not o.disabled)
     end
-
-    -- Binds der Shell: alle weg, dann neu aus der Datei
-    for _, s in ipairs(shell_binds) do
-        pcall(s.handle.remove, s.handle)
-        -- Zusatztasten teilen die Aktion mit dem Config-Bind: die bleibt
-        if not s.extra then
-            keybind_actions[s.description] = nil
-        end
-    end
-    shell_binds = {}
 
     -- Zusatztasten fuer Binds der Config: dieselbe Aktion und dieselben
     -- Optionen (auch die Beschreibung, so landen sie in derselben Zeile der
