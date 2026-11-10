@@ -598,7 +598,8 @@ Surface {
                                 color: button.current ? Colors.fgPrimary : Colors.fgSurface
                                 font.family: "Material Symbols Outlined"
                                 font.pixelSize: 20
-                                font.variableAxes: ({ FILL: button.current ? 1 : 0 })
+                                // Gefuellt werden Monitor und Tastatur zu Klumpen ohne Details
+                                font.variableAxes: ({ FILL: button.current && !["monitor", "keyboard"].includes(button.info.icon) ? 1 : 0 })
                             }
                         }
 
