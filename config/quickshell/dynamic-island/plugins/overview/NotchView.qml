@@ -186,23 +186,9 @@ Item {
         }
         height: 50
 
-        Text {
-            id: headIcon
-
-            anchors {
-                left: parent.left
-                leftMargin: 16
-                verticalCenter: parent.verticalCenter
-            }
-            text: "grid_view"
-            font.family: "Material Symbols Outlined"
-            font.pixelSize: 19
-            color: Colors.primary
-        }
-
         Row {
             anchors {
-                left: headIcon.right
+                left: parent.left
                 leftMargin: 12
                 verticalCenter: parent.verticalCenter
             }
@@ -224,41 +210,27 @@ Item {
                     Component.onCompleted: view.tabItems[chip.modelData.key] = chip
                     Component.onDestruction: delete view.tabItems[chip.modelData.key]
 
-                    width: chipRow.implicitWidth + 22
+                    width: chipLabel.implicitWidth + 24
                     height: 30
                     radius: height / 2
                     color: chip.current ? Colors.primary
                         : chip.dropHover ? Colors.alpha(Colors.primary, 0.3)
                         : chipArea.containsMouse ? Colors.alpha(Colors.fgSurface, 0.08)
-                        : Colors.alpha(Colors.fgSurface, 0.04)
+                        : "transparent"
 
                     Behavior on color {
                         ColorAnimation { duration: 120 }
                     }
 
-                    Row {
-                        id: chipRow
+                    Text {
+                        id: chipLabel
 
                         anchors.centerIn: parent
-                        spacing: 6
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: chip.modelData.kind === "special" ? "layers"
-                                : chip.modelData.key === view.host.screen?.name ? "monitor" : "desktop_windows"
-                            font.family: "Material Symbols Outlined"
-                            font.pixelSize: 15
-                            color: chip.current ? Colors.fgPrimary : Colors.fgSurfaceVariant
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: chip.modelData.kind === "special" ? I18n.tr("Scratchpads") : chip.mon?.name ?? ""
-                            font.family: Config.font
-                            font.pixelSize: 12
-                            font.weight: Font.DemiBold
-                            color: chip.current ? Colors.fgPrimary : Colors.fgSurface
-                        }
+                        text: chip.modelData.kind === "special" ? I18n.tr("Scratchpads") : chip.mon?.name ?? ""
+                        font.family: Config.font
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        color: chip.current ? Colors.fgPrimary : Colors.fgSurface
                     }
 
                     MouseArea {
@@ -376,7 +348,7 @@ Item {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: tile.isNew ? "add" : tile.entry.special ? "layers" : ""
+                    text: tile.entry.special ? "layers" : ""
                     visible: text !== ""
                     font.family: "Material Symbols Outlined"
                     font.pixelSize: 14
@@ -390,16 +362,6 @@ Item {
                     font.pixelSize: tile.isNew || tile.entry.special ? 12 : 13
                     font.weight: Font.Bold
                     color: tile.entry.active ? Colors.primary : Colors.fgSurface
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: tile.isNew ? "" : tile.wins.length === 0 ? I18n.tr("leer")
-                        : tile.wins.length === 1 ? I18n.tr("1 Fenster")
-                        : I18n.tr("%1 Fenster").arg(tile.wins.length)
-                    font.family: Config.font
-                    font.pixelSize: 10
-                    color: Colors.fgSurfaceVariant
                 }
             }
 

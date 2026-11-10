@@ -6,7 +6,7 @@
     "api": 1,
     "author": "gamecat",
     "icon": "grid_view",
-    "description": "Alle Workspaces gekachelt, je Bildschirm ein Tab (SUPER+Tab) – als Vollbild oder in der Notch: springen, Fenster fokussieren oder per Ziehen verschieben, neuen Workspace aufmachen.",
+    "description": "Alle Workspaces gekachelt, je Bildschirm ein Tab – als Vollbild oder in der Notch",
     "defaultEnabled": true,
     "main": "Main.qml",
     "keybinds": {
@@ -21,7 +21,6 @@
         "style": {
             "default": "vollbild",
             "title": "Ansicht",
-            "desc": "Vollbild: eigenes Overlay mit großen Kacheln. Notch: kompakt als Ansicht in der Notch (dort wechselt F ins Vollbild)",
             "options": [
                 "vollbild",
                 "notch"
@@ -30,12 +29,17 @@
         "preview": {
             "default": "auswahl",
             "title": "Vorschau",
-            "desc": "auswahl: nur die gewählte Kachel live, die anderen einmal pro Sekunde. alle: alle live (kostet bei Videos spürbar CPU/GPU). aus: ein Standbild beim Öffnen",
+            "desc": "Alle Fenster live kostet bei Videos spürbar CPU/GPU",
             "options": [
                 "auswahl",
                 "alle",
                 "aus"
-            ]
+            ],
+            "labels": {
+                "auswahl": "Gewählte Kachel live",
+                "alle": "Alle live",
+                "aus": "Standbild"
+            }
         },
         "allScreens": {
             "default": true,

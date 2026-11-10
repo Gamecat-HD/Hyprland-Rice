@@ -377,15 +377,13 @@ Scope {
                                 required property int index
 
                                 readonly property bool current: tabItem.index === win.tabIndex
-                                readonly property bool own: tabItem.modelData.key === win.modelData.name
                                 readonly property bool dropHover: win.drag !== null && win.hoverTab === tabItem.modelData.key
                                 readonly property HyprlandMonitor mon: tabItem.modelData.monitor
-                                readonly property int offset: tabItem.mon ? root.main.groupOffset(tabItem.mon) : 0
 
                                 Component.onCompleted: win.tabItems[tabItem.modelData.key] = tabItem
                                 Component.onDestruction: delete win.tabItems[tabItem.modelData.key]
 
-                                width: tabContent.implicitWidth + 32
+                                width: tabLabel.implicitWidth + 36
                                 height: 36
                                 radius: height / 2
                                 color: tabItem.current ? Colors.primary
@@ -397,39 +395,16 @@ Scope {
                                     ColorAnimation { duration: 120 }
                                 }
 
-                                Row {
-                                    id: tabContent
+                                Text {
+                                    id: tabLabel
 
                                     anchors.centerIn: parent
-                                    spacing: 8
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: tabItem.modelData.kind === "special" ? "layers"
-                                            : tabItem.own ? "monitor" : "desktop_windows"
-                                        font.family: "Material Symbols Outlined"
-                                        font.pixelSize: 18
-                                        color: tabItem.current ? Colors.fgPrimary : Colors.fgSurfaceVariant
-                                    }
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: tabItem.modelData.kind === "special" ? I18n.tr("Scratchpads")
-                                            : tabItem.mon?.name ?? ""
-                                        font.family: Config.font
-                                        font.pixelSize: 13
-                                        font.weight: Font.DemiBold
-                                        color: tabItem.current ? Colors.fgPrimary : Colors.fgSurface
-                                    }
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        visible: tabItem.modelData.kind === "monitor"
-                                        text: `${tabItem.offset + 1}–${tabItem.offset + root.main.groupSize}`
-                                        font.family: Config.font
-                                        font.pixelSize: 11
-                                        color: tabItem.current ? Colors.alpha(Colors.fgPrimary, 0.75) : Colors.fgSurfaceVariant
-                                    }
+                                    text: tabItem.modelData.kind === "special" ? I18n.tr("Scratchpads")
+                                        : tabItem.mon?.name ?? ""
+                                    font.family: Config.font
+                                    font.pixelSize: 13
+                                    font.weight: Font.DemiBold
+                                    color: tabItem.current ? Colors.fgPrimary : Colors.fgSurface
                                 }
 
                                 MouseArea {
@@ -502,7 +477,7 @@ Scope {
                                         id: tileHover
                                     }
 
-                                    // -- Kopfzeile: Nummer, Fensterzahl, aktiv --
+                                    // -- Kopfzeile: Nummer (aktiv = Akzentfarbe) --
                                     Row {
                                         id: header
 
@@ -512,7 +487,7 @@ Scope {
 
                                         Text {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            text: tile.isNew ? "add" : tile.entry?.special ? "layers" : ""
+                                            text: tile.entry?.special ? "layers" : ""
                                             visible: text !== ""
                                             font.family: "Material Symbols Outlined"
                                             font.pixelSize: 16
@@ -530,37 +505,12 @@ Scope {
 
                                         Text {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            text: tile.isNew ? `${tile.entry.label}`
-                                                : tile.wins.length === 0 ? I18n.tr("leer")
-                                                : tile.wins.length === 1 ? I18n.tr("1 Fenster")
-                                                : I18n.tr("%1 Fenster").arg(tile.wins.length)
+                                            // Nummer, die der neue Workspace bekommt
+                                            visible: tile.isNew
+                                            text: tile.isNew ? `${tile.entry.label}` : ""
                                             font.family: Config.font
                                             font.pixelSize: 11
                                             color: Colors.fgSurfaceVariant
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        anchors {
-                                            right: parent.right
-                                            rightMargin: 4
-                                            verticalCenter: header.verticalCenter
-                                        }
-                                        visible: tile.entry?.active ?? false
-                                        width: activeText.implicitWidth + 16
-                                        height: 20
-                                        radius: 10
-                                        color: Colors.alpha(Colors.primary, 0.2)
-
-                                        Text {
-                                            id: activeText
-
-                                            anchors.centerIn: parent
-                                            text: tile.entry?.special ? I18n.tr("offen") : I18n.tr("aktiv")
-                                            font.family: Config.font
-                                            font.pixelSize: 10
-                                            font.weight: Font.DemiBold
-                                            color: Colors.primary
                                         }
                                     }
 

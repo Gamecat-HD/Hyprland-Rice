@@ -63,7 +63,7 @@ Item {
         const v = String(value ?? "");
         const label = row.entry?.labels?.[v];
         if (label !== undefined)
-            return label;
+            return I18n.tr(label);
         if (!row.isChoice || row.isFont)
             return v;
         // Rohwerte wie "leicht" oder "notch" gross anfangen lassen

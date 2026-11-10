@@ -7,6 +7,7 @@ import qs.modules.launcher
 import qs.modules.bar.components.notch
 
 // Notch offscreen: STATE = collapsed | overview | <LauncherState-Modus>
+// | plugin:<id> (Notch-Ansicht eines Plugins) | wallpaper:<id> (Sektion der Wallpaper-Auswahl)
 ShellRoot {
     Window {
         id: win
@@ -34,6 +35,8 @@ ShellRoot {
         onTriggered: {
             const s = Quickshell.env("STATE") || "collapsed";
             if (s === "overview") notch.expanded = true;
+            else if (s.startsWith("plugin:")) LauncherState.showPluginView(null, s.slice(7));
+            else if (s.startsWith("wallpaper:")) LauncherState.showWallpaperSection(null, s.slice(10));
             else if (s !== "collapsed") LauncherState.showMode(null, s);
         }
     }

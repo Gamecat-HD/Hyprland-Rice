@@ -3,6 +3,7 @@
 #   shot.sh <zustand> <ausgabe.png> [breite hoehe]
 #   Zustaende: collapsed, overview, media, control, notifications, system,
 #              power, apps, clipboard, keys
+#              plugin:<id> (Notch-Ansicht), wallpaper:<id> (Sektion der Wallpaper-Auswahl)
 #   Umgebung: SRC, OUT, DELAY, LOG wie bei settings-shot; PRE = Befehl vor
 #             dem Start in der Sandbox (z. B. shell.json im Wegwerf-HOME ändern).
 # Grenzen: wie settings-shot; ohne D-Bus/MPRIS/Hyprland fehlen Musik, Akkus,
