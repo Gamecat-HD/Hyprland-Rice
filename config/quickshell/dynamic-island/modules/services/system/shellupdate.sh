@@ -13,7 +13,8 @@
 # beobachtet. ShellUpdate.qml liest dieses Skript vorher komplett in den
 # Speicher, weil der Pull auch diese Datei ueberschreiben kann.
 #
-# Kein autostash, kein reset: Wer eigene Aenderungen hat, bekommt den
+# Kein autostash, kein reset (eigene Commits: Rebase, bei Konflikt
+# abgebrochen). Wer uncommittete Aenderungen hat, bekommt den
 # Fehlertext von git zu sehen (E-Zeilen) und sichert sie selbst (README,
 # "Updating").
 #
@@ -53,7 +54,18 @@ fi
 # ---- 1. Pull -------------------------------------------------------------
 say "STEP pull"
 old=$(git rev-parse HEAD 2>/dev/null)
-if ! out=$(git pull --ff-only 2>&1); then
+# Eigene Commits vor dem Upstream: ff-only ginge nie mehr, also die eigenen
+# Commits per Rebase obendrauf legen. Geht das schief (Konflikt), wird der
+# Rebase abgebrochen – der Stand ist danach wie vorher.
+ahead=$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)
+if [ "$ahead" -gt 0 ]; then
+    if ! out=$(git pull --rebase --no-autostash 2>&1); then
+        git rebase --abort >/dev/null 2>&1
+        dump "$out"
+        say "FAIL pull"
+        exit 1
+    fi
+elif ! out=$(git pull --ff-only 2>&1); then
     dump "$out"
     say "FAIL pull"
     exit 1

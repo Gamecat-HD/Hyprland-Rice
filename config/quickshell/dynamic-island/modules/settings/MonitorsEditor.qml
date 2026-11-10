@@ -1148,7 +1148,7 @@ Item {
 
         Text {
             width: parent.width
-            text: I18n.tr("Regeln werden je Monitor über seine EDID-Beschreibung gespeichert (~/.local/state/dynamic-island/monitors.lua) und gelten auf diesem Rechner auch nach einem Neustart. Ein Monitor ohne Regel bekommt seinen bevorzugten Modus.")
+            text: I18n.tr("Gespeichert wird in ~/.config/hypr/monitors.lua (nur dieser Rechner, vorher gesichert als monitors.lua.bak) – dieselbe Datei, die install.sh anlegt. Workspace-Gruppen und andere Felder dort bleiben erhalten. Ein Monitor ohne Eintrag bekommt seinen bevorzugten Modus.")
             color: Colors.fgSurfaceVariant
             font.family: Config.font
             font.pixelSize: 10

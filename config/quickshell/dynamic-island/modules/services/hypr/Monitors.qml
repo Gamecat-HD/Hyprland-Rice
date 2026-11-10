@@ -5,34 +5,35 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
+import qs
+
 // Monitore (Einstellungen > Monitore, settings/MonitorsEditor): liest
 // `hyprctl -j monitors all`, wendet Aenderungen live per `hyprctl eval`
-// an und merkt sich bestaetigte Regeln je Rechner:
+// an und schreibt bestaetigte Regeln nach ~/.config/hypr/monitors.lua –
+// dieselbe git-ignorierte Datei, die install.sh anlegt und
+// hypr/monitor-setup.lua laedt (Format: monitors.example.lua, eine Liste
+// von hl.monitor()-Feldern plus `workspaces`).
 //
-//   ~/.local/state/dynamic-island/monitors.json   Quelle (format 1)
-//     { format: 1, rules: { <key>: { mode, position, scale, transform,
-//                                    vrr, disabled, mirror } } }
-//   ~/.local/state/dynamic-island/monitors.lua    daraus erzeugt: ein
-//     hl.monitor({…}) je Regel. hypr/hyprland.lua laedt die Datei nach
-//     seinen festen Vorgaben (pcall(dofile)) – Hyprland nimmt fuer einen
-//     Monitor die zuletzt passende Regel, die Shell gewinnt also.
+// Die Datei ist die einzige Quelle: beim Laden liest `lua` sie ein und gibt
+// sie als JSON aus; beim Speichern wird sie komplett neu geschrieben, mit
+// allen Feldern, die die Seite nicht kennt (workspaces, bitdepth, …), und
+// vorher nach monitors.lua.bak gesichert. Ohne `lua` oder bei kaputter
+// Datei schreibt die Seite nichts (sonst gingen Eintraege verloren).
 //
-// <key> ist `desc:<EDID-Beschreibung>` (Hersteller, Modell, Seriennummer):
-// der Port wechselt mit Kabel und Dock, die Beschreibung nicht. Interne
-// Panels (eDP-*, LVDS-*, DSI-*) laufen ueber den Portnamen – es gibt nur
-// eines je Rechner, und die Vorgabe in hyprland.lua heisst genauso.
+// Schluessel (output) eines Monitors: steht er schon in der Datei – unter
+// seinem Port (so schreibt install.sh) oder als desc:<EDID> –, bleibt es
+// dabei. Neue externe Monitore bekommen desc:<EDID-Beschreibung> (der Port
+// wechselt mit Kabel und Dock), interne Panels (eDP-*, …) den Portnamen.
 //
 // Uebernehmen wie bei GNOME: anwenden, dann 15 s "Einstellungen behalten?";
 // ohne Antwort oder bei Zuruecksetzen kommt der alte Stand zurueck. Erst
-// Behalten schreibt die Dateien. "Standard wiederherstellen" loescht die
-// Regel und ruft monitor_default() aus hyprland.lua (Vorgabe von dort,
-// sonst bevorzugter Modus + automatische Position) – ebenfalls mit Frage.
+// Behalten schreibt die Datei. "Standard wiederherstellen" setzt den Monitor
+// auf bevorzugten Modus, automatische Position und Skalierung (eine
+// workspaces-Angabe bleibt erhalten) – ebenfalls mit Frage.
 Singleton {
     id: root
 
-    readonly property string dir: Quickshell.env("HOME") + "/.local/state/dynamic-island"
-    readonly property string jsonPath: Quickshell.env("DYNAMIC_ISLAND_MONITORS_FILE") || root.dir + "/monitors.json"
-    readonly property string luaPath: Quickshell.env("DYNAMIC_ISLAND_MONITORS_LUA") || root.dir + "/monitors.lua"
+    readonly property string luaPath: Quickshell.env("DYNAMIC_ISLAND_MONITORS_LUA") || Quickshell.env("HOME") + "/.config/hypr/monitors.lua"
     // Wie Keybinds.qml: nur die installierte Shell schreibt nach Hyprland
     readonly property bool writesHypr: !!Quickshell.env("DYNAMIC_ISLAND_MONITORS_LUA")
                                        || Quickshell.shellPath("shell.qml") === Quickshell.env("HOME") + "/.config/quickshell/dynamic-island/shell.qml"
@@ -48,9 +49,12 @@ Singleton {
     readonly property bool busy: readProc.running || applyProc.running
     property string lastError: ""
 
-    // Gespeicherte Regeln je key (monitors.json)
+    // Regeln aus monitors.lua je output (Reihenfolge wie in der Datei)
     property var rules: ({})
     property bool rulesLoaded: false
+    // Nur wenn die Datei sauber gelesen wurde (oder fehlt), darf sie neu
+    // geschrieben werden
+    property bool rulesWritable: false
 
     // ---- Frage "Einstellungen behalten?" ----
     // Sekunden bis zum automatischen Zuruecksetzen, 0 = keine Frage offen
@@ -74,6 +78,10 @@ Singleton {
     }
 
     function keyOf(name: string, description: string): string {
+        if (root.rules[name] !== undefined)
+            return name;
+        if (description !== "" && root.rules["desc:" + description] !== undefined)
+            return "desc:" + description;
         if (/^(eDP|LVDS|DSI)-/.test(name) || description === "")
             return name;
         return "desc:" + description;
@@ -220,39 +228,68 @@ Singleton {
         return '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n") + '"';
     }
 
+    function luaValue(v: var): string {
+        if (typeof v === "number")
+            return String(v);
+        if (typeof v === "boolean")
+            return v ? "true" : "false";
+        return root.luaString(v);
+    }
+
     // spec: { output, mode, position, scale, transform, vrr, disabled, mirror }
-    function luaOf(spec: var): string {
-        const f = [`output = ${root.luaString(spec.output)}`];
+    // -> Felder fuer hl.monitor(); keepExtra uebernimmt auch fremde Felder
+    // (workspaces, bitdepth, …) fuer die Datei
+    function fieldsOf(spec: var, keepExtra: bool): var {
+        const f = [["output", root.luaString(spec.output)]];
         if (spec.disabled) {
-            f.push("disabled = true");
-            return `hl.monitor({ ${f.join(", ")} })`;
+            f.push(["disabled", "true"]);
+        } else {
+            if (spec.mode !== undefined && spec.mode !== "")
+                f.push(["mode", root.luaString(spec.mode)]);
+            if (spec.position !== undefined && spec.position !== "")
+                f.push(["position", root.luaString(spec.position)]);
+            if (spec.scale !== undefined && spec.scale !== null)
+                f.push(["scale", root.luaValue(spec.scale)]);
+            if (spec.transform !== undefined && Number(spec.transform) !== 0)
+                f.push(["transform", String(Number(spec.transform) || 0)]);
+            if (spec.vrr !== undefined)
+                f.push(["vrr", String(Number(spec.vrr) || 0)]);
+            if (spec.mirror)
+                f.push(["mirror", root.luaString(spec.mirror)]);
         }
-        if (spec.mode !== undefined && spec.mode !== "")
-            f.push(`mode = ${root.luaString(spec.mode)}`);
-        if (spec.position !== undefined && spec.position !== "")
-            f.push(`position = ${root.luaString(spec.position)}`);
-        if (spec.scale !== undefined && spec.scale !== null)
-            f.push(typeof spec.scale === "number" ? `scale = ${spec.scale}` : `scale = ${root.luaString(spec.scale)}`);
-        if (spec.transform !== undefined)
-            f.push(`transform = ${Number(spec.transform) || 0}`);
-        if (spec.vrr !== undefined)
-            f.push(`vrr = ${Number(spec.vrr) || 0}`);
-        if (spec.mirror)
-            f.push(`mirror = ${root.luaString(spec.mirror)}`);
-        return `hl.monitor({ ${f.join(", ")} })`;
+        if (keepExtra) {
+            const known = ["output", "mode", "position", "scale", "transform", "vrr", "disabled", "mirror"];
+            for (const k of Object.keys(spec)) {
+                const v = spec[k];
+                if (!known.includes(k) && /^[A-Za-z_][A-Za-z0-9_]*$/.test(k)
+                        && ["string", "number", "boolean"].includes(typeof v))
+                    f.push([k, root.luaValue(v)]);
+            }
+        }
+        return f;
+    }
+
+    // Live per eval (ohne workspaces & Co., die kennt hl.monitor nicht)
+    function luaOf(spec: var): string {
+        return `hl.monitor({ ${root.fieldsOf(spec, false).map(x => x[0] + " = " + x[1]).join(", ")} })`;
     }
 
     readonly property string luaText: {
         const lines = [
-            "-- Von der Shell erzeugt (Einstellungen > Monitore), nicht von Hand",
-            "-- bearbeiten: modules/services/hypr/Monitors.qml schreibt die Datei",
-            "-- aus monitors.json neu.",
-            ""
+            "-- monitors.lua - Bildschirme dieses Rechners (git-ignoriert).",
+            "-- Geschrieben von Dynamic Island (Einstellungen > Monitore); von Hand",
+            "-- bearbeiten geht weiter, die Seite liest die Datei beim Oeffnen neu.",
+            "-- Felder und Erklaerung: monitors.example.lua",
+            "",
+            "return {"
         ];
-        const keys = Object.keys(root.rules).sort();
-        for (const k of keys)
-            lines.push(root.luaOf(Object.assign({ output: k }, root.rules[k])));
-        lines.push("");
+        for (const k of Object.keys(root.rules)) {
+            lines.push("    {");
+            for (const [key, val] of root.fieldsOf(Object.assign({}, root.rules[k], { output: k }), true))
+                lines.push(`        ${key} = ${val},`);
+            lines.push("    },");
+        }
+        lines.push("}", "");
         return lines.join("\n");
     }
 
@@ -276,7 +313,7 @@ Singleton {
     // ---- Anwenden ------------------------------------------------------------
 
     // specs: Regeln, die probeweise gelten sollen; resets: keys, deren Regel
-    // auf die Vorgabe zurueck soll (monitor_default in hyprland.lua).
+    // auf die Vorgabe zurueck soll (bevorzugt / auto / auto).
     // previous: der Stand davor (snapshot je betroffenem Monitor).
     function apply(specs: var, resets: var, previous: var): void {
         if (applyProc.running)
@@ -284,10 +321,8 @@ Singleton {
         const chunk = [];
         for (const s of specs)
             chunk.push(root.luaOf(s));
-        for (const r of resets) {
-            const m = root.monitors.find(x => x.key === r);
-            chunk.push(`monitor_default(${root.luaString(r)}, ${root.luaString(m?.name ?? r)})`);
-        }
+        for (const r of resets)
+            chunk.push(root.luaOf({ output: r, mode: "preferred", position: "auto", scale: "auto" }));
         if (chunk.length === 0)
             return;
         root.lastError = "";
@@ -313,14 +348,27 @@ Singleton {
         if (!root.confirming)
             return;
         root.countdown = 0;
+        const managed = ["mode", "position", "scale", "transform", "vrr", "disabled", "mirror"];
         const next = Object.assign({}, root.rules);
         for (const s of root.pendingSpecs) {
-            const r = Object.assign({}, s);
-            delete r.output;
+            // Felder der Seite aus der neuen Regel, alles andere (workspaces …)
+            // aus der alten
+            const r = Object.assign({}, root.rules[s.output] ?? {});
+            for (const k of managed)
+                delete r[k];
+            for (const k of managed)
+                if (s[k] !== undefined && s[k] !== false && s[k] !== "")
+                    r[k] = s[k];
             next[s.output] = r;
         }
-        for (const k of root.pendingResets)
-            delete next[k];
+        for (const k of root.pendingResets) {
+            // Zurueck auf Standard; eine Workspace-Gruppe bleibt stehen
+            const ws = root.rules[k]?.workspaces;
+            if (ws === undefined)
+                delete next[k];
+            else
+                next[k] = { mode: "preferred", position: "auto", scale: "auto", workspaces: ws };
+        }
         root.pendingSpecs = [];
         root.pendingResets = [];
         root.previousSpecs = [];
@@ -387,57 +435,102 @@ Singleton {
         }
     }
 
-    // ---- monitors.json / monitors.lua --------------------------------------
+    // ---- monitors.lua ----------------------------------------------------
 
     function commit(next: var): void {
         root.rules = next;
+        if (!root.writesHypr)
+            return;
+        if (!root.rulesWritable) {
+            root.lastError = I18n.tr("monitors.lua konnte nicht gelesen werden – nichts gespeichert");
+            return;
+        }
         saveGuard.restart();
-        jsonFile.setText(JSON.stringify({ format: 1, rules: next }, null, 2) + "\n");
-        if (root.writesHypr)
-            luaFile.setText(root.luaText);
+        backupProc.running = true;
     }
 
     function readRules(): void {
-        let parsed;
-        try {
-            parsed = JSON.parse(jsonFile.text() || "{}");
-        } catch (e) {
-            return;
-        }
-        root.rules = parsed.rules && typeof parsed.rules === "object" ? parsed.rules : {};
-        root.rulesLoaded = true;
-        // Regelwerte (vrr) haengen an den Monitoren
-        if (root.loaded)
-            root.refresh();
+        if (!rulesProc.running)
+            rulesProc.running = true;
     }
+
+    // Vorher sichern, dann schreiben (Hyprland laedt die Datei danach selbst
+    // neu, monitor-setup.lua wendet sie an)
+    Process {
+        id: backupProc
+
+        command: ["sh", "-c", 'if [ -f "$1" ]; then cp -f "$1" "$1.bak"; fi', "sh", root.luaPath]
+        onExited: luaFile.setText(root.luaText)
+    }
+
+    // monitors.lua per lua als JSON lesen: [{ output, … }]; "null" = kaputt,
+    // "[]" = fehlt
+    Process {
+        id: rulesProc
+
+        environment: ({ MONITORS_FILE: root.luaPath })
+        command: ["sh", "-c", 'if [ ! -e "$MONITORS_FILE" ]; then echo "[]"; exit 0; fi; '
+            + 'L=$(command -v lua || command -v luajit || command -v lua5.4 || command -v lua5.1) || { echo nolua; exit 0; }; '
+            + 'exec "$L" -e "$1"', "sh", root.luaDump]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const t = text.trim();
+                let list = null;
+                try {
+                    list = t === "nolua" ? null : JSON.parse(t);
+                } catch (e) {
+                    list = null;
+                }
+                const next = {};
+                for (const m of (Array.isArray(list) ? list : [])) {
+                    if (!m || typeof m.output !== "string")
+                        continue;
+                    const r = Object.assign({}, m);
+                    delete r.output;
+                    next[m.output] = r;
+                }
+                root.rules = next;
+                root.rulesWritable = Array.isArray(list);
+                if (!root.rulesWritable)
+                    root.lastError = t === "nolua" ? I18n.tr("Kein lua gefunden – Monitore werden nicht gespeichert")
+                                                   : I18n.tr("monitors.lua ist fehlerhaft – Monitore werden nicht gespeichert");
+                root.rulesLoaded = true;
+                // Regelwerte (vrr) und Schluessel haengen an den Monitoren
+                root.refresh();
+            }
+        }
+    }
+
+    readonly property string luaDump: 'local ok, t = pcall(dofile, os.getenv("MONITORS_FILE")) '
+        + 'if not ok or type(t) ~= "table" then io.write("null") return end '
+        + 'local function s(v) return \'"\' .. tostring(v):gsub(\'[%c"\\\\]\', function(c) return string.format("\\\\u%04x", c:byte()) end) .. \'"\' end '
+        + 'local out = {} '
+        + 'for _, m in ipairs(t) do if type(m) == "table" and type(m.output) == "string" then '
+        + '  local f = {} '
+        + '  for k, v in pairs(m) do local tv = type(v) '
+        + '    if tv == "string" then f[#f + 1] = s(k) .. ":" .. s(v) '
+        + '    elseif tv == "number" or tv == "boolean" then f[#f + 1] = s(k) .. ":" .. tostring(v) end '
+        + '  end '
+        + '  out[#out + 1] = "{" .. table.concat(f, ",") .. "}" '
+        + 'end end '
+        + 'io.write("[" .. table.concat(out, ",") .. "]")'
 
     Timer {
         id: saveGuard
 
-        interval: 400
-    }
-
-    FileView {
-        id: jsonFile
-
-        path: root.jsonPath
-        watchChanges: true
-        blockLoading: true
-        printErrors: false
-        atomicWrites: true
-        onLoaded: if (!saveGuard.running) root.readRules()
-        onLoadFailed: root.rulesLoaded = true
-        onFileChanged: if (!saveGuard.running) reload()
+        interval: 800
     }
 
     FileView {
         id: luaFile
 
         path: root.luaPath
-        blockLoading: true
-        blockWrites: true
+        watchChanges: true
         printErrors: false
         atomicWrites: true
+        // Von Hand oder von install.sh geaendert: neu lesen
+        onFileChanged: if (!saveGuard.running) root.readRules()
     }
 
     // qs -c dynamic-island ipc call monitors list
@@ -461,5 +554,5 @@ Singleton {
         }
     }
 
-    Component.onCompleted: root.refresh()
+    Component.onCompleted: root.readRules()
 }
