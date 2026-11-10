@@ -59,7 +59,10 @@ as symlinks by default, so a `git pull` in the clone
 applies right away. Whatever is already there is moved to `~/backups/` first;
 nothing is deleted. It also copies the bundled wallpapers to
 `~/Pictures/Wallpapers` (existing files are left alone) and generates the
-first color scheme from them.
+first color scheme from them. For the see-through terminal it places
+`config/kitty/dynamic-island.conf` in `~/.config/kitty/` and appends a marked
+`include` block to your `kitty.conf` (nothing else in that file is touched;
+your own values below the block win).
 
 Then:
 

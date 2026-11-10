@@ -10,7 +10,8 @@
 # config/ im Repo spiegelt ~/.config. Das Skript verteilt daraus hypr/,
 # quickshell/dynamic-island/ und dynamic-island/ nach ~/.config
 # (standardmaessig als Symlinks, damit ein `git pull` im Klon durchschlaegt),
-# mit --extras auch die optionalen Configs, und richtet danach alles Weitere ein.
+# mit --extras auch die optionalen Configs, und richtet danach alles Weitere ein
+# (u. a. kitty-Transparenz: config/kitty/dynamic-island.conf + include-Block).
 #
 # Idempotent: mehrfach ausfuehren schadet nicht.
 #
@@ -631,6 +632,62 @@ setup_path() {
     esac
 }
 
+# --------------------------------------------------------- 2c. kitty ---
+# Die Transparenz des Terminals steckt in kitty (background_opacity), nicht in
+# Hyprland. Ohne das ist kitty auf einem frischen Rechner voll deckend. Die
+# Einstellungen liegen in config/kitty/dynamic-island.conf; kitty.conf selbst
+# bleibt die des Rechners und bekommt nur einen markierten include-Block.
+KITTY_MARK="# >>> dynamic-island kitty >>>"
+
+kitty_setup() {
+    step "kitty (Transparenz)"
+    local src="$SRC_DIR/kitty/dynamic-island.conf"
+    local dst="$CONFIG_DIR/kitty/dynamic-island.conf"
+    local kc="$CONFIG_DIR/kitty/kitty.conf"
+
+    if ! command -v kitty >/dev/null 2>&1 && [ ! -d "$CONFIG_DIR/kitty" ]; then
+        skip "kitty nicht installiert"
+        return 0
+    fi
+
+    local included=0
+    [ -f "$kc" ] && grep -qE "^[[:space:]]*include[[:space:]]+(\\./)?dynamic-island\\.conf[[:space:]]*\$" "$kc" \
+        && included=1
+
+    if [ "$CHECK_ONLY" = 1 ]; then
+        if same_path "$dst" "$src"; then ok "$(short "$dst") zeigt auf das Repo"
+        elif [ -f "$dst" ]; then ok "$(short "$dst") (Kopie)"
+        else warn "$(short "$dst") fehlt (./install.sh legt sie an)"
+        fi
+        if [ "$included" = 1 ]; then ok "$(short "$kc") bindet dynamic-island.conf ein"
+        else warn "$(short "$kc") bindet dynamic-island.conf nicht ein"
+        fi
+        return 0
+    fi
+
+    if [ "$COPY" = 1 ]; then
+        # Ein frueherer Symlink zeigt auf die Quelle selbst – cp wuerde scheitern
+        [ -L "$dst" ] && run rm -f "$dst"
+        run mkdir -p "$(dirname "$dst")"
+        run cp "$src" "$dst"
+        ok "$(short "$dst") kopiert"
+    else
+        link "$src" "$dst"
+    fi
+
+    if [ "$included" = 1 ]; then
+        skip "$(short "$kc") bindet dynamic-island.conf schon ein"
+    elif [ "$DRY_RUN" = 1 ]; then
+        printf '  %s[dry-run]%s include dynamic-island.conf an %s anhaengen\n' "$c_dim" "$c_reset" "$(short "$kc")"
+    else
+        mkdir -p "$(dirname "$kc")"
+        printf '\n%s\n# Transparenz der Dynamic-Island-Rice; eigene Werte darunter gewinnen\ninclude dynamic-island.conf\n# <<< dynamic-island kitty <<<\n' \
+            "$KITTY_MARK" >> "$kc"
+        ok "include dynamic-island.conf in $(short "$kc") eingetragen"
+        warn "Offene kitty-Fenster laden das erst nach Strg+Shift+F5 (oder neu starten)"
+    fi
+}
+
 # ------------------------------------------------------- Rust-Helfer ---
 # Fehlt ein Binary, nimmt die Shell die Python-Fassung. Darum ist ein
 # gescheiterter Build hier nur eine Warnung.
@@ -962,6 +1019,7 @@ check_notifications
 if [ "$CHECK_ONLY" = 1 ]; then check_deploy; else deploy; fi
 if [ "$CHECK_ONLY" = 1 ]; then check_links; else link_files; fi
 setup_path
+kitty_setup
 if [ "$CHECK_ONLY" = 1 ]; then check_helpers; else build_helpers; fi
 make_dirs
 seed_wallpapers

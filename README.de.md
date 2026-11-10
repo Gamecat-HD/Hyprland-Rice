@@ -57,7 +57,10 @@ standardmaessig als Symlinks, damit ein
 `git pull` im Klon sofort gilt. Was dort schon liegt, wandert vorher nach
 `~/backups/`, nichts wird geloescht. Ausserdem kopiert es die mitgelieferten
 Wallpaper nach `~/Pictures/Wallpapers` (vorhandene Dateien bleiben) und
-erzeugt daraus das erste Farbschema.
+erzeugt daraus das erste Farbschema. Fuer das durchsichtige Terminal legt es
+`config/kitty/dynamic-island.conf` nach `~/.config/kitty/` und haengt an deine
+`kitty.conf` einen markierten `include`-Block an (deine Datei bleibt sonst
+unangetastet; eigene Werte unter dem Block gewinnen).
 
 Danach:
 
