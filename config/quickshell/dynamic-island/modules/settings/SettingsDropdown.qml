@@ -11,6 +11,8 @@ import qs
 //   current   gewaehlter Wert (Vergleich per String)
 //   labelOf   Anzeigename eines Werts, Vorgabe String(v)
 //   fontOf    Schrift je Wert (Schriftauswahl), Vorgabe Config.font
+//   iconOf    Symbol je Wert in der Liste (der gewaehlte zeigt den Haken)
+//   above     Liste ueber statt unter dem Knopf (Leisten am unteren Rand)
 //   picked(v) Signal bei Auswahl
 Rectangle {
     id: drop
@@ -19,6 +21,11 @@ Rectangle {
     property var current: undefined
     property var labelOf: v => String(v)
     property var fontOf: null
+    property var iconOf: null
+    property bool above: false
+    // Liste sichtbar (bis das Ausblenden fertig ist) – Verwender ausserhalb
+    // des Einstellungsfensters sperren damit, was unter der Liste liegt
+    readonly property bool menuOpen: menu.visible
     // Zusaetzliche Eintraege unter einer Trennlinie (z.B. "Benutzerdefiniert")
     property var extraEntries: []
     property real maxWidth: 240
@@ -88,12 +95,13 @@ Rectangle {
     SettingsMenu {
         id: menu
 
-        y: drop.height + 4
+        y: drop.above ? -menu.height - 4 : drop.height + 4
         minWidth: drop.width
         entries: drop.options.map(v => ({
             text: drop.labelOf(v),
             current: String(v) === String(drop.current),
             font: drop.fontOf ? drop.fontOf(v) : undefined,
+            icon: drop.iconOf ? drop.iconOf(v) : undefined,
             action: () => drop.picked(v)
         })).concat(drop.extraEntries.length > 0 ? [{ separator: true }].concat(drop.extraEntries) : [])
     }

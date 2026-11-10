@@ -67,3 +67,6 @@ __pycache__/
 # Rust-Build der Helfer
 /config/dynamic-island/rust/target/
 /config/dynamic-island/bin/dynamic-island-rs
+
+# Offscreen-Screenshots
+docs/*/shots/

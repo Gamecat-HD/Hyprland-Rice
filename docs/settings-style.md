@@ -54,7 +54,7 @@ Lösch-Rückfragen, Live-Status.
 | Auswahl aus mehreren Werten | `SettingsDropdown { options; current; labelOf; fontOf; onPicked }` |
 | Seltene Aktionen | `SettingsMenuButton { entries: [{ text, icon, current?, danger?, enabled?, action }, { separator: true }] }` |
 | Aufklappliste (intern) | `SettingsMenu` – Controls-Popup in der Overlay-Ebene, nie abgeschnitten |
-| An/Aus | Schalter 40×22 (`primary` an, `alpha(fgSurface, 0.18)` aus) |
+| An/Aus | `SettingsSwitch` 40×22 (`primary` an, `alpha(fgSurface, 0.18)` aus) |
 | Zahl | Regler; Mausrad nur direkt auf dem Regler, nie auf der ganzen Zeile |
 | Unterseite | Zeile oder Knopf mit `chevron_right`, Seite öffnet im Fenster |
 | Aktion in Zeilen | Textknopf Höhe 30, `radius 8`, `alpha(fgSurface, 0.08)`; Hauptaktion `primary`/`fgPrimary` |
@@ -93,6 +93,17 @@ Spalten fluchten.
   + `grim -o <monitor>`, danach `… settings close`. Nicht öffnen, wenn ein
   Vollbild-Spiel läuft (das Fenster nimmt den Fokus).
 
+## Nach diesem Stil umgebaut (2026-11-10, Branch notch-desktop-style)
+
+- Notch: jede Anzeige schaltbar (`Config.notch.*`, Gruppen Eingeklappt/
+  Aufgeklappt/Seiten), Kalender ohne Versalien, Benachrichtigungen mit
+  Schalter statt Pillen, Power-Menü einfarbig in Seitenbreite.
+- Desktop-Editor: Leiste = Szene-Dropdown, „Widget hinzufügen“, ⋮, Abbrechen,
+  Fertig; Optionsfeld als Zeilen mit Schalter/Dropdown/Tupfern/Segment.
+  Popups außerhalb des Felds sperren Widgets darunter über `menuOpen`
+  (SettingsDropdown/SettingsMenuButton, `above` für Leisten unten).
+- Screenshots: `docs/notch-shot/shot.sh <zustand>`, `docs/desktop-shot/shot.sh`.
+
 ## Noch nicht nach diesem Stil geprüft
 
 - Plugin-Seiten und Plugin-Gruppen (z. B. Terminal-Looks-Editor, Desktop-Widgets
@@ -100,7 +111,9 @@ Spalten fluchten.
 - Editoren: VPN, Klänge, Sperrbildschirm-Anordnung, Desktop-Szene,
   Schnelleinstellungen-Kacheleditor („Zurücksetzen“-Pille), Akkuverlauf
   (Zeitraum-Chips 24 h/3 Tage/7 Tage/Alles), Tastenkürzel-Seite.
-- Menüs der Notch/des Launchers (eigene Optik, nicht Teil dieses Umbaus).
+- Menüs des Launchers (Apps, Wallpaper, Themes, Zwischenablage, Tastenkürzel)
+  und die Steuerungs-Seite der Notch (Kachel-Optik).
+- Sperrbildschirm-Editor (`LockEditBar`, `LockElementOptions`): noch EditChip-Look.
 - Jede Editor-Datei hat eigene Kopien von Toggle/ActionButton/Chip – Kandidat
   zum Zusammenlegen.
 - `StylePreview.qml` (Vorschaubilder für Uhr-/Workspace-/Visualiser-Stil) hat

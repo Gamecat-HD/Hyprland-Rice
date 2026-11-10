@@ -4,12 +4,16 @@ import QtQuick
 import qs
 
 // Runder Symbolknopf (Vorgabe ⋮), der ein SettingsMenu aufklappt.
-// entries wie SettingsMenu; Liste rechtsbuendig unter dem Knopf.
+// entries wie SettingsMenu; Liste rechtsbuendig unter dem Knopf
+// (`above`: darueber).
 Rectangle {
     id: button
 
     property string icon: "more_vert"
     property var entries: []
+    property bool above: false
+    // Liste sichtbar (bis das Ausblenden fertig ist), siehe SettingsDropdown
+    readonly property bool menuOpen: menu.visible
 
     implicitWidth: 30
     implicitHeight: 30
@@ -46,7 +50,7 @@ Rectangle {
         id: menu
 
         x: button.width - menu.width
-        y: button.height + 4
+        y: button.above ? -menu.height - 4 : button.height + 4
         minWidth: 180
         entries: button.entries
     }
