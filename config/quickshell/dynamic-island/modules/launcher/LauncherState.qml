@@ -5,6 +5,8 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 
+import qs.modules.services.config
+
 // Gemeinsamer Zustand des Launchers. Die Notch (im Bar-Fenster) schaltet ihn
 // an, das Launcher-Fenster hängt seine Sichtbarkeit daran – die beiden leben
 // in verschiedenen Fenstern und können sich sonst nicht sehen.
@@ -71,7 +73,12 @@ Singleton {
     // Die Ansichten, durch die man in der Notch blaettert (Mausrad kippen,
     // Touchpad wischen). "overview" ist keine Launcher-Ansicht, sondern die
     // Hover-Karte der Notch selbst – Blaettern dorthin schliesst den Launcher.
-    readonly property var views: ["overview", "media", "control", "notifications", "system"]
+    // Abgeschaltete Seiten (Config.notch.page*) fallen aus dem Blaettern,
+    // ihre Kuerzel oeffnen sie weiter.
+    readonly property var views: ["overview"].concat(
+        [["media", Config.notch.pageMedia], ["control", Config.notch.pageControl],
+         ["notifications", Config.notch.pageNotifications], ["system", Config.notch.pageSystem]]
+        .filter(v => v[1]).map(v => v[0]))
     readonly property int viewIndex: root.open ? root.views.indexOf(root.mode) : 0
 
     // Blaettern um `dir` (+1/-1). Liefert die neue Ansicht zurueck, damit die

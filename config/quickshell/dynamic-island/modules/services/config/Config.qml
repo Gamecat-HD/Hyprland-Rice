@@ -88,27 +88,27 @@ Singleton {
             desc: "Insel: alle Pillen. Notch: nur die angedockte Notch oben in der Mitte",
             options: ["insel", "notch"]
         },
-        // Anzeigen in der eingeklappten Notch (nur Notch-Layout)
-        "notch.workspaces": {
-            group: "Anzeigen",
-            title: "Workspaces in der Notch",
-            requires: { "appearance.layout": "notch" }
-        },
-        "notch.date": {
-            group: "Anzeigen",
-            title: "Datum in der Notch",
-            requires: { "appearance.layout": "notch" }
-        },
-        "notch.media": {
-            group: "Anzeigen",
-            title: "Cover in der Notch",
-            requires: { "appearance.layout": "notch" }
-        },
-        "notch.visualizer": {
-            group: "Anzeigen",
-            title: "Visualiser in der Notch",
-            requires: { "appearance.layout": "notch" }
-        },
+        // Was die Notch zeigt (nur Notch-Layout). Titel ohne "in der Notch":
+        // die Seite heisst schon so
+        "notch.clock": { title: "Uhr", group: "Eingeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.workspaces": { title: "Workspaces", group: "Eingeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.date": { title: "Datum", group: "Eingeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.media": { title: "Cover", group: "Eingeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.visualizer": { title: "Visualiser", group: "Eingeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.messages": { title: "Nachrichten-Zähler", group: "Eingeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.record": { title: "Aufnahme-Punkt", group: "Eingeklappt", requires: { "appearance.layout": "notch" } },
+        // Aufgeklappte Uebersicht (Hover-Karte)
+        "notch.hoverOpen": { title: "Beim Hovern aufklappen", group: "Aufgeklappt", requires: { "appearance.layout": "notch" }, desc: "Sonst per Klick" },
+        "notch.calendar": { title: "Kalender", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.nowPlaying": { title: "Jetzt läuft", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.stats": { title: "Systemwerte", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.batteries": { title: "Geräte-Akkus", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
+        "notch.bell": { title: "Glocke", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
+        // Seiten zum Blaettern (LauncherState.views); Kuerzel oeffnen sie weiter
+        "notch.pageMedia": { title: "Medien", group: "Seiten", requires: { "appearance.layout": "notch" } },
+        "notch.pageControl": { title: "Steuerung", group: "Seiten", requires: { "appearance.layout": "notch" } },
+        "notch.pageNotifications": { title: "Benachrichtigungen", group: "Seiten", requires: { "appearance.layout": "notch" } },
+        "notch.pageSystem": { title: "System", group: "Seiten", requires: { "appearance.layout": "notch" } },
         // Akku in der eingeklappten Notch: Batterie neben der Uhr oder Ring
         // innen am Rand mit Batterie unten in der Mitte (NotchBatteryRing)
         "notch.batteryStyle": {
@@ -130,18 +130,13 @@ Singleton {
             labels: { "system": "Nur Systemakku vor Visualiser", "akku": "Akku vor Visualiser", "visualiser": "Visualiser vor Akku" },
             requires: { "appearance.layout": "notch" }
         },
-        "notch.messages": {
-            group: "Anzeigen",
-            title: "Nachrichten-Zähler",
-            requires: { "appearance.layout": "notch" }
-        },
         // Stil-Varianten der Notch-Anzeigen. `preview` zeigt im Menue statt
         // Text-Chips eine kleine Vorschau der Variante (SettingsRow -> StylePreview)
         "notch.clockStyle": {
             group: "Stile",
             title: "Uhr-Stil",
             options: ["digital", "split", "analog"], preview: "clock",
-            requires: { "appearance.layout": "notch" }
+            requires: "notch.clock"
         },
         "notch.workspaceStyle": {
             group: "Stile",
@@ -646,10 +641,22 @@ Singleton {
 
             // Was die eingeklappte Notch im Notch-Layout zeigt
             property JsonObject notch: JsonObject {
+                property bool clock: true
                 property bool workspaces: true
                 property bool date: true
                 property bool media: true
                 property bool visualizer: true
+                property bool record: true
+                property bool hoverOpen: true
+                property bool calendar: true
+                property bool nowPlaying: true
+                property bool stats: true
+                property bool batteries: true
+                property bool bell: true
+                property bool pageMedia: true
+                property bool pageControl: true
+                property bool pageNotifications: true
+                property bool pageSystem: true
                 // "symbol" | "ring"
                 property string batteryStyle: "symbol"
                 // "system" | "akku" | "visualiser"

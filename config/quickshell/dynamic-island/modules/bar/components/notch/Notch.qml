@@ -53,6 +53,9 @@ Item {
     readonly property real compactGap: 14    // Element -> Uhr
     readonly property real compactMinWidth: 196
     readonly property bool showWorkspaces: docked && Config.notch.workspaces
+    // Uhr eingeklappt (Config.notch.clock); aufgeklappt ist sie die Ueberschrift
+    readonly property bool clockHidden: docked && !open && !Config.notch.clock
+    readonly property real clockSlot: clockHidden ? 0 : clock.implicitWidth
     readonly property real compactLeft: showMedia ? mediaArtSize - (compactEdge - mediaEdge)
                                       : showWorkspaces ? compactWorkspaces.implicitWidth
                                       : 0
@@ -98,10 +101,16 @@ Item {
     // die Steuerung (Settings-Karte 520) plus Rand. So verschiebt sich beim
     // Blaettern seitlich nichts, nur die Hoehe aendert sich nach unten.
     readonly property real pageWidth: 548
-    readonly property real panelBottom: collapsedHeight + clockDropMax + panel.outerHeight
-    readonly property bool showNowPlaying: Media.available
+    // Uebersicht von oben nach unten: Kalender, Jetzt laeuft, Systemwerte,
+    // Akkus – jedes abschaltbar (Config.notch.*), Abgeschaltetes nimmt keinen Platz
+    readonly property bool showCalendar: !docked || Config.notch.calendar
+    readonly property real panelBottom: collapsedHeight + clockDropMax + (showCalendar ? panel.outerHeight : 0)
+    readonly property bool showNowPlaying: Media.available && Config.notch.nowPlaying
+    readonly property bool showStats: Config.notch.stats
     readonly property real overviewBottom: batteryGlance.visible ? batteryGlance.y + batteryGlance.height
-                                                                 : systemGlance.y + systemGlance.height
+                                         : showStats ? systemGlance.y + systemGlance.height
+                                         : showNowPlaying ? nowPlaying.y + nowPlaying.height
+                                         : panelBottom
     // Seiten-Indikator: Punkte fuer Uebersicht + Untermenues
     readonly property bool pagerShown: docked && (overviewShown || viewOpen)
     // Mitte der Kopfzeile: Uhr (Uebersicht) bzw. Titel (Untermenue) stehen
@@ -185,7 +194,7 @@ Item {
     // Was die Bar zentral einschaltet (Bar.qml): Visualiser, Systemwerte,
     // Medien-Position, Tastaturfokus fuers WLAN-Passwort in der Steuerung
     readonly property bool wantsVisualizer: (overviewShown && Media.available) || mediaOpen
-    readonly property bool wantsStats: overviewShown || systemOpen
+    readonly property bool wantsStats: (overviewShown && showStats) || systemOpen
     readonly property bool wantsMediaPosition: mediaOpen
     readonly property bool controlTyping: controlOpen && (controlView?.typing ?? false)
     // Steuerungs-Untermenue (nur gebaut, solange offen – sonst null)
@@ -264,7 +273,7 @@ Item {
     readonly property real ringGrowY: batteryRingShown ? 3 : 0
     readonly property real collapsedHeight: docked ? parent.height - 8 + ringGrowY : parent.height - verticalMargin
     readonly property real collapsedWidth: docked
-        ? Math.max(compactMinWidth, clock.implicitWidth + 2 * (compactSide + compactGap + compactEdge)) + ringGrowX
+        ? Math.max(clockHidden ? 0 : compactMinWidth, clockSlot + 2 * (compactSide + compactGap + compactEdge)) + ringGrowX
         : clock.implicitWidth + 50 + recordReserve
     readonly property real launcherWidth: wallpaperOpen ? wallpapers.outerWidth
                                         : themeOpen ? themes.outerWidth
@@ -314,7 +323,7 @@ Item {
     onContainsMouseChanged: {
         if (containsMouse) {
             closeTimer.stop();
-            if (!expanded && !launcherOpen)
+            if (!expanded && !launcherOpen && (Config.notch.hoverOpen || !docked))
                 openTimer.restart();
         } else {
             openTimer.stop();
@@ -377,6 +386,16 @@ Item {
 
         Behavior on shadowStrength {
             NumberAnimation { duration: Appearance.morphDuration * 0.65; easing.type: Easing.OutCubic }
+        }
+
+        // Ohne Hover-Aufklappen (Config.notch.hoverOpen) oeffnet ein Klick
+        TapHandler {
+            enabled: notch.docked && !Config.notch.hoverOpen && !notch.open
+            // Die Workspace-Staebchen haben eigene Klicks (Handler sehen beide)
+            onTapped: point => {
+                if (!compactWorkspaces.visible || !compactWorkspaces.contains(compactWorkspaces.mapFromItem(pill, point.position)))
+                    notch.expanded = true;
+            }
         }
 
         // Nach unten ziehen öffnet den Launcher. Solange diese Geste läuft,
@@ -498,7 +517,7 @@ Item {
             scale: notch.docked && notch.expanded ? 1.3 : 1
             // Aufgeklappt nimmt die Uhr die Akzentfarbe an
             color: notch.open ? Colors.primary : Colors.fgBackground
-            opacity: notch.launcherOpen || notch.authOpen ? 0 : 1
+            opacity: notch.launcherOpen || notch.authOpen || notch.clockHidden ? 0 : 1
             visible: opacity > 0
 
             Behavior on color {
@@ -628,7 +647,7 @@ Item {
                 id: dockedRecordDot
 
                 anchors.verticalCenter: parent.verticalCenter
-                visible: notch.recording
+                visible: notch.recording && Config.notch.record
                 width: notch.recordDotSize
                 height: notch.recordDotSize
                 radius: width / 2
@@ -805,7 +824,7 @@ Item {
             }
             width: 22
             height: 22
-            opacity: notch.overviewShown || notch.docked && notch.viewOpen ? 1 : 0
+            opacity: Config.notch.bell && (notch.overviewShown || notch.docked && notch.viewOpen) ? 1 : 0
             visible: opacity > 0
             scale: bellHover.hovered ? 1.12 : 1
 
@@ -894,7 +913,8 @@ Item {
             x: notch.overviewInset
             y: notch.showNowPlaying ? nowPlaying.y + nowPlaying.height + 8 : notch.panelBottom + 8
             width: parent.width - 2 * notch.overviewInset
-            opacity: notch.overviewShown ? 1 : 0
+            height: notch.showStats ? 30 : 0
+            opacity: notch.overviewShown && notch.showStats ? 1 : 0
             visible: opacity > 0
 
             Fade on opacity {}
@@ -906,8 +926,12 @@ Item {
             transform: Translate { x: notch.slide }
 
             x: notch.overviewInset
-            y: systemGlance.y + systemGlance.height + 6
+            y: notch.showStats ? systemGlance.y + systemGlance.height + 6
+             : notch.showNowPlaying ? nowPlaying.y + nowPlaying.height + 8
+             : notch.panelBottom + 8
             width: parent.width - 2 * notch.overviewInset
+            visible: Config.notch.batteries && batteries.length > 0
+            height: visible ? 30 : 0
             opacity: notch.overviewShown ? 1 : 0
             enabled: notch.overviewShown
 
@@ -925,8 +949,8 @@ Item {
             id: pager
 
             anchors {
-                right: bell.left
-                rightMargin: 12
+                right: Config.notch.bell ? bell.left : parent.right
+                rightMargin: Config.notch.bell ? 12 : notch.overviewInset + 4
             }
             y: notch.headerCenter - height / 2
             height: 6
@@ -1291,7 +1315,7 @@ Item {
             // Beim Wechsel zum Launcher (oder zur Steuerungs-Seite) sofort aus
             // dem Renderpfad nehmen. So wird der Datumsstreifen nicht auf die
             // neue Kartenbreite mitanimiert.
-            visible: notch.cardShown
+            visible: notch.cardShown && notch.showCalendar
 
             Behavior on opacity {
                 NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
