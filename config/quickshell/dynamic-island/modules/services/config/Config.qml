@@ -748,7 +748,7 @@ Singleton {
             property JsonObject system: JsonObject {
                 property string info: ""
                 // Stunden zwischen Hintergrund-Pruefungen (git fetch), 0 = aus
-                property int updateCheckHours: 2
+                property int updateCheckHours: 12
             }
 
             // Regler am rechten Bildschirmrand (modules/osd/Osd.qml)

@@ -1250,5 +1250,10 @@ var strings = {
     "Wechsel": "Switching",
     "Update-Suche": "Update check",
     "24 Stunden": "24-hour",
-    "12 Stunden": "12-hour"
+    "12 Stunden": "12-hour",
+    "Dynamisch": "Dynamic",
+    "Modus": "Mode",
+    "Flächen": "Surfaces",
+    "Farbschemata": "Color schemes",
+    "Schema suchen…": "Search schemes…"
 };

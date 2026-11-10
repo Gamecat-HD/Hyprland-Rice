@@ -6,6 +6,7 @@ import qs.modules.services.plugins
 import qs.modules.services.system
 import qs.modules.services.wallpaper
 import qs.modules.widgets
+import qs.modules.settings.wallpaper
 
 import qs
 
@@ -60,6 +61,17 @@ Surface {
         { key: "region", title: "Sprache & Region", desc: "Sprache, Uhrzeit", icon: "language", sections: ["region"] },
         { key: "info", title: "Info", desc: "Version, Updates, System", icon: "info", sections: ["system"] }
     ]
+    // Die Leiste in Gruppen (Schluessel aus categories, dazu die Plugin-Verwaltung)
+    readonly property var sidebarGroups: [
+        ["look", "notch", "bar", "quick"],
+        ["alerts", "connect", "battery", "lock"],
+        ["monitors", "keybinds", "region"],
+        ["plugins", "info"].map(k => k === "plugins" ? card.managerKey : k)
+    ]
+    function sidebarEntry(key: string): var {
+        return card.categories.find(c => c.key === key)
+            ?? { key: card.managerKey, title: "Plugins", desc: "Erweiterungen verwalten", icon: "extension" };
+    }
     // Seiten ohne eigenen shell.json-Abschnitt (nur Zeilen mit meta.page)
     readonly property var pageTitles: ({ "region": "Sprache & Region" })
     // Abschnitte aus shell.json, die keiner Kategorie gehoeren, landen unter Info
@@ -93,6 +105,11 @@ Surface {
     // die Bilder statt die Einstellungen, die Seite bleibt also stehen
     readonly property string wallsKey: "@wallpapers"
     readonly property bool browsing: card.section === card.wallsKey
+    // Farbschemata (wallpaper/ColorsPage.qml) – Unterseite von Aussehen wie die Bibliothek
+    readonly property string colorsKey: "@colors"
+    readonly property bool coloring: card.section === card.colorsKey
+    // Unterseiten von Aussehen: die Suche filtert dort Bilder bzw. Schemata
+    readonly property bool lookSub: card.browsing || card.coloring
     // Plugin-Seite (Manifest `pages`, Plugins.pages): "@page:<plugin>/<seite>",
     // geladen ueber ihre URL statt der Zeilenliste; waehrend der Suche
     // zeigt die Karte wie bei der Verwaltung die Treffer
@@ -196,6 +213,8 @@ Surface {
             return I18n.tr(card.pageTitles[s]);
         if (s === card.managerKey)
             return "Plugins";
+        if (s === card.colorsKey)
+            return I18n.tr("Farben");
         if (s === card.wallsKey)
             return I18n.tr("Bibliothek");
         if (Plugins.isPageSection(s))
@@ -512,27 +531,47 @@ Surface {
                 spacing: 2
 
                 Repeater {
-                    // Kategorien, dahinter die Plugin-Verwaltung
-                    model: card.categories.concat([{ key: card.managerKey, title: "Plugins", desc: "Erweiterungen verwalten", icon: "extension" }])
+                    // Gruppen wie bei Caelestia: Eintraege einer Gruppe kleben
+                    // aneinander (2 px), aussen stark, innen leicht gerundet
+                    model: card.sidebarGroups
+
+                    Column {
+                        id: sideGroup
+
+                        required property var modelData
+
+                        width: parent?.width ?? 0
+                        spacing: 2
+                        bottomPadding: 12
+
+                Repeater {
+                    model: sideGroup.modelData
 
                     Rectangle {
                         id: button
 
-                        required property var modelData
-                        readonly property string label: I18n.tr(button.modelData.title)
+                        required property string modelData
+                        required property int index
+                        readonly property var info: card.sidebarEntry(button.modelData)
+                        readonly property bool first: button.index === 0
+                        readonly property bool last: button.index === sideGroup.modelData.length - 1
+                        readonly property string label: I18n.tr(button.info.title)
                         // Unterseiten markieren ihre Kategorie: Bibliothek →
                         // Darstellung, Plugin-Gruppen und -Seiten → Plugins
-                        readonly property string owner: card.browsing ? "look"
+                        readonly property string owner: card.lookSub ? "look"
                             : card.managing || Plugins.isPluginSection(card.section) || Plugins.isPageSection(card.section) ? card.managerKey
                             : card.section
-                        readonly property bool current: (!card.searching || card.browsing) && button.owner === button.modelData.key
+                        readonly property bool current: (!card.searching || card.lookSub) && button.owner === button.modelData
 
                         width: parent?.width ?? 0
-                        height: card.compact ? 48 : 58
-                        radius: 18
-                        color: button.current ? Colors.alpha(Colors.primary, 0.12)
-                             : buttonHover.hovered ? Colors.alpha(Colors.fgSurface, 0.05)
-                             : "transparent"
+                        height: card.compact ? 46 : 54
+                        topLeftRadius: button.first ? 20 : 6
+                        topRightRadius: button.first ? 20 : 6
+                        bottomLeftRadius: button.last ? 20 : 6
+                        bottomRightRadius: button.last ? 20 : 6
+                        color: button.current ? Colors.alpha(Colors.primary, 0.18)
+                             : buttonHover.hovered ? Colors.alpha(Colors.fgSurface, 0.08)
+                             : Colors.alpha(Colors.fgSurface, 0.04)
 
                         Behavior on color {
                             ColorAnimation { duration: Appearance.fadeDuration }
@@ -555,7 +594,7 @@ Surface {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: button.modelData.icon
+                                text: button.info.icon
                                 color: button.current ? Colors.fgPrimary : Colors.fgSurface
                                 font.family: "Material Symbols Outlined"
                                 font.pixelSize: 20
@@ -586,7 +625,7 @@ Surface {
 
                             Text {
                                 width: parent.width
-                                text: I18n.tr(button.modelData.desc)
+                                text: I18n.tr(button.info.desc)
                                 color: Colors.fgSurfaceVariant
                                 font.family: Config.font
                                 font.pixelSize: 11
@@ -607,8 +646,10 @@ Surface {
                         }
 
                         TapHandler {
-                            onTapped: card.select(button.modelData.key, false)
+                            onTapped: card.select(button.modelData, false)
                         }
+                    }
+                }
                     }
                 }
             }
@@ -648,9 +689,9 @@ Surface {
         // Plugin-Seite: zurueck zur Gruppe ihres Plugins
         // Unterseiten: zurueck zu ihrer Kategorie bzw. zur Plugin-Gruppe
         readonly property string backSection: {
-            if (card.searching && !card.browsing)
+            if (card.searching && !card.lookSub)
                 return "";
-            if (card.browsing)
+            if (card.lookSub)
                 return "look";
             if (card.paging && card.pageInfo !== null) {
                 const s = Plugins.sectionPrefix + card.pageInfo.pluginId;
@@ -720,6 +761,7 @@ Surface {
             width: Math.max(0, Math.min(heading.implicitWidth, moreButton.x - 10 - heading.x - (card.compact ? 12 + 150 : 0)))
             // In der Bibliothek steht "Bibliothek › Ordner" in der Seite selbst
             text: card.browsing ? "Wallpaper"
+                : card.coloring ? I18n.tr("Farben")
                 : card.searching ? I18n.tr("Suche")
                 : card.section === "" ? I18n.tr("Alle")
                 : card.sectionTitle(card.section)
@@ -791,7 +833,7 @@ Surface {
                 Text {
                     anchors.fill: parent
                     visible: search.text === ""
-                    text: card.browsing ? I18n.tr("Bild suchen…") : I18n.tr("Einstellung suchen…")
+                    text: card.browsing ? I18n.tr("Bild suchen…") : card.coloring ? I18n.tr("Schema suchen…") : I18n.tr("Einstellung suchen…")
                     color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
                     font: search.font
                     verticalAlignment: Text.AlignVCenter
@@ -914,6 +956,26 @@ Surface {
             }
         }
 
+        // ---- Farbschemata statt der Liste ----
+        Loader {
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: header.bottom
+                bottom: parent.bottom
+                leftMargin: 24
+                rightMargin: 16
+                topMargin: 12
+                bottomMargin: 16
+            }
+            active: card.coloring
+            visible: active
+
+            sourceComponent: ColorsPage {
+                filter: card.filter
+            }
+        }
+
         // ---- Wallpaper-Bibliothek statt der Liste ----
         Loader {
             id: walls
@@ -1012,7 +1074,7 @@ Surface {
                 topMargin: 18
                 bottomMargin: 16
             }
-            visible: !card.managing && !card.browsing && !card.paging
+            visible: !card.managing && !card.lookSub && !card.paging
             clip: true
             contentWidth: width
             contentHeight: cardColumn.height + 24
@@ -1189,7 +1251,7 @@ Surface {
                 bottomMargin: 10
             }
             // In der Bibliothek steht die Trefferzahl in deren Kopfzeile
-            text: card.searching && !card.browsing ? I18n.tr("%1 Treffer").arg(card.entries.length) : ""
+            text: card.searching && !card.lookSub ? I18n.tr("%1 Treffer").arg(card.entries.length) : ""
             color: Colors.alpha(Colors.fgSurfaceVariant, 0.7)
             font.pixelSize: 10
         }

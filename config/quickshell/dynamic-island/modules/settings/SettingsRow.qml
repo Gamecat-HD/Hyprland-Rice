@@ -178,23 +178,6 @@ Item {
                 }
             }
 
-            // Mausrad auf einer Zahl: einen Schritt rauf oder runter
-            WheelHandler {
-                enabled: row.isNumber && row.available
-                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-
-                property real acc: 0
-
-                onWheel: event => {
-                    acc += event.angleDelta.y;
-                    if (Math.abs(acc) >= 120) {
-                        row.setNumber(Number(row.entry.value) + (acc > 0 ? row.step : -row.step));
-                        acc = 0;
-                    }
-                    event.accepted = true;
-                }
-            }
-
             Column {
                 anchors {
                     left: parent.left
@@ -361,6 +344,24 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: row.sliderWidth
                         height: 28
+
+                        // Mausrad nur direkt auf dem Regler (sonst verstellt
+                        // das Scrollen der Liste die Werte): ein Schritt je Raste
+                        WheelHandler {
+                            enabled: row.isNumber && row.available
+                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+                            property real acc: 0
+
+                            onWheel: event => {
+                                acc += event.angleDelta.y;
+                                if (Math.abs(acc) >= 120) {
+                                    row.setNumber(Number(row.entry.value) + (acc > 0 ? row.step : -row.step));
+                                    acc = 0;
+                                }
+                                event.accepted = true;
+                            }
+                        }
 
                         readonly property real handleSize: 14
                         readonly property real trackInset: handleSize / 2

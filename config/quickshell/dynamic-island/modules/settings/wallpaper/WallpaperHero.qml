@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
-import qs.modules.launcher
 import qs.modules.services.config
 import qs.modules.services.wallpaper
 import qs.modules.settings
@@ -37,12 +36,9 @@ Item {
         SettingsState.openPage("@wallpapers", {});
     }
 
-    // Farbschema-Auswahl der Notch; das Fenster geht zu, es laege sonst
-    // darueber
+    // Farbschemata als Unterseite im selben Fenster (ColorsPage), nicht in der Notch
     function openColors(): void {
-        const screen = SettingsState.focusedScreen();
-        SettingsState.close();
-        LauncherState.showThemes(screen);
+        SettingsState.openPage("@colors", {});
     }
 
     // ---- Das Bild ----

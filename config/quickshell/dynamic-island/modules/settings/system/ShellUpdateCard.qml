@@ -14,7 +14,6 @@ import qs.modules.services.system
 SectionCard {
     id: card
 
-    property bool changesOpen: false
     readonly property int listMax: 204
 
     readonly property bool checking: ShellUpdate.checking
@@ -75,10 +74,6 @@ SectionCard {
             parts.push(I18n.tr("1 eigener Commit"));
         else if (ShellUpdate.ahead > 1)
             parts.push(I18n.tr("%1 eigene Commits").arg(ShellUpdate.ahead));
-        if (ShellUpdate.localCount === 1)
-            parts.push(I18n.tr("1 eigene Änderung"));
-        else if (ShellUpdate.localCount > 1)
-            parts.push(I18n.tr("%1 eigene Änderungen").arg(ShellUpdate.localCount));
         if (ShellUpdate.lastCheck > 0)
             parts.push(I18n.tr("geprüft %1").arg(Qt.formatTime(new Date(ShellUpdate.lastCheck), "HH:mm")));
         return parts.join("  ·  ");
@@ -265,119 +260,6 @@ SectionCard {
         Divider {}
     }
 
-    // Eigene Aenderungen (git status), zugeklappt
-    Item {
-        width: parent.width
-        visible: ShellUpdate.localCount > 0
-        height: 46
-
-        Text {
-            anchors {
-                left: parent.left
-                leftMargin: 16
-                right: changesChevron.left
-                rightMargin: 16
-                verticalCenter: parent.verticalCenter
-            }
-            text: ShellUpdate.localCount === 1
-                ? I18n.tr("1 eigene Änderung im Repo")
-                : I18n.tr("%1 eigene Änderungen im Repo").arg(ShellUpdate.localCount)
-            color: Colors.fgSurface
-            font.family: Config.font
-            font.pixelSize: 13
-            elide: Text.ElideRight
-        }
-
-        Text {
-            id: changesChevron
-
-            anchors {
-                right: parent.right
-                rightMargin: 14
-                verticalCenter: parent.verticalCenter
-            }
-            text: "expand_more"
-            color: Colors.fgSurfaceVariant
-            font.family: "Material Symbols Outlined"
-            font.pixelSize: 20
-            rotation: card.changesOpen ? 180 : 0
-
-            Behavior on rotation {
-                NumberAnimation { duration: Appearance.fadeDuration; easing.type: Easing.OutCubic }
-            }
-        }
-
-        HoverHandler {
-            cursorShape: Qt.PointingHandCursor
-        }
-
-        TapHandler {
-            onTapped: card.changesOpen = !card.changesOpen
-        }
-
-        Divider {
-            visible: !card.changesOpen
-        }
-    }
-
-    Item {
-        width: parent.width
-        visible: card.changesOpen && ShellUpdate.localCount > 0
-        height: Math.min(160, changes.contentHeight) + 10
-        clip: true
-
-        ListView {
-            id: changes
-
-            anchors {
-                fill: parent
-                bottomMargin: 10
-            }
-            cacheBuffer: 2000
-            boundsBehavior: Flickable.StopAtBounds
-            model: ShellUpdate.localChanges
-
-            delegate: Item {
-                id: change
-
-                required property var modelData
-
-                width: changes.width
-                height: 22
-
-                Text {
-                    id: statusLabel
-
-                    anchors {
-                        left: parent.left
-                        leftMargin: 16
-                        verticalCenter: parent.verticalCenter
-                    }
-                    width: 24
-                    text: change.modelData.status
-                    color: Colors.primary
-                    font.family: Config.font
-                    font.pixelSize: 11
-                }
-
-                Text {
-                    anchors {
-                        left: statusLabel.right
-                        right: parent.right
-                        rightMargin: 16
-                        verticalCenter: parent.verticalCenter
-                    }
-                    text: change.modelData.file
-                    color: Colors.fgSurfaceVariant
-                    font.family: Config.font
-                    font.pixelSize: 11
-                    elide: Text.ElideLeft
-                }
-            }
-        }
-
-        Divider {}
-    }
 
     Item {
         width: parent.width
