@@ -102,7 +102,14 @@ Spalten fluchten.
   Fertig; Optionsfeld als Zeilen mit Schalter/Dropdown/Tupfern/Segment.
   Popups außerhalb des Felds sperren Widgets darunter über `menuOpen`
   (SettingsDropdown/SettingsMenuButton, `above` für Leisten unten).
-- Screenshots: `docs/notch-shot/shot.sh <zustand>`, `docs/desktop-shot/shot.sh`.
+- Sperrbildschirm-Editor wie der Desktop-Editor; Launcher-Suchfelder ohne
+  Zähler/Hinweise; Steuerungs-Kacheln mit reserviertem Platz rechts
+  (`trailing`), gemeinsames `TileMenu` für VPN/No Sleep/Energie.
+- Symbole, die einen Zustand beschreiben, bleiben (Nicht-stören-Glocke,
+  Aufnahme-Modus/-Ton). Kein FILL-Umschalten als Auswahl: bedtime/lock
+  rendern gefüllt mit Löchern.
+- Screenshots: `docs/notch-shot/shot.sh <zustand>`, `docs/desktop-shot/shot.sh`,
+  `docs/lock-shot/shot.sh`.
 
 ## Noch nicht nach diesem Stil geprüft
 
@@ -111,9 +118,12 @@ Spalten fluchten.
 - Editoren: VPN, Klänge, Sperrbildschirm-Anordnung, Desktop-Szene,
   Schnelleinstellungen-Kacheleditor („Zurücksetzen“-Pille), Akkuverlauf
   (Zeitraum-Chips 24 h/3 Tage/7 Tage/Alles), Tastenkürzel-Seite.
-- Menüs des Launchers (Apps, Wallpaper, Themes, Zwischenablage, Tastenkürzel)
-  und die Steuerungs-Seite der Notch (Kachel-Optik).
-- Sperrbildschirm-Editor (`LockEditBar`, `LockElementOptions`): noch EditChip-Look.
+- Stil-Chip-Reihen in Wallpaper- und Theme-Auswahl (je Symbol + Text);
+  ein Dropdown braucht dort eine Masken-Region in `Bar.qml`.
+- Helligkeit/Lautstärke-Regler (`LevelSlider`, `OsdSlider`): bei hohem Wert
+  eine voll helle Pille.
+- WLAN-/Bluetooth-Unterpanels (eigene Menüzeilen, unübersetzte Köpfe).
+- `modules/desktop/EditChip.qml`, `EditLabel.qml` haben keinen Verwender mehr.
 - Jede Editor-Datei hat eigene Kopien von Toggle/ActionButton/Chip – Kandidat
   zum Zusammenlegen.
 - `StylePreview.qml` (Vorschaubilder für Uhr-/Workspace-/Visualiser-Stil) hat

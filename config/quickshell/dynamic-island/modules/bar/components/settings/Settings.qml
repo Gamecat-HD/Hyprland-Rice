@@ -147,9 +147,7 @@ Surface {
         settings.wifiOpen = false;
         settings.bluetoothOpen = false;
         settings.audioOpen = false;
-        tiles.sleepMenuOpen = false;
-        tiles.vpnMenuOpen = false;
-        tiles.powerMenuOpen = false;
+        tiles.closeMenus();
     } else {
         settings.showBrightness = false;
         settings.peek = false;          // die Karte loest die Statuszeile ab
