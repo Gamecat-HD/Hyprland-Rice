@@ -18,6 +18,8 @@ Item {
     property string detail: ""
     // Farblich hervorheben (heiss, fast voll)
     property bool warn: false
+    // Breite der Beschriftung (CPU/RAM: 34; Geraetenamen brauchen mehr)
+    property real labelWidth: 34
 
     implicitHeight: 30
 
@@ -43,8 +45,9 @@ Item {
             leftMargin: 8
             verticalCenter: parent.verticalCenter
         }
-        width: 34
+        width: row.labelWidth
         text: row.label
+        elide: Text.ElideRight
         color: Colors.fgBackground
         font.pixelSize: 11
         font.weight: Font.DemiBold

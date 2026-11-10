@@ -24,9 +24,10 @@ Rectangle {
     implicitHeight: button.flat ? 28 : 30
     radius: button.flat ? height / 2 : 8
     opacity: enabled ? 1 : 0.4
-    color: button.danger ? Colors.alpha(Colors.error, buttonHover.hovered ? 0.85 : 1)
+    // Flach + danger (Papierkorb): erst beim Hovern rot
+    color: button.flat ? Colors.alpha(button.danger ? Colors.error : Colors.fgSurface, buttonHover.hovered ? (button.danger ? 0.18 : 0.1) : 0)
+         : button.danger ? Colors.alpha(Colors.error, buttonHover.hovered ? 0.85 : 1)
          : button.primary ? Colors.alpha(Colors.primary, buttonHover.hovered ? 0.85 : 1)
-         : button.flat ? Colors.alpha(Colors.fgSurface, buttonHover.hovered ? 0.1 : 0)
          : Colors.alpha(Colors.fgSurface, button.active ? 0.18 : buttonHover.hovered ? 0.13 : 0.08)
 
     Behavior on color {
@@ -38,8 +39,8 @@ Rectangle {
 
         anchors.centerIn: parent
         text: button.flat ? button.icon : button.text
-        color: button.danger ? Colors.fgError : button.primary ? Colors.fgPrimary
-             : button.flat ? Colors.fgSurfaceVariant : Colors.fgSurface
+        color: button.flat ? (button.danger && buttonHover.hovered ? Colors.error : Colors.fgSurfaceVariant)
+             : button.danger ? Colors.fgError : button.primary ? Colors.fgPrimary : Colors.fgSurface
         font.family: button.flat ? "Material Symbols Outlined" : Config.font
         font.pixelSize: button.flat ? 18 : 12
         font.weight: button.primary || button.danger ? Font.DemiBold : Font.Normal

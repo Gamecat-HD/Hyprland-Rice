@@ -11,7 +11,7 @@ import qs.modules.settings
 // Rahmen, damit beides als eine Flaeche liest.
 //
 // Aufbau wie eine Gruppe im Einstellungsfenster (docs/settings-style.md):
-// Kopf (Titel, ⋮ mit Duplizieren und Loeschen – Loeschen fragt im Kopf nach),
+// Kopf (Titel, Duplizieren, Loeschen – Loeschen fragt im Kopf nach),
 // darunter Zeilen mit je einem Bedienelement (EditRow): Sichtbar, die
 // Optionen des Typs (Schalter bzw. Auswahlknopf), Groesse, Farbe/Akzent als
 // Farbtupfer, Monitor als Zweier-Segment.
@@ -57,7 +57,7 @@ Rectangle {
     // Die Listen (⋮, Auswahlknoepfe) liegen als Popup ausserhalb des Felds –
     // solange eine offen ist, gilt dasselbe, sonst traefe ein Klick in die
     // Liste das Widget darunter (Qt 6 reicht den Druck an alle Handler weiter)
-    readonly property bool hovered: popHover.hovered || more.menuOpen || pop.menusOpen > 0
+    readonly property bool hovered: popHover.hovered || pop.menusOpen > 0
 
     HoverHandler {
         id: popHover
@@ -102,20 +102,25 @@ Rectangle {
 
                 anchors {
                     right: parent.right
-                    // ⋮ ragt in den Rand der Zeile, sein Symbol fluchtet mit den Bedienelementen
+                    // Symbolknoepfe ragen in den Rand, ihr Symbol fluchtet mit den Bedienelementen
                     rightMargin: pop.confirmDelete ? 0 : -6
                     verticalCenter: parent.verticalCenter
                 }
                 spacing: 6
 
-                SettingsMenuButton {
-                    id: more
-
+                // Direkt als Knoepfe: Loeschen fragt ohnehin hier im Kopf nach,
+                // ein Umweg ueber ⋮ waere ein Schritt mehr
+                EditButton {
                     visible: !pop.confirmDelete
-                    entries: [
-                        { text: I18n.tr("Duplizieren"), icon: "content_copy", action: () => pop.store.duplicate(pop.widget.id) },
-                        { text: I18n.tr("Löschen"), icon: "delete", danger: true, action: () => pop.confirmDelete = true }
-                    ]
+                    icon: "content_copy"
+                    onClicked: pop.store.duplicate(pop.widget.id)
+                }
+
+                EditButton {
+                    visible: !pop.confirmDelete
+                    icon: "delete"
+                    danger: true
+                    onClicked: pop.confirmDelete = true
                 }
 
                 EditButton {

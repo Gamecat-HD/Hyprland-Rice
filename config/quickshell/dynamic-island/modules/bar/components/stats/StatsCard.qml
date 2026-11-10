@@ -75,40 +75,90 @@ Column {
         detail: I18n.tr("%1 frei").arg(SystemStats.formatBytes(SystemStats.diskFree))
     }
 
-    // Was sonst noch Temperatur hat, in einer Zeile
-    Text {
-        font.family: Config.font
+    // Weitere Temperaturen: Symbol wie die Zeilen oben, dann Name + Wert.
+    // Mehrere SSDs werden durchnummeriert, sonst stuende zweimal "SSD" da.
+    Item {
         width: parent.width
-        topPadding: 4
-        visible: text !== ""
-        text: {
-            const parts = [];
-            for (const t of SystemStats.nvmeTemps)
-                parts.push(`SSD ${Math.round(t)} °C`);
-            if (SystemStats.waterTemp > 0)
-                parts.push(I18n.tr("Wasser %1 °C").arg(Math.round(SystemStats.waterTemp)));
-            return parts.join("  ·  ");
+        height: 26
+        visible: temps.count > 0
+
+        Text {
+            id: tempIcon
+
+            anchors.verticalCenter: parent.verticalCenter
+            text: "thermostat"
+            color: Colors.fgSurfaceVariant
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 16
         }
-        color: Colors.fgSurfaceVariant
-        font.pixelSize: 10
-        elide: Text.ElideRight
+
+        Row {
+            anchors {
+                left: tempIcon.right
+                leftMargin: 8
+                verticalCenter: parent.verticalCenter
+            }
+            spacing: 14
+
+            Repeater {
+                id: temps
+
+                model: {
+                    const out = [];
+                    const ssd = SystemStats.nvmeTemps;
+                    for (let i = 0; i < ssd.length; i++)
+                        out.push({ name: ssd.length > 1 ? `SSD ${i + 1}` : "SSD", value: ssd[i] });
+                    if (SystemStats.waterTemp > 0)
+                        out.push({ name: I18n.tr("Wasser"), value: SystemStats.waterTemp });
+                    return out;
+                }
+
+                Row {
+                    id: temp
+
+                    required property var modelData
+
+                    spacing: 5
+
+                    Text {
+                        text: temp.modelData.name
+                        color: Colors.fgBackground
+                        font.family: Config.font
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                    }
+
+                    Text {
+                        text: `${Math.round(temp.modelData.value)} °C`
+                        color: Colors.fgSurfaceVariant
+                        font.family: Config.font
+                        font.pixelSize: 11
+                    }
+                }
+            }
+        }
     }
 
-    // Geraete-Akkus: am Desktop steht der erste schon in der Pille,
-    // hier stehen sie mit Namen
-    Text {
-        font.family: Config.font
-        width: parent.width
-        visible: text !== ""
-        text: {
-            const parts = [];
-            for (const d of Power.deviceBatteries)
-                parts.push(`${Power.deviceName(d)} ${Math.round(d.percentage * 100)} %`);
-            return parts.join("  ·  ");
+    // Geraete-Akkus als Zeilen wie oben: Name, Balken, Prozent
+    Repeater {
+        model: Power.deviceBatteries
+
+        StatRow {
+            id: battery
+
+            required property var modelData
+            readonly property int percent: Math.round((battery.modelData?.percentage ?? 0) * 100)
+            readonly property bool charging: Power.isCharging(battery.modelData)
+
+            width: card.width
+            icon: Power.deviceIcon(battery.modelData)
+            // Hersteller vorn weglassen – die Zeile hat nur Platz fuers Modell
+            label: Power.deviceName(battery.modelData).replace(/^(Logitech|SteelSeries|Razer|Corsair)\s+/i, "")
+            labelWidth: 110
+            value: battery.percent / 100
+            warn: !battery.charging && battery.percent <= 20
+            detail: battery.charging ? I18n.tr("%1 % · lädt").arg(battery.percent) : `${battery.percent} %`
         }
-        color: Colors.fgSurfaceVariant
-        font.pixelSize: 10
-        elide: Text.ElideRight
     }
 
     Text {
