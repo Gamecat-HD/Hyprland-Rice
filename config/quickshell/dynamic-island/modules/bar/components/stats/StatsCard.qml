@@ -6,7 +6,7 @@ import qs
 import qs.modules.services.config
 
 // Inhalt der System-Karte: CPU-Name, Auslastung von CPU/GPU/VRAM/RAM/Platte,
-// weitere Temperaturen, Geraete-Akkus. Genutzt von der System-Pille
+// weitere Temperaturen. Genutzt von der System-Pille
 // (Insel-Layout) und vom System-Untermenue der Notch (SystemPanel).
 //
 // Misst nur, solange SystemStats.watching an ist – das schaltet Bar.qml
@@ -136,28 +136,6 @@ Column {
                     }
                 }
             }
-        }
-    }
-
-    // Geraete-Akkus als Zeilen wie oben: Name, Balken, Prozent
-    Repeater {
-        model: Power.deviceBatteries
-
-        StatRow {
-            id: battery
-
-            required property var modelData
-            readonly property int percent: Math.round((battery.modelData?.percentage ?? 0) * 100)
-            readonly property bool charging: Power.isCharging(battery.modelData)
-
-            width: card.width
-            icon: Power.deviceIcon(battery.modelData)
-            // Hersteller vorn weglassen – die Zeile hat nur Platz fuers Modell
-            label: Power.deviceName(battery.modelData).replace(/^(Logitech|SteelSeries|Razer|Corsair)\s+/i, "")
-            labelWidth: 110
-            value: battery.percent / 100
-            warn: !battery.charging && battery.percent <= 20
-            detail: battery.charging ? I18n.tr("%1 % · lädt").arg(battery.percent) : `${battery.percent} %`
         }
     }
 

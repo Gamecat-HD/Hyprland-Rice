@@ -76,15 +76,19 @@ def fetch(url: str, timeout: float = 15) -> bytes:
 
 
 def describe(err: Exception) -> str:
-    from urllib.error import HTTPError
+    """Feste deutsche Meldung – die Shell uebersetzt sie per I18n.tr."""
+    from urllib.error import HTTPError, URLError
 
     if isinstance(err, HTTPError):
         return {
-            401: "API-Key ungueltig",
+            401: "API-Key ungültig",
             404: "Nicht gefunden",
-            429: "Zu viele Anfragen (max. 45/min) - kurz warten",
+            429: "Zu viele Anfragen – kurz warten",
         }.get(err.code, f"HTTP {err.code}")
-    return str(getattr(err, "reason", err))
+    # DNS, Verbindungsabbruch, Timeout: fuer den Nutzer alles dasselbe
+    if isinstance(err, (URLError, TimeoutError, ConnectionError)):
+        return "Keine Verbindung"
+    return str(err)
 
 
 def local_path(item_id: str) -> str | None:

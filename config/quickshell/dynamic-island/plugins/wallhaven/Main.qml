@@ -268,7 +268,7 @@ Scope {
                 else if (msg.type === "thumb")
                     root.patch(msg.id, { thumb: msg.thumb });
                 else if (msg.type === "error") {
-                    root.error = msg.message ?? I18n.tr("Fehler");
+                    root.error = I18n.tr(msg.message ?? "Fehler");
                     root.searching = false;
                 }
             }
@@ -477,7 +477,7 @@ Scope {
                 if (msg.type === "done")
                     downloadProc.path = msg.path ?? "";
                 else if (msg.type === "error")
-                    root.error = msg.message ?? I18n.tr("Download fehlgeschlagen");
+                    root.error = I18n.tr(msg.message ?? "Download fehlgeschlagen");
             }
         }
 

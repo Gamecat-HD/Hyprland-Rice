@@ -123,7 +123,6 @@ Spalten fluchten.
 - Helligkeit/Lautstärke-Regler (`LevelSlider`, `OsdSlider`): bei hohem Wert
   eine voll helle Pille.
 - WLAN-/Bluetooth-Unterpanels (eigene Menüzeilen, unübersetzte Köpfe).
-- `modules/desktop/EditChip.qml`, `EditLabel.qml` haben keinen Verwender mehr.
 - Jede Editor-Datei hat eigene Kopien von Toggle/ActionButton/Chip – Kandidat
   zum Zusammenlegen.
 - `StylePreview.qml` (Vorschaubilder für Uhr-/Workspace-/Visualiser-Stil) hat
