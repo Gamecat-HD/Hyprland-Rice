@@ -766,7 +766,7 @@ Item {
                 font.family: "Material Symbols Outlined"
                 font.pixelSize: 16
                 // Variable Font: Strichstaerke ueber die wght-Achse
-                font.variableAxes: ({ wght: button.active ? 700 : 500, FILL: button.active ? 1 : 0 })
+                font.variableAxes: ({ wght: button.active ? 700 : 500 })
 
                 Behavior on color {
                     ColorAnimation { duration: Appearance.fadeDuration }

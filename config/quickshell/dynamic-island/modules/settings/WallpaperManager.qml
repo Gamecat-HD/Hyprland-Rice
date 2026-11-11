@@ -1703,7 +1703,6 @@ Item {
                                      : row.current ? Colors.primary : Colors.fgSurfaceVariant
                                 font.family: "Material Symbols Outlined"
                                 font.pixelSize: 16
-                                font.variableAxes: ({ FILL: row.current ? 1 : 0 })
                             }
                         }
 
