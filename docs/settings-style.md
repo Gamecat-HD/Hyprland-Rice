@@ -76,6 +76,9 @@ Spalten fluchten.
 - Überschriften nutzen `partTitle()` (Abschnittstitel), nicht `sectionTitle()` –
   Kategorie-Schlüssel wie `lock`/`battery` heißen genauso wie Abschnitte.
 - Notch-Einstellungen (inkl. Insel/Notch-Layout) stehen auf eigener Seite.
+- Schrift: Rubik (Vorgabe wie Caelestia, `appearance.font`). Texte nehmen immer
+  `Config.font`, große Ziffern/Titel der Widgets `Config.displayFont` – keine
+  Schriftnamen fest im QML (Ausnahme: Material Symbols, Monospace).
 - Symbole: Material Symbols Outlined. Vorher prüfen, ob es die Ligatur gibt
   (`notch` z. B. nicht). Gewählte Symbole werden gefüllt – außer die, die
   gefüllt zum Klumpen werden (monitor, keyboard).
