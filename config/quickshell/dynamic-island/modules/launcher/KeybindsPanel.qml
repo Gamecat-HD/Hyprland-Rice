@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Quickshell
 
 import qs
 import qs.modules.services.config
@@ -35,11 +36,14 @@ Item {
 
     readonly property int columnCount: 3
     readonly property real padding: 18
+    // Hover-Fläche ragt so weit über die Spalte hinaus (sonst vom clip angeschnitten)
+    readonly property real bleed: 6
     readonly property real columnGap: 22
     readonly property real rowHeight: 26
     readonly property real groupHeader: 30
     readonly property real groupGap: 14
-    readonly property real maxBodyHeight: 760
+    // Bis knapp unter den Bildschirmrand – 760 fest schnitt auf 1440p die letzten Zeilen ab
+    readonly property real maxBodyHeight: Math.max(400, (panel.QsWindow.window?.screen?.height ?? 1020) - 260)
 
     readonly property string query: search.text.trim().toLowerCase()
 
@@ -276,8 +280,8 @@ Item {
             anchors {
                 fill: parent
                 topMargin: panel.padding
-                leftMargin: panel.padding
-                rightMargin: panel.padding
+                leftMargin: panel.padding - panel.bleed
+                rightMargin: panel.padding - panel.bleed
             }
             clip: true
             contentWidth: width
@@ -311,7 +315,7 @@ Item {
             Row {
                 id: columnsRow
 
-                x: Math.max(0, (flick.width - width) / 2)
+                x: panel.bleed + Math.round(Math.max(0, (flick.width - 2 * panel.bleed - width) / 2))
                 spacing: panel.columnGap
 
                 Repeater {
@@ -322,7 +326,8 @@ Item {
 
                         required property var modelData
 
-                        width: (flick.width - panel.columnGap * (panel.columnCount - 1)) / panel.columnCount
+                        // Ganze Pixel: gebrochene Breiten kappten den Rand der rechten Tastenkappen
+                        width: Math.floor((flick.width - 2 * panel.bleed - panel.columnGap * (panel.columnCount - 1)) / panel.columnCount)
 
                         Repeater {
                             model: column.modelData
@@ -399,15 +404,16 @@ Item {
                 required property var modelData
 
                 readonly property bool clickable: row.modelData.clickable
-                readonly property bool isFirst: row.modelData === panel.firstHit
+                // Per id: modelData ist eine Kopie, === traf den Enter-Treffer nie
+                readonly property bool isFirst: row.modelData.id === panel.firstHit?.id
 
                 width: block.width
                 height: panel.rowHeight
 
                 Rectangle {
                     anchors.fill: parent
-                    anchors.leftMargin: -6
-                    anchors.rightMargin: -6
+                    anchors.leftMargin: -panel.bleed
+                    anchors.rightMargin: -panel.bleed
                     radius: 6
                     color: rowArea.pressed ? Colors.alpha(Colors.primary, 0.22)
                          : row.isFirst ? Colors.alpha(Colors.primary, 0.14)
@@ -423,8 +429,8 @@ Item {
                     id: rowArea
 
                     anchors.fill: parent
-                    anchors.leftMargin: -6
-                    anchors.rightMargin: -6
+                    anchors.leftMargin: -panel.bleed
+                    anchors.rightMargin: -panel.bleed
                     enabled: row.clickable
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
@@ -503,16 +509,14 @@ Item {
         width: Math.max(height, capText.implicitWidth + 12)
         height: 20
         radius: 5
-        color: cap.accent ? Colors.alpha(Colors.primary, 0.16) : Colors.alpha(Colors.fgSurface, 0.07)
-        border.width: 1
-        border.color: cap.accent ? Colors.alpha(Colors.primary, 0.6) : Colors.alpha(Colors.outline, 0.45)
+        color: cap.accent ? Colors.alpha(Colors.primary, 0.18) : Colors.alpha(Colors.fgSurface, 0.09)
 
         Text {
             id: capText
 
             anchors.centerIn: parent
             text: cap.modelData
-            color: cap.modelData === "Super" || cap.accent ? Colors.primary : Colors.fgSurfaceVariant
+            color: cap.accent ? Colors.primary : Colors.fgSurfaceVariant
             font.family: Config.font
             font.pixelSize: 11
             font.weight: Font.Medium
