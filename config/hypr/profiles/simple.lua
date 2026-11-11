@@ -395,7 +395,7 @@ bind(
 	hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher toggle || " .. cfg.launcher),
 	desc("App-Menü", { release = true })
 )
-bind("SUPER + Space", hl.dsp.exec_cmd(cfg.launcher), desc("App-Starter (fuzzel)"))
+bind("SUPER + Space", hl.dsp.exec_cmd(cfg.launcher), desc("App-Starter ohne Shell"))
 -- Untermenues der Notch (Quickshell-IPC), nochmal druecken = zu.
 -- Dieselben Ansichten erreicht man im Launcher mit >medien, >steuerung,
 -- >benachrichtigungen, >system, >power oder durch Blaettern in der Notch.
@@ -408,7 +408,7 @@ bind("SUPER + K", hl.dsp.exec_cmd("qs -c dynamic-island ipc call launcher keys")
 bind("SUPER + L", hl.dsp.exec_cmd(cfg.lockCmd), desc("Sperren"))
 -- Stuerzt die Shell bei gesperrter Sitzung ab, bleibt Hyprland gesperrt ohne
 -- Oberflaeche zurueck – hyprlock uebernimmt dann (allow_session_lock_restore)
-bind("SUPER + ALT + L", hl.dsp.exec_cmd("pidof hyprlock || hyprlock"), desc("Sperre retten (hyprlock)", { locked = true }))
+bind("SUPER + ALT + L", hl.dsp.exec_cmd("pidof hyprlock || hyprlock"), desc("Sperre retten", { locked = true }))
 bind("SUPER + SHIFT + L", hl.dsp.exec_cmd(cfg.sleepCmd), desc("Standby", { locked = true }))
 
 -- Fenster

@@ -15,7 +15,8 @@ import qs.modules.launcher.clipboard
 // Beschreibung "Gruppe|Text" in hypr/profiles/simple.lua landet hier, dazu
 // die Kuerzel aktiver Plugins (Manifest `keybinds`) und eigene. Oben ein
 // Suchfeld, darunter die Gruppen in drei Spalten (aufgefuellt nach Hoehe).
-// Klick auf eine Zeile (oder Enter: erster Treffer der Suche) schliesst die
+// Klick auf eine Zeile (oder Enter: per Pfeiltasten gewaehlte Zeile, sonst
+// erster Treffer der Suche) schliesst die
 // Uebersicht und fuehrt den Bind aus. Abgeschaltete Kuerzel fehlen.
 //
 // Nur Suchen und Ausfuehren – belegt, an/aus, eigene Kuerzel macht die
@@ -72,33 +73,93 @@ Item {
         return out;
     }
 
-    // Spalten fuellen: jede Gruppe kommt in die bisher niedrigste Spalte.
-    // Die Reihenfolge der Gruppen bleibt innerhalb einer Spalte erhalten.
+    // Spalten so gleich hoch wie moeglich: groesste Gruppen zuerst, Suche mit
+    // Abbruch (erster Durchlauf = "in die niedrigste Spalte"). In jeder Spalte
+    // bleibt die Gruppenreihenfolge, die Spalte mit der ersten Gruppe steht links.
     readonly property var columns: {
-        const cols = [];
-        const heights = [];
-        for (let i = 0; i < panel.columnCount; i++) {
-            cols.push([]);
-            heights.push(0);
-        }
-        for (const group of panel.filtered) {
-            const target = heights.indexOf(Math.min(...heights));
-            cols[target].push(group);
-            heights[target] += panel.groupHeight(group);
-        }
-        return cols;
+        const groups = panel.filtered;
+        const n = panel.columnCount;
+        const h = groups.map(g => panel.groupHeight(g));
+        const order = groups.map((g, i) => i).sort((a, b) => h[b] - h[a]);
+        const sums = new Array(n).fill(0);
+        const assign = [];
+        let best = null;
+        let bestMax = Infinity;
+        let budget = 20000;  // shortcut: Knoten-Grenze statt exakter Suche, reicht bis ~15 Gruppen
+        const place = k => {
+            if (--budget < 0)
+                return;
+            if (k === order.length) {
+                bestMax = Math.max(...sums);
+                best = assign.slice();
+                return;
+            }
+            const i = order[k];
+            const tried = [];
+            for (const c of [...sums.keys()].sort((a, b) => sums[a] - sums[b])) {
+                // Gleich hohe Spalten sind austauschbar
+                if (tried.includes(sums[c]) || sums[c] + h[i] >= bestMax)
+                    continue;
+                tried.push(sums[c]);
+                sums[c] += h[i];
+                assign[i] = c;
+                place(k + 1);
+                sums[c] -= h[i];
+            }
+        };
+        place(0);
+        const cols = Array.from({ length: n }, () => []);
+        groups.forEach((g, i) => cols[best ? best[i] : 0].push(g));
+        return cols.sort((a, b) => (a.length ? groups.indexOf(a[0]) : Infinity) - (b.length ? groups.indexOf(b[0]) : Infinity));
     }
 
-    // Was Enter ausloest: erster anklickbarer Treffer, nur waehrend gesucht wird
-    readonly property var firstHit: {
-        if (panel.query === "")
-            return null;
+    // Anklickbare Eintraege in Lesereihenfolge (Spalte fuer Spalte) – fuer die Pfeiltasten
+    readonly property var hits: {
+        const out = [];
         for (const col of panel.columns)
             for (const group of col)
                 for (const entry of group.entries)
                     if (entry.clickable)
-                        return entry;
-        return null;
+                        out.push(entry);
+        return out;
+    }
+
+    // Per Pfeiltaste gewaehlt; beim Tippen zurueck auf den ersten Treffer
+    property string pickedId: ""
+    onQueryChanged: panel.pickedId = ""
+
+    // Was Enter ausloest: die gewaehlte Zeile, sonst beim Suchen der erste Treffer
+    readonly property var selected: panel.hits.find(e => e.id === panel.pickedId)
+                                    ?? (panel.query !== "" ? panel.hits[0] ?? null : null)
+
+    function move(step: int): void {
+        if (panel.hits.length === 0)
+            return;
+        const at = panel.hits.findIndex(e => e.id === panel.selected?.id);
+        const next = at < 0 ? (step > 0 ? 0 : panel.hits.length - 1)
+                            : Math.max(0, Math.min(panel.hits.length - 1, at + step));
+        panel.pickedId = panel.hits[next].id;
+        panel.reveal(panel.hits[next]);
+    }
+
+    // Scrollt die Zeile in Sicht (Position aus denselben Hoehen wie das Layout)
+    function reveal(entry: var): void {
+        for (const col of panel.columns) {
+            let y = 0;
+            for (const group of col) {
+                const i = group.entries.findIndex(e => e.id === entry.id);
+                if (i >= 0) {
+                    const top = y + panel.groupHeader + i * panel.rowHeight;
+                    const view = panel.scrollTarget;
+                    if (top < view)
+                        panel.scrollTo(top - panel.groupHeader);
+                    else if (top + panel.rowHeight > view + flick.height)
+                        panel.scrollTo(top + panel.rowHeight + panel.groupGap - flick.height);
+                    return;
+                }
+                y += panel.groupHeight(group);
+            }
+        }
     }
 
     // Erst zu, dann ausfuehren: "Schliessen" & Co. sollen das Fenster unter
@@ -155,13 +216,20 @@ Item {
         }
     }
 
-    function scrollBy(dy: real): void {
+    // Ziel der laufenden Animation, sonst die aktuelle Position
+    readonly property real scrollTarget: scrollAnim.running ? scrollAnim.to : flick.contentY
+
+    function scrollTo(y: real): void {
         const max = Math.max(0, flick.contentHeight - flick.height);
-        const from = scrollAnim.running ? scrollAnim.to : flick.contentY;
+        const to = Math.max(0, Math.min(max, y));
         scrollAnim.stop();
         scrollAnim.from = flick.contentY;
-        scrollAnim.to = Math.max(0, Math.min(max, from + dy));
+        scrollAnim.to = to;
         scrollAnim.start();
+    }
+
+    function scrollBy(dy: real): void {
+        panel.scrollTo(panel.scrollTarget + dy);
     }
 
     // ---- Suchzeile ----
@@ -207,10 +275,10 @@ Item {
             clip: true
 
             Keys.onEscapePressed: LauncherState.close()
-            Keys.onReturnPressed: panel.run(panel.firstHit)
-            Keys.onEnterPressed: panel.run(panel.firstHit)
-            Keys.onUpPressed: panel.scrollBy(-panel.rowHeight * 3)
-            Keys.onDownPressed: panel.scrollBy(panel.rowHeight * 3)
+            Keys.onReturnPressed: panel.run(panel.selected)
+            Keys.onEnterPressed: panel.run(panel.selected)
+            Keys.onUpPressed: panel.move(-1)
+            Keys.onDownPressed: panel.move(1)
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_PageUp) {
                     panel.scrollBy(-flick.height * 0.8);
@@ -405,7 +473,7 @@ Item {
 
                 readonly property bool clickable: row.modelData.clickable
                 // Per id: modelData ist eine Kopie, === traf den Enter-Treffer nie
-                readonly property bool isFirst: row.modelData.id === panel.firstHit?.id
+                readonly property bool isFirst: row.modelData.id === panel.selected?.id
 
                 width: block.width
                 height: panel.rowHeight
