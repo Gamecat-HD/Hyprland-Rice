@@ -21,7 +21,7 @@ Das ist die Config genau so, wie sie auf meinen Rechnern laeuft — inklusive
 zwei Profilen, die Shells brauchen, die hier nicht drin sind (siehe [Profile](#profile)).
 
 Die Oberflaeche spricht **Englisch** (Vorgabe) und **Deutsch** — umschalten
-unter Einstellungen > Darstellung > Sprache.
+unter Einstellungen > Sprache & Region.
 
 ![Desktop mit Notch, Uhr- und Visualiser-Widget](docs/screenshots/desktop.jpg)
 
@@ -41,7 +41,7 @@ unter Einstellungen > Darstellung > Sprache.
 </table>
 
 ![Tastenkuerzel-Uebersicht](docs/screenshots/tastenkuerzel.jpg)
-<sub><b>Tastenkuerzel-Uebersicht</b> (<code>SUPER + K</code>) — live aus Hyprland, Klick fuehrt aus, Kuerzel lassen sich dort neu belegen</sub>
+<sub><b>Tastenkuerzel-Uebersicht</b> (<code>SUPER + K</code>) — live aus Hyprland, Klick fuehrt aus, <code>Strg + E</code> oeffnet den Editor in den Einstellungen</sub>
 
 ## Installieren
 
@@ -103,6 +103,10 @@ Hyprland laeuft. Aus einem TTY installiert? Dann einmal in Hyprland:
 hyprctl reload
 ```
 
+Einstellungen > Monitore schreibt dieselbe Datei: Anordnung, Aufloesung,
+Bildrate und Skalierung, mit Countdown, der eine Einstellung mit schwarzem
+Bild von selbst zuruecknimmt.
+
 Ohne die Datei geht trotzdem alles: jeder Monitor bekommt seine bevorzugte
 Aufloesung, die Workspace-Gruppen werden von links nach rechts vergeben.
 
@@ -154,7 +158,8 @@ Unterordner) und per `>wallpaper` im App-Menue,
 ## Tastenkuerzel
 
 `SUPER` ist die Windows-Taste. Gilt fuer das Profil `simple`. Alle Kuerzel
-zeigt `SUPER + K` — dort kann man sie auch neu belegen oder abschalten.
+zeigt `SUPER + K`; neu belegen oder abschalten unter Einstellungen > Tastenkuerzel
+(`Strg + E` in der Uebersicht).
 
 | Kuerzel | Was passiert |
 | --- | --- |
@@ -171,6 +176,7 @@ zeigt `SUPER + K` — dort kann man sie auch neu belegen oder abschalten.
 | `SUPER + 1…0` | Workspace 1–10 (des Monitors unter dem Fokus) |
 | `SUPER + ALT + 1…0` | Fenster auf Workspace 1–10 schieben |
 | `CTRL + SUPER + ←/→` | vorheriger / naechster Workspace |
+| `SUPER + Tab` | Workspace-Uebersicht |
 | `SUPER + S` | Scratchpad-Workspace ein/aus |
 | `SUPER + M` | Spotify-Workspace (startet Spotify bei Bedarf) |
 | `SUPER + D` | Discord-Workspace |
@@ -190,7 +196,7 @@ zeigt `SUPER + K` — dort kann man sie auch neu belegen oder abschalten.
 | `CTRL + SUPER + ALT + R` | Shell neu starten |
 
 Die Vorgaben stehen unten in `config/hypr/profiles/simple.lua` unter `Keybinds`;
-Aenderungen aus der Uebersicht landen in `~/.config/dynamic-island/keybinds.json`.
+Aenderungen aus den Einstellungen landen in `~/.config/dynamic-island/keybinds.json`.
 
 ## Desktop-Widgets und Plugins
 
@@ -208,6 +214,7 @@ an- und abschalten unter Einstellungen > Plugins:
 | Desktop-Widgets | die Widget-Ebene selbst, dazu Uhr, Visualiser und Songtext |
 | Kalender, Wetter, Systemmonitor, Jetzt laeuft | weitere Desktop-Widgets (Wetter von open-meteo, ohne API-Key) |
 | Matrix-Regen, Bonsai, Terminal-Widget | Deko: Matrix als GPU-Shader, ASCII-Bonsai, beliebiges Terminal-Programm (cmatrix, cava, btop …) in einem durchsichtigen kitty-Panel |
+| Workspace-Uebersicht | alle Workspaces als Kacheln, je Monitor ein Tab — als Vollbild oder in der Notch (`SUPER + Tab`) |
 | Wallhaven | wallhaven.cc direkt in der Wallpaper-Auswahl durchsuchen, mit Live-Vorschau |
 | Terminal-Looks | starship-Prompt und fastfetch folgen dem Farbschema oder dem Look des Wallpaper-Ordners (standardmaessig aus) |
 
@@ -217,7 +224,10 @@ mit `dynamic-island plugin new <id>` anfangen, das Format steht (englisch) in
 [`config/quickshell/dynamic-island/plugins/README.md`](config/quickshell/dynamic-island/plugins/README.md).
 
 Die Shell selbst stellt man im Einstellungsfenster ein (`>settings` im
-App-Menue) — das schreibt `~/.config/dynamic-island/shell.json`.
+App-Menue): Aussehen und Wallpaper-Bibliothek, die Notch (jeder Teil laesst
+sich abschalten), Leiste, Schnelleinstellungs-Kacheln, Benachrichtigungen,
+Bluetooth & VPN, Akku, Sperren & Standby, Monitore, Tastenkuerzel, Sprache.
+Das schreibt `~/.config/dynamic-island/shell.json`.
 
 ## Updates holen
 
@@ -233,6 +243,9 @@ meckern. Dann so:
 ```sh
 git stash && git pull && git stash pop
 ```
+
+Oder unter Einstellungen > Info > Updates: holt die Aenderungen, legt eigene
+Commits obendrauf und startet die Shell neu.
 
 Pushen geht nicht, das Repo ist fuer andere nur lesbar. Wenn du deine
 Aenderungen selbst auf GitHub sichern willst: oben rechts auf **Fork**, dann

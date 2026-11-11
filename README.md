@@ -21,7 +21,7 @@ This is the config exactly as it runs on my machines — including two profiles 
 [Profiles](#profiles)).
 
 The interface speaks **English** (default) and **German** — switch it under
-Settings > Appearance > Language.
+Settings > Language & region.
 
 ![Desktop with the notch, clock and visualizer widgets](docs/screenshots/desktop.jpg)
 
@@ -41,7 +41,7 @@ Settings > Appearance > Language.
 </table>
 
 ![Keybind overview](docs/screenshots/tastenkuerzel.jpg)
-<sub><b>Keybind overview</b> (<code>SUPER + K</code>) — live from Hyprland, click to run, keybinds can be rebound right there</sub>
+<sub><b>Keybind overview</b> (<code>SUPER + K</code>) — live from Hyprland, click to run, <code>Ctrl + E</code> opens the editor in the settings</sub>
 
 <sub>The screenshots show the German interface.</sub>
 
@@ -104,6 +104,10 @@ Hyprland is running. Installed from a TTY? Then run this once inside Hyprland:
 hyprctl reload
 ```
 
+Settings > Monitors writes the same file: arrangement, resolution,
+refresh rate and scale, with a timer that reverts a setting that leaves you
+with a black screen.
+
 Without the file everything still works: every monitor gets its preferred
 resolution, and the workspace groups are handed out left to right.
 
@@ -155,7 +159,8 @@ Edgerunners, Miku, Lord of the Mysteries, …) and is copied to
 ## Keybinds
 
 `SUPER` is the Windows key. Applies to the `simple` profile. `SUPER + K`
-shows all keybinds — you can also rebind or disable them there.
+shows all keybinds; rebind or disable them under Settings > Keyboard shortcuts
+(`Ctrl + E` in the overview).
 
 | Keybind | What happens |
 | --- | --- |
@@ -172,6 +177,7 @@ shows all keybinds — you can also rebind or disable them there.
 | `SUPER + 1…0` | workspace 1–10 (of the focused monitor) |
 | `SUPER + ALT + 1…0` | move window to workspace 1–10 |
 | `CTRL + SUPER + ←/→` | previous / next workspace |
+| `SUPER + Tab` | workspace overview |
 | `SUPER + S` | toggle scratchpad workspace |
 | `SUPER + M` | Spotify workspace (starts Spotify if needed) |
 | `SUPER + D` | Discord workspace |
@@ -191,7 +197,7 @@ shows all keybinds — you can also rebind or disable them there.
 | `CTRL + SUPER + ALT + R` | restart the shell |
 
 The defaults are at the bottom of `config/hypr/profiles/simple.lua` under
-`Keybinds`; changes made in the overview are stored in
+`Keybinds`; changes made in the settings are stored in
 `~/.config/dynamic-island/keybinds.json`.
 
 ## Desktop widgets and plugins
@@ -210,6 +216,7 @@ turned on and off under Settings > Plugins:
 | Desktop widgets | the widget layer itself, plus clock, visualizer and lyrics |
 | Calendar, Weather, System monitor, Now playing | more desktop widgets (weather from open-meteo, no API key) |
 | Matrix rain, Bonsai, Terminal widget | eye candy: GPU-shader matrix, ASCII bonsai, any terminal program (cmatrix, cava, btop …) in a transparent kitty panel |
+| Workspace overview | all workspaces as tiles, one tab per monitor — fullscreen or inside the notch (`SUPER + Tab`) |
 | Wallhaven | search wallhaven.cc right in the wallpaper picker, with live preview |
 | Terminal looks | starship prompt and fastfetch follow the color scheme or the wallpaper folder's look (off by default) |
 
@@ -219,7 +226,10 @@ with `dynamic-island plugin export|import`. To write your own: start with
 [`config/quickshell/dynamic-island/plugins/README.md`](config/quickshell/dynamic-island/plugins/README.md).
 
 The shell itself is configured in the settings window (`>settings` in the
-app menu) — it writes `~/.config/dynamic-island/shell.json`.
+app menu): appearance and wallpaper library, the notch (every part of it can
+be switched off), bar, quick-settings tiles, notifications, Bluetooth & VPN,
+battery, lock screen & standby, monitors, keyboard shortcuts, language. It
+writes `~/.config/dynamic-island/shell.json`.
 
 ## Updating
 
@@ -235,6 +245,9 @@ Then:
 ```sh
 git stash && git pull && git stash pop
 ```
+
+Or under Settings > About > Updates: it pulls, keeps your own commits on top
+and restarts the shell.
 
 You can't push — the repo is read-only for others. If you want to keep your
 own changes on GitHub: click **Fork** at the top right, then clone your fork.
