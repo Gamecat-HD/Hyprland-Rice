@@ -427,12 +427,11 @@ check_deps() {
         missing+=(ttf-material-symbols-variable-git)
     fi
     # Voreingestellte Schrift der Shell; fehlt sie, nimmt Qt die Systemschrift.
-    # Kein Paket: apple-fonts (AUR) baut nicht zuverlaessig.
-    if fc-list : family 2>/dev/null | grep -i "SF Pro" >/dev/null; then  # kein -q: pipefail + SIGPIPE
-        ok "Schrift: SF Pro"
+    if fc-list : family 2>/dev/null | grep -i "Rubik" >/dev/null; then  # kein -q: pipefail + SIGPIPE
+        ok "Schrift: Rubik"
     else
-        skip "SF Pro nicht installiert — die Shell nimmt die Systemschrift"
-        skip "   (andere waehlen: Einstellungen > Aussehen > Schrift, z. B. Inter oder Noto Sans)"
+        warn "Rubik nicht gefunden — die Shell nimmt sonst die Systemschrift"
+        missing+=(ttf-rubik-vf)
     fi
 
     if [ ${#missing[@]} -gt 0 ] && [ "$INSTALL_DEPS" = 1 ] && [ "$CHECK_ONLY" = 0 ]; then

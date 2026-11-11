@@ -41,6 +41,8 @@ Singleton {
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
+    // Grosse Ziffern (Desktop-Widgets): Inter hat dafuer einen eigenen Schnitt
+    readonly property string displayFont: font === "Inter" && Qt.fontFamilies().includes("Inter Display") ? "Inter Display" : font
 
     // Klartext zu den Schluesseln. Steht hier neben den Vorgaben, damit eine
     // neue Einstellung an einer einzigen Stelle entsteht: Default eintragen,
@@ -258,7 +260,7 @@ Singleton {
         "appearance.font": {
             group: "Oberfläche",
             title: "Schriftart",
-            options: ["SF Pro", "SF Pro Rounded", "Inter", "Noto Sans", "Adwaita Sans", "Fira Sans", "Cantarell"]
+            options: ["Rubik", "Inter", "SF Pro", "SF Pro Rounded", "Adwaita Sans", "Open Sans", "Fira Sans", "Noto Sans", "Cantarell"]
         },
         // Nachschwingen der Pillen beim Aufklappen (siehe Appearance.qml)
         "appearance.bounce": {
@@ -593,7 +595,7 @@ Singleton {
             property JsonObject appearance: JsonObject {
                 // "en" oder "de" (I18n.qml); install.sh setzt es beim Einrichten
                 property string language: "en"
-                property string font: "SF Pro"
+                property string font: "Rubik"
                 property string bounce: "mittel"
                 property string layout: "insel"
                 // Faktor auf Appearance.morphDuration (2 = doppelt so schnell)
