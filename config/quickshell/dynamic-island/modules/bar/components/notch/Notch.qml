@@ -638,7 +638,8 @@ Item {
 
             anchors {
                 right: parent.right
-                rightMargin: (notch.showVisualizer ? notch.mediaEdge + 3 : notch.compactEdge) + notch.growth
+                // Schmaler Rand nur als Gegenstueck zum Cover links (mediaEdge), neben Workspaces symmetrisch
+                rightMargin: (notch.showVisualizer && notch.showMedia ? notch.mediaEdge + 3 : notch.compactEdge) + notch.growth
                 verticalCenter: clock.verticalCenter
             }
             spacing: 7
