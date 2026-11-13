@@ -26,6 +26,8 @@ import qs.modules.services.config
 //   Kachel "+"          neuer Workspace        Kachel (auch "+") verschieben;
 //   Klick daneben       zu                     ueber einem Tab haltend wechselt er
 // Tasten (auf dem fokussierten Bildschirm):
+//   (Tastatur hat der Bildschirm unter der Maus; Fenster lassen sich auch
+//   auf Kacheln des anderen Bildschirms ziehen)
 //   Pfeile waehlen, Enter/Leertaste geht hin, 1–9/0 direkt, N neuer
 //   Workspace, Tab/Umschalt+Tab Tabs, Esc zu. SUPER+Tab schliesst wieder.
 //
@@ -44,8 +46,15 @@ Scope {
     property bool shown: false
     signal finished
 
-    // Bildschirm, auf dem geoeffnet wurde: der bekommt die Tastatur
+    // Bildschirm, auf dem geoeffnet wurde
     property string startMonitor: ""
+    // Bildschirm mit der Tastatur: folgt der Maus
+    property string keyMonitor: root.startMonitor
+    // Overlay je Bildschirmname – fuer das Ziehen ueber Bildschirmgrenzen
+    property var wins: ({})
+    // { toplevel, from (Eintrag), w, h, source, src (Overlay) } waehrend ein
+    // Fenster gezogen wird – geteilt, damit jedes Overlay Ziel sein kann
+    property var drag: null
 
     Component.onCompleted: {
         if (root.startMonitor === "")
@@ -83,7 +92,8 @@ Scope {
             required property ShellScreen modelData
 
             readonly property HyprlandMonitor hmon: Hyprland.monitorFor(win.modelData)
-            readonly property bool primary: win.modelData.name === root.startMonitor
+            readonly property bool primary: win.modelData.name === root.keyMonitor
+            Component.onDestruction: if (root.wins[win.modelData.name] === win) delete root.wins[win.modelData.name]
 
             screen: win.modelData
             anchors {
@@ -135,7 +145,10 @@ Scope {
                 win.picked = false;
                 win.selectActive();
             }
-            Component.onCompleted: win.selectActive()
+            Component.onCompleted: {
+                root.wins[win.modelData.name] = win;
+                win.selectActive();
+            }
 
             function activate(i: int): void {
                 const e = win.entries[i];
@@ -194,9 +207,7 @@ Scope {
             }
 
             // ---- Ziehen ----
-            // { toplevel, from (Eintrag), w, h, source } waehrend ein Fenster
-            // gezogen wird
-            property var drag: null
+            readonly property var drag: root.drag
             property point dragPos: Qt.point(0, 0)
             property int dropIndex: -1
             property string hoverTab: ""
@@ -217,12 +228,41 @@ Scope {
             }
 
             function beginDrag(t: var, from: var, w: real, h: real, source: Item, p: point): void {
-                win.drag = { toplevel: t, from, w, h, source };
+                root.drag = { toplevel: t, from, w, h, source, src: win };
                 win.dragPos = p;
+            }
+
+            // Overlay unter einem Punkt dieses Overlays (auch jenseits seines
+            // Rands: beim Ziehen bekommt die Quelle den Zeiger weiter) und
+            // der Punkt dort
+            function overlayAt(p: point): var {
+                const g = Qt.point(win.modelData.x + p.x, win.modelData.y + p.y);
+                for (const name in root.wins) {
+                    const o = root.wins[name];
+                    const s = o.modelData;
+                    if (g.x >= s.x && g.y >= s.y && g.x < s.x + s.width && g.y < s.y + s.height)
+                        return { win: o, p: Qt.point(g.x - s.x, g.y - s.y) };
+                }
+                return null;
             }
 
             function moveDrag(p: point): void {
                 win.dragPos = p;
+                const hit = win.overlayAt(p);
+                for (const name in root.wins)
+                    if (root.wins[name] !== hit?.win)
+                        root.wins[name].hoverDrop(null);
+                hit?.win.hoverDrop(hit.p);
+            }
+
+            // Ziel unter dem Zeiger merken (null = Zeiger ist woanders)
+            function hoverDrop(p: var): void {
+                if (p === null) {
+                    win.dropIndex = -1;
+                    win.hoverTab = "";
+                    springTab.stop();
+                    return;
+                }
                 const tile = win.hitTest(win.tileItems, p);
                 win.dropIndex = tile === "" ? -1 : Number(tile);
 
@@ -237,12 +277,14 @@ Scope {
             }
 
             function endDrag(): void {
-                const d = win.drag;
-                const target = win.entries[win.dropIndex];
-                win.drag = null;
-                win.dropIndex = -1;
-                win.hoverTab = "";
-                springTab.stop();
+                const d = root.drag;
+                let target = null;
+                for (const name in root.wins) {
+                    const o = root.wins[name];
+                    target = target ?? o.entries[o.dropIndex] ?? null;
+                    o.hoverDrop(null);
+                }
+                root.drag = null;
                 if (!d || !target)
                     return;
                 if (target.kind === "ws" && target.id === d.from.id)
@@ -268,6 +310,11 @@ Scope {
 
                 Behavior on opacity {
                     NumberAnimation { duration: root.shown ? 170 : 120; easing.type: Easing.OutCubic }
+                }
+
+                // Tastatur folgt der Maus auf diesen Bildschirm
+                HoverHandler {
+                    onHoveredChanged: if (hovered && !root.drag) root.keyMonitor = win.modelData.name
                 }
 
                 Keys.onPressed: event => {
@@ -771,7 +818,8 @@ Scope {
                     readonly property real gw: win.drag ? Math.min(280, win.drag.w) : 0
                     readonly property real gh: win.drag ? ghost.gw * win.drag.h / Math.max(1, win.drag.w) : 0
 
-                    visible: win.drag !== null
+                    // nur im Quell-Overlay: die Vorschau lebt in dessen Szene
+                    visible: win.drag !== null && win.drag.src === win
                     sourceItem: win.drag?.source ?? null
                     live: true
                     width: ghost.gw
