@@ -51,7 +51,9 @@ Item {
         const req = row.entry?.requires;
         if (!req)
             return "";
-        const id = typeof req === "string" ? req : Object.keys(req)[0];
+        // Bei mehreren Voraussetzungen die erste, die fehlt
+        const id = typeof req === "string" ? req
+                 : Object.keys(req).find(k => !Plugins.satisfied({ [k]: req[k] })) ?? Object.keys(req)[0];
         const title = Plugins.metaFor(id)?.title ?? id;
         return typeof req === "string" ? I18n.tr("Braucht „%1“").arg(I18n.tr(title))
                                        : I18n.tr("Braucht „%1“ = %2").arg(I18n.tr(title)).arg(row.optionLabel(req[id]));

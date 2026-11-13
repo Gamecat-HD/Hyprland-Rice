@@ -74,10 +74,15 @@ Singleton {
     // Touchpad wischen). "overview" ist keine Launcher-Ansicht, sondern die
     // Hover-Karte der Notch selbst – Blaettern dorthin schliesst den Launcher.
     // Abgeschaltete Seiten (Config.notch.page*) fallen aus dem Blaettern,
-    // ihre Kuerzel oeffnen sie weiter.
+    // ihre Kuerzel oeffnen sie weiter. Ebenso Seiten, deren Karten alle
+    // aus sind (Steuerung behaelt immer die Kacheln, Benachrichtigungen die Liste).
+    readonly property bool mediaHasCards: ["mediaSources", "mediaCover", "mediaTitle", "mediaProgress",
+        "mediaControls", "mediaQueue"].some(k => Config.notch[k]) || Config.media.lyrics
+    readonly property bool systemHasCards: ["sysCpu", "sysGpu", "sysVram", "sysRam", "sysDisk",
+        "sysTemps", "sysThrottle"].some(k => Config.notch[k])
     readonly property var views: ["overview"].concat(
-        [["media", Config.notch.pageMedia], ["control", Config.notch.pageControl],
-         ["notifications", Config.notch.pageNotifications], ["system", Config.notch.pageSystem]]
+        [["media", Config.notch.pageMedia && root.mediaHasCards], ["control", Config.notch.pageControl],
+         ["notifications", Config.notch.pageNotifications], ["system", Config.notch.pageSystem && root.systemHasCards]]
         .filter(v => v[1]).map(v => v[0]))
     readonly property int viewIndex: root.open ? root.views.indexOf(root.mode) : 0
 

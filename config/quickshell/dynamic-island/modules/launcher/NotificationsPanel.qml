@@ -14,7 +14,9 @@ ViewPanel {
     id: root
 
     readonly property real maxListHeight: 440
-    readonly property real toolbarHeight: 32
+    // Ohne Werkzeugleiste bleibt sie nur fuer "Keine Nachrichten" stehen
+    readonly property bool tools: Config.notch.notifTools
+    readonly property real toolbarHeight: root.tools || Notifications.count === 0 ? 32 : 0
     // Die Liste waechst mit ihrem echten Inhalt (auch aufgeklappte Gruppen)
     // bis maxListHeight, danach scrollt sie. Hier geht das mit
     // list.contentHeight, weil die Hoehe der Liste ihre Inhaltshoehe nicht
@@ -87,6 +89,7 @@ ViewPanel {
     Item {
         width: parent.width
         height: root.toolbarHeight
+        visible: height > 0
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -104,6 +107,7 @@ ViewPanel {
                 right: parent.right
                 verticalCenter: parent.verticalCenter
             }
+            visible: root.tools
             spacing: 6
 
             ToolChip {

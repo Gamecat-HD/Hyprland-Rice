@@ -26,6 +26,14 @@ Item {
     // Themes mit einer vom Cover eingefaerbten Karte.
     property color tint: Colors.background
     property real padding: 14
+    // Teile ein-/ausblenden (Notch-Medienseite: Config.notch.media*)
+    property bool showSources: true
+    property bool showCover: true
+    property bool showRing: true
+    property bool showTitle: true
+    property bool showProgress: true
+    property bool showControls: true
+    property bool showQueue: true
 
     // Cover samt Ring fuellen die Karte bis auf den Rand. Die Rechnung laeuft
     // von aussen nach innen: das Aussenmass steht fest (Kartenbreite minus
@@ -74,6 +82,7 @@ Item {
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 32
+            visible: panel.showSources
             z: 1
 
             Rectangle {
@@ -227,12 +236,14 @@ Item {
             Layout.preferredWidth: (panel.ringRadius + panel.ringMax) * 2
             Layout.preferredHeight: (panel.ringRadius + panel.ringMax) * 2
             Layout.alignment: Qt.AlignHCenter
+            visible: panel.showCover
 
             // Der Ring: ein Balken je cava-Band, im Kreis angeordnet.
             // Jeder sitzt auf seinem Winkel und waechst nach aussen,
             // deshalb liegt der Mittelpunkt bei Radius + halbe Laenge.
             Repeater {
-                model: Cava.bars
+                // Aus: keine Balken, statt unsichtbare weiterzurechnen
+                model: panel.showRing ? Cava.bars : 0
 
                 delegate: Rectangle {
                     id: spike
@@ -354,6 +365,7 @@ Item {
         Text {
             font.family: Config.font
             Layout.fillWidth: true
+            visible: panel.showTitle
 
             text: Media.title || I18n.tr("Nichts")
             color: Colors.fgBackground
@@ -367,7 +379,7 @@ Item {
             font.family: Config.font
             Layout.fillWidth: true
             Layout.topMargin: -8
-            visible: text !== ""
+            visible: panel.showTitle && text !== ""
 
             text: Media.artist
             color: Colors.fgSurfaceVariant
@@ -381,6 +393,7 @@ Item {
         // Abgelaufene Zeit links, Gesamtlaenge rechts, der Slider dazwischen.
         RowLayout {
             Layout.fillWidth: true
+            visible: panel.showProgress
             spacing: 8
 
             Text {
@@ -457,6 +470,7 @@ Item {
         // ---- Transport ----
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
+            visible: panel.showControls
             spacing: 14
 
             MediaButton {
@@ -551,7 +565,7 @@ Item {
         Item {
             id: queue
 
-            readonly property bool shown: MediaQueue.valid
+            readonly property bool shown: panel.showQueue && MediaQueue.valid
                                           && (!!MediaQueue.previous || !!MediaQueue.upcoming)
             // Weitere Titel nach "Als Naechstes"
             readonly property int more: Math.max(0, MediaQueue.next.length - 1)

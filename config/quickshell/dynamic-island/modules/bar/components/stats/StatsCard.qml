@@ -16,9 +16,19 @@ Column {
 
     spacing: 2
 
+    // Zeilen ein-/ausblenden (Notch-Systemseite: Config.notch.sys*)
+    property bool showCpu: true
+    property bool showGpu: true
+    property bool showVram: true
+    property bool showRam: true
+    property bool showDisk: true
+    property bool showTemps: true
+    property bool showThrottle: true
+
     Text {
         font.family: Config.font
         width: parent.width
+        visible: card.showCpu
         text: SystemStats.cpuName !== "" ? SystemStats.cpuName : "System"
         color: Colors.fgSurfaceVariant
         font.pixelSize: 10
@@ -29,6 +39,7 @@ Column {
 
     StatRow {
         width: parent.width
+        visible: card.showCpu
         icon: "developer_board"
         label: "CPU"
         value: SystemStats.cpuUsage
@@ -39,7 +50,7 @@ Column {
 
     StatRow {
         width: parent.width
-        visible: SystemStats.hasGpu
+        visible: card.showGpu && SystemStats.hasGpu
         icon: "monitoring"
         label: "GPU"
         value: SystemStats.gpuUsage
@@ -50,7 +61,7 @@ Column {
 
     StatRow {
         width: parent.width
-        visible: SystemStats.vramTotal > 0
+        visible: card.showVram && SystemStats.vramTotal > 0
         icon: "memory"
         label: "VRAM"
         value: SystemStats.vramTotal > 0 ? SystemStats.vramUsed / SystemStats.vramTotal : 0
@@ -59,6 +70,7 @@ Column {
 
     StatRow {
         width: parent.width
+        visible: card.showRam
         icon: "memory"
         label: "RAM"
         value: SystemStats.memTotal > 0 ? SystemStats.memUsed / SystemStats.memTotal : 0
@@ -68,7 +80,7 @@ Column {
 
     StatRow {
         width: parent.width
-        visible: SystemStats.diskTotal > 0
+        visible: card.showDisk && SystemStats.diskTotal > 0
         icon: "hard_drive"
         label: I18n.tr("Platte")
         value: SystemStats.diskTotal > 0 ? SystemStats.diskUsed / SystemStats.diskTotal : 0
@@ -80,7 +92,7 @@ Column {
     Item {
         width: parent.width
         height: 26
-        visible: temps.count > 0
+        visible: card.showTemps && temps.count > 0
 
         Text {
             id: tempIcon
@@ -143,7 +155,7 @@ Column {
         font.family: Config.font
         width: parent.width
         topPadding: 2
-        visible: Power.degraded
+        visible: card.showThrottle && Power.degraded
         text: I18n.tr("Leistung gedrosselt: %1").arg(Power.degradedReason)
         color: Colors.error
         font.pixelSize: 10

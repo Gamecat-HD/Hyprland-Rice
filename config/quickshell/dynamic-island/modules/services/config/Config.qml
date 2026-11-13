@@ -106,11 +106,30 @@ Singleton {
         "notch.stats": { title: "Systemwerte", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
         "notch.batteries": { title: "Geräte-Akkus", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
         "notch.bell": { title: "Glocke", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
-        // Seiten zum Blaettern (LauncherState.views); Kuerzel oeffnen sie weiter
-        "notch.pageMedia": { title: "Medien", group: "Seiten", requires: { "appearance.layout": "notch" } },
-        "notch.pageControl": { title: "Steuerung", group: "Seiten", requires: { "appearance.layout": "notch" } },
-        "notch.pageNotifications": { title: "Benachrichtigungen", group: "Seiten", requires: { "appearance.layout": "notch" } },
-        "notch.pageSystem": { title: "System", group: "Seiten", requires: { "appearance.layout": "notch" } },
+        // Seiten zum Blaettern (LauncherState.views) und ihre Karten. Die
+        // Medien- und System-Karte teilen sich die Insel-Pillen; dort gelten
+        // die Schalter nicht (MediaViewPanel/SystemPanel reichen sie durch).
+        // Eine Seite ohne sichtbare Karte faellt aus dem Blaettern
+        "notch.pageMedia": { title: "Seite zeigen", group: "Medienseite", requires: { "appearance.layout": "notch" } },
+        "notch.mediaSources": { title: "Quellenwahl", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaCover": { title: "Cover", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaRing": { title: "Visualiser-Ring", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true, "notch.mediaCover": true } },
+        "notch.mediaTitle": { title: "Titel", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaProgress": { title: "Fortschritt", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaControls": { title: "Bedienknöpfe", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaQueue": { title: "Warteschlange", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.pageControl": { title: "Seite zeigen", group: "Steuerungsseite", requires: { "appearance.layout": "notch" } },
+        "notch.controlTray": { title: "Tray-Symbole", group: "Steuerungsseite", requires: { "appearance.layout": "notch", "notch.pageControl": true } },
+        "notch.pageNotifications": { title: "Seite zeigen", group: "Benachrichtigungsseite", requires: { "appearance.layout": "notch" } },
+        "notch.notifTools": { title: "Werkzeugleiste", desc: "Nicht stören, Alle löschen", group: "Benachrichtigungsseite", requires: { "appearance.layout": "notch", "notch.pageNotifications": true } },
+        "notch.pageSystem": { title: "Seite zeigen", group: "Systemseite", requires: { "appearance.layout": "notch" } },
+        "notch.sysCpu": { title: "CPU", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysGpu": { title: "GPU", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysVram": { title: "VRAM", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysRam": { title: "RAM", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysDisk": { title: "Platte", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysTemps": { title: "Weitere Temperaturen", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysThrottle": { title: "Drosselungs-Hinweis", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
         // Akku in der eingeklappten Notch: Batterie neben der Uhr oder Ring
         // innen am Rand mit Batterie unten in der Mitte (NotchBatteryRing)
         "notch.batteryStyle": {
@@ -659,6 +678,22 @@ Singleton {
                 property bool pageControl: true
                 property bool pageNotifications: true
                 property bool pageSystem: true
+                property bool mediaSources: true
+                property bool mediaCover: true
+                property bool mediaRing: true
+                property bool mediaTitle: true
+                property bool mediaProgress: true
+                property bool mediaControls: true
+                property bool mediaQueue: true
+                property bool controlTray: true
+                property bool notifTools: true
+                property bool sysCpu: true
+                property bool sysGpu: true
+                property bool sysVram: true
+                property bool sysRam: true
+                property bool sysDisk: true
+                property bool sysTemps: true
+                property bool sysThrottle: true
                 // "symbol" | "ring"
                 property string batteryStyle: "symbol"
                 // "system" | "akku" | "visualiser"
