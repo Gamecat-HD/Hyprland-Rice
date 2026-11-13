@@ -624,6 +624,8 @@ Item {
             visible: opacity > 0
             percent: Power.percent
             charging: Power.charging
+            // Schimmer nur beim echten Laden – "voll am Kabel" (Laptop) liefe sonst endlos
+            animate: Power.activelyCharging
             fg: Colors.alpha(Colors.fgBackground, 0.75)
 
             Fade on opacity {}

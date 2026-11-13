@@ -173,6 +173,7 @@ def tr(de: str, en: str) -> str:
 
 def act_copy(img):
     path = save_png(img, CACHE / f"{stamp()}.png")
+    img.close()   # der wartende Enkel (notify_detached) hielte das Bild sonst bis zum Wegklicken
     wl_copy_file(path)
 
     def keep():
@@ -193,6 +194,7 @@ def act_copy(img):
 
 def act_save(img):
     path = save_png(img, pictures_dir() / f"Screenshot_{stamp()}.png")
+    img.close()
     wl_copy_file(path)
     folder = str(path.parent)
     notify_detached(["-i", str(path), "-h", f"string:image-path:{path}",
@@ -258,6 +260,7 @@ def act_ocr(img):
 
 def act_qr(img):
     path = save_png(img, CACHE / "qr.png")
+    img.close()
     res = subprocess.run(["zbarimg", "-q", "--raw", str(path)], capture_output=True, text=True)
     path.unlink(missing_ok=True)
     codes = [c for c in res.stdout.splitlines() if c.strip()]
