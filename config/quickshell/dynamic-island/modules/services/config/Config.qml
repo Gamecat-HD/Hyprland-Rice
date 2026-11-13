@@ -106,30 +106,32 @@ Singleton {
         "notch.stats": { title: "Systemwerte", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
         "notch.batteries": { title: "Geräte-Akkus", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
         "notch.bell": { title: "Glocke", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
-        // Seiten zum Blaettern (LauncherState.views) und ihre Karten. Die
-        // Medien- und System-Karte teilen sich die Insel-Pillen; dort gelten
-        // die Schalter nicht (MediaViewPanel/SystemPanel reichen sie durch).
-        // Eine Seite ohne sichtbare Karte faellt aus dem Blaettern
-        "notch.pageMedia": { title: "Seite zeigen", group: "Medienseite", requires: { "appearance.layout": "notch" } },
-        "notch.mediaSources": { title: "Quellenwahl", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
-        "notch.mediaCover": { title: "Cover", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
-        "notch.mediaRing": { title: "Visualiser-Ring", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true, "notch.mediaCover": true } },
-        "notch.mediaTitle": { title: "Titel", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
-        "notch.mediaProgress": { title: "Fortschritt", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
-        "notch.mediaControls": { title: "Bedienknöpfe", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
-        "notch.mediaQueue": { title: "Warteschlange", group: "Medienseite", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
-        "notch.pageControl": { title: "Seite zeigen", group: "Steuerungsseite", requires: { "appearance.layout": "notch" } },
-        "notch.controlTray": { title: "Tray-Symbole", group: "Steuerungsseite", requires: { "appearance.layout": "notch", "notch.pageControl": true } },
-        "notch.pageNotifications": { title: "Seite zeigen", group: "Benachrichtigungsseite", requires: { "appearance.layout": "notch" } },
-        "notch.notifTools": { title: "Werkzeugleiste", desc: "Nicht stören, Alle löschen", group: "Benachrichtigungsseite", requires: { "appearance.layout": "notch", "notch.pageNotifications": true } },
-        "notch.pageSystem": { title: "Seite zeigen", group: "Systemseite", requires: { "appearance.layout": "notch" } },
-        "notch.sysCpu": { title: "CPU", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
-        "notch.sysGpu": { title: "GPU", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
-        "notch.sysVram": { title: "VRAM", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
-        "notch.sysRam": { title: "RAM", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
-        "notch.sysDisk": { title: "Platte", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
-        "notch.sysTemps": { title: "Weitere Temperaturen", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
-        "notch.sysThrottle": { title: "Drosselungs-Hinweis", group: "Systemseite", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        // Seiten zum Blaettern (LauncherState.views): Schalter fuer die ganze
+        // Karte, › oeffnet ihre Unterseite (meta.sub, Titel in
+        // SettingsCard.subPages) mit den einzelnen Teilen. Die Medien- und
+        // System-Karte teilen sich die Insel-Pillen; dort gelten die
+        // Teil-Schalter nicht (MediaViewPanel/SystemPanel reichen sie durch).
+        // Eine Seite ohne sichtbaren Teil faellt aus dem Blaettern
+        "notch.pageMedia": { title: "Medien", group: "Seiten", sub: "notch-media", requires: { "appearance.layout": "notch" } },
+        "notch.pageControl": { title: "Steuerung", group: "Seiten", sub: "notch-control", requires: { "appearance.layout": "notch" } },
+        "notch.pageNotifications": { title: "Benachrichtigungen", group: "Seiten", sub: "notch-notifications", requires: { "appearance.layout": "notch" } },
+        "notch.pageSystem": { title: "System", group: "Seiten", sub: "notch-system", requires: { "appearance.layout": "notch" } },
+        "notch.mediaSources": { title: "Quellenwahl", group: "Anzeigen", page: "notch-media", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaCover": { title: "Cover", group: "Anzeigen", page: "notch-media", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaRing": { title: "Visualiser-Ring", group: "Anzeigen", page: "notch-media", requires: { "appearance.layout": "notch", "notch.pageMedia": true, "notch.mediaCover": true } },
+        "notch.mediaTitle": { title: "Titel", group: "Anzeigen", page: "notch-media", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaProgress": { title: "Fortschritt", group: "Anzeigen", page: "notch-media", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaControls": { title: "Bedienknöpfe", group: "Anzeigen", page: "notch-media", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.mediaQueue": { title: "Warteschlange", group: "Anzeigen", page: "notch-media", requires: { "appearance.layout": "notch", "notch.pageMedia": true } },
+        "notch.controlTray": { title: "Tray-Symbole", group: "Anzeigen", page: "notch-control", requires: { "appearance.layout": "notch", "notch.pageControl": true } },
+        "notch.notifTools": { title: "Werkzeugleiste", desc: "Nicht stören, Alle löschen", group: "Anzeigen", page: "notch-notifications", requires: { "appearance.layout": "notch", "notch.pageNotifications": true } },
+        "notch.sysCpu": { title: "CPU", group: "Anzeigen", page: "notch-system", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysGpu": { title: "GPU", group: "Anzeigen", page: "notch-system", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysVram": { title: "VRAM", group: "Anzeigen", page: "notch-system", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysRam": { title: "RAM", group: "Anzeigen", page: "notch-system", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysDisk": { title: "Platte", group: "Anzeigen", page: "notch-system", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysTemps": { title: "Weitere Temperaturen", group: "Anzeigen", page: "notch-system", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
+        "notch.sysThrottle": { title: "Drosselungs-Hinweis", group: "Anzeigen", page: "notch-system", requires: { "appearance.layout": "notch", "notch.pageSystem": true } },
         // Akku in der eingeklappten Notch: Batterie neben der Uhr oder Ring
         // innen am Rand mit Batterie unten in der Mitte (NotchBatteryRing)
         "notch.batteryStyle": {
@@ -175,10 +177,12 @@ Singleton {
         },
         // Medienansicht (MediaPanel)
         "media.cover": {
-            title: "Cover",
+            group: "Darstellung", page: "notch-media",
+            title: "Cover-Stil",
             options: ["rund", "vinyl"]
         },
         "media.lyrics": {
+            group: "Darstellung", page: "notch-media",
             title: "Songtexte", desc: "Spotify-Extension, sonst lrclib.net"
         },
         // Sperrbildschirm (modules/lock)
@@ -234,6 +238,8 @@ Singleton {
         // Seite System (SystemEditor): Rechnerdaten, Auslastung und Updates
         // aus services/system/SystemInfo.qml – `info` ist nur der Anker
         "system.info": { title: "System", desc: "Shell-Version, Updates und Rechner", editor: "system" },
+        // Konto (AccountEditor): Profilbild, Name, Passwort ueber AccountsService
+        "account.profile": { title: "Konto", editor: "account" },
         "system.updateCheckHours": {
             title: "Im Hintergrund nach Shell-Updates suchen alle", group: "Update-Suche", desc: "git fetch im Repo der Shell; 0 = nur bei offener Ansicht",
             min: 0, max: 24, step: 1, unit: "h"
@@ -251,6 +257,7 @@ Singleton {
         "battery.kdeconnect": { title: "Handy über KDE Connect", group: "Quellen" },
         "battery.novabase": { title: "Headset über novabase", group: "Quellen" },
         "media.queueOpen": {
+            group: "Darstellung", page: "notch-media",
             title: "Warteschlange offen", desc: "Die ganze Spotify-Warteschlange zeigen statt nur vorigem und nächstem Titel"
         },
         "bar.batteryPulse": { title: "Akku-Ladeimpuls", group: "Anzeige", page: "battery", requires: "bar.battery" },
@@ -361,7 +368,7 @@ Singleton {
 
     // Reihenfolge und Symbole der Gruppen im Menue (Material-Symbols-Namen).
     // Gruppen, die hier fehlen, haengt das Menue hinten an.
-    readonly property var sectionOrder: ["bar", "battery", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "keybinds", "monitors", "system", "appearance", "wallpaper", "notifications", "vpn"]
+    readonly property var sectionOrder: ["bar", "battery", "quick", "bluetooth", "osd", "notch", "media", "lock", "idle", "sounds", "keybinds", "monitors", "system", "account", "appearance", "wallpaper", "notifications", "vpn"]
     readonly property var sectionIcons: ({
         "bar": "space_dashboard",
         "battery": "battery_horiz_075",
@@ -379,7 +386,8 @@ Singleton {
         "appearance": "palette",
         "wallpaper": "wallpaper_slideshow",
         "notifications": "notifications",
-        "vpn": "vpn_key"
+        "vpn": "vpn_key",
+        "account": "account_circle"
     })
 
     readonly property var sectionMeta: ({
@@ -399,7 +407,8 @@ Singleton {
         "sounds": "Klänge",
         "keybinds": "Tastenkürzel",
         "monitors": "Monitore",
-        "system": "System"
+        "system": "System",
+        "account": "Konto"
     })
 
     // Die Datei als einfaches Objekt – daraus baut das Einstellungs-Fenster
@@ -789,6 +798,10 @@ Singleton {
             // Was hier fehlt, ist ausgeblendet.
             // Seite "System": Anker fuer den Editor (SystemEditor) und die
             // Update-Pruefung der Shell selbst (services/system/ShellUpdate.qml)
+            property JsonObject account: JsonObject {
+                property string profile: ""
+            }
+
             property JsonObject system: JsonObject {
                 property string info: ""
                 // Stunden zwischen Hintergrund-Pruefungen (git fetch), 0 = aus

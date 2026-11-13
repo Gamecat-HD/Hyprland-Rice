@@ -40,6 +40,9 @@ Item {
     // Verweis auf eine Plugin-Seite (SettingsCard haengt sie als Zeile an):
     // die ganze Zeile oeffnet die Seite
     readonly property bool isLink: (row.entry?.link ?? "") !== ""
+    // Schalter mit Unterseite (meta.sub): der Schalter schaltet, der Rest
+    // der Zeile oeffnet die Unterseite (Reihenfolge wie bei Plugins: Schalter → ›)
+    readonly property bool hasSub: row.isBool && (row.entry?.sub ?? "") !== ""
     // Schrift-Auswahl: jede Option in ihrer eigenen Schrift zeigen und nur
     // anbieten, was auch installiert ist
     readonly property bool isFont: row.isChoice && String(row.entry?.key ?? "").toLowerCase().includes("font")
@@ -171,11 +174,16 @@ Item {
             visible: !row.bare
 
             TapHandler {
-                enabled: (row.isBool || row.isLink) && row.available
-                onTapped: {
+                // Die Unterseite geht auch ohne erfuellte Voraussetzung auf
+                enabled: ((row.isBool || row.isLink) && row.available) || row.hasSub
+                onTapped: point => {
+                    // Bei hasSub schaltet nur der Schalter selbst (links vom ›)
+                    const onSwitch = point.position.x >= control.x && point.position.x < control.x + 40 + 4;
                     if (row.isLink)
                         SettingsState.openPage(row.entry.link, {});
-                    else
+                    else if (row.hasSub && !onSwitch)
+                        SettingsState.openPage(row.entry.sub, {});
+                    else if (row.available)
                         Plugins.set(row.entry.section, row.entry.key, !row.entry.value);
                 }
             }
@@ -284,12 +292,15 @@ Item {
                     rightMargin: 14
                     verticalCenter: parent.verticalCenter
                 }
-                width: row.isBool ? 40 : row.isNumber ? numberControl.width : row.isEditor ? 0 : row.isLink ? 20 : row.isChoice ? choiceDrop.width : valueRow.width
+                width: row.hasSub ? 40 + 6 + 20 : row.isBool ? 40 : row.isNumber ? numberControl.width : row.isEditor ? 0 : row.isLink ? 20 : row.isChoice ? choiceDrop.width : valueRow.width
                 height: 28
 
                 Text {
-                    anchors.centerIn: parent
-                    visible: row.isLink
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+                    width: 20
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: row.isLink || row.hasSub
                     text: "chevron_right"
                     color: Colors.fgSurfaceVariant
                     font.family: "Material Symbols Outlined"
@@ -298,7 +309,8 @@ Item {
 
                 // Schalter fuer Wahrheitswerte
                 Rectangle {
-                    anchors.centerIn: parent
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: 0
                     width: 40
                     height: 22
                     radius: height / 2
@@ -494,6 +506,7 @@ Item {
                            : row.entry?.editor === "monitors" ? monitorsEditor
                            : row.entry?.editor === "vpn" ? vpnEditor
                            : row.entry?.editor === "system" ? systemEditor
+                           : row.entry?.editor === "account" ? accountEditor
                            : row.entry?.editor === "wallpaperhero" ? heroEditor
                            : null
         }
@@ -550,6 +563,12 @@ Item {
             id: systemEditor
 
             SystemEditor {}
+        }
+
+        Component {
+            id: accountEditor
+
+            AccountEditor {}
         }
 
         Component {

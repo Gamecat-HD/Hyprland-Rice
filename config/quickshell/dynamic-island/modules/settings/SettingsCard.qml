@@ -48,6 +48,7 @@ Surface {
     // Die Leiste: wenige Kategorien statt einer Zeile je shell.json-Abschnitt.
     // Eine Kategorie zeigt ihre Abschnitte untereinander, je mit Ueberschrift.
     readonly property var categories: [
+        { key: "account", title: "Konto", desc: "Profilbild, Name, Passwort", icon: "account_circle", sections: ["account"] },
         { key: "look", title: "Aussehen", desc: "Wallpaper, Farben, Transparenz", icon: "palette", sections: ["wallpaper", "appearance"] },
         { key: "notch", title: "Notch", desc: "Layout, Anzeigen, Medien", icon: "top_panel_open", sections: ["notch", "media"] },
         { key: "bar", title: "Leiste", desc: "Workspaces, Module, Regler am Rand", icon: "web_asset", sections: ["bar", "osd"] },
@@ -63,6 +64,7 @@ Surface {
     ]
     // Die Leiste in Gruppen (Schluessel aus categories, dazu die Plugin-Verwaltung)
     readonly property var sidebarGroups: [
+        ["account"],
         ["look", "notch", "bar", "quick"],
         ["alerts", "connect", "battery", "lock"],
         ["monitors", "keybinds", "region"],
@@ -73,7 +75,11 @@ Surface {
             ?? { key: card.managerKey, title: "Plugins", desc: "Erweiterungen verwalten", icon: "extension" };
     }
     // Seiten ohne eigenen shell.json-Abschnitt (nur Zeilen mit meta.page)
-    readonly property var pageTitles: ({ "region": "Sprache & Region" })
+    readonly property var pageTitles: ({ "region": "Sprache & Region", "notch-media": "Medien", "notch-control": "Steuerung",
+                                         "notch-notifications": "Benachrichtigungen", "notch-system": "System" })
+    // Unterseiten (Zeilen mit meta.sub oeffnen sie): Seite -> Kategorie fuer Zurueck und Leiste
+    readonly property var subParents: ({ "notch-media": "notch", "notch-control": "notch",
+                                         "notch-notifications": "notch", "notch-system": "notch" })
     // Abschnitte aus shell.json, die keiner Kategorie gehoeren, landen unter Info
     readonly property var categorySections: {
         const known = [].concat(...card.categories.map(c => c.sections));
@@ -339,7 +345,8 @@ Surface {
                     unit: meta?.unit ?? "",
                     requires: meta?.requires ?? null,
                     editor: meta?.editor ?? "",
-                    preview: meta?.preview ?? ""
+                    preview: meta?.preview ?? "",
+                    sub: meta?.sub ?? ""
                 };
 
                 if (needle === ""
@@ -383,7 +390,7 @@ Surface {
     // Caelestia; nur die Tastatur der Tastenkuerzel nimmt die ganze Breite.
     readonly property var fullEditors: ["keybinds"]
     // Editoren, die sich samt Containern selbst zeichnen (GroupCard.bare)
-    readonly property var bareEditors: ["system", "monitors", "keybinds", "wallpaperhero"]
+    readonly property var bareEditors: ["system", "monitors", "keybinds", "wallpaperhero", "account"]
     readonly property real columnWidth: Math.min(card.listRoom, 760)
     readonly property var groupCards: {
         const out = [];
@@ -560,7 +567,7 @@ Surface {
                         // Darstellung, Plugin-Gruppen und -Seiten → Plugins
                         readonly property string owner: card.lookSub ? "look"
                             : card.managing || Plugins.isPluginSection(card.section) || Plugins.isPageSection(card.section) ? card.managerKey
-                            : card.section
+                            : card.subParents[card.section] ?? card.section
                         readonly property bool current: (!card.searching || card.lookSub) && button.owner === button.modelData
 
                         width: parent?.width ?? 0
@@ -692,6 +699,8 @@ Surface {
                 return "";
             if (card.lookSub)
                 return "look";
+            if (card.subParents[card.section])
+                return card.subParents[card.section];
             if (card.paging && card.pageInfo !== null) {
                 const s = Plugins.sectionPrefix + card.pageInfo.pluginId;
                 return Plugins.sections.includes(s) ? s : card.managerKey;
