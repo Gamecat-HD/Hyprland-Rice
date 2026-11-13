@@ -274,7 +274,9 @@ Scope {
             const o = t.lastIpcObject ?? {};
             if (!o.at || !o.size || o.hidden === true || o.mapped === false)
                 continue;
-            const id = t.workspace?.id ?? o.workspace?.id;
+            // Special-WS haben seit Hyprland 0.57 keine id mehr -> über den Namen
+            const name = t.workspace?.name ?? o.workspace?.name ?? "";
+            const id = name.startsWith("special:") ? name : (t.workspace?.id ?? o.workspace?.id);
             if (id === undefined)
                 continue;
             if (!map[id])
@@ -292,7 +294,7 @@ Scope {
         return map;
     }
 
-    function windowsOn(id: int): var {
+    function windowsOn(id: var): var {
         return root.byWs[id] ?? [];
     }
 
@@ -351,11 +353,11 @@ Scope {
             return [];
         const opened = new Set(Hyprland.monitors.values.map(m => m.lastIpcObject?.specialWorkspace?.name ?? ""));
         return Hyprland.workspaces.values
-            .filter(ws => ws.name.startsWith("special:") && root.windowsOn(ws.id).length > 0)
+            .filter(ws => ws.name.startsWith("special:") && root.windowsOn(ws.name).length > 0)
             .sort((a, b) => a.name.localeCompare(b.name))
             .map(ws => ({
                 kind: "ws",
-                id: ws.id,
+                id: ws.name,
                 name: ws.name,
                 label: ws.name.slice(8),
                 special: true,
