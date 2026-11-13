@@ -320,6 +320,8 @@ Umschalten: `hypr-profile toggle` oder `CTRL + SUPER + SHIFT + P`.
 * Die CLI in `config/dynamic-island/` ist von
   [caelestia-cli](https://github.com/caelestia-dots/cli) abgeleitet und steht
   wie diese unter der **GPL-3.0** ([`config/dynamic-island/LICENSE`](config/dynamic-island/LICENSE)).
+* Der Rest des Repos steht ebenfalls unter der **GPL-3.0** ([`LICENSE`](LICENSE)),
+  ausgenommen die Wallpaper (siehe unten) und `config/nvim/` (Apache-2.0, aus dem LazyVim-Starter).
 * Die Optik der Notch ist von saneAspects "Dynamite" inspiriert.
 * Die Wallpaper gehoeren ihren jeweiligen Kuenstlerinnen und Kuenstlern
   (gesammelt u. a. auf [wallhaven.cc](https://wallhaven.cc)), siehe
