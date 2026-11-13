@@ -274,10 +274,8 @@ Scope {
             const o = t.lastIpcObject ?? {};
             if (!o.at || !o.size || o.hidden === true || o.mapped === false)
                 continue;
-            // Special-WS haben seit Hyprland 0.57 keine id mehr -> über den Namen,
-            // und zwar aus dem IPC-Objekt: t.workspace wird per id aufgelöst und
-            // zeigt dann für alle Scratchpads auf dasselbe Objekt
-            const name = o.workspace?.name ?? t.workspace?.name ?? "";
+            // Special-WS haben seit Hyprland 0.57 keine id mehr -> über den Namen
+            const name = t.workspace?.name ?? o.workspace?.name ?? "";
             const id = name.startsWith("special:") ? name : (t.workspace?.id ?? o.workspace?.id);
             if (id === undefined)
                 continue;
