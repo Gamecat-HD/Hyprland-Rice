@@ -57,6 +57,8 @@ Lösch-Rückfragen, Live-Status.
 | An/Aus | `SettingsSwitch` 40×22 (`primary` an, `alpha(fgSurface, 0.18)` aus) |
 | Zahl | Regler; Mausrad nur direkt auf dem Regler, nie auf der ganzen Zeile |
 | Unterseite | Zeile oder Knopf mit `chevron_right`, Seite öffnet im Fenster |
+| An/Aus mit Unterseite | meta `sub: "<seite>"` an einer Bool-Einstellung: Schalter → ›, Tap auf den Schalter schaltet, Rest der Zeile öffnet die Unterseite (`SettingsRow.hasSub`); Titel in `SettingsCard.pageTitles`, Zurück/Leiste über `subParents` |
+| Textfeld | `account/AccountField` (Höhe 30, `radius 8`, `alpha(fgSurface, 0.06)`, Fokus-Rand primary); speichert über `editingFinished` (Enter/Fokusverlust), kein extra Speichern-Knopf |
 | Aktion in Zeilen | Textknopf Höhe 30, `radius 8`, `alpha(fgSurface, 0.08)`; Hauptaktion `primary`/`fgPrimary` |
 | Große Aktionen (Hero) | tonaler Knopf Höhe 48, `radius 24`, `alpha(primary, 0.14)` |
 | Gefährlich | Eintrag `danger` im ⋮ + Rückfrage (Inline-Leiste oder Zeile „Wirklich …?“) |
@@ -114,6 +116,15 @@ Spalten fluchten.
 - Screenshots: `docs/notch-shot/shot.sh <zustand>`, `docs/desktop-shot/shot.sh`,
   `docs/lock-shot/shot.sh`.
 
+## Konto-Seite (2026-11-13)
+
+- `AccountEditor` (bareEditor): Kopf mit Profilbild (Klick ändert), Anzeigename
+  und Login wie die Info-Seite; darunter Profil (Bild, Anzeigename) und
+  Sicherheit (Passwort klappt auf). Was der Kopf zeigt, steht nicht noch
+  einmal als Zeile (kein „Benutzername“).
+- Notch-Seiten: Zeilen unter „Seiten“ schalten die ganze Karte, › öffnet die
+  Teile (`notch-media|control|notifications|system`).
+
 ## Noch nicht nach diesem Stil geprüft
 
 - Plugin-Seiten und Plugin-Gruppen (z. B. Terminal-Looks-Editor, Desktop-Widgets
@@ -127,7 +138,8 @@ Spalten fluchten.
   eine voll helle Pille.
 - WLAN-/Bluetooth-Unterpanels (eigene Menüzeilen, unübersetzte Köpfe).
 - Jede Editor-Datei hat eigene Kopien von Toggle/ActionButton/Chip – Kandidat
-  zum Zusammenlegen.
+  zum Zusammenlegen. Textfelder: `Field` (VpnEditor) und `KbField` könnten
+  `AccountField` nehmen.
 - `StylePreview.qml` (Vorschaubilder für Uhr-/Workspace-/Visualiser-Stil) hat
   seit den Dropdowns keinen Verwender mehr.
 - Transparenz (`appearance.transparency`) wirkt ohne Blur hinter den Pillen.

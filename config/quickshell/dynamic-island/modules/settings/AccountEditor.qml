@@ -11,7 +11,7 @@ import qs.modules.settings.account
 
 // Einstellungsseite Konto (Config.meta editor "account"): Kopf mit
 // Profilbild, Anzeigename und Login wie der Kopf der Info-Seite, darunter
-// Profil (Bild, Name, Benutzername) und Sicherheit (Passwort).
+// Profil (Bild, Name) und Sicherheit (Passwort).
 // Geschrieben wird ueber User (usermgr.py -> AccountsService); das
 // Passwort bestaetigt der polkit-Dialog mit dem aktuellen Passwort.
 Item {
@@ -217,40 +217,23 @@ Item {
                     font.pixelSize: 13
                 }
 
-                Row {
+                // Gespeichert wird mit Enter oder beim Verlassen des Felds
+                AccountField {
+                    id: nameField
+
                     anchors {
                         right: parent.right
                         rightMargin: 14
                         verticalCenter: parent.verticalCenter
                     }
-                    spacing: 8
-
-                    AccountField {
-                        id: nameField
-
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 200
-                        value: User.name
-                        onAccepted: User.setName(nameField.text)
-                    }
-
-                    TextButton {
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: nameField.text.trim() !== "" && nameField.text.trim() !== User.name
-                        filled: true
-                        label: User.busy === "name" ? "…" : I18n.tr("Speichern")
-                        enabled: User.busy === ""
-                        onClicked: User.setName(nameField.text)
+                    width: 200
+                    value: User.name
+                    onEditingFinished: {
+                        const name = nameField.text.trim();
+                        if (name !== "" && name !== User.name && User.busy === "")
+                            User.setName(name);
                     }
                 }
-
-                Divider {}
-            }
-
-            InfoLine {
-                label: I18n.tr("Benutzername")
-                value: User.user
-                last: true
             }
         }
 
@@ -382,7 +365,7 @@ Item {
             text: User.lastError
             color: Colors.error
             font.family: Config.font
-            font.pixelSize: 12
+            font.pixelSize: 11
             wrapMode: Text.Wrap
         }
     }

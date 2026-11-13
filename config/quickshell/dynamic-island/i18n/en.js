@@ -184,7 +184,6 @@ var strings = {
     "Benachrichtigungen": "Notifications",
     "Benachrichtigungen · %1": "Notifications · %1",
     "Benachrichtigungsseite": "Notifications page",
-    "Benutzername": "Username",
     "Bereich": "Region",
     "Bestätigen": "Confirm",
     "Bibliothek": "Library",

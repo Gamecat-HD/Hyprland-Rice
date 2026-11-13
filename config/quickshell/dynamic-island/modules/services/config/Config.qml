@@ -108,7 +108,7 @@ Singleton {
         "notch.bell": { title: "Glocke", group: "Aufgeklappt", requires: { "appearance.layout": "notch" } },
         // Seiten zum Blaettern (LauncherState.views): Schalter fuer die ganze
         // Karte, › oeffnet ihre Unterseite (meta.sub, Titel in
-        // SettingsCard.subPages) mit den einzelnen Teilen. Die Medien- und
+        // SettingsCard.pageTitles) mit den einzelnen Teilen. Die Medien- und
         // System-Karte teilen sich die Insel-Pillen; dort gelten die
         // Teil-Schalter nicht (MediaViewPanel/SystemPanel reichen sie durch).
         // Eine Seite ohne sichtbaren Teil faellt aus dem Blaettern

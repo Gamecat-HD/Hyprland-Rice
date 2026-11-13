@@ -14,6 +14,7 @@ Rectangle {
     property bool password: false
     readonly property alias text: input.text
     signal accepted()
+    signal editingFinished()
 
     function clear(): void {
         input.text = "";
@@ -50,6 +51,7 @@ Rectangle {
         clip: true
         text: field.value
         onAccepted: field.accepted()
+        onEditingFinished: field.editingFinished()
         Keys.onEscapePressed: event => {
             input.text = field.value;
             input.focus = false;
