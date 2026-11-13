@@ -209,6 +209,8 @@ Scope {
             // ---- Ziehen ----
             readonly property var drag: root.drag
             property point dragPos: Qt.point(0, 0)
+            // Zeiger beim Ziehen gerade ueber diesem Overlay
+            property bool dragHere: false
             property int dropIndex: -1
             property string hoverTab: ""
             // Kachel-Items je Index (fuer das Ziel unter dem Zeiger)
@@ -257,12 +259,14 @@ Scope {
 
             // Ziel unter dem Zeiger merken (null = Zeiger ist woanders)
             function hoverDrop(p: var): void {
+                win.dragHere = p !== null;
                 if (p === null) {
                     win.dropIndex = -1;
                     win.hoverTab = "";
                     springTab.stop();
                     return;
                 }
+                win.dragPos = p;
                 const tile = win.hitTest(win.tileItems, p);
                 win.dropIndex = tile === "" ? -1 : Number(tile);
 
@@ -822,6 +826,19 @@ Scope {
                     visible: win.drag !== null && win.drag.src === win
                     sourceItem: win.drag?.source ?? null
                     live: true
+                    width: ghost.gw
+                    height: ghost.gh
+                    x: win.dragPos.x - ghost.gw / 2
+                    y: win.dragPos.y - ghost.gh / 2
+                    opacity: 0.9
+                    z: 100
+                }
+
+                // Auf dem anderen Bildschirm: dort eine eigene Kopie des Fensters
+                ScreencopyView {
+                    visible: win.dragHere && win.drag.src !== win
+                    captureSource: visible ? win.drag.toplevel.wayland : null
+                    paintCursor: false
                     width: ghost.gw
                     height: ghost.gh
                     x: win.dragPos.x - ghost.gw / 2
