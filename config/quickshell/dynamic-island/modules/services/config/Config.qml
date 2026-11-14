@@ -38,6 +38,7 @@ Singleton {
     readonly property alias bluetooth: adapter.bluetooth
     readonly property alias battery: adapter.battery
     readonly property alias system: adapter.system
+    readonly property alias account: adapter.account
 
     // Schrift fuer alle Texte der Shell (Icons behalten Material Symbols)
     readonly property string font: adapter.appearance.font
@@ -800,6 +801,8 @@ Singleton {
             // Update-Pruefung der Shell selbst (services/system/ShellUpdate.qml)
             property JsonObject account: JsonObject {
                 property string profile: ""
+                // Form des Profilbilds (settings/account/AvatarShape.qml)
+                property string avatarShape: "sunny"
             }
 
             property JsonObject system: JsonObject {
