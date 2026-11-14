@@ -106,7 +106,6 @@ Item {
                     AvatarShape {
                         anchors.fill: parent
                         source: User.faceUrl
-                        shape: Config.account.avatarShape
                         dim: avatarHover.hovered || User.busy === "face" ? 1 : 0
 
                         Behavior on dim {

@@ -8,13 +8,13 @@ import qs.modules.services.config
 // Canvas statt MultiEffect-Maske: zeichnet auch im Software-Renderer
 // (docs/settings-shot) und malt nur neu, wenn sich Bild oder Form aendern.
 //
-//   shape  circle | cookie | sunny | squircle | clover
+//   shape  sunny (Konto-Seite) | circle | cookie | squircle | clover
 //   source Bild-URL; leer oder kaputt -> Flaeche mit Personen-Symbol
 Item {
     id: avatar
 
     property url source: ""
-    property string shape: "circle"
+    property string shape: "sunny"
     // Abstand Bild -> Ring und Ringstaerke in px; 0 = kein Ring
     property real ring: 3
     property real gap: 4
