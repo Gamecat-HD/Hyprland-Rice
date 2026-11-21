@@ -179,6 +179,7 @@ Item {
 
             anchors.left: parent.left
             width: Math.max(cancel.implicitWidth, confirm.implicitWidth)
+            tonal: true
             label: I18n.tr("Abbrechen")
             onClicked: panel.flow?.cancelAuthenticationRequest()
         }

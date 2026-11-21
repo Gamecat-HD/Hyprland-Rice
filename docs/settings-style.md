@@ -160,6 +160,6 @@ Spalten fluchten.
 - pkexec-Dialog: Kopf wie ein Leisten-Eintrag (shield_lock im 38-px-Kreis
   `alpha(primary, 0.18)`), daneben die polkit-Meldung 13 px – kein eigener
   Titel, die Meldung sagt schon, wofür. „Als …“ nur bei fremder Identität
-  (root). Knöpfe = `system/TextButton`, Höhe folgt dem Inhalt.
+  (root). Knöpfe = `system/TextButton` (Abbrechen `tonal`: primary 0.24 + primary-Schrift), Höhe folgt dem Inhalt.
 - Feld über die volle Kartenbreite (20 px Rand), Abbrechen links, Bestätigen rechts – 268 px mittig
   wirkte verloren. shield_lock ungefüllt – mit FILL stanzt es das Schloss als Loch aus.
