@@ -159,24 +159,30 @@ Item {
         elide: Text.ElideRight
     }
 
-    // Textknoepfe wie in den Einstellungen; Bestaetigen ist die Hauptaktion
-    Row {
+    // Textknoepfe wie in den Einstellungen: Abbrechen links, Bestaetigen rechts
+    Item {
         id: buttons
 
         anchors {
+            left: parent.left
             right: parent.right
             top: supplementary.bottom
+            leftMargin: 20
             rightMargin: 20
             topMargin: 14
         }
-        spacing: 8
+        height: confirm.height
 
         TextButton {
+            anchors.left: parent.left
             label: I18n.tr("Abbrechen")
             onClicked: panel.flow?.cancelAuthenticationRequest()
         }
 
         TextButton {
+            id: confirm
+
+            anchors.right: parent.right
             filled: true
             label: I18n.tr("Bestätigen")
             enabled: (panel.flow?.isResponseRequired ?? false) && !panel.checking
