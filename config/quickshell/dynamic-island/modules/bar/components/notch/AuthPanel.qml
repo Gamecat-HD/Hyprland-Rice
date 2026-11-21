@@ -84,10 +84,11 @@ Item {
         anchors {
             left: shield.right
             right: parent.right
-            verticalCenter: shield.verticalCenter
             leftMargin: 12
             rightMargin: 20
         }
+        // Ein-/Zweizeiler mittig am Kreis, hoehere Bloecke buendig oben statt darueber hinaus
+        y: shield.y + Math.max(0, (shield.height - height) / 2)
         spacing: 2
 
         Text {
@@ -98,8 +99,9 @@ Item {
             color: Colors.fgSurface
             font.family: Config.font
             font.pixelSize: 13
-            wrapMode: Text.WordWrap
-            maximumLineCount: 3
+            // Die Meldung ist der freizugebende Befehl: lange Pfade umbrechen, nicht kuerzen
+            wrapMode: Text.Wrap
+            maximumLineCount: 6
             elide: Text.ElideRight
         }
 
@@ -135,7 +137,7 @@ Item {
         checking: panel.checking
         placeholder: panel.checking ? ""
             : panel.flow?.isResponseRequired
-                ? ((panel.flow.inputPrompt ?? "").replace(/:\s*$/, "") || I18n.tr("Passwort"))
+                ? panel.promptText((panel.flow.inputPrompt ?? "").replace(/:\s*$/, ""))
                 : I18n.tr("Authentifizierung wird vorbereitet…")
         onTextChanged: if (text !== "") panel.failed = false
         onAccepted: panel.submit()
@@ -222,6 +224,11 @@ Item {
         const name = id.displayName ?? "";
         return name === User.user || (User.name !== "" && name === User.name)
             || (id.string ?? "") === "unix-user:" + User.user;
+    }
+
+    // PAM fragt in der Systemsprache; das uebliche "Password" folgt der Shell-Sprache
+    function promptText(prompt: string): string {
+        return prompt === "" || /^passwor[dt]$/i.test(prompt) ? I18n.tr("Passwort") : prompt;
     }
 
     function submit(): void {

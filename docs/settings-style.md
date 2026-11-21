@@ -163,3 +163,8 @@ Spalten fluchten.
   (root). Knöpfe = `system/TextButton` (Abbrechen `tonal`: primary 0.24 + primary-Schrift), Höhe folgt dem Inhalt.
 - Feld über die volle Kartenbreite (20 px Rand), Abbrechen links, Bestätigen rechts – 268 px mittig
   wirkte verloren. shield_lock ungefüllt – mit FILL stanzt es das Schloss als Loch aus.
+- Meldung bis 6 Zeilen mit `Text.Wrap` (der Befehl ist der Inhalt, lange Pfade brechen um);
+  höhere Blöcke beginnen bündig an der Kreis-Oberkante statt darüber hinauszuragen.
+  PAM-Prompt „Password“ folgt der Shell-Sprache. Fehlerzeile darf die Karte wachsen
+  lassen – kein dauerhaft reservierter Platz.
+- Screenshots: `docs/notch-shot/shot.sh auth[:failed|:root|:long]` (polkit-Attrappe `FakeAuth.qml`).
