@@ -151,3 +151,13 @@ Spalten fluchten.
   seit den Dropdowns keinen Verwender mehr.
 - Transparenz (`appearance.transparency`) wirkt ohne Blur hinter den Pillen.
 - Nie live geklickt: Dropdowns, ⋮-Menüs, Farben-Seite, Zurück-Pfeil.
+
+## Passwortfelder / pkexec-Dialog (2026-11-21)
+
+- Passwörter nehmen `widgets/PasswordField` (Punkte-Pille wie im Lock, Höhe 44,
+  `error` rot, `shake()`, `checking` = Welle) statt `AccountField` – im
+  pkexec-Dialog (`notch/AuthPanel`) und bei Konto > Passwort ändern.
+- pkexec-Dialog: Kopf wie ein Leisten-Eintrag (shield_lock im 38-px-Kreis
+  `alpha(primary, 0.18)`), daneben die polkit-Meldung 13 px – kein eigener
+  Titel, die Meldung sagt schon, wofür. „Als …“ nur bei fremder Identität
+  (root). Knöpfe = `system/TextButton`, Höhe folgt dem Inhalt.

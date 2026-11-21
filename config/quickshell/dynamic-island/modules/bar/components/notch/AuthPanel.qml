@@ -1,10 +1,12 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 
 import qs
 import qs.modules.services.config
 import qs.modules.widgets
+import qs.modules.settings.system
 
 Item {
     id: panel
@@ -20,7 +22,7 @@ Item {
     readonly property alias maxOuterHeight: panel.outerHeight
 
     implicitWidth: 440
-    implicitHeight: confirmButton.y + confirmButton.height + 16
+    implicitHeight: buttons.y + buttons.height + 18
 
     // Fehlschlag: rot + schuetteln wie im Lock; Pruefen: Punkte als Welle
     property bool failed: false
@@ -48,73 +50,69 @@ Item {
 
     Keys.onEscapePressed: panel.flow?.cancelAuthenticationRequest()
 
-    Text {
+    // Kopf wie ein Eintrag der Einstellungs-Leiste: Symbol im 38-px-Kreis,
+    // daneben die polkit-Meldung (sagt schon, wofuer – kein eigener Titel)
+    Rectangle {
         id: shield
 
         anchors {
             left: parent.left
             top: parent.top
             leftMargin: 20
-            topMargin: 14
+            topMargin: 18
         }
-        text: "shield_lock"
-        color: Colors.primary
-        font.family: "Material Symbols Outlined"
-        font.pixelSize: 27
-        font.variableAxes: ({ wght: 600 })
+        width: 38
+        height: 38
+        radius: 19
+        color: Colors.alpha(Colors.primary, 0.18)
+
+        Text {
+            anchors.centerIn: parent
+            text: "shield_lock"
+            color: Colors.primary
+            font.family: "Material Symbols Outlined"
+            font.pixelSize: 20
+            font.variableAxes: { "FILL": 1 }
+        }
     }
 
-    Text {
-        font.family: Config.font
+    Column {
+        id: heading
+
         anchors {
             left: shield.right
             right: parent.right
-            top: parent.top
+            verticalCenter: shield.verticalCenter
             leftMargin: 12
             rightMargin: 20
-            topMargin: 13
         }
-        text: I18n.tr("Authentifizierung erforderlich")
-        color: Colors.fgBackground
-        font.pixelSize: 16
-        font.weight: Font.DemiBold
-    }
+        spacing: 2
 
-    Text {
-        id: message
-        font.family: Config.font
+        Text {
+            id: message
 
-        anchors {
-            left: parent.left
-            right: parent.right
-            top: shield.bottom
-            leftMargin: 20
-            rightMargin: 20
-            topMargin: 10
+            width: parent.width
+            text: panel.flow?.message || I18n.tr("Eine Anwendung benötigt zusätzliche Berechtigungen.")
+            color: Colors.fgSurface
+            font.family: Config.font
+            font.pixelSize: 13
+            wrapMode: Text.WordWrap
+            maximumLineCount: 3
+            elide: Text.ElideRight
         }
-        text: panel.flow?.message ?? I18n.tr("Eine Anwendung benötigt zusätzliche Berechtigungen.")
-        color: Colors.fgSurfaceVariant
-        font.pixelSize: 11
-        wrapMode: Text.WordWrap
-        maximumLineCount: 2
-        elide: Text.ElideRight
-    }
 
-    Text {
-        id: identity
-        font.family: Config.font
-
-        anchors {
-            left: message.left
-            right: message.right
-            top: message.bottom
-            topMargin: 7
+        // Nur wenn nicht das eigene Konto gefragt ist (z. B. root)
+        Text {
+            width: parent.width
+            visible: text !== ""
+            text: panel.flow?.selectedIdentity
+                  && panel.flow.selectedIdentity.string !== "unix-user:" + Quickshell.env("USER")
+                ? I18n.tr("Als %1").arg(panel.flow.selectedIdentity.displayName) : ""
+            color: Colors.fgSurfaceVariant
+            font.family: Config.font
+            font.pixelSize: 11
+            elide: Text.ElideRight
         }
-        text: panel.flow?.selectedIdentity
-            ? I18n.tr("Als %1").arg(panel.flow.selectedIdentity.displayName) : ""
-        color: Colors.alpha(Colors.fgSurfaceVariant, 0.72)
-        font.pixelSize: 10
-        elide: Text.ElideRight
     }
 
     // Wie das Passwortfeld des Sperrbildschirms: Punkte-Pille
@@ -124,10 +122,11 @@ Item {
         anchors {
             left: parent.left
             right: parent.right
-            top: identity.bottom
+            top: shield.bottom
             leftMargin: 20
             rightMargin: 20
-            topMargin: 12
+            // Mehrzeilige Meldung ragt unter den Kreis
+            topMargin: 16 + Math.max(0, heading.y + heading.height - shield.y - shield.height)
         }
         enabled: panel.flow?.isResponseRequired ?? false
         reveal: panel.flow?.responseVisible ?? false
@@ -136,7 +135,7 @@ Item {
         placeholder: panel.checking ? ""
             : panel.flow?.isResponseRequired
                 ? ((panel.flow.inputPrompt ?? "").replace(/:\s*$/, "") || I18n.tr("Passwort"))
-                : I18n.tr("Authentifizierung wird vorbereitet...")
+                : I18n.tr("Authentifizierung wird vorbereitet…")
         onTextChanged: if (text !== "") panel.failed = false
         onAccepted: panel.submit()
     }
@@ -159,42 +158,9 @@ Item {
         elide: Text.ElideRight
     }
 
-    Rectangle {
-        id: cancelButton
-
-        anchors {
-            right: confirmButton.left
-            top: confirmButton.top
-            rightMargin: 9
-        }
-        width: 88
-        height: 36
-        radius: 11
-        color: cancelHover.hovered ? Colors.surfaceBright : Colors.surfaceContainer
-
-        Text {
-            font.family: Config.font
-            anchors.centerIn: parent
-            text: I18n.tr("Abbrechen")
-            color: Colors.fgSurface
-            font.pixelSize: 11
-            font.weight: Font.Medium
-        }
-
-        HoverHandler {
-            id: cancelHover
-            cursorShape: Qt.PointingHandCursor
-        }
-
-        TapHandler {
-            onTapped: panel.flow?.cancelAuthenticationRequest()
-        }
-    }
-
-    Rectangle {
-        id: confirmButton
-
-        readonly property bool ready: panel.flow?.isResponseRequired ?? false
+    // Textknoepfe wie in den Einstellungen; Bestaetigen ist die Hauptaktion
+    Row {
+        id: buttons
 
         anchors {
             right: parent.right
@@ -202,30 +168,18 @@ Item {
             rightMargin: 20
             topMargin: 14
         }
-        width: 112
-        height: 36
-        radius: 11
-        color: ready ? (confirmHover.hovered ? Colors.shade(Colors.primary, 0.08) : Colors.primary)
-                     : Colors.alpha(Colors.primary, 0.35)
+        spacing: 8
 
-        Text {
-            font.family: Config.font
-            anchors.centerIn: parent
-            text: I18n.tr("Bestätigen")
-            color: Colors.fgPrimary
-            font.pixelSize: 11
-            font.weight: Font.DemiBold
+        TextButton {
+            label: I18n.tr("Abbrechen")
+            onClicked: panel.flow?.cancelAuthenticationRequest()
         }
 
-        HoverHandler {
-            id: confirmHover
-            enabled: confirmButton.ready
-            cursorShape: Qt.PointingHandCursor
-        }
-
-        TapHandler {
-            enabled: confirmButton.ready
-            onTapped: panel.submit()
+        TextButton {
+            filled: true
+            label: I18n.tr("Bestätigen")
+            enabled: (panel.flow?.isResponseRequired ?? false) && !panel.checking
+            onClicked: panel.submit()
         }
     }
 
