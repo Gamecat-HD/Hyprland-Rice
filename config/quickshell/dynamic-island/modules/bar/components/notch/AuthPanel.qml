@@ -20,7 +20,7 @@ Item {
     readonly property alias maxOuterHeight: panel.outerHeight
 
     implicitWidth: 440
-    implicitHeight: 262
+    implicitHeight: confirmButton.y + confirmButton.height + 16
 
     // Fehlschlag: rot + schuetteln wie im Lock; Pruefen: Punkte als Welle
     property bool failed: false
@@ -117,9 +117,9 @@ Item {
         elide: Text.ElideRight
     }
 
-    // Wie das Passwortfeld des Sperrbildschirms: Avatar | Punkte-Pille | Schloss
-    Item {
-        id: inputRow
+    // Wie das Passwortfeld des Sperrbildschirms: Punkte-Pille
+    PasswordField {
+        id: password
 
         anchors {
             left: parent.left
@@ -129,63 +129,28 @@ Item {
             rightMargin: 20
             topMargin: 12
         }
-        height: 48
-
-        LockAvatar {
-            id: avatar
-
-            anchors.verticalCenter: parent.verticalCenter
-            size: 44
-            fg: Colors.fgSurface
-            ring: password.stateColor
-        }
-
-        PasswordField {
-            id: password
-
-            anchors {
-                left: avatar.right
-                leftMargin: 12
-                right: status.left
-                rightMargin: 12
-                verticalCenter: parent.verticalCenter
-            }
-            enabled: panel.flow?.isResponseRequired ?? false
-            reveal: panel.flow?.responseVisible ?? false
-            error: panel.failed
-            checking: panel.checking
-            placeholder: panel.checking ? ""
-                : panel.flow?.isResponseRequired
-                    ? ((panel.flow.inputPrompt ?? "").replace(/:\s*$/, "") || I18n.tr("Passwort"))
-                    : I18n.tr("Authentifizierung wird vorbereitet...")
-            onTextChanged: if (text !== "") panel.failed = false
-            onAccepted: panel.submit()
-        }
-
-        LockGlyph {
-            id: status
-
-            anchors {
-                right: parent.right
-                rightMargin: 2
-                verticalCenter: parent.verticalCenter
-            }
-            size: 16
-            color: password.stateColor
-        }
+        enabled: panel.flow?.isResponseRequired ?? false
+        reveal: panel.flow?.responseVisible ?? false
+        error: panel.failed
+        checking: panel.checking
+        placeholder: panel.checking ? ""
+            : panel.flow?.isResponseRequired
+                ? ((panel.flow.inputPrompt ?? "").replace(/:\s*$/, "") || I18n.tr("Passwort"))
+                : I18n.tr("Authentifizierung wird vorbereitet...")
+        onTextChanged: if (text !== "") panel.failed = false
+        onAccepted: panel.submit()
     }
 
     Text {
+        id: supplementary
         font.family: Config.font
         anchors {
-            left: inputRow.left
-            right: inputRow.right
-            leftMargin: avatar.width + 12
-            rightMargin: status.width + 14
-            top: inputRow.bottom
-            topMargin: 6
+            left: password.left
+            right: password.right
+            top: password.bottom
+            topMargin: text !== "" ? 6 : 0
         }
-        height: 16
+        height: text !== "" ? 16 : 0
         horizontalAlignment: Text.AlignHCenter
         text: panel.flow?.supplementaryMessage || (panel.failed ? I18n.tr("Falsches Passwort") : "")
         color: panel.flow?.supplementaryIsError || panel.failed ? Colors.error : Colors.fgSurfaceVariant
@@ -199,9 +164,8 @@ Item {
 
         anchors {
             right: confirmButton.left
-            bottom: parent.bottom
+            top: confirmButton.top
             rightMargin: 9
-            bottomMargin: 14
         }
         width: 88
         height: 36
@@ -234,9 +198,9 @@ Item {
 
         anchors {
             right: parent.right
-            bottom: parent.bottom
+            top: supplementary.bottom
             rightMargin: 20
-            bottomMargin: 14
+            topMargin: 14
         }
         width: 112
         height: 36
