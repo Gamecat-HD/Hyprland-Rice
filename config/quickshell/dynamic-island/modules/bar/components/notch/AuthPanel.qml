@@ -72,7 +72,8 @@ Item {
             color: Colors.primary
             font.family: "Material Symbols Outlined"
             font.pixelSize: 20
-            font.variableAxes: { "FILL": 1 }
+            // ungefuellt: gefuellt stanzt Material Symbols das Schloss als Loch aus
+            font.variableAxes: { "wght": 500 }
         }
     }
 
@@ -119,12 +120,11 @@ Item {
     PasswordField {
         id: password
 
+        // So breit wie das Feld im Lock, nicht die ganze Karte
+        width: 268
         anchors {
-            left: parent.left
-            right: parent.right
+            horizontalCenter: parent.horizontalCenter
             top: shield.bottom
-            leftMargin: 20
-            rightMargin: 20
             // Mehrzeilige Meldung ragt unter den Kreis
             topMargin: 16 + Math.max(0, heading.y + heading.height - shield.y - shield.height)
         }
@@ -163,9 +163,8 @@ Item {
         id: buttons
 
         anchors {
-            right: parent.right
+            horizontalCenter: parent.horizontalCenter
             top: supplementary.bottom
-            rightMargin: 20
             topMargin: 14
         }
         spacing: 8
