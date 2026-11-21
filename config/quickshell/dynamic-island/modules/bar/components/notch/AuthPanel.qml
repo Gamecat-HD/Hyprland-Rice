@@ -7,6 +7,7 @@ import qs
 import qs.modules.services.config
 import qs.modules.widgets
 import qs.modules.settings.system
+import qs.modules.services.user
 
 Item {
     id: panel
@@ -106,8 +107,7 @@ Item {
         Text {
             width: parent.width
             visible: text !== ""
-            text: panel.flow?.selectedIdentity
-                  && panel.flow.selectedIdentity.string !== "unix-user:" + Quickshell.env("USER")
+            text: panel.flow?.selectedIdentity && !panel.ownIdentity(panel.flow.selectedIdentity)
                 ? I18n.tr("Als %1").arg(panel.flow.selectedIdentity.displayName) : ""
             color: Colors.fgSurfaceVariant
             font.family: Config.font
@@ -120,11 +120,12 @@ Item {
     PasswordField {
         id: password
 
-        // So breit wie das Feld im Lock, nicht die ganze Karte
-        width: 268
         anchors {
-            horizontalCenter: parent.horizontalCenter
+            left: parent.left
+            right: parent.right
             top: shield.bottom
+            leftMargin: 20
+            rightMargin: 20
             // Mehrzeilige Meldung ragt unter den Kreis
             topMargin: 16 + Math.max(0, heading.y + heading.height - shield.y - shield.height)
         }
@@ -163,8 +164,9 @@ Item {
         id: buttons
 
         anchors {
-            horizontalCenter: parent.horizontalCenter
+            right: parent.right
             top: supplementary.bottom
+            rightMargin: 20
             topMargin: 14
         }
         spacing: 8
@@ -201,6 +203,13 @@ Item {
             password.shake();
             Qt.callLater(password.forceActiveFocus);
         }
+    }
+
+    // polkit nennt das eigene Konto mal per Login, mal per Klarname
+    function ownIdentity(id: var): bool {
+        const name = id.displayName ?? "";
+        return name === User.user || (User.name !== "" && name === User.name)
+            || (id.string ?? "") === "unix-user:" + User.user;
     }
 
     function submit(): void {
