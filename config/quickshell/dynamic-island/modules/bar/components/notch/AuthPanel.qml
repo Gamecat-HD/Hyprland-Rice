@@ -173,8 +173,12 @@ Item {
         }
         height: confirm.height
 
+        // Beide gleich breit, egal wie lang die Beschriftung ist
         TextButton {
+            id: cancel
+
             anchors.left: parent.left
+            width: Math.max(cancel.implicitWidth, confirm.implicitWidth)
             label: I18n.tr("Abbrechen")
             onClicked: panel.flow?.cancelAuthenticationRequest()
         }
@@ -183,6 +187,7 @@ Item {
             id: confirm
 
             anchors.right: parent.right
+            width: cancel.width
             filled: true
             label: I18n.tr("Bestätigen")
             enabled: (panel.flow?.isResponseRequired ?? false) && !panel.checking
