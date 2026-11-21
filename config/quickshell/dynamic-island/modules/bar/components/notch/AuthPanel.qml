@@ -4,6 +4,7 @@ import QtQuick
 
 import qs
 import qs.modules.services.config
+import qs.modules.widgets
 
 Item {
     id: panel
@@ -19,7 +20,11 @@ Item {
     readonly property alias maxOuterHeight: panel.outerHeight
 
     implicitWidth: 440
-    implicitHeight: 238
+    implicitHeight: 262
+
+    // Fehlschlag: rot + schuetteln wie im Lock; Pruefen: Punkte als Welle
+    property bool failed: false
+    property bool checking: false
 
     anchors {
         left: parent.left
@@ -34,7 +39,9 @@ Item {
     Component.onCompleted: if (panel.active) Qt.callLater(panel.activeChanged)
 
     onActiveChanged: {
-        password.text = "";
+        password.clear();
+        panel.failed = false;
+        panel.checking = false;
         if (active)
             Qt.callLater(password.forceActiveFocus);
     }
@@ -110,8 +117,9 @@ Item {
         elide: Text.ElideRight
     }
 
-    Rectangle {
-        id: inputBox
+    // Wie das Passwortfeld des Sperrbildschirms: Avatar | Punkte-Pille | Schloss
+    Item {
+        id: inputRow
 
         anchors {
             left: parent.left
@@ -119,60 +127,70 @@ Item {
             top: identity.bottom
             leftMargin: 20
             rightMargin: 20
-            topMargin: 10
+            topMargin: 12
         }
-        height: 42
-        radius: 12
-        color: Colors.surfaceContainer
-        border.width: password.activeFocus ? 1 : 0
-        border.color: Colors.primary
+        height: 48
 
-        TextInput {
+        LockAvatar {
+            id: avatar
+
+            anchors.verticalCenter: parent.verticalCenter
+            size: 44
+            fg: Colors.fgSurface
+            ring: password.stateColor
+        }
+
+        PasswordField {
             id: password
-            font.family: Config.font
 
             anchors {
-                fill: parent
-                leftMargin: 13
-                rightMargin: 13
+                left: avatar.right
+                leftMargin: 12
+                right: status.left
+                rightMargin: 12
+                verticalCenter: parent.verticalCenter
             }
             enabled: panel.flow?.isResponseRequired ?? false
-            verticalAlignment: TextInput.AlignVCenter
-            color: Colors.fgSurface
-            selectionColor: Colors.alpha(Colors.primary, 0.35)
-            font.pixelSize: 12
-            echoMode: panel.flow?.responseVisible ? TextInput.Normal : TextInput.Password
-            passwordCharacter: "*"
-            clip: true
-
-            Keys.onReturnPressed: panel.submit()
-            Keys.onEnterPressed: panel.submit()
-
-            Text {
-                anchors.fill: parent
-                visible: password.text === ""
-                text: panel.flow?.isResponseRequired
-                    ? (panel.flow.inputPrompt || I18n.tr("Passwort"))
+            reveal: panel.flow?.responseVisible ?? false
+            error: panel.failed
+            checking: panel.checking
+            placeholder: panel.checking ? ""
+                : panel.flow?.isResponseRequired
+                    ? ((panel.flow.inputPrompt ?? "").replace(/:\s*$/, "") || I18n.tr("Passwort"))
                     : I18n.tr("Authentifizierung wird vorbereitet...")
-                color: Colors.alpha(Colors.fgSurfaceVariant, 0.65)
-                font: password.font
-                verticalAlignment: Text.AlignVCenter
+            onTextChanged: if (text !== "") panel.failed = false
+            onAccepted: panel.submit()
+        }
+
+        LockGlyph {
+            id: status
+
+            anchors {
+                right: parent.right
+                rightMargin: 2
+                verticalCenter: parent.verticalCenter
             }
+            size: 16
+            color: password.stateColor
         }
     }
 
     Text {
         font.family: Config.font
         anchors {
-            left: inputBox.left
-            right: inputBox.right
-            top: inputBox.bottom
+            left: inputRow.left
+            right: inputRow.right
+            leftMargin: avatar.width + 12
+            rightMargin: status.width + 14
+            top: inputRow.bottom
             topMargin: 6
         }
         height: 16
-        text: panel.flow?.supplementaryMessage ?? ""
-        color: panel.flow?.supplementaryIsError ? Colors.error : Colors.fgSurfaceVariant
-        font.pixelSize: 10
+        horizontalAlignment: Text.AlignHCenter
+        text: panel.flow?.supplementaryMessage || (panel.failed ? I18n.tr("Falsches Passwort") : "")
+        color: panel.flow?.supplementaryIsError || panel.failed ? Colors.error : Colors.fgSurfaceVariant
+        font.pixelSize: 11
+        font.weight: Font.Medium
         elide: Text.ElideRight
     }
 
@@ -253,13 +271,17 @@ Item {
 
         function onIsResponseRequiredChanged(): void {
             if (panel.flow?.isResponseRequired) {
-                password.text = "";
+                panel.checking = false;
+                password.clear();
                 Qt.callLater(password.forceActiveFocus);
             }
         }
 
         function onAuthenticationFailed(): void {
-            password.text = "";
+            panel.checking = false;
+            panel.failed = true;
+            password.clear();
+            password.shake();
             Qt.callLater(password.forceActiveFocus);
         }
     }
@@ -269,6 +291,6 @@ Item {
             return;
 
         flow.submit(password.text);
-        password.text = "";
+        panel.checking = true;
     }
 }
