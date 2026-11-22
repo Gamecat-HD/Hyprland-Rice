@@ -295,7 +295,7 @@ Item {
                     PasswordDots {
                         anchors.centerIn: parent
                         width: parent.width - 32
-                        count: notch.context.buffer.length
+                        count: notch.context.phase === "checking" ? notch.context.submittedLength : notch.context.buffer.length
                         color: notch.stateColor
                         checking: notch.context.phase === "checking"
                     }
